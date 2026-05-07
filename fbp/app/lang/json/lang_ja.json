@@ -362,6 +362,7 @@
   "setting.date_format": "日付形式",
   "setting.datetime_format": "日時形式",
   "setting.year_month_format": "年月形式",
+  "setting.month_day_format": "月日形式",
   "setting.number_display": "数値表示",
   "setting.number_decimal_separator": "小数点区切り",
   "setting.number_decimal_separator.option.dot": "ドット (.)",

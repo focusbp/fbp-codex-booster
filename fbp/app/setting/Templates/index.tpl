@@ -47,7 +47,7 @@
 							<td>{html_options name="timezone" options=$timezones selected=$setting.timezone}</td>
 						</tr>
 						<tr>
-							<th rowspan="3">{t key="setting.date_display"}</th>
+							<th rowspan="4">{t key="setting.date_display"}</th>
 							<td>{t key="setting.date_format"}</td>
 							<td><input type="text" name="date_format" value="{$setting.date_format}"></td>
 						</tr>
@@ -58,6 +58,10 @@
 						<tr>
 							<td>{t key="setting.year_month_format"}</td>
 							<td><input type="text" name="year_month_format" value="{$setting.year_month_format}"></td>
+						</tr>
+						<tr>
+							<td>{t key="setting.month_day_format"}</td>
+							<td><input type="text" name="month_day_format" value="{$setting.month_day_format}"></td>
 						</tr>
 						<tr>
 							<th rowspan="3">{t key="setting.number_display"}</th>
@@ -398,6 +402,7 @@
 			"date_format",
 			"datetime_format",
 			"year_month_format",
+			"month_day_format",
 			"number_decimal_separator",
 			"number_thousands_separator",
 			"currency",

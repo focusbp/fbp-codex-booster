@@ -1208,7 +1208,7 @@ class Controller_class implements Controller {
 		return preg_match('/^qr-code(?:-text)?-?[a-f0-9]+\.png$/', $filename) === 1;
 	}
 
-	function res_saved_file($filename) {
+	function res_saved_file($filename, $download_name = null) {
 		//エラーを非表示
 		//error_reporting(~E_ALL);
 
@@ -1231,7 +1231,11 @@ class Controller_class implements Controller {
 		}
 
 		$mimeType = 'application/octet-stream';
-		$download_name = basename((string) $filename);
+		if ($download_name === null || trim((string) $download_name) === "") {
+			$download_name = basename((string) $filename);
+		} else {
+			$download_name = str_replace(["\r", "\n", "\0"], "", trim((string) $download_name));
+		}
 		$ascii_name = preg_replace('/[^A-Za-z0-9._-]/', '_', $download_name);
 		if ($ascii_name === "" || $ascii_name === null) {
 			$ascii_name = "download";

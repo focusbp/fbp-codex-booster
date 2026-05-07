@@ -1738,6 +1738,15 @@ if ($command === "db_tables_add") {
 		fwrite(STDERR, $err . "\n");
 		exit(1);
 	}
+	if (empty($data["tb_name"])) {
+		fwrite(STDERR, "Missing tb_name in --json\n");
+		exit(1);
+	}
+	$duplicate = $ffm_db_admin->select("tb_name", (string) $data["tb_name"]);
+	if (!empty($duplicate)) {
+		fwrite(STDERR, "Duplicate db table: tb_name=" . (string) $data["tb_name"] . "\n");
+		exit(1);
+	}
 	if (!isset($data["show_menu"]) || $data["show_menu"] === "") {
 		$data["show_menu"] = 1;
 	}

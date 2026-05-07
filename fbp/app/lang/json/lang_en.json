@@ -362,6 +362,7 @@
   "setting.date_format": "Date Format",
   "setting.datetime_format": "Datetime Format",
   "setting.year_month_format": "Year/Month Format",
+  "setting.month_day_format": "Month/Day Format",
   "setting.number_display": "Number Display",
   "setting.number_decimal_separator": "Decimal Separator",
   "setting.number_decimal_separator.option.dot": "Dot (.)",

@@ -1,0 +1,134 @@
+.change_week_button {
+	float: left;
+}
+
+.calendar {
+	display: flex;
+	width: 100%;
+	margin-top: 10px;
+}
+
+.calendar_datepicker_area {
+	display: block;
+	margin-left: 15px;
+	float: left;
+	margin-top: 9px;
+	width: 300px;
+}
+
+.calendar_datepicker_area input,
+.calendar_datepicker_area button {
+	float: left;
+}
+
+.calendar_datepicker_area button {
+	margin-top: 0;
+}
+
+.calendar .calendar_day_bar {
+	border-top: #ccc solid 1px;
+}
+
+.calendar_box {
+	border-bottom: 1px #ccc solid;
+	padding: 2px;
+	position: relative;
+}
+
+.calendar_title .date {
+	font-size: 24px;
+	line-height: 1em;
+}
+
+.calendar_box .task {
+	border: 2px #4ba3ff solid;
+	border-radius: 3px;
+	padding: 2px;
+	background: #fff;
+	overflow: hidden;
+	position: relative;
+	z-index: 2;
+}
+
+.calendar_box.occupied {
+	background: rgba(59, 130, 246, 0.08);
+}
+
+.calendar_box.occupied_travel {
+	background-image: repeating-linear-gradient(
+		135deg,
+		rgba(148, 163, 184, 0.16),
+		rgba(148, 163, 184, 0.16) 8px,
+		rgba(148, 163, 184, 0.06) 8px,
+		rgba(148, 163, 184, 0.06) 16px
+	);
+}
+
+.calendar_box.occupied_travel.occupied {
+	background-image:
+		repeating-linear-gradient(
+			135deg,
+			rgba(148, 163, 184, 0.16),
+			rgba(148, 163, 184, 0.16) 8px,
+			rgba(148, 163, 184, 0.06) 8px,
+			rgba(148, 163, 184, 0.06) 16px
+		),
+		linear-gradient(rgba(59, 130, 246, 0.08), rgba(59, 130, 246, 0.08));
+}
+
+.travel_marker {
+	font-size: 11px;
+	line-height: 1.2;
+	color: #475569;
+	margin-bottom: 4px;
+	padding: 2px 4px;
+	border-radius: 4px;
+	background: rgba(255, 255, 255, 0.88);
+	position: relative;
+	z-index: 1;
+}
+
+.travel_marker.travel_before {
+	border-left: 3px solid #94a3b8;
+}
+
+.travel_marker.travel_after {
+	border-left: 3px solid #64748b;
+}
+
+.calendar_box .task .time {
+	font-size: 14px;
+	display: block;
+	float: left;
+	font-weight: bold;
+}
+
+.calendar_box .task .task_message {
+	font-size: 14px;
+	display: block;
+	width: 100%;
+	clear: both;
+}
+
+.calendar_box .task .controlbox {
+	display: block;
+	height: 0;
+	transition: height 0.2s;
+	overflow: hidden;
+}
+
+.calendar_box .task:hover .controlbox {
+	height: 30px;
+}
+
+.calendar_box .task .controlbox button {
+	float: right;
+}
+
+.calendar_box .row_style {
+	background: transparent;
+}
+
+.calendar_box .task .row_value .item_viewer_dropdown_badge {
+	padding: 2px !important;
+}

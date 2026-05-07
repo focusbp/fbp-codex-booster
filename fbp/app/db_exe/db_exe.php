@@ -12,6 +12,25 @@ class db_exe {
 	private $window_name;
 	private $title;
 
+	private function original_management_class_name(): string {
+		return (string) $this->table_name . "_original_management";
+	}
+
+	private function original_management_file_path(): string {
+		return dirname(__FILE__) . "/../../../classes/app/" . $this->original_management_class_name() . "/" . $this->original_management_class_name() . ".php";
+	}
+
+	private function invoke_original_management(Controller $ctl): bool {
+		$class_name = $this->original_management_class_name();
+		$file_path = $this->original_management_file_path();
+		if (!is_file($file_path)) {
+			$ctl->show_notification_text("Original management class not found: " . $class_name);
+			return false;
+		}
+		$ctl->invoke("run", [], $class_name);
+		return true;
+	}
+
 	private function invoke_post_action_class(Controller $ctl, $data, $post_action_from = "", ?int $source_id = null){
 		if(empty($this->db_setting["post_action_class"])){
 			return;
@@ -217,6 +236,10 @@ class db_exe {
 
 	
 	function page(Controller $ctl){
+		if ((int) ($this->db_setting["screen_build_type"] ?? 0) === 1) {
+			$this->invoke_original_management($ctl);
+			return;
+		}
 		
 		if($this->db_setting["list_type"] == 0){
 			//List Type is "Search and Table"

@@ -47,6 +47,7 @@ timezone,50,T
 date_format,50,T
 datetime_format,50,T
 year_month_format,50,T
+month_day_format,50,T
 number_decimal_separator,5,T
 number_thousands_separator,5,T
 number_decimal_digits,2,N

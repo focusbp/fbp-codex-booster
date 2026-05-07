@@ -118,6 +118,9 @@ class setting {
 		if (empty($setting["year_month_format"])) {
 			$setting["year_month_format"] = "Y/m";
 		}
+		if (empty($setting["month_day_format"])) {
+			$setting["month_day_format"] = "n/j";
+		}
 		$setting["number_decimal_separator"] = $this->normalize_number_decimal_separator($setting["number_decimal_separator"] ?? "");
 		$setting["number_thousands_separator"] = $this->normalize_number_thousands_separator($setting["number_thousands_separator"] ?? "");
 		if (!isset($setting["number_decimal_digits"]) || $setting["number_decimal_digits"] === "") {
@@ -222,6 +225,9 @@ class setting {
 		}
 		if (empty($setting["year_month_format"])) {
 			$setting["year_month_format"] = "Y/m";
+		}
+		if (empty($setting["month_day_format"])) {
+			$setting["month_day_format"] = "n/j";
 		}
 		$setting["number_decimal_separator"] = $this->normalize_number_decimal_separator($setting["number_decimal_separator"] ?? "");
 		$setting["number_thousands_separator"] = $this->normalize_number_thousands_separator($setting["number_thousands_separator"] ?? "");
@@ -392,6 +398,7 @@ class setting {
 				"date_format" => "Y/m/d",
 				"datetime_format" => "Y/m/d H:i",
 				"year_month_format" => "Y/m",
+				"month_day_format" => "n/j",
 				"number_decimal_separator" => "dot",
 				"number_thousands_separator" => "comma",
 				"currency" => "JPY",
@@ -403,6 +410,7 @@ class setting {
 				"date_format" => "Y/m/d",
 				"datetime_format" => "Y/m/d H:i",
 				"year_month_format" => "Y/m",
+				"month_day_format" => "n/j",
 				"number_decimal_separator" => "dot",
 				"number_thousands_separator" => "comma",
 				"currency" => "JPY",
@@ -414,6 +422,7 @@ class setting {
 				"date_format" => "m/d/Y",
 				"datetime_format" => "m/d/Y h:i A",
 				"year_month_format" => "M Y",
+				"month_day_format" => "n/j",
 				"number_decimal_separator" => "dot",
 				"number_thousands_separator" => "comma",
 				"currency" => "USD",
@@ -425,6 +434,7 @@ class setting {
 				"date_format" => "d/m/Y",
 				"datetime_format" => "d/m/Y H:i",
 				"year_month_format" => "M Y",
+				"month_day_format" => "j/n",
 				"number_decimal_separator" => "dot",
 				"number_thousands_separator" => "comma",
 				"currency" => "GBP",
@@ -436,6 +446,7 @@ class setting {
 				"date_format" => "Y/m/d",
 				"datetime_format" => "Y/m/d H:i",
 				"year_month_format" => "Y/m",
+				"month_day_format" => "n/j",
 				"number_decimal_separator" => "dot",
 				"number_thousands_separator" => "comma",
 				"currency" => "CNY",
@@ -447,6 +458,7 @@ class setting {
 				"date_format" => "Y/m/d",
 				"datetime_format" => "Y/m/d H:i",
 				"year_month_format" => "Y/m",
+				"month_day_format" => "n/j",
 				"number_decimal_separator" => "dot",
 				"number_thousands_separator" => "comma",
 				"currency" => "TWD",
@@ -463,6 +475,7 @@ class setting {
 			"date_format" => $ctl->t("setting.date_format"),
 			"datetime_format" => $ctl->t("setting.datetime_format"),
 			"year_month_format" => $ctl->t("setting.year_month_format"),
+			"month_day_format" => $ctl->t("setting.month_day_format"),
 			"number_decimal_separator" => $ctl->t("setting.number_decimal_separator"),
 			"number_thousands_separator" => $ctl->t("setting.number_thousands_separator"),
 			"currency" => $ctl->t("setting.currency"),

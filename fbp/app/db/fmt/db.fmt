@@ -8,6 +8,7 @@ show_menu,1,N
 menu_visibility,1,N
 sortkey,255,T
 sort_order,1,N
+screen_build_type,1,N
 list_type,1,N
 side_list_type,1,N
 dropdown_item,255,T

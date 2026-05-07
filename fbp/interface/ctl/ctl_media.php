@@ -51,7 +51,7 @@ interface ctl_media {
 	 * @param string $filename The name of the saved file.
 	 * @return void
 	 */
-	function res_saved_file($filename);
+	function res_saved_file($filename, $download_name = null);
 
 	/**
 	 * Outputs a CSV response.

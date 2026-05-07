@@ -89,6 +89,10 @@ class db {
 	    1 => "Manual Sort",
 	    2 => "Weekly Calendar"
 	];
+	private $screen_build_type_opt = [
+	    0 => "Standard Screen",
+	    1 => "Original Screen"
+	];
 	private $side_list_type_opt = [
 	    0 => "Same as Main Screen",
 	    1 => "Search and Table",
@@ -192,6 +196,7 @@ class db {
 		$ctl->assign("show_menu_opt", $this->show_menu_opt);
 		$ctl->assign("menu_visibility_opt", $this->menu_visibility_opt);
 		$ctl->assign("sort_order_opt", $this->sort_order_opt);
+		$ctl->assign("screen_build_type_opt", $this->screen_build_type_opt);
 		$ctl->assign("list_type_opt", $this->list_type_opt);
 		$ctl->assign("side_list_type_opt", $this->side_list_type_opt);
 		$ctl->assign("duplicate_check_opt", $this->duplicate_check_opt);
@@ -278,7 +283,12 @@ class db {
 		$post["menu_name"] = $post["tb_name"];
 		$post["show_menu"] = 1;
 		$post["sort_order"] = 3;
+		$post["screen_build_type"] = isset($post["screen_build_type"]) ? (int)$post["screen_build_type"] : 0;
 		$post["side_list_type"] = isset($post["side_list_type"]) ? (int)$post["side_list_type"] : 0;
+		if ((int) ($post["screen_build_type"] ?? 0) === 1) {
+			$post["list_type"] = 0;
+			$post["side_list_type"] = 0;
+		}
 
 		$id = $this->fmt_db->insert($post);
 
@@ -365,6 +375,9 @@ class db {
 
 		if ($data["side_list_type"] === "" || $data["side_list_type"] === null) {
 			$data["side_list_type"] = 0;
+		}
+		if ($data["screen_build_type"] === "" || $data["screen_build_type"] === null) {
+			$data["screen_build_type"] = 0;
 		}
 		if ($data["show_search_id"] === "" || $data["show_search_id"] === null) {
 			$data["show_search_id"] = 0;
@@ -506,6 +519,12 @@ class db {
 		$data = $this->fmt_db->get($id);
 		foreach ($_POST as $key => $value) {
 			$data[$key] = $value;
+		}
+		$data["screen_build_type"] = isset($data["screen_build_type"]) ? (int) $data["screen_build_type"] : 0;
+		$data["side_list_type"] = isset($data["side_list_type"]) ? (int) $data["side_list_type"] : 0;
+		if ((int) ($data["screen_build_type"] ?? 0) === 1) {
+			$data["list_type"] = 0;
+			$data["side_list_type"] = 0;
 		}
 			if (empty($data["dropdown_item_display_type"])) {
 				$data["dropdown_item_display_type"] = "field";
