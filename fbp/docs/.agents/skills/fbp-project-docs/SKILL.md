@@ -11,6 +11,14 @@ Use this skill when working on an FBP app that has a project-level `docs/` folde
 
 Project docs are source-side context for AI and developers. They are not runtime code and should not contain environment-specific values.
 
+## Priority
+
+Project docs are lower priority than common `AGENTS.md`, applicable Skills, and `NetBeansProjects` environment rules.
+
+- Use docs as support history and decision context, not as rule authority.
+- If docs conflict with common rules or Skills, follow the common rules or Skills.
+- When docs are stale or misleading, update them briefly after verifying the real code, data, or management API state.
+
 ## Preferred files
 
 For support-heavy apps, prefer this small structure:
@@ -28,7 +36,7 @@ Do not create broad architecture or operations documents unless the user explici
    - customer/support response: `customer-support.md`
    - prior behavior or why something is that way: `history.md`
    - direction or design tradeoff: `direction.md`
-3. Treat docs as guidance, not as a substitute for code, database, task, or management API checks.
+3. Treat docs as guidance, not as a substitute for common rules, Skills, code, database, task, or management API checks.
 
 ## During and after work
 
