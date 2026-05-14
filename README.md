@@ -132,8 +132,22 @@ php fbp/cli.php app_call --json='{"class":"login","function":"page"}'
 
 ## Use With Codex
 
-After cloning the repo, ask Codex to read the relevant FBP skill docs before it
-changes code. For example:
+Start Codex from the repository root:
+
+```bash
+cd fbp-codex-booster
+codex
+```
+
+If you want to keep the local web server running at the same time, start it in
+another terminal:
+
+```bash
+php -S 127.0.0.1:8000 router.php
+```
+
+Then ask Codex to read the relevant FBP skill docs before it changes code.
+For example:
 
 ```text
 Read README.md and fbp/docs/.agents/skills/fbp-original-screen/SKILL.md.
