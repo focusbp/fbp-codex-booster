@@ -135,20 +135,20 @@ Upload these folders to the same parent directory on your Apache server:
 Recommended Apache setup:
 
 ```text
-DocumentRoot /path/to/site/fbp
+DocumentRoot /path/to/site
 ```
 
 Then open:
 
 ```text
-https://example.com/app.php
+https://example.com/fbp/app.php
 ```
 
-If you cannot change `DocumentRoot`, upload `fbp/` and `classes/` under the same
-web root and open:
+If the app is installed under a subdirectory, keep `fbp/` and `classes/` under
+the same parent directory:
 
 ```text
-https://example.com/fbp/app.php
+https://example.com/subdir/fbp/app.php
 ```
 
 Make sure the PHP process can write to `classes/data` and `classes/log`.
