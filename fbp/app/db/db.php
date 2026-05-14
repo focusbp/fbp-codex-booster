@@ -1160,8 +1160,10 @@ class db {
 			$fields = $this->fmt_db_fields->select("db_id", $db_id, true, "AND", "sort", SORT_ASC);
 			foreach ($fields as $field) {
 				$t = "";
-				if ($field["type"] == "number" || $field["type"] == "dropdown" || $field["type"] == "radio" || $field["type"] == "datetime" || $field["type"] == "date"
+				if ($field["type"] == "number" || $field["type"] == "radio" || $field["type"] == "datetime" || $field["type"] == "date"
 				) {
+					$t = "N";
+				} else if ($field["type"] == "dropdown" && startsWith((string) ($field["constant_array_name"] ?? ""), "table/")) {
 					$t = "N";
 				} else if ($field["type"] == "float") {
 					$t = "F";

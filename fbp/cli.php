@@ -200,11 +200,12 @@ function cli_make_table_format(Dirs $dir, $ffm_db, $ffm_db_fields) {
 		foreach ($fields as $field) {
 			$t = "T";
 			if ($field["type"] == "number"
-				|| $field["type"] == "dropdown"
 				|| $field["type"] == "radio"
 				|| $field["type"] == "datetime"
 				|| $field["type"] == "date"
 				|| $field["type"] == "time") {
+				$t = "N";
+			} else if ($field["type"] == "dropdown" && startsWith((string) ($field["constant_array_name"] ?? ""), "table/")) {
 				$t = "N";
 			} else if ($field["type"] == "float") {
 				$t = "F";
@@ -328,9 +329,27 @@ function cli_get_json_arg(array $argv): array {
 			$json = $argv[$i + 1];
 			break;
 		}
+		if (strpos($arg, "--json-file=") === 0) {
+			$json = "@" . substr($arg, 12);
+			break;
+		}
+		if ($arg === "--json-file" && isset($argv[$i + 1])) {
+			$json = "@" . $argv[$i + 1];
+			break;
+		}
 	}
 	if ($json === null || $json === "") {
 		return [false, "Missing --json argument", null];
+	}
+	if (strpos($json, "@") === 0) {
+		$json_file = substr($json, 1);
+		if ($json_file === "" || !is_file($json_file)) {
+			return [false, "JSON file not found", null];
+		}
+		$json = file_get_contents($json_file);
+		if ($json === false) {
+			return [false, "Could not read JSON file", null];
+		}
 	}
 	$data = json_decode($json, true);
 	if (!is_array($data)) {
@@ -645,7 +664,7 @@ function cli_app_call_execute(array $data, Dirs $dir, Smarty $smarty) {
 					"error" => "Class \"$class\" does not have function \"$function\"",
 				], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
 			}
-			if (!$ctl->display_flg) {
+			if (!$ctl->display_flg && !$ctl->stop_res) {
 				$ctl->res();
 			}
 		}
@@ -1548,8 +1567,11 @@ function cli_validate_constant_array_name($name) {
 	if ($name === "") {
 		return [false, "Missing array_name in --json"];
 	}
-	if (!preg_match('/_opt$/', $name)) {
-		return [false, "array_name must end with _opt"];
+	if (!preg_match('/^[a-z][a-z0-9_]*$/', $name)) {
+		return [false, "array_name must be a lowercase identifier"];
+	}
+	if (startsWith($name, "table_")) {
+		return [false, "array_name must not start with table_"];
 	}
 	return [true, ""];
 }
@@ -1653,10 +1675,14 @@ if ($command === "constant_values_add") {
 		exit(1);
 	}
 	$constant_array_id = (int) $data["constant_array_id"];
-	$key = (int) $data["key"];
+	$key = trim((string) $data["key"]);
+	if ($key === "") {
+		fwrite(STDERR, "Missing key in --json\n");
+		exit(1);
+	}
 	$rows = $ffm_values->select("constant_array_id", $constant_array_id);
 	foreach ($rows as $row) {
-		if ((int) ($row["key"] ?? 0) === $key) {
+		if ((string) ($row["key"] ?? "") === $key) {
 			fwrite(STDERR, "Duplicate key in constant_array_id\n");
 			exit(1);
 		}
@@ -1682,13 +1708,17 @@ if ($command === "constant_values_edit") {
 	}
 	if (isset($data["constant_array_id"]) && isset($data["key"])) {
 		$constant_array_id = (int) $data["constant_array_id"];
-		$key = (int) $data["key"];
+		$key = trim((string) $data["key"]);
+		if ($key === "") {
+			fwrite(STDERR, "Missing key in --json\n");
+			exit(1);
+		}
 		$rows = $ffm_values->select("constant_array_id", $constant_array_id);
 		foreach ($rows as $row) {
 			if ((int) ($row["id"] ?? 0) === (int) $data["id"]) {
 				continue;
 			}
-			if ((int) ($row["key"] ?? 0) === $key) {
+			if ((string) ($row["key"] ?? "") === $key) {
 				fwrite(STDERR, "Duplicate key in constant_array_id\n");
 				exit(1);
 			}

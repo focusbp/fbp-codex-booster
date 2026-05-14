@@ -72,10 +72,18 @@ Copy the whole block below and paste it into Codex:
 ```text
 Read README.md and fbp/docs/.agents/skills/fbp-customer-demo/SKILL.md.
 Create the default customer management demo.
-Use the fixed customer fields from the skill.
-Build it in stages: CRUD first, then seed data, then CSV, then PDF.
-Verify each stage with the FBP CLI.
+Use the bundled installer and assets from the skill.
+Verify the CRUD screen, seed data, CSV export, and PDF output with the FBP CLI.
 ```
+
+## Generated Customer Demo
+
+After the prompt above, Codex creates a customer management demo with CRUD, CSV
+import/export, and PDF output.
+
+![Generated customer management demo](docs/images/customer-demo.png)
+
+![Generated customer PDF output](docs/images/customer-demo-pdf.png)
 
 ## Route Convention
 

@@ -3487,8 +3487,9 @@ class Controller_class implements Controller {
 
 	function add_constant_array($array_name, $key, $value, $color = "#ccc") {
 
-		if (!endsWith($array_name, "_opt")) {
-			throw new Exception("Array Name should ends with _opt");
+		$array_name = trim((string) $array_name);
+		if ($array_name === "" || !preg_match('/^[a-z][a-z0-9_]*$/', $array_name)) {
+			throw new Exception("Array Name should be a lowercase identifier");
 		}
 
 		$ffm_constant_array = $this->db("constant_array", "constant_array");

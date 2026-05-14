@@ -1,0 +1,173 @@
+{
+  "constant_array": {
+    "array_name": "customer_status"
+  },
+  "constant_values": [
+    {
+      "key": "prospect",
+      "value": "Prospect",
+      "color": "#2563eb",
+      "sort": 1
+    },
+    {
+      "key": "active",
+      "value": "Active",
+      "color": "#16a34a",
+      "sort": 2
+    },
+    {
+      "key": "inactive",
+      "value": "Inactive",
+      "color": "#64748b",
+      "sort": 3
+    }
+  ],
+  "db_table": {
+    "tb_name": "customers",
+    "menu_name": "Customers",
+    "sort": 1,
+    "parent_tb_id": 0,
+    "description": "Default customer management demo",
+    "show_menu": 1,
+    "menu_visibility": 0,
+    "sortkey": "id",
+    "sort_order": 3,
+    "screen_build_type": 1,
+    "list_type": 0,
+    "side_list_type": 0,
+    "dropdown_item": "",
+    "dropdown_item_display_type": "",
+    "dropdown_item_template": "",
+    "list_width": 1200,
+    "edit_width": 800,
+    "start_hour": 0,
+    "end_hour": 0,
+    "show_id": 1,
+    "show_search_id": 1,
+    "show_duplicate": 0,
+    "api_allow_domain": "",
+    "api_thanks_html": "",
+    "api_scope": "",
+    "api_allow_delete": 0,
+    "show_icon_on_parent_list": 0,
+    "post_action_class": "",
+    "cascade_delete_flag": 0
+  },
+  "db_fields": [
+    {
+      "parameter_name": "company_name",
+      "parameter_title": "Company Name",
+      "type": "text",
+      "length": 255,
+      "validation": 1,
+      "sort": 1
+    },
+    {
+      "parameter_name": "contact_name",
+      "parameter_title": "Contact Name",
+      "type": "text",
+      "length": 255,
+      "validation": 0,
+      "sort": 2
+    },
+    {
+      "parameter_name": "email",
+      "parameter_title": "Email",
+      "type": "text",
+      "length": 255,
+      "validation": 0,
+      "format_check": "email",
+      "sort": 3
+    },
+    {
+      "parameter_name": "phone",
+      "parameter_title": "Phone",
+      "type": "text",
+      "length": 255,
+      "validation": 0,
+      "sort": 4
+    },
+    {
+      "parameter_name": "postal_code",
+      "parameter_title": "Postal Code",
+      "type": "text",
+      "length": 255,
+      "validation": 0,
+      "sort": 5
+    },
+    {
+      "parameter_name": "address",
+      "parameter_title": "Address",
+      "type": "textarea",
+      "length": 1000,
+      "validation": 0,
+      "sort": 6
+    },
+    {
+      "parameter_name": "status",
+      "parameter_title": "Status",
+      "type": "dropdown",
+      "constant_array_name": "customer_status",
+      "default_value": "prospect",
+      "length": 24,
+      "validation": 1,
+      "sort": 7
+    },
+    {
+      "parameter_name": "memo",
+      "parameter_title": "Memo",
+      "type": "textarea",
+      "length": 1000,
+      "validation": 0,
+      "sort": 8
+    },
+    {
+      "parameter_name": "created_at",
+      "parameter_title": "Created At",
+      "type": "datetime",
+      "length": 15,
+      "validation": 0,
+      "sort": 9
+    },
+    {
+      "parameter_name": "updated_at",
+      "parameter_title": "Updated At",
+      "type": "datetime",
+      "length": 15,
+      "validation": 0,
+      "sort": 10
+    }
+  ],
+  "seed_rows": [
+    {
+      "company_name": "Acme Trading",
+      "contact_name": "Alice Johnson",
+      "email": "alice@example.com",
+      "phone": "03-0000-0001",
+      "postal_code": "100-0001",
+      "address": "Tokyo",
+      "status": "active",
+      "memo": "Key account"
+    },
+    {
+      "company_name": "Blue River Co.",
+      "contact_name": "Bob Smith",
+      "email": "bob@example.com",
+      "phone": "06-0000-0002",
+      "postal_code": "530-0001",
+      "address": "Osaka",
+      "status": "prospect",
+      "memo": "Needs follow-up"
+    },
+    {
+      "company_name": "Green Field LLC",
+      "contact_name": "Carol Lee",
+      "email": "carol@example.com",
+      "phone": "052-0000-0003",
+      "postal_code": "460-0001",
+      "address": "Nagoya",
+      "status": "inactive",
+      "memo": "Past customer"
+    }
+  ]
+}

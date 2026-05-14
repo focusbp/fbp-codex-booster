@@ -57,9 +57,8 @@ class constant_array {
 		if ($array_name === ""){
 			$errors["array_name"] = "Array name is required!";
 		}else{
-			$endsWith = '_opt';
-			if (!endsWith($array_name, $endsWith)) {
-				$errors["array_name"] = "Please create a variable name that ends with '_opt'.";
+			if (!preg_match('/^[a-z][a-z0-9_]*$/', $array_name)) {
+				$errors["array_name"] = "Please use a lowercase identifier.";
 			}
 			
 			if (startsWith($array_name,"table_")){
@@ -286,11 +285,6 @@ class constant_array {
 
 		if ($key === '')
 			$errors['key'] = "Key is required!";
-
-		if ($key !== '' && !is_numeric($key)) {
-			$errors['key'] = "Key should be a number.";
-		}
-		//var_dump($data);
 
 		if ($key !== '') {
 			$validate_duplicate = $ctl->validate_duplicate('values', ['key', "constant_array_id"], [$key, $constant_array_id], $id, 'constant_array');

@@ -281,11 +281,12 @@ class ReleaseManager {
 			foreach ($fields as $field) {
 				$t = "T";
 				if ($field["type"] == "number"
-					|| $field["type"] == "dropdown"
 					|| $field["type"] == "radio"
 					|| $field["type"] == "datetime"
 					|| $field["type"] == "date"
 					|| $field["type"] == "time") {
+					$t = "N";
+				} else if ($field["type"] == "dropdown" && strpos((string) ($field["constant_array_name"] ?? ""), "table/") === 0) {
 					$t = "N";
 				} else if ($field["type"] == "float") {
 					$t = "F";

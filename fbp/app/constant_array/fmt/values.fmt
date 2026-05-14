@@ -1,6 +1,6 @@
 id,24,N
 constant_array_id,24,N
-key,24,N
+key,255,T
 value,255,T
 color,255,T
 sort,24,N
