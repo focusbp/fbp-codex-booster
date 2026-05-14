@@ -26,6 +26,13 @@ description: Execute and verify FBP features through cli.php commands including 
 - 更新結果確認:
   `~/scripts/fbp_cli_check.sh --app app-xxx data_get customers 1`
   `~/scripts/fbp_cli_check.sh --app app-xxx data_list customers 100`
+- HMAC API 経由のデータ更新:
+  `MGMT_API_MODE=test ~/scripts/db_api.sh add customers '{"data":{"name":"test"}}'`
+  `MGMT_API_MODE=test ~/scripts/db_api.sh edit customers '{"data":{"id":1,"name":"updated"}}'`
+  `MGMT_API_MODE=test ~/scripts/db_api.sh delete customers 1`
+- 本番の実データを扱う場合:
+  `MGMT_API_MODE=production ~/scripts/db_api.sh getall customers 10`
+  `MGMT_API_MODE=production ~/scripts/db_api.sh add customers '{"data":{"name":"test"}}'`
 - 追加 JSON が必要な場合は、`app_call` / `app_check` の第3引数に `post` / `get` / `files` / `output_file` をそのまま渡す。
 - ラッパーで足りない CLI はそのまま透過実行できる:
   `~/scripts/fbp_cli_check.sh --app app-xxx cron_list '{"id":1}'`
@@ -61,6 +68,8 @@ description: Execute and verify FBP features through cli.php commands including 
 
 ## known pitfalls
 - `data_list` は `table` だけでなく `max` も要求される環境がある。`{"table":"x","max":100}` 形式で呼ぶ。
+- `db_api.sh` は read-only 専用ではない。`add` / `edit` / `delete` があるが、調査・承認前は `get` / `getall` / `select` / `filter` / `find` だけに限定する。
+- `db_api.sh add` は `data.id` を無視して新規IDを採番する。`edit` は `data.id` 必須、`delete` は数値ID必須。
 - `db_fields_list` の結果に `tb_name` が含まれない環境がある。`db_id` と `db_tables_list.id` を対応させてテーブル名を特定する。
 - `db()->insert()` / `update()` は参照渡し実装のため、配列リテラルを直接渡さず変数に入れてから渡す。
 - `app_call` の戻りには `request.post` / `request.get` / `console_log` が含まれる。送信値の不整合確認はまずここを見る。

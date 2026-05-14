@@ -27,7 +27,8 @@
 				
 				<a class="logout-icon" href="app.php?class=login&function=logout"><span class="material-symbols-outlined">logout</span></a>
 				<button class="ajax-link logout-icon" data-class="password_reset" data-function="page"><span class="material-symbols-outlined">key</span></button>
-        </div>
+				<span class="topbar-login-user-name">{if $MYSESSION.name != ""}{$MYSESSION.name|escape}{else}{$MYSESSION.login_id|escape}{/if}</span>
+	        </div>
 
         <div id="download_view">
             <div id="download_bar">

@@ -24,6 +24,87 @@ description: Build and operate public_pages with login-free entry points, secure
 9. 公開検索や絞り込みで URL に出したくない値は、`GET` ではなく `POST -> session` で保持し、表示時に復元する。
 10. 公開側で `ajax-auto` によるスクロール追加を行う場合、初回表示関数と追加読込関数を分ける。初回は `show_public_pages()` で全体表示し、追加読込は一覧部分専用の関数から `reload_area()` で部分テンプレートだけを返す。
 
+## public wizard forms
+- 公開側の初回登録・申込みなどをウィザード形式にする場合、ステップ切替をページ内JSだけに依存しない。公開画面ではJSイベントの初期化順や差し替え後の再bindでボタンが動かないことがある。
+- 推奨形は、外枠テンプレートに `#xxx_wizard_area` を置き、フォーム部分を `_xxx_wizard_form.tpl` に切り出す。`次へ` / `戻る` は `ajax-link` + `data-form` で同一 `public_pages` 関数へ送信し、サーバー側で `current_step` と入力値を見て次のステップを決め、`reload_area("#xxx_wizard_area", "_xxx_wizard_form.tpl")` でフォーム部分だけ更新する。
+- 各ステップの入力値は次ステップでも失わないよう、表示しない項目を hidden で持ち回る。最終保存では改めて全必須チェックを行う。
+- ステップ移動時にも、そのステップで必須の項目は検証する。例: BNI選択時の `chapter_name` / `connect_name` は、BNIステップの `次へ` 時点で未入力なら同じステップを再表示し、項目下にエラーを出す。
+- ボタン順は画面ごとに明示する。戻るボタンを置く場合でも、ユーザーが次に押す主操作を先に出す指定なら `次へ`/`登録` を先、`戻る` を後にする。
+- 実装時にまとまったサンプルが必要な場合は `references/public_wizard_form_sample.md` を読む。
+
+### wizard sample
+```php
+function register(Controller $ctl) {
+	$this->assign_register_form($ctl, $row, "member_type");
+	$ctl->show_public_pages("register.tpl", "_site_head.tpl", "_site_register_header.tpl", "_site_footer.tpl");
+}
+
+function register_step(Controller $ctl) {
+	$row = [
+		"member_type" => trim((string) $ctl->POST("member_type")),
+		"chapter_name" => trim((string) $ctl->POST("chapter_name")),
+		"connect_name" => trim((string) $ctl->POST("connect_name")),
+		"name" => trim((string) $ctl->POST("name")),
+	];
+	$current_step = trim((string) ($ctl->POST("current_step") ?? "member_type"));
+	$step_action = trim((string) ($ctl->POST("step_action") ?? "next"));
+	$errors = [];
+	$next_step = $current_step;
+
+	if ($step_action === "back") {
+		$next_step = $current_step === "name" && $row["member_type"] === "1" ? "bni" : "member_type";
+	} elseif ($current_step === "member_type") {
+		$next_step = $row["member_type"] === "1" ? "bni" : "name";
+	} elseif ($current_step === "bni") {
+		if ($row["chapter_name"] === "") {
+			$errors["chapter_name"] = "BNIチャプター名を入力してください。";
+		}
+		if ($row["connect_name"] === "") {
+			$errors["connect_name"] = "コネクト氏名を入力してください。";
+		}
+		if ($errors === []) {
+			$next_step = "name";
+		}
+	}
+
+	$this->assign_register_form($ctl, $row, $next_step, $errors);
+	$ctl->reload_area("#register_wizard_area", "_register_wizard_form.tpl");
+}
+```
+
+```smarty
+{* register.tpl *}
+<main>
+	<h1>会員登録</h1>
+	<div id="register_wizard_area">
+		{include file="./_register_wizard_form.tpl"}
+	</div>
+</main>
+```
+
+```smarty
+{* _register_wizard_form.tpl *}
+<form id="register_wizard_form" onsubmit="return false;">
+	<input type="hidden" name="current_step" value="{$current_step|escape}">
+	{if $current_step == "member_type"}
+		{fields_form_original name="member_type" type="dropdown" value=$row.member_type options_arr=$member_type_options title="会員種別"}
+		<p class="error_message error_member_type">{$errors.member_type|default:''|escape}</p>
+		<input type="hidden" name="chapter_name" value="{$row.chapter_name|escape}">
+		<input type="hidden" name="connect_name" value="{$row.connect_name|escape}">
+		<input type="hidden" name="name" value="{$row.name|escape}">
+		<button type="button" class="ajax-link button_link" data-class="public_pages" data-function="register_step" data-form="register_wizard_form" data-step_action="next">次へ</button>
+	{elseif $current_step == "bni"}
+		<input type="hidden" name="member_type" value="{$row.member_type|escape}">
+		{fields_form_original name="chapter_name" type="text" value=$row.chapter_name title="BNIチャプター名"}
+		<p class="error_message error_chapter_name">{$errors.chapter_name|default:''|escape}</p>
+		{fields_form_original name="connect_name" type="text" value=$row.connect_name title="コネクト氏名"}
+		<p class="error_message error_connect_name">{$errors.connect_name|default:''|escape}</p>
+		<button type="button" class="ajax-link button_link" data-class="public_pages" data-function="register_step" data-form="register_wizard_form" data-step_action="next">次へ</button>
+		<button type="button" class="ajax-link button_link" data-class="public_pages" data-function="register_step" data-form="register_wizard_form" data-step_action="back">戻る</button>
+	{/if}
+</form>
+```
+
 ## infinite scroll / ajax-auto
 - `ajax-auto` の呼び先に、初回表示と同じ `show_public_pages()` 関数をそのまま使わない。公開ページ全体の HTML が返り、一覧末尾に誤挿入される。
 - 一覧本体は `_list.tpl` のような部分テンプレートへ切り出し、本文テンプレート側では `<div id="list_area">{include file="./_list.tpl"}</div>` のように包む。
@@ -116,6 +197,7 @@ private function assign_news_list(Controller $ctl) {
 - メニュー表示名は `menu_label` を優先し、未設定時は `title` を使う。
 - メニュー順は `menu_sort` 昇順を前提にする。
 - まだ公開ページが揃っていない段階でも、ヘッダ側は `public_pages_registry` のメニュー取得に寄せておく。
+- LINEモールや小規模ECの公開側で、今回のような整った赤基調のモール画面を作る場合は `references/public_mall_ui_sample.md` を読む。ヘッダ、検索、商品カード、カート、履歴、空表示、フォーム、モバイル対応のCSSサンプルを含む。
 
 ## URL design rules
 - URLは文字列連結せず、必ず `$ctl->get_APP_URL()` を使う。

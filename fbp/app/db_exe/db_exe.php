@@ -31,6 +31,28 @@ class db_exe {
 		return true;
 	}
 
+	private function original_management_has_function(string $function): bool {
+		$class_name = $this->original_management_class_name();
+		$file_path = $this->original_management_file_path();
+		if (!is_file($file_path)) {
+			return false;
+		}
+		require_once $file_path;
+		if (!class_exists($class_name) || !method_exists($class_name, $function)) {
+			return false;
+		}
+		$method = new ReflectionMethod($class_name, $function);
+		return $method->isPublic();
+	}
+
+	private function invoke_original_management_function(Controller $ctl, string $function, array $post = []): bool {
+		if (!$this->original_management_has_function($function)) {
+			return false;
+		}
+		$ctl->invoke($function, $post, $this->original_management_class_name());
+		return true;
+	}
+
 	private function invoke_post_action_class(Controller $ctl, $data, $post_action_from = "", ?int $source_id = null){
 		if(empty($this->db_setting["post_action_class"])){
 			return;
@@ -166,12 +188,15 @@ class db_exe {
 		return "";
 	}
 
-	private function collect_search_session_from_post(Controller $ctl, array $post): array {
+	private function collect_search_session_from_post(Controller $ctl, array $post, bool $exclude_parent_id = false): array {
 		$fields = $this->get_search_fields($ctl);
 		$search = [];
 		foreach ($fields as $field) {
 			$name = $field["parameter_name"] ?? "";
-			if ($name === "" || $name === "parent_id") {
+			if ($name === "") {
+				continue;
+			}
+			if ($exclude_parent_id && $name === "parent_id") {
 				continue;
 			}
 			$type = $field["type"] ?? "";
@@ -377,7 +402,7 @@ class db_exe {
 			return;
 		}
 
-		$ctl->set_session($this->get_side_search_session_key(), $this->collect_search_session_from_post($ctl, $post));
+		$ctl->set_session($this->get_side_search_session_key(), $this->collect_search_session_from_post($ctl, $post, true));
 		$ctl->invoke("rows_child",["db_id"=>$this->db_setting_id,"parent_id"=>$parent_id]);
 	}
 	
@@ -659,6 +684,10 @@ class db_exe {
 	
 	function rows_child(Controller $ctl){
 		$post = $ctl->POST();
+		if ((int) ($this->db_setting["screen_build_type"] ?? 0) === 1
+				&& $this->invoke_original_management_function($ctl, "rows_child", $post)) {
+			return;
+		}
 
 		$parent_id = $post["parent_id"] ?? null;
 		$ctl->assign("parent_id",$parent_id);

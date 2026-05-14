@@ -26,6 +26,8 @@ description: Build custom note management screens as the default FBP approach by
 - クラス名は固定で `<tb_name>_original_management`
 - 呼び出し関数は固定で `run`
 - framework 側から `db_id` や検索条件は自動注入されない前提で作る
+- 親ノートから開く子サイドパネルを Original Screen 化する場合は、同じクラスに public `rows_child(Controller $ctl)` を実装する
+- `rows_child()` には標準サイドパネルと同じく `db_id` / `parent_id` が POST される。未実装の場合は標準サイドパネルへフォールバックする
 
 ## constraints
 - 新規制作の基本方針は Original Screen とする。特段の理由がない限り `screen_fields` 主体の新規画面へ戻さない。
@@ -43,6 +45,7 @@ description: Build custom note management screens as the default FBP approach by
 - Standard からの移行手順: `references/migration-standard-to-original.md`
 - 棚卸しチェックリスト: `references/migration-inventory-checklist.md`
 - `db_additionals` / `post_action_class` 移行: `references/migration-db_additionals-post_action_class.md`
+- 子サイドパネル Original Screen: `references/child-side-panel.md`
 - CRUD ダッシュボード実装: `references/crud-dashboard.md`
 - マニュアルソート実装: `references/sort-pattern.md`
 - 週カレンダー実装: `references/calendar-pattern.md`
@@ -54,6 +57,8 @@ description: Build custom note management screens as the default FBP approach by
   - 実運用版 Sort: `assets/sample_sort_original_management/`
   - 最小版 Calendar: `assets/minimal_calendar_original_management/`
   - 実運用版 Calendar: `assets/sample_calendar_original_management/`
+  - 子サイドパネル Search/Table: `assets/sample_child_search_original_management/`
+  - 子サイドパネル Manual Sort: `assets/sample_child_sort_original_management/`
 
 ## extension policy
 - 今後カレンダーなど別パターンを足すときは、`references/` に新パターンの手順を追加し、`assets/` に対応サンプルを増やす

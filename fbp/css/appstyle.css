@@ -155,7 +155,6 @@ tr {
 
 td,th {
 	padding:10px;
-	vertical-align: top;
 	word-break: break-all;
 	text-align: left;
 }
@@ -668,6 +667,7 @@ section {
 	line-height: 20px;
 	width: 20px;
 	height: 20px;
+	color: #FFF;
 	overflow: hidden;
 }
 
@@ -677,7 +677,7 @@ section {
 
 .multi_dialog .multi_dialog_title_area .screen_debug_icon.screen_debug_captured {
 	width: auto;
-	max-width: 260px;
+	max-width: 420px;
 	gap: 4px;
 	padding: 0 5px;
 	font-size: 12px;
@@ -685,7 +685,7 @@ section {
 
 .multi_dialog .multi_dialog_title_area .screen_debug_captured_text {
 	display: inline-block;
-	max-width: 220px;
+	max-width: 380px;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -1520,16 +1520,23 @@ form p {
 
 .row_style{
 	padding:5px;
-	padding-top:0px;
+	padding-top:5px;
+	vertical-align: top;
 }
 
 .row_style .row_title {
+	display: block;
+	width: 100%;
+	padding: 3px 0 4px 0;
 	line-height: 1em;
 	color:#ccc;
 	font-size:12px;
 }
 
 .row_style .row_value {
+	display: block;
+	width: 100%;
+	padding-top: 1px;
 	line-height: 1em;
 }
 
@@ -1738,10 +1745,21 @@ line-height: 1em;
 	flex-direction: row-reverse;
 }
 
+.material-symbols-outlined {
+  font-weight: normal;
+  line-height: 1;
+  font-size:26px;
+  color:#000;
+}
+
 .original_screen_action_delete {
 	float: right;
 	color: #dc2626;
 	margin-right: 5px;
+}
+
+.original_screen_action_delete .material-symbols-outlined {
+	color: #dc2626;
 }
 
 .original_screen_action_edit {
@@ -2076,11 +2094,7 @@ input[type="time"] {
 	overflow: hidden;
 }
 
-.material-symbols-outlined {
-  font-weight: normal;
-  line-height: 1;
-  font-size:26px;
-}
+
 
 /* db_exe: delete icon color */
 .class_style_db_exe button.listbutton[data-function="delete"] .material-symbols-outlined,

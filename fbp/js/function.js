@@ -1413,13 +1413,19 @@ $("body").on("click", ".screen_debug_copy_icon", function (event) {
 	if (code === "") {
 		return;
 	}
-	var copyText = code;
-	var copied = function () {
+	copyScreenDebugCode(code, function () {
 		$(event.currentTarget).addClass("copied");
 		setTimeout(function () {
 			$(event.currentTarget).removeClass("copied");
 		}, 700);
-	};
+	});
+});
+
+function copyScreenDebugCode(code, copied) {
+	var copyText = String(code || "").trim();
+	if (copyText === "") {
+		return;
+	}
 	if (navigator.clipboard && navigator.clipboard.writeText) {
 		navigator.clipboard.writeText(copyText).then(copied).catch(function () {
 			copyTextFallback(copyText);
@@ -1429,7 +1435,7 @@ $("body").on("click", ".screen_debug_copy_icon", function (event) {
 	}
 	copyTextFallback(copyText);
 	copied();
-});
+}
 
 function copyTextFallback(text) {
 	var ta = document.createElement("textarea");
@@ -1469,10 +1475,10 @@ function renderScreenDebugLogCaptured(payload) {
 		$icon.removeAttr("data-function");
 		$icon.removeAttr("data-screen_key");
 		$icon.attr("data-screen_debug_code", code);
-		$icon.attr("title", label + ": " + code);
+		$icon.attr("title", code);
 		$icon.empty();
-		$("<span>").addClass("screen_debug_captured_text").text(label + ": " + code).appendTo($icon);
-		$("<span>").addClass("material-symbols-outlined screen_debug_copy_icon").attr("title", copyTitle).text("content_copy").appendTo($icon);
+		$("<span>").addClass("screen_debug_captured_text").text(code).appendTo($icon);
+		copyScreenDebugCode(code, function () {});
 		$scope.find(".screen_debug_id_value").each(function () {
 			if ($(this).is("input, textarea")) {
 				$(this).val(code);
@@ -2292,9 +2298,10 @@ function appcon(url, fd, nextfunction) {
 				for (var md of res["second_work_area"]) {
 					var html = md["html"];
 					var width = md["width"];
+					var screen_debug_key = md["screen_debug_key"] || "";
 					var classname = res["class"];
 
-					second_work_area(classname, html, width);
+					second_work_area(classname, html, width, screen_debug_key);
 				}
 			}
 
@@ -2793,7 +2800,7 @@ $(window).resize(function () {
 	adjust_second_work_area_layout();
 });
 
-function second_work_area(classname, html, w) {
+function second_work_area(classname, html, w, screen_debug_key) {
 	var wasAlreadyOpen = (flg_second_work_area === 1 && flg_second_work_area_hidden === 0 && $("#work_area_second").is(":visible"));
 	flg_second_work_area = 1;
 	flg_second_work_area_hidden = 0;
@@ -2810,6 +2817,11 @@ function second_work_area(classname, html, w) {
 	var close_button = document.createElement("div");
 	$(close_button).addClass("work_area_second_action_button");
 	$(close_button).append('<span class="material-symbols-outlined">close</span>');
+	if (String(screen_debug_key || "").trim() !== "") {
+		var $screenDebugButton = $('<p class="ajax-link screen_debug_icon screen_debug_icon_workarea" data-class="screen_debug_log" data-function="capture" title="お問い合わせ用の画面IDを取得"><span class="material-symbols-outlined">screenshot_monitor</span></p>');
+		$screenDebugButton.attr("data-screen_key", screen_debug_key);
+		$(action_bar).append($screenDebugButton);
+	}
 	$(action_bar).append(hide_button).append(close_button);
 
 	var body = document.createElement("div");

@@ -187,6 +187,118 @@ class db_api {
 		]);
 	}
 
+	function add(Controller $ctl) {
+		if ($ctl->verify_api_request() !== true) {
+			exit;
+		}
+
+		$payload = $this->read_json_request();
+		$table = trim((string) ($payload["table"] ?? $ctl->GET("table")));
+		if ($table === "") {
+			$this->respond_error(400, "table_required", "table is required");
+		}
+
+		$resolved = $this->resolve_table($ctl, $table, $payload["dbclass"] ?? $ctl->GET("dbclass"));
+		$data = $payload["data"] ?? null;
+		if (!is_array($data)) {
+			$this->respond_error(400, "invalid_arguments", "data must be an object");
+		}
+		unset($data["id"]);
+
+		$ffm = $ctl->db($table, $resolved["resolved_class"]);
+		$id = $ffm->insert($data);
+		$item = $ffm->get((int) $id);
+
+		$this->respond_json([
+			"ok" => true,
+			"table" => $table,
+			"dbclass" => $resolved["dbclass"],
+			"resolved_class" => $resolved["resolved_class"],
+			"id" => (int) $id,
+			"item" => $item,
+		]);
+	}
+
+	function edit(Controller $ctl) {
+		if ($ctl->verify_api_request() !== true) {
+			exit;
+		}
+
+		$payload = $this->read_json_request();
+		$table = trim((string) ($payload["table"] ?? $ctl->GET("table")));
+		if ($table === "") {
+			$this->respond_error(400, "table_required", "table is required");
+		}
+
+		$resolved = $this->resolve_table($ctl, $table, $payload["dbclass"] ?? $ctl->GET("dbclass"));
+		$data = $payload["data"] ?? null;
+		if (!is_array($data)) {
+			$this->respond_error(400, "invalid_arguments", "data must be an object");
+		}
+		if (!isset($data["id"]) || !$this->is_numeric_id($data["id"])) {
+			$this->respond_error(400, "id_required", "data.id must be numeric");
+		}
+
+		$data["id"] = (int) $data["id"];
+		$ffm = $ctl->db($table, $resolved["resolved_class"]);
+		$before = $ffm->get($data["id"]);
+		if ($before === null) {
+			$this->respond_error(404, "item_not_found", "item was not found", [
+				"table" => $table,
+				"id" => $data["id"],
+			]);
+		}
+		$ffm->update($data);
+		$item = $ffm->get($data["id"]);
+
+		$this->respond_json([
+			"ok" => true,
+			"table" => $table,
+			"dbclass" => $resolved["dbclass"],
+			"resolved_class" => $resolved["resolved_class"],
+			"id" => $data["id"],
+			"item" => $item,
+		]);
+	}
+
+	function delete(Controller $ctl) {
+		if ($ctl->verify_api_request() !== true) {
+			exit;
+		}
+
+		$payload = $this->read_json_request();
+		$table = trim((string) ($payload["table"] ?? $ctl->GET("table")));
+		if ($table === "") {
+			$this->respond_error(400, "table_required", "table is required");
+		}
+
+		$resolved = $this->resolve_table($ctl, $table, $payload["dbclass"] ?? $ctl->GET("dbclass"));
+		$id = $payload["id"] ?? ($payload["data"]["id"] ?? null);
+		if (!$this->is_numeric_id($id)) {
+			$this->respond_error(400, "id_required", "id must be numeric");
+		}
+
+		$id = (int) $id;
+		$ffm = $ctl->db($table, $resolved["resolved_class"]);
+		$item = $ffm->get($id);
+		if ($item === null) {
+			$this->respond_error(404, "item_not_found", "item was not found", [
+				"table" => $table,
+				"id" => $id,
+			]);
+		}
+		$ffm->delete($id);
+
+		$this->respond_json([
+			"ok" => true,
+			"table" => $table,
+			"dbclass" => $resolved["dbclass"],
+			"resolved_class" => $resolved["resolved_class"],
+			"id" => $id,
+			"deleted_item" => $item,
+		]);
+	}
+
 	private function resolve_table(Controller $ctl, string $table, $dbclass): array {
 		if (!preg_match('/^[a-z0-9_]+$/', $table)) {
 			$this->respond_error(400, "invalid_table", "table must match ^[a-z0-9_]+$");
@@ -405,6 +517,17 @@ class db_api {
 		}
 		$value = strtolower(trim((string) $value));
 		return in_array($value, ["1", "true", "yes", "on"], true);
+	}
+
+	private function is_numeric_id($value): bool {
+		if (is_int($value)) {
+			return $value > 0;
+		}
+		if (!is_string($value) && !is_float($value)) {
+			return false;
+		}
+		$value = trim((string) $value);
+		return ctype_digit($value) && (int) $value > 0;
 	}
 
 	private function is_empty_itemname($itemname): bool {

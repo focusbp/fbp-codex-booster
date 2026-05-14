@@ -184,9 +184,7 @@ class password_reset {
 			}
 		}
 
-		if ((int) ($user["type"] ?? -1) === 0) {
-			$ctl->set_session("app_admin", true);
-		}
+		$ctl->set_session("app_admin", ((int) ($user["type"] ?? -1) === 0));
 
 		$login_id = (string) ($user["login_id"] ?? "");
 		if ($login_id !== "") {

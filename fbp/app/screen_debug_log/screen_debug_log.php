@@ -37,7 +37,7 @@ class screen_debug_log {
 
 		$ctl->set_response_value("screen_debug_log_captured", [
 			"screen_key" => $screen_key,
-			"code" => $row["public_code"],
+			"code" => $this->format_display_code($row["appcode"], $row["public_code"]),
 			"label" => $ctl->t("screen_debug_log.screen_id"),
 			"copy_title" => $ctl->t("screen_debug_log.copy_screen_id"),
 		]);
@@ -51,6 +51,7 @@ class screen_debug_log {
 		if ($key === "") {
 			$this->respond_error(400, "key_required", "key is required");
 		}
+		$key = $this->normalize_lookup_key($key);
 
 		$ffm = $ctl->db("screen_debug_log", "screen_debug_log");
 		$item = [];
@@ -83,6 +84,26 @@ class screen_debug_log {
 			$parts[] = $s;
 		}
 		return "SD-" . implode("-", $parts);
+	}
+
+	private function format_display_code($appcode, $public_code) {
+		return "[ScreenLog:" . $this->normalize_appcode($appcode) . ":" . (string) $public_code . "]";
+	}
+
+	private function normalize_appcode($appcode) {
+		$appcode = trim((string) $appcode);
+		if ($appcode !== "" && strpos($appcode, "app-") !== 0) {
+			return "app-" . $appcode;
+		}
+		return $appcode;
+	}
+
+	private function normalize_lookup_key($key) {
+		$key = trim((string) $key);
+		if (preg_match('/^\[ScreenLog:([^:\]]+):(SD-[A-Z0-9]{4}-[A-Z0-9]{4})\]$/', $key, $matches)) {
+			return $matches[2];
+		}
+		return $key;
 	}
 
 	private function to_json($value) {

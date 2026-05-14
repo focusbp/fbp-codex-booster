@@ -3,13 +3,6 @@
 
 	<div style="background:white; padding:10px;">
 		
-		{if $MYSESSION.app_admin || $MYSESSION.data_manager_permission == 1 }
-			<button class="ajax-link lang codex-terminal-menu" data-class="wizard" data-function="run">
-				<span class="codex-terminal-menu-label">{$base_menu_i18n.codex_terminal}</span>
-				<span class="codex-terminal-menu-badge">AI</span>
-			</button>
-		{/if}
-
 		{if $show_dashboard_menu}
 			<h3>{$base_menu_i18n.dashboard}</h3>
 			<a class="ajax-link lang" data-class="dashboard" data-function="page">{$base_menu_i18n.dashboard}</a>
@@ -36,8 +29,11 @@
 		{if $MYSESSION.app_admin || $MYSESSION.developer_permission == 1 || $MYSESSION.data_manager_permission == 1}
 			<h3>{$base_menu_i18n.admin_console}</h3>
 		{/if}
-		{if $MYSESSION.app_admin || $MYSESSION.developer_permission == 1 }
-			{if $setting["force_testmode"] == 1 || 
+		{if $MYSESSION.app_admin || $MYSESSION.developer_permission == 1}
+			<a class="ajax-link lang" data-class="wizard" data-function="run">{$base_menu_i18n.codex_terminal}</a>
+		{/if}
+		{if $MYSESSION.app_admin || $MYSESSION.developer_permission == 1}
+			{if $setting["force_testmode"] == 1 ||
 				($setting["force_testmode"] == 0 && $setting["show_developer_panel"] == 1) }
 			<a class="ajax-link lang" data-class="panel" data-function="page">{$base_menu_i18n.development_panel}</a>
 			{/if}
@@ -50,6 +46,5 @@
 			<a class="ajax-link lang" data-class="setting" data-function="page">{$base_menu_i18n.system_setting}</a>
 		{/if}
 
-		
 	</div>
 </div>

@@ -244,17 +244,14 @@ class base {
 		}
 
 		$admin_items = [];
-		if ($ctl->is_app_admin() || $ctl->has_data_manager_permission()) {
+		if ($ctl->is_app_admin() || $ctl->has_developer_permission()) {
 			$admin_items[] = [
 				"type" => "ajax",
 				"label" => $ctl->t("base.menu.codex_terminal"),
 				"class" => "wizard",
 				"function" => "run",
-				"badge" => "AI",
 				"attributes" => [],
 			];
-		}
-		if ($ctl->is_app_admin() || $ctl->has_developer_permission()) {
 			if ($setting["force_testmode"] == 1 ||
 				($setting["force_testmode"] == 0 && $setting["show_developer_panel"] == 1)) {
 				$admin_items[] = [

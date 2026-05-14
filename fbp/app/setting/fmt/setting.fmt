@@ -5,6 +5,7 @@ vimeo_client_id,50,T
 vimeo_client_secret,150,T
 vimeo_access_token,50,T
 square_application_id,100,T
+square_application_secret,150,T
 square_access_token,100,T
 square_location_id,100,T
 startup_class1,50,T

@@ -1591,6 +1591,9 @@ class Controller_class implements Controller {
 
 	function show_second_work_area($template, $width = 300) {
 		$this->smarty->assign("MYSESSION", $_SESSION[$this->windowcode]);
+		$dialog_name = "secondworkarea";
+		$screen_debug_key = $this->register_screen_debug_context($dialog_name, $template);
+		$this->smarty->assign("screen_debug_key", $screen_debug_key);
 
 		$tmp = $this->smarty->fetch($template);
 		$this->console_log("Template:" . $this->class . "/" . $template, "#CE5C00");
@@ -1598,6 +1601,7 @@ class Controller_class implements Controller {
 		$html = '<div class="class_style_' . $this->class . '">' . $tmp . '</div>';
 		$md["html"] = $html;
 		$md["width"] = $width;
+		$md["screen_debug_key"] = $screen_debug_key;
 		$md["multi_dialog_zindex"] = $_POST["multi_dialog_zindex"] ?? null;
 		$this->arr["second_work_area"][] = $md;
 	}

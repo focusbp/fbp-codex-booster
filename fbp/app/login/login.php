@@ -447,9 +447,7 @@ class login {
 		}
 
 		//admin判定
-		if ($user["type"] == 0) {
-			$ctl->set_session("app_admin", true);
-		}
+		$ctl->set_session("app_admin", ((int) ($user["type"] ?? -1) === 0));
 
 		//---------------
 		// Cookie処理

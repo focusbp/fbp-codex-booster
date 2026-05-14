@@ -51,7 +51,27 @@ function fbp_detect_appcode(): string {
 	$host = (string) ($_SERVER["HTTP_HOST"] ?? "");
 	$url_ex = explode(".", $host);
 	$url_ex2 = explode("-", $url_ex[0] ?? "", 2);
-	return isset($url_ex2[1]) ? (string) $url_ex2[1] : "";
+	if (isset($url_ex2[1])) {
+		return (string) $url_ex2[1];
+	}
+	return fbp_detect_appcode_from_path();
+}
+
+function fbp_detect_appcode_from_path(): string {
+	$paths = [
+		(string) parse_url((string) ($_SERVER["REQUEST_URI"] ?? ""), PHP_URL_PATH),
+		(string) ($_SERVER["SCRIPT_NAME"] ?? ""),
+		(string) ($_SERVER["PHP_SELF"] ?? ""),
+	];
+	foreach ($paths as $path) {
+		foreach (explode("/", trim($path, "/")) as $part) {
+			$part = rawurldecode($part);
+			if (strpos($part, "app-") === 0) {
+				return $part;
+			}
+		}
+	}
+	return "";
 }
 
 function fbp_get_windowcode(): string {

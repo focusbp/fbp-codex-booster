@@ -86,6 +86,23 @@ function fbp_register_error_handler(string $level): void {
 	});
 }
 
+function fbp_detect_appcode_from_path(): string {
+	$paths = [
+		(string) parse_url((string) ($_SERVER["REQUEST_URI"] ?? ""), PHP_URL_PATH),
+		(string) ($_SERVER["SCRIPT_NAME"] ?? ""),
+		(string) ($_SERVER["PHP_SELF"] ?? ""),
+	];
+	foreach ($paths as $path) {
+		foreach (explode("/", trim($path, "/")) as $part) {
+			$part = rawurldecode($part);
+			if (strpos($part, "app-") === 0) {
+				return $part;
+			}
+		}
+	}
+	return "";
+}
+
 header("Cache-Control:no-cache,no-store,must-revalidate,max-age=0");
 header("Cache-Control: post-check=0, pre-check=0", false);
 header("Pragma:no-cache");
@@ -124,10 +141,10 @@ if($url_ex2[0] == "test" || $url_ex2[0] == "192"){
 }
 if(isset($url_ex2[1])){
 	$appcode = $url_ex2[1];
-	$smarty->assign("appcode",$appcode);
 }else{
-	$appcode = "";
+	$appcode = fbp_detect_appcode_from_path();
 }
+$smarty->assign("appcode",$appcode);
 $smarty->assign("hostname",$url_ex[0]);
 
 //---------------------
