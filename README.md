@@ -84,6 +84,19 @@ Use the bundled installer and assets from the skill.
 Verify the CRUD screen, seed data, CSV export, and PDF output with the FBP CLI.
 ```
 
+### Event Registration
+
+Copy the whole block below and paste it into Codex:
+
+```text
+Read README.md, fbp/docs/.agents/skills/fbp-app-samples/SKILL.md, fbp/docs/.agents/skills/fbp-app-samples/references/event-registration.md, and fbp/docs/.agents/skills/fbp-app-samples/references/event-registration-db.md.
+Create the Event Registration sample.
+Run the bundled installer: php fbp/docs/.agents/skills/fbp-app-samples/scripts/install_event_registration.php.
+Install the event_sessions and event_registrations DBs, registration status options, event session management screen, participants side panel with add/delete/status actions, public registration page, and admin public URL dialog.
+Do not add project linkage, public registration history, public cancellation, external calendar sync, email sending, or credentials.
+Verify the admin screen, public registration URL dialog, public registration page, DB schema, seed data, and PHP syntax with the FBP CLI.
+```
+
 ### LINE Bot Basic
 
 Copy the whole block below and paste it into Codex:
@@ -97,12 +110,38 @@ Do not add LINE secrets or tokens to code.
 Verify the LINE member management screen, webhook_rule list, DB schema, and PHP syntax with the FBP CLI.
 ```
 
+### Schedule Appointment
+
+Copy the whole block below and paste it into Codex:
+
+```text
+Read README.md, fbp/docs/.agents/skills/fbp-app-samples/SKILL.md, fbp/docs/.agents/skills/fbp-app-samples/references/schedule-appointment.md, and fbp/docs/.agents/skills/fbp-app-samples/references/schedule-appointment-db.md.
+Create the Schedule Appointment sample.
+Run the bundled installer: php fbp/docs/.agents/skills/fbp-app-samples/scripts/install_schedule_appointment.php.
+Install the schedule_appointment_slots DB, appointment status options, logged-in-user scoped weekly admin screen, per-user public URL dialog, and public appointment calendar.
+Do not add external calendar sync, email sending, payment, public cancellation, customer login, or credentials.
+Verify the admin calendar, public URL dialog, public calendar, DB schema, seed data, and PHP syntax with the FBP CLI.
+```
+
 ## Generated Customer Demo
 
 After the customer prompt above, Codex creates a customer management demo with
 CRUD, CSV import/export, and PDF output.
 
 ![Generated customer PDF output](docs/images/customer-demo-pdf.png)
+
+## Generated Event Registration Sample
+
+After the Event Registration prompt above, Codex creates a no-external-service
+event registration demo with `event_sessions`, `event_registrations`, an admin event session management
+screen, a participants side panel with add/delete/status actions, a public registration page, and a dialog that
+shows the public registration URL.
+
+The public registration path is:
+
+```text
+/event_registration_public*page
+```
 
 ## Generated LINE Bot Basic Sample
 
@@ -115,6 +154,18 @@ webhook path to:
 
 ```text
 /line_webhook*receive
+```
+
+## Generated Schedule Appointment Sample
+
+After the Schedule Appointment prompt above, Codex creates a one-note appointment
+booking demo with `schedule_appointment_slots`, a weekly admin slot calendar scoped to the
+logged-in user, a public URL dialog with encrypted `user.id`, and a public booking calendar.
+
+The public appointment path is:
+
+```text
+/schedule_appointment_public*calendar?user=<encrypted-user-id>
 ```
 
 ## Deploy To Apache

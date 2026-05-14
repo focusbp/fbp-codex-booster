@@ -1,0 +1,283 @@
+{
+  "constant_arrays": [
+    {
+      "array_name": "event_session_status"
+    },
+    {
+      "array_name": "event_registration_status"
+    }
+  ],
+  "constant_values": {
+    "event_session_status": [
+      {
+        "key": "open",
+        "value": "Open",
+        "color": "#16a34a",
+        "sort": 1
+      },
+      {
+        "key": "closed",
+        "value": "Closed",
+        "color": "#64748b",
+        "sort": 2
+      }
+    ],
+    "event_registration_status": [
+      {
+        "key": "new",
+        "value": "New",
+        "color": "#2563eb",
+        "sort": 1
+      },
+      {
+        "key": "confirmed",
+        "value": "Confirmed",
+        "color": "#16a34a",
+        "sort": 2
+      },
+      {
+        "key": "completed",
+        "value": "Completed",
+        "color": "#7c3aed",
+        "sort": 3
+      },
+      {
+        "key": "cancelled",
+        "value": "Cancelled",
+        "color": "#dc2626",
+        "sort": 4
+      }
+    ]
+  },
+  "db_tables": [
+    {
+      "tb_name": "event_sessions",
+      "menu_name": "Event Sessions",
+      "sort": 3,
+      "parent_tb_id": 0,
+      "description": "Event sessions for the Event Registration demo",
+      "show_menu": 1,
+      "menu_visibility": 0,
+      "sortkey": "starts_at",
+      "sort_order": 2,
+      "screen_build_type": 1,
+      "list_type": 0,
+      "side_list_type": 0,
+      "dropdown_item": "title",
+      "dropdown_item_display_type": "template",
+      "dropdown_item_template": "{title}",
+      "list_width": 1200,
+      "edit_width": 700,
+      "start_hour": 0,
+      "end_hour": 0,
+      "show_id": 1,
+      "show_search_id": 1,
+      "show_duplicate": 0,
+      "api_allow_domain": "",
+      "api_thanks_html": "",
+      "api_scope": "",
+      "api_allow_delete": 0,
+      "show_icon_on_parent_list": 0,
+      "post_action_class": "",
+      "cascade_delete_flag": 0
+    },
+    {
+      "tb_name": "event_registrations",
+      "menu_name": "Registrations",
+      "sort": 4,
+      "parent_tb_id": 0,
+      "description": "Registration requests submitted from the public registration page",
+      "show_menu": 0,
+      "menu_visibility": 0,
+      "sortkey": "id",
+      "sort_order": 3,
+      "screen_build_type": 1,
+      "list_type": 0,
+      "side_list_type": 0,
+      "dropdown_item": "name",
+      "dropdown_item_display_type": "field",
+      "dropdown_item_template": "",
+      "list_width": 1200,
+      "edit_width": 700,
+      "start_hour": 0,
+      "end_hour": 0,
+      "show_id": 1,
+      "show_search_id": 1,
+      "show_duplicate": 0,
+      "api_allow_domain": "",
+      "api_thanks_html": "",
+      "api_scope": "",
+      "api_allow_delete": 0,
+      "show_icon_on_parent_list": 0,
+      "post_action_class": "",
+      "cascade_delete_flag": 0
+    }
+  ],
+  "db_fields": {
+    "event_sessions": [
+      {
+        "parameter_name": "title",
+        "parameter_title": "Title",
+        "type": "text",
+        "length": 255,
+        "validation": 1,
+        "sort": 1
+      },
+      {
+        "parameter_name": "starts_at",
+        "parameter_title": "Starts At",
+        "type": "datetime",
+        "length": 15,
+        "validation": 1,
+        "sort": 2
+      },
+      {
+        "parameter_name": "duration_minutes",
+        "parameter_title": "Duration Minutes",
+        "type": "number",
+        "length": 10,
+        "validation": 1,
+        "sort": 3
+      },
+      {
+        "parameter_name": "capacity",
+        "parameter_title": "Capacity",
+        "type": "number",
+        "length": 10,
+        "validation": 1,
+        "sort": 4
+      },
+      {
+        "parameter_name": "status",
+        "parameter_title": "Status",
+        "type": "dropdown",
+        "constant_array_name": "event_session_status",
+        "default_value": "open",
+        "length": 24,
+        "validation": 1,
+        "sort": 5
+      },
+      {
+        "parameter_name": "memo",
+        "parameter_title": "Memo",
+        "type": "textarea",
+        "length": 1000,
+        "validation": 0,
+        "sort": 6
+      }
+    ],
+    "event_registrations": [
+      {
+        "parameter_name": "session_id",
+        "parameter_title": "Event Session",
+        "type": "dropdown",
+        "constant_array_name": "table/event_sessions",
+        "display_fields_for_dropdown": "{title}",
+        "length": 24,
+        "validation": 1,
+        "sort": 1
+      },
+      {
+        "parameter_name": "name",
+        "parameter_title": "Name",
+        "type": "text",
+        "length": 255,
+        "validation": 1,
+        "sort": 2
+      },
+      {
+        "parameter_name": "email",
+        "parameter_title": "Email",
+        "type": "text",
+        "length": 255,
+        "validation": 1,
+        "format_check": "email",
+        "sort": 3
+      },
+      {
+        "parameter_name": "phone",
+        "parameter_title": "Phone",
+        "type": "text",
+        "length": 255,
+        "validation": 0,
+        "sort": 4
+      },
+      {
+        "parameter_name": "message",
+        "parameter_title": "Message",
+        "type": "textarea",
+        "length": 1000,
+        "validation": 0,
+        "sort": 5
+      },
+      {
+        "parameter_name": "status",
+        "parameter_title": "Status",
+        "type": "dropdown",
+        "constant_array_name": "event_registration_status",
+        "default_value": "new",
+        "length": 24,
+        "validation": 1,
+        "sort": 6
+      },
+      {
+        "parameter_name": "created_at",
+        "parameter_title": "Created At",
+        "type": "datetime",
+        "length": 15,
+        "validation": 0,
+        "sort": 7
+      },
+      {
+        "parameter_name": "updated_at",
+        "parameter_title": "Updated At",
+        "type": "datetime",
+        "length": 15,
+        "validation": 0,
+        "sort": 8
+      }
+    ]
+  },
+  "seed_sessions": [
+    {
+      "_key": "consultation",
+      "title": "Intro Webinar",
+      "date_offset_days": 2,
+      "start_time": "10:00",
+      "duration_minutes": 30,
+      "capacity": 2,
+      "status": "open",
+      "memo": "Default event session"
+    },
+    {
+      "_key": "planning",
+      "title": "Hands-on Workshop",
+      "date_offset_days": 4,
+      "start_time": "14:00",
+      "duration_minutes": 45,
+      "capacity": 3,
+      "status": "open",
+      "memo": "Default event session"
+    },
+    {
+      "_key": "closed",
+      "title": "Staff Rehearsal",
+      "date_offset_days": 7,
+      "start_time": "16:00",
+      "duration_minutes": 30,
+      "capacity": 1,
+      "status": "closed",
+      "memo": "Closed sessions are hidden on the public page"
+    }
+  ],
+  "seed_event_registrations": [
+    {
+      "_session_key": "consultation",
+      "name": "Demo Visitor",
+      "email": "demo@example.com",
+      "phone": "03-0000-0000",
+      "message": "Seed registration for status management.",
+      "status": "confirmed"
+    }
+  ]
+}

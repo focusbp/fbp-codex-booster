@@ -1448,10 +1448,6 @@ class Controller_class implements Controller {
 		}
 		$options["modal_flg"] = $options["modal_flg"] ? 1 : 0;
 		
-		if($this->testserver()){
-			$title .= " " . $this->class . " / " . $this->POST("function");
-		}
-
 		$dialog_name = str_replace([" ", ".", "#"], "", $dialog_name);
 		$screen_debug_key = $this->register_screen_debug_context($dialog_name, $template);
 

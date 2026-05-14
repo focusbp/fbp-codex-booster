@@ -13,6 +13,16 @@ When creating a new reusable sample from an existing app or feature, read `refer
 
 ## Samples
 
+- **Event Registration**: A no-external-service event registration sample with admin event session management, a participants side panel with add/delete/status actions, a public registration page, and an admin dialog that shows the public registration URL.
+  - Read `references/event-registration.md` for flow and implementation scope.
+  - Read `references/event-registration-db.md` for note/table structure.
+  - Use `assets/event-registration/` for starter code.
+  - Prefer `scripts/install_event_registration.php` when creating the default sample in a clean Codex Booster app.
+- **Schedule Appointment**: A one-note appointment booking sample with logged-in-user scoped admin weekly slots, a per-user public URL, and a public booking calendar.
+  - Read `references/schedule-appointment.md` for flow and implementation scope.
+  - Read `references/schedule-appointment-db.md` for note/table structure.
+  - Use `assets/schedule-appointment/` for starter code.
+  - Prefer `scripts/install_schedule_appointment.php` when creating the default sample in a clean Codex Booster app.
 - **LINE Bot basic**: A minimal LINE Bot app base with LINE member DB, standard webhook receiver, keyword rules, a public profile page, and LINE member management.
   - Read `references/line-bot-basic.md` for flow and implementation scope.
   - Read `references/line-bot-basic-db.md` for note/table structure.
