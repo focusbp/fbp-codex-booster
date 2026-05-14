@@ -67,7 +67,13 @@ cd fbp-codex-booster
 codex
 ```
 
-### Prompt To Paste Into Codex
+## Make Samples
+
+Use these prompts to have Codex generate working sample apps from the bundled
+skills and assets. Start with the customer sample, then add more samples as
+needed.
+
+### Customer Management
 
 Copy the whole block below and paste it into Codex:
 
@@ -78,12 +84,38 @@ Use the bundled installer and assets from the skill.
 Verify the CRUD screen, seed data, CSV export, and PDF output with the FBP CLI.
 ```
 
+### LINE Bot Basic
+
+Copy the whole block below and paste it into Codex:
+
+```text
+Read README.md, fbp/docs/.agents/skills/fbp-app-samples/SKILL.md, and fbp/docs/.agents/skills/fbp-webhook/SKILL.md.
+Create the LINE Bot basic sample.
+Run the bundled installer: php fbp/docs/.agents/skills/fbp-app-samples/scripts/install_line_bot_basic.php.
+Install the line_member DB, member_type options, line_webhook receiver, basic webhook_rule action classes, public profile page, and LINE member management screen.
+Do not add LINE secrets or tokens to code.
+Verify the LINE member management screen, webhook_rule list, DB schema, and PHP syntax with the FBP CLI.
+```
+
 ## Generated Customer Demo
 
-After the prompt above, Codex creates a customer management demo with CRUD, CSV
-import/export, and PDF output.
+After the customer prompt above, Codex creates a customer management demo with
+CRUD, CSV import/export, and PDF output.
 
 ![Generated customer PDF output](docs/images/customer-demo-pdf.png)
+
+## Generated LINE Bot Basic Sample
+
+After the LINE Bot Basic prompt above, Codex creates a minimal LINE Bot base
+with `line_member`, `line_webhook`, `webhook_rule` records, a public profile
+page, and a LINE member management screen.
+
+Configure LINE credentials in app settings, then set the LINE Messaging API
+webhook path to:
+
+```text
+/line_webhook*receive
+```
 
 ## Route Convention
 
