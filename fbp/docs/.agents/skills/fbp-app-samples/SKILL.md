@@ -1,11 +1,15 @@
 ---
 name: fbp-app-samples
-description: Use when building or designing a new FBP app from a complete app-level sample, especially a LINE-entry mall or ecommerce app; provides sample scope, DB notes, and reusable starter code assets without depending on a live project.
+description: Use when building, designing, adding, extracting, or maintaining reusable FBP app-level samples; provides sample authoring rules, sample scope, DB notes, installer patterns, and reusable starter code assets without depending on a live project.
 ---
 
 # fbp-app-samples
 
-Use this skill when a user asks for an app-level FBP sample, wants to build a similar app from a known pattern, or asks how to structure a LINE-entry mall/ecommerce app.
+Use this skill when a user asks for an app-level FBP sample, wants to build a similar app from a known pattern, asks to add a reusable sample to Codex Booster, or asks how to structure a LINE-entry mall/ecommerce app.
+
+## Authoring Samples
+
+When creating a new reusable sample from an existing app or feature, read `references/sample-authoring.md` first. Use it to decide sample scope, remove project-specific logic, create assets/references/installers, update the README Make Samples prompt, and verify the result.
 
 ## Samples
 
@@ -35,9 +39,10 @@ Use this skill when a user asks for an app-level FBP sample, wants to build a si
 
 ## Workflow
 
-1. Identify which sample applies.
-2. Read the relevant reference file.
-3. Copy or adapt only the needed asset files into the target app.
-4. Build the DB/note definitions from the DB reference, not from a live project.
-5. Remove unused sample features before implementation.
-6. Verify with FBP CLI using the target app's web-side `cli.php`.
+1. Decide whether the user wants to use an existing sample or author a new reusable sample.
+2. For new samples, read `references/sample-authoring.md` before editing files.
+3. For existing samples, identify which sample applies and read its reference file.
+4. Copy or adapt only the needed asset files into the target app.
+5. Build the DB/note definitions from the DB reference, not from a live project.
+6. Remove unused sample features before implementation.
+7. Verify with FBP CLI using the target app's web-side `cli.php`.
