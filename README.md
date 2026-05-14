@@ -117,24 +117,43 @@ webhook path to:
 /line_webhook*receive
 ```
 
-## Route Convention
+## Deploy To Apache
 
-FBP uses a simple route shape:
-
-```text
-/<class>*<function>
-```
-
-Examples:
+Upload these folders to the same parent directory on your Apache server:
 
 ```text
-/login*page
-/customers_original_management*page
-/public_pages*contact&id=123
+/path/to/site/
+  fbp/
+  classes/
 ```
 
-This keeps generated links predictable for Codex. The local `router.php` handles
-these routes when you run the PHP built-in server.
+- `fbp/` contains the framework runtime, `app.php`, assets, and `.htaccess`.
+- `classes/` contains generated app code, app data, and logs.
+- `.git/`, `nbproject/`, and local editor files are not needed on the server.
+- `docs/`, `README.md`, and `router.php` are not required for Apache runtime.
+
+Recommended Apache setup:
+
+```text
+DocumentRoot /path/to/site/fbp
+```
+
+Then open:
+
+```text
+https://example.com/app.php
+```
+
+If you cannot change `DocumentRoot`, upload `fbp/` and `classes/` under the same
+web root and open:
+
+```text
+https://example.com/fbp/app.php
+```
+
+Make sure the PHP process can write to `classes/data` and `classes/log`.
+The bundled `fbp/.htaccess` sets `app.php` as the directory index and blocks
+web access to `cli.php`.
 
 ## What Codex Can Build Here
 
