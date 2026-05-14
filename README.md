@@ -48,7 +48,9 @@ cd fbp-codex-booster
 codex
 ```
 
-Then paste a request like this:
+### Prompt To Paste Into Codex
+
+Copy the whole block below and paste it into Codex:
 
 ```text
 Read README.md and fbp/docs/.agents/skills/fbp-customer-demo/SKILL.md.
