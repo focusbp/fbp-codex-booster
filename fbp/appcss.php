@@ -9,8 +9,8 @@ header("Cache-Control:no-cache,no-store,must-revalidate,max-age=0");
 header("Cache-Control: post-check=0, pre-check=0", false);
 header("Pragma:no-cache");
 
-$class = $_GET["class"];
-$css_class = $_GET["css_class"];
+$class = $_GET["class"] ?? "";
+$css_class = $_GET["css_class"] ?? "";
 if(empty($css_class)){
 	$css_class = $class;
 }
