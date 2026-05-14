@@ -78,12 +78,22 @@ Create a business app in minutes:
 
 ## Quick Start
 
-git clone https://github.com/focusbp/framework5.git  
-cd framework5  
+```bash
+git clone https://github.com/focusbp/framework5-codex.git
+cd framework5-codex
+php -S 127.0.0.1:8000 router.php
+```
 
-Setup your environment (PHP 7.3+ recommended)
+Open:
 
-Then start building with AI.
+```text
+http://127.0.0.1:8000/
+```
+
+Requirements:
+
+- PHP 8+
+- Apache is optional for local trials. The included `router.php` absorbs the main FBP rewrite routes, including `/class*function`.
 
 
 
