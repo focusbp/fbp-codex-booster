@@ -2,9 +2,12 @@
 
 > Get Codex building structured PHP business apps in minutes.
 
-FBP Codex Booster is a ready-to-run PHP app base for Codex. It gives Codex a
-predictable place to create screens, data flows, business actions, public pages,
-cron jobs, webhooks, and verification commands.
+FBP Codex Booster is a ready-to-run PHP app base for Codex. Instead of asking
+Codex to design everything from scratch, FBP gives it a working structure from
+the first prompt.
+
+It gives Codex a predictable place to create screens, data flows, business
+actions, public pages, cron jobs, webhooks, and verification commands.
 
 It is not another Laravel competitor. Think of it as a booster kit for AI coding:
 clone it, run it, start Codex inside it, and ask Codex to build business app
@@ -88,14 +91,16 @@ these routes when you run the PHP built-in server.
 - Webhooks and cron automation
 - Email, PDF, API, LINE, and Square-connected workflows
 
-## Why FBP Codex Booster
+## Why This Exists
 
-Codex is fast, but business apps need structure. FBP gives Codex that structure:
-where screens live, how routes work, where data is stored, how actions are called,
-and how generated behavior can be checked.
+Codex can generate code, but business applications require repeatable patterns.
 
-The first goal is simple: make it easy to try Codex-driven business app generation
-without setting up Apache, a database server, or a full PHP framework stack.
+FBP Codex Booster provides those patterns: routes, screens, actions, data
+handling, verification commands, and skills.
+
+The goal is not to replace developers. The goal is to give Codex a stable
+environment where it can build useful business features without starting from
+zero every time.
 
 ## License
 
