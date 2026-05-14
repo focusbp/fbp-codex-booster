@@ -19,6 +19,7 @@ Requirements:
 
 - PHP 8+
 - Git
+- Windows users: use WSL2 for the smoothest local setup.
 
 Run:
 
