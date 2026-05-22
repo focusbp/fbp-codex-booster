@@ -4478,7 +4478,7 @@ append_function_dialog("__all__", function (dialog_id, flg_window = false) {
 
 });
 // public用に１回動かす
-multi_dialog_functions["__all__"]("", true);
+multi_dialog_functions["__all__"]("body", true);
 
 
 // ボタンに自動でajax-linkとclassnameを付与
