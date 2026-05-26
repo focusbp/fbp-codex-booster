@@ -32,6 +32,15 @@ class schedule_appointment_slots_original_management {
 		];
 	}
 
+	private function bookedStatus(): string {
+		return "0";
+	}
+
+	private function isBookedStatus($status): bool {
+		$status = (string) $status;
+		return $status === "0" || $status === "booked";
+	}
+
 	private function defaultSlot(Controller $ctl, int $startsAt = 0): array {
 		if ($startsAt <= 0) {
 			$startsAt = strtotime("+1 day 10:00");
@@ -41,7 +50,7 @@ class schedule_appointment_slots_original_management {
 			"title" => "Appointment",
 			"starts_at" => $startsAt,
 			"duration_minutes" => 30,
-			"status" => "booked",
+			"status" => $this->bookedStatus(),
 			"customer_name" => "",
 			"customer_email" => "",
 			"customer_phone" => "",
@@ -263,7 +272,7 @@ class schedule_appointment_slots_original_management {
 		$row["starts_at"] = $this->normalizeTimestamp($row["starts_at"] ?? "");
 		$row["duration_minutes"] = (int) ($row["duration_minutes"] ?? 0);
 		if ((string) ($row["status"] ?? "") === "") {
-			$row["status"] = "booked";
+			$row["status"] = $this->bookedStatus();
 		}
 		return $row;
 	}
@@ -347,7 +356,7 @@ class schedule_appointment_slots_original_management {
 		if (!$this->validateSlot($ctl, $row)) {
 			return;
 		}
-		if ((string) ($row["status"] ?? "") === "booked" && empty($row["booked_at"])) {
+		if ($this->isBookedStatus($row["status"] ?? "") && empty($row["booked_at"])) {
 			$row["booked_at"] = time();
 		}
 		$ctl->db($this->tableName())->insert($row);
@@ -379,7 +388,7 @@ class schedule_appointment_slots_original_management {
 		if (!$this->validateSlot($ctl, $row)) {
 			return;
 		}
-		if ((string) ($row["status"] ?? "") === "booked" && empty($row["booked_at"])) {
+		if ($this->isBookedStatus($row["status"] ?? "") && empty($row["booked_at"])) {
 			$row["booked_at"] = time();
 		}
 		$ctl->db($this->tableName())->update($row);

@@ -31,10 +31,14 @@ function image_grayscale($file,$newfile){
 			);
 			
 		}else{
-			imagedestroy($image);
+			if (PHP_VERSION_ID < 80000) {
+				imagedestroy($image);
+			}
 			throw new Exception("GrayScale Filter Error");
 		}
-		imagedestroy($image);
+		if (PHP_VERSION_ID < 80000) {
+			imagedestroy($image);
+		}
 	}
 }
 
@@ -100,6 +104,8 @@ function imageresize($file,$width){
 		);
 		 
 		// メモリを開放する
-		imagedestroy($canvas);
+		if (PHP_VERSION_ID < 80000) {
+			imagedestroy($canvas);
+		}
 	}
 }

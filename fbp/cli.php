@@ -179,7 +179,62 @@ function cli_db(Dirs $dir, $table) {
 	return create_db($table, $data_dir, $fmt_dir);
 }
 
-function cli_make_table_format(Dirs $dir, $ffm_db, $ffm_db_fields) {
+function cli_is_plain_integer_constant_key($key): bool {
+	return preg_match('/^(0|[1-9][0-9]*)$/', (string) $key) === 1;
+}
+
+function cli_constant_array_has_only_plain_integer_keys($array_name, $ffm_constant_array, $ffm_values): bool {
+	$array_name = trim((string) $array_name);
+	if ($array_name === "" || $ffm_constant_array === null || $ffm_values === null) {
+		return false;
+	}
+
+	$arrays = $ffm_constant_array->select("array_name", $array_name);
+	if (empty($arrays)) {
+		return false;
+	}
+
+	$values = $ffm_values->select("constant_array_id", (int) ($arrays[0]["id"] ?? 0));
+	if (empty($values)) {
+		return false;
+	}
+
+	foreach ($values as $value) {
+		if (!cli_is_plain_integer_constant_key($value["key"] ?? "")) {
+			return false;
+		}
+	}
+	return true;
+}
+
+function cli_field_format_type(array $field, $ffm_constant_array = null, $ffm_values = null): string {
+	if ($field["type"] == "number"
+		|| $field["type"] == "radio"
+		|| $field["type"] == "datetime"
+		|| $field["type"] == "date"
+		|| $field["type"] == "time") {
+		return "N";
+	}
+	if ($field["type"] == "dropdown") {
+		$constant_array_name = (string) ($field["constant_array_name"] ?? "");
+		if (startsWith($constant_array_name, "table/")) {
+			return "N";
+		}
+		if (cli_constant_array_has_only_plain_integer_keys($constant_array_name, $ffm_constant_array, $ffm_values)) {
+			return "N";
+		}
+		return "T";
+	}
+	if ($field["type"] == "float") {
+		return "F";
+	}
+	if ($field["type"] == "checkbox") {
+		return "A";
+	}
+	return "T";
+}
+
+function cli_make_table_format(Dirs $dir, $ffm_db, $ffm_db_fields, $ffm_constant_array = null, $ffm_values = null) {
 	$fmt_root = $dir->get_class_dir("common") . "/fmt/";
 	if (is_dir($fmt_root)) {
 		$files = glob($fmt_root . '*');
@@ -198,20 +253,7 @@ function cli_make_table_format(Dirs $dir, $ffm_db, $ffm_db_fields) {
 		$txt = "id,24,N\n";
 		$fields = $ffm_db_fields->select("db_id", $db_id, true, "AND", "sort", SORT_ASC);
 		foreach ($fields as $field) {
-			$t = "T";
-			if ($field["type"] == "number"
-				|| $field["type"] == "radio"
-				|| $field["type"] == "datetime"
-				|| $field["type"] == "date"
-				|| $field["type"] == "time") {
-				$t = "N";
-			} else if ($field["type"] == "dropdown" && startsWith((string) ($field["constant_array_name"] ?? ""), "table/")) {
-				$t = "N";
-			} else if ($field["type"] == "float") {
-				$t = "F";
-			} else if ($field["type"] == "checkbox") {
-				$t = "A";
-			}
+			$t = cli_field_format_type($field, $ffm_constant_array, $ffm_values);
 			$txt .= $field["parameter_name"] . "," . $field["length"] . "," . $t . "\n";
 		}
 		file_put_contents($fmt_root . $table["tb_name"] . ".fmt", $txt);
@@ -272,6 +314,189 @@ function cli_get_setting_db(Dirs $dir) {
 	$setting_fmt_dir = $dir->appdir_fw . "/setting/fmt";
 	$setting_data_dir = $dir->datadir . "/setting/";
 	return create_db("setting", $setting_data_dir, $setting_fmt_dir);
+}
+
+function cli_initial_project_setup_value(array $data, string $key, string $default = ""): string {
+	if (array_key_exists($key, $data)) {
+		$value = $data[$key];
+		return is_scalar($value) || $value === null ? trim((string) $value) : $default;
+	}
+	if (isset($data["initial_setup"]) && is_array($data["initial_setup"]) && array_key_exists($key, $data["initial_setup"])) {
+		$value = $data["initial_setup"][$key];
+		return is_scalar($value) || $value === null ? trim((string) $value) : $default;
+	}
+	return $default;
+}
+
+function cli_initial_project_setup_required(array $data, string $key): string {
+	$value = cli_initial_project_setup_value($data, $key);
+	if ($value === "") {
+		throw new Exception("Missing required field: " . $key);
+	}
+	return $value;
+}
+
+function cli_initial_project_setup_language(string $code): string {
+	$code = strtolower(trim($code));
+	if (!preg_match('/^[a-z]{2}$/', $code)) {
+		return "en";
+	}
+	return $code;
+}
+
+function cli_initial_project_setup_locale(string $value, string $framework_language_code): string {
+	$value = trim($value);
+	$all = I18nSimple::get_locale_options();
+	$map = [
+		"ja" => ["ja-JP", "ja-OS"],
+		"en" => ["en-US", "en-GB"],
+		"zh" => ["zh-CN", "zh-TW"],
+	];
+	$allowed = $map[$framework_language_code] ?? [I18nSimple::get_default_locale_code_from_language_code($framework_language_code)];
+	if ($value !== "" && in_array($value, $allowed, true) && isset($all[$value])) {
+		return $value;
+	}
+	return I18nSimple::get_default_locale_code_from_language_code($framework_language_code);
+}
+
+function cli_initial_project_setup_smtp_secure(string $value): int {
+	$normalized = (int) $value;
+	return in_array($normalized, [0, 1, 2], true) ? $normalized : 0;
+}
+
+function cli_initial_project_setup_write_htaccess(Dirs $dir, array $data): bool {
+	$template_path = $dir->appdir_fw . "/setting/Templates/htaccess.tpl";
+	if (!is_file($template_path)) {
+		throw new Exception("htaccess template not found: " . $template_path);
+	}
+
+	$subpath = cli_initial_project_setup_value($data, "htaccess_subpath");
+	if ($subpath === "/" || $subpath === ".") {
+		$subpath = "";
+	}
+	if ($subpath !== "") {
+		if ($subpath[0] !== "/") {
+			$subpath = "/" . $subpath;
+		}
+		$subpath = rtrim($subpath, "/");
+	}
+	if ($subpath !== "" && !preg_match('/^\/[A-Za-z0-9._\-\/]+$/', $subpath)) {
+		throw new Exception("Invalid htaccess_subpath: " . $subpath);
+	}
+
+	$template = file_get_contents($template_path);
+	if ($template === false) {
+		throw new Exception("failed to read htaccess template: " . $template_path);
+	}
+	$template = str_replace('{$class}', "login", $template);
+	$template = str_replace('{$function}', "page", $template);
+	$template = str_replace('{$subpath}', $subpath, $template);
+	$template = str_replace('{$default_class_name}', "", $template);
+	$template = str_replace('{$ssl}', "", $template);
+
+	$target_path = rtrim($dir->basedir, "/") . "/.htaccess";
+	if (file_put_contents($target_path, $template) === false) {
+		throw new Exception("failed to write htaccess: " . $target_path);
+	}
+	return true;
+}
+
+function cli_initial_project_setup(Dirs $dir, array $data): array {
+	cli_prepare_setting($dir);
+
+	$appcode = cli_initial_project_setup_value($data, "appcode");
+	if ($appcode !== "" && !preg_match('/^app-[A-Za-z0-9._-]+$/', $appcode)) {
+		throw new Exception("Invalid appcode: " . $appcode);
+	}
+
+	$login_id = cli_initial_project_setup_required($data, "login_id");
+	$password = cli_initial_project_setup_required($data, "password");
+	$project_release_code = cli_initial_project_setup_required($data, "project_release_code");
+	$release_api_key = cli_initial_project_setup_value($data, "release_api_key", cli_initial_project_setup_value($data, "api_key"));
+	$release_api_secret = cli_initial_project_setup_value($data, "release_api_secret", cli_initial_project_setup_value($data, "api_secret"));
+	$smtp_from = cli_initial_project_setup_value($data, "smtp_from");
+	$smtp_server = cli_initial_project_setup_value($data, "smtp_server");
+	$smtp_port = cli_initial_project_setup_value($data, "smtp_port");
+	$smtp_user = cli_initial_project_setup_value($data, "smtp_user");
+	$smtp_password = cli_initial_project_setup_value($data, "smtp_password");
+	$smtp_secure = cli_initial_project_setup_smtp_secure(cli_initial_project_setup_value($data, "smtp_secure", "0"));
+	$smtp_email_test = cli_initial_project_setup_value($data, "smtp_email_test");
+	$framework_language_code = cli_initial_project_setup_language(cli_initial_project_setup_value($data, "framework_language_code", "en"));
+	$locale_code = cli_initial_project_setup_locale(cli_initial_project_setup_value($data, "locale_code"), $framework_language_code);
+
+	if (!preg_match('/^[a-zA-Z0-9@._\-!#$%&*?]+$/', $login_id)) {
+		throw new Exception("Invalid login_id format.");
+	}
+	if (!preg_match('/^[a-zA-Z0-9@._\-!#$%&*?]+$/', $password)) {
+		throw new Exception("Invalid password format.");
+	}
+	if (!preg_match('/^[A-Za-z0-9_-]+$/', $project_release_code)) {
+		throw new Exception("Invalid project_release_code format.");
+	}
+
+	$ffm_user = create_db("user", $dir->datadir . "/user/", $dir->appdir_fw . "/user/fmt");
+	$admin_list = $ffm_user->select("type", 0);
+	if (count($admin_list) > 0) {
+		throw new Exception("Initial admin user already exists.");
+	}
+	$login_id_list = $ffm_user->select("login_id", $login_id);
+	if (count($login_id_list) > 0) {
+		throw new Exception("login_id already exists.");
+	}
+
+	$user = [];
+	$user["login_id"] = $login_id;
+	$user["password"] = password_hash($password, PASSWORD_DEFAULT);
+	if (!is_string($user["password"]) || $user["password"] === "") {
+		throw new Exception("Failed to hash password.");
+	}
+	$user["name"] = "Admin";
+	$user["type"] = 0;
+	$user["email"] = "";
+	$ffm_user->insert($user);
+
+	$ffm_setting = cli_get_setting_db($dir);
+	$setting = $ffm_setting->get(1);
+	if (empty($setting)) {
+		$setting = ["id" => 1];
+	}
+	$setting["id"] = $setting["id"] ?? 1;
+	$setting["framework_language_code"] = $framework_language_code;
+	$setting["locale_code"] = $locale_code;
+	$setting["project_release_code"] = $project_release_code;
+	$setting["release_api_key"] = $release_api_key;
+	$setting["release_api_secret"] = $release_api_secret;
+	$setting["smtp_from"] = $smtp_from;
+	$setting["smtp_server"] = $smtp_server;
+	$setting["smtp_port"] = $smtp_port;
+	$setting["smtp_user"] = $smtp_user;
+	$setting["smtp_password"] = $smtp_password;
+	$setting["smtp_secure"] = $smtp_secure;
+	$setting["smtp_email_test"] = $smtp_email_test;
+	$setting["lang_default"] = I18nSimple::get_legacy_lang_code_from_setting($setting);
+
+	$setting_list = $ffm_setting->select("id", $setting["id"]);
+	if (count($setting_list) === 0) {
+		$ffm_setting->insert($setting);
+	} else {
+		$ffm_setting->update($setting);
+	}
+
+	$htaccess_written = cli_initial_project_setup_write_htaccess($dir, $data);
+	cli_close_all_db();
+
+	return [
+		"ok" => true,
+		"appcode" => $appcode,
+		"created_admin_user" => true,
+		"login_id" => $login_id,
+		"project_release_code" => $project_release_code,
+		"release_api_configured" => ($release_api_key !== "" && $release_api_secret !== ""),
+		"smtp_configured" => ($smtp_from !== "" && $smtp_server !== "" && $smtp_port !== "" && $smtp_user !== ""),
+		"framework_language_code" => $framework_language_code,
+		"locale_code" => $locale_code,
+		"htaccess_written" => $htaccess_written,
+	];
 }
 
 $db_fmt_dir = $dir->appdir_fw . "/db/fmt";
@@ -1013,6 +1238,23 @@ if ($command === "setting_edit") {
 	exit(0);
 }
 
+if ($command === "initial_project_setup") {
+	[$ok, $err, $data] = cli_get_json_arg($argv);
+	if (!$ok) {
+		fwrite(STDERR, $err . "\n");
+		exit(1);
+	}
+	try {
+		$out = cli_initial_project_setup($dir, $data);
+		cli_output_json($out, 0);
+	} catch (Throwable $e) {
+		cli_output_json([
+			"ok" => false,
+			"error" => $e->getMessage(),
+		], 1);
+	}
+}
+
 if ($command === "encrypt_string") {
 	[$ok, $err, $data] = cli_get_json_arg($argv);
 	if (!$ok) {
@@ -1680,6 +1922,10 @@ if ($command === "constant_values_add") {
 		fwrite(STDERR, "Missing key in --json\n");
 		exit(1);
 	}
+	if (!cli_is_plain_integer_constant_key($key)) {
+		fwrite(STDERR, "key must be a non-negative integer without leading zeros\n");
+		exit(1);
+	}
 	$rows = $ffm_values->select("constant_array_id", $constant_array_id);
 	foreach ($rows as $row) {
 		if ((string) ($row["key"] ?? "") === $key) {
@@ -1711,6 +1957,10 @@ if ($command === "constant_values_edit") {
 		$key = trim((string) $data["key"]);
 		if ($key === "") {
 			fwrite(STDERR, "Missing key in --json\n");
+			exit(1);
+		}
+		if (!cli_is_plain_integer_constant_key($key)) {
+			fwrite(STDERR, "key must be a non-negative integer without leading zeros\n");
 			exit(1);
 		}
 		$rows = $ffm_values->select("constant_array_id", $constant_array_id);
@@ -1782,7 +2032,7 @@ if ($command === "db_tables_add") {
 	}
 	$id = $ffm_db_admin->insert($data);
 	$parent_id_field_added = cli_ensure_parent_id_field($ffm_db_admin, $ffm_db_fields_admin, (int) $id);
-	cli_make_table_format($dir, $ffm_db_admin, $ffm_db_fields_admin);
+	cli_make_table_format($dir, $ffm_db_admin, $ffm_db_fields_admin, $ffm_constant_array, $ffm_values);
 	$out = [
 	    "ok" => true,
 	    "id" => $id,
@@ -1804,7 +2054,7 @@ if ($command === "db_tables_edit") {
 	}
 	$ffm_db_admin->update($data);
 	$parent_id_field_added = cli_ensure_parent_id_field($ffm_db_admin, $ffm_db_fields_admin, (int) $data["id"]);
-	cli_make_table_format($dir, $ffm_db_admin, $ffm_db_fields_admin);
+	cli_make_table_format($dir, $ffm_db_admin, $ffm_db_fields_admin, $ffm_constant_array, $ffm_values);
 	$out = [
 	    "ok" => true,
 	    "id" => $data["id"],
@@ -1825,7 +2075,7 @@ if ($command === "db_tables_delete") {
 		exit(1);
 	}
 	$ffm_db_admin->delete((int) $data["id"]);
-	cli_make_table_format($dir, $ffm_db_admin, $ffm_db_fields_admin);
+	cli_make_table_format($dir, $ffm_db_admin, $ffm_db_fields_admin, $ffm_constant_array, $ffm_values);
 	$out = [
 	    "ok" => true,
 	    "id" => (int) $data["id"],
@@ -1892,7 +2142,7 @@ if ($command === "db_fields_add") {
 		$update["id"] = (int) $existing["id"];
 		$update = cli_normalize_db_field_payload($update);
 		$ffm_db_fields_admin->update($update);
-		cli_make_table_format($dir, $ffm_db_admin, $ffm_db_fields_admin);
+		cli_make_table_format($dir, $ffm_db_admin, $ffm_db_fields_admin, $ffm_constant_array, $ffm_values);
 		$out = [
 		    "ok" => true,
 		    "id" => (int) $existing["id"],
@@ -1904,7 +2154,7 @@ if ($command === "db_fields_add") {
 
 	$data = cli_normalize_db_field_payload($data);
 	$id = $ffm_db_fields_admin->insert($data);
-	cli_make_table_format($dir, $ffm_db_admin, $ffm_db_fields_admin);
+	cli_make_table_format($dir, $ffm_db_admin, $ffm_db_fields_admin, $ffm_constant_array, $ffm_values);
 	$out = [
 	    "ok" => true,
 	    "id" => $id,
@@ -1925,7 +2175,7 @@ if ($command === "db_fields_edit") {
 	}
 	$data = cli_normalize_db_field_payload($data);
 	$ffm_db_fields_admin->update($data);
-	cli_make_table_format($dir, $ffm_db_admin, $ffm_db_fields_admin);
+	cli_make_table_format($dir, $ffm_db_admin, $ffm_db_fields_admin, $ffm_constant_array, $ffm_values);
 	$out = [
 	    "ok" => true,
 	    "id" => $data["id"],
@@ -1945,7 +2195,7 @@ if ($command === "db_fields_delete") {
 		exit(1);
 	}
 	$ffm_db_fields_admin->delete((int) $data["id"]);
-	cli_make_table_format($dir, $ffm_db_admin, $ffm_db_fields_admin);
+	cli_make_table_format($dir, $ffm_db_admin, $ffm_db_fields_admin, $ffm_constant_array, $ffm_values);
 	$out = [
 	    "ok" => true,
 	    "id" => (int) $data["id"],

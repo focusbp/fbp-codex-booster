@@ -30,15 +30,21 @@
 	}
 	.schedule-appointment-nav a,
 	.schedule-appointment-button {
+		align-items: center;
 		background: #f8fafc;
 		border: 1px solid #cbd5e1;
 		border-radius: 8px;
+		box-sizing: border-box;
 		color: #1e293b;
 		display: inline-flex;
+		font: inherit;
 		font-weight: 700;
 		justify-content: center;
+		line-height: 1.2;
+		margin: 0;
+		min-height: 40px;
 		min-width: 68px;
-		padding: 10px 14px;
+		padding: 0 16px;
 		text-decoration: none;
 	}
 	.schedule-appointment-period {
@@ -133,10 +139,23 @@
 		margin: 4px 0 0;
 	}
 	.schedule-appointment-actions {
+		align-items: center;
 		display: flex;
 		flex-wrap: wrap;
-		gap: 10px;
+		gap: 8px;
 		margin-top: 18px;
+		margin-bottom: 10px;
+		justify-content: space-between;
+	}
+	.schedule-appointment-actions-back,
+	.schedule-appointment-actions-main {
+		align-items: center;
+		display: flex;
+		gap: 8px;
+	}
+	.schedule-appointment-actions-main {
+		justify-content: flex-end;
+		margin-left: auto;
 	}
 	.schedule-appointment-primary {
 		background: #1f669b;

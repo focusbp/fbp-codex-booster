@@ -75,7 +75,7 @@ Visitors select an empty time, open `schedule_appointment_public::book`, enter n
 
 On save, a new `schedule_appointment_slots` row is inserted:
 
-- `status = booked`
+- `status = 0` (Booked)
 - `starts_at` is the selected empty time
 - `duration_minutes = 30`
 - `customer_name`
@@ -111,4 +111,4 @@ php fbp/cli.php app_call --json='{"class":"schedule_appointment_slots_original_m
 php fbp/cli.php data_list --json='{"table":"schedule_appointment_slots","max":20}'
 ```
 
-To test a public booking end to end, open the generated public URL, select an empty future cell, submit the booking form, and confirm a new `booked` row appears in `data_list`.
+To test a public booking end to end, open the generated public URL, select an empty future cell, submit the booking form, and confirm a new `status = 0` row appears in `data_list`.

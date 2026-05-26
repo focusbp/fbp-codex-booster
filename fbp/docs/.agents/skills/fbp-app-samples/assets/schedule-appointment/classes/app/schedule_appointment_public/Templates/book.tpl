@@ -28,8 +28,12 @@
 			</div>
 
 			<div class="schedule-appointment-actions">
-				<button type="submit" class="schedule-appointment-button schedule-appointment-primary">Book</button>
-				<a class="schedule-appointment-button" href="{$calendar_url|escape}">Back</a>
+				<div class="schedule-appointment-actions-back">
+					<a class="schedule-appointment-button" href="{$calendar_url|escape}">Back</a>
+				</div>
+				<div class="schedule-appointment-actions-main">
+					<button type="submit" class="schedule-appointment-button schedule-appointment-primary">Book</button>
+				</div>
 			</div>
 		</form>
 	</section>

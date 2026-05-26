@@ -74,12 +74,16 @@ class panel_constants {
 		$rows = $this->extract_rows($post);
 
 		$errors = $this->validate_array($ctl, $post, "edit");
-		$row_errors = $this->validate_rows($rows);
+		$row_errors = $this->validate_rows($ctl, $rows);
 		foreach ($row_errors as $key => $value) {
 			$errors[$key] = $value;
 		}
 
 		if (count($errors)) {
+			if (!empty($errors["rows"])) {
+				$ctl->show_notification_text($errors["rows"], 3, "#950000", "#FFF");
+				return;
+			}
 			$ctl->clear_error_message();
 			foreach ($errors as $field => $message) {
 				$ctl->res_error_message($field, $message);
@@ -203,7 +207,11 @@ class panel_constants {
 		return $rows;
 	}
 
-	private function validate_rows($rows) {
+	private function is_plain_integer_key($key): bool {
+		return preg_match('/^(0|[1-9][0-9]*)$/', (string) $key) === 1;
+	}
+
+	private function validate_rows(Controller $ctl, $rows) {
 		$errors = [];
 		$seen = [];
 
@@ -215,7 +223,7 @@ class panel_constants {
 				$errors["rows"] = $ctl->t("panel_constants.validation.row_value_required");
 				continue;
 			}
-			if (!preg_match('/^\d+$/', $key)) {
+			if (!$this->is_plain_integer_key($key)) {
 				$errors["rows"] = $ctl->t("panel_constants.validation.row_value_numeric");
 				continue;
 			}

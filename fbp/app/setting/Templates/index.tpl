@@ -209,7 +209,7 @@
 						</tr>
 						<tr>
 							<td>{t key="setting.mail_password"}</td>
-							<td><input type="text" name="smtp_password" value="{$setting.smtp_password}"></td>
+							<td><input type="password" name="smtp_password" value="" placeholder="{$masked_setting.smtp_password}" autocomplete="new-password" spellcheck="false"></td>
 						</tr>
 						<tr>
 							<td>{t key="setting.smtp_secure"}</td>

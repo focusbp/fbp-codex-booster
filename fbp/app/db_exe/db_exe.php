@@ -53,17 +53,24 @@ class db_exe {
 		return true;
 	}
 
-	private function invoke_post_action_class(Controller $ctl, $data, $post_action_from = "", ?int $source_id = null){
+	private function invoke_post_action_class(Controller $ctl, $data, $post_action_from = "", ?int $source_id = null, ?array $before_data = null){
 		if(empty($this->db_setting["post_action_class"])){
 			return;
 		}
 		$enc_id = $ctl->encrypt($data["id"]);
 		$post = ["id"=>$enc_id];
+		$post["_post_action_table"] = $this->table_name;
 		if(!empty($post_action_from)){
 			$post["_post_action_from"] = $post_action_from;
 		}
 		if(!empty($source_id)){
 			$post["_post_action_source_id"] = $ctl->encrypt($source_id);
+		}
+		if(is_array($before_data)){
+			$post["_post_action_before"] = json_encode($before_data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+		}
+		if(is_array($data)){
+			$post["_post_action_after"] = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 		}
 		$ctl->invoke("run", $post, $this->db_setting["post_action_class"]);
 	}
@@ -133,6 +140,49 @@ class db_exe {
 		}
 	}
 
+	private function assign_properties_management_summary(Controller $ctl): void {
+		$ctl->assign("show_properties_management_summary", false);
+		if ($this->table_name !== "properties") {
+			return;
+		}
+
+		$active_owner_ids = null;
+		if ((int)($this->db_setting["parent_tb_id"] ?? 0) > 0) {
+			$parent_db = $this->fmt_db->get($this->db_setting["parent_tb_id"]);
+			if (($parent_db["tb_name"] ?? "") === "owner") {
+				$active_owner_ids = [];
+				$owner_rows = $ctl->db("owner")->filter([], []);
+				foreach ((array)$owner_rows as $owner) {
+					if ((string)($owner["sold_excluded"] ?? "0") === "1") {
+						continue;
+					}
+					$owner_id = (string)($owner["id"] ?? "");
+					if ($owner_id !== "") {
+						$active_owner_ids[$owner_id] = true;
+					}
+				}
+			}
+		}
+
+		$property_rows = $ctl->db("properties")->filter([], []);
+		$management_count = 0;
+		foreach ((array)$property_rows as $property) {
+			if ((string)($property["status"] ?? "0") === "1") {
+				continue;
+			}
+			if (is_array($active_owner_ids)) {
+				$owner_id = (string)($property["parent_id"] ?? "");
+				if ($owner_id === "" || !isset($active_owner_ids[$owner_id])) {
+					continue;
+				}
+			}
+			$management_count++;
+		}
+
+		$ctl->assign("show_properties_management_summary", true);
+		$ctl->assign("properties_management_count", $management_count);
+	}
+
 	private function get_side_panel_list_type(): int {
 		$side_type = isset($this->db_setting["side_list_type"]) ? (int)$this->db_setting["side_list_type"] : 0;
 		if ($side_type === 0) {
@@ -140,6 +190,123 @@ class db_exe {
 			return ($main_type === 0) ? 1 : 2;
 		}
 		return ($side_type === 1) ? 1 : 2;
+	}
+
+	private function get_table_field_names(Controller $ctl): array {
+		$fields = $ctl->db("db_fields", "db")->select("db_id", $this->db_setting_id, true, "AND", "sort", SORT_ASC);
+		$names = ["id" => true];
+		foreach ($fields as $field) {
+			$name = (string)($field["parameter_name"] ?? "");
+			if ($name !== "") {
+				$names[$name] = true;
+			}
+		}
+		return $names;
+	}
+
+	private function get_manual_sort_fallback_fields(Controller $ctl): array {
+		$field_names = $this->get_table_field_names($ctl);
+		$candidates = [];
+		$sortkey = trim((string)($this->db_setting["sortkey"] ?? ""));
+		if ($sortkey !== "" && $sortkey !== "sort") {
+			$candidates[] = $sortkey;
+		}
+		foreach ([
+			"location_name_yomi",
+			"name_yomi",
+			"customer_name_yomi",
+			"factory_name_yomi",
+			"title_yomi",
+			"location_name",
+			"name",
+			"customer_name",
+			"factory_name",
+			"title",
+			"id",
+		] as $candidate) {
+			$candidates[] = $candidate;
+		}
+
+		$fields = [];
+		$seen = [];
+		foreach ($candidates as $candidate) {
+			if (!isset($field_names[$candidate]) || isset($seen[$candidate])) {
+				continue;
+			}
+			$fields[] = $candidate;
+			$seen[$candidate] = true;
+		}
+		if (count($fields) === 0) {
+			$fields[] = "id";
+		}
+		return $fields;
+	}
+
+	private function manual_sort_value($value): int {
+		if ($value === null || $value === "") {
+			return PHP_INT_MAX;
+		}
+		$sort = (int)$value;
+		return $sort > 0 ? $sort : PHP_INT_MAX;
+	}
+
+	private function compare_manual_sort_fallback_value($a, $b): int {
+		$a = trim((string)$a);
+		$b = trim((string)$b);
+		if ($a === "" && $b === "") {
+			return 0;
+		}
+		if ($a === "") {
+			return 1;
+		}
+		if ($b === "") {
+			return -1;
+		}
+		if (is_numeric($a) && is_numeric($b)) {
+			return ((float)$a) <=> ((float)$b);
+		}
+		$cmp = strnatcasecmp($a, $b);
+		if ($cmp !== 0) {
+			return $cmp;
+		}
+		return strcmp($a, $b);
+	}
+
+	private function sort_rows_for_manual_side_panel(Controller $ctl, array $rows): array {
+		$fallback_fields = $this->get_manual_sort_fallback_fields($ctl);
+		$fallback_direction = ((int)($this->db_setting["sort_order"] ?? SORT_ASC) === SORT_DESC) ? -1 : 1;
+		$indexed_rows = [];
+		foreach ($rows as $index => $row) {
+			$indexed_rows[] = [
+				"index" => $index,
+				"row" => $row,
+			];
+		}
+		usort($indexed_rows, function ($a, $b) use ($fallback_fields, $fallback_direction) {
+			$sort_a = $this->manual_sort_value($a["row"]["sort"] ?? null);
+			$sort_b = $this->manual_sort_value($b["row"]["sort"] ?? null);
+			if ($sort_a !== $sort_b) {
+				return $sort_a <=> $sort_b;
+			}
+			foreach ($fallback_fields as $field) {
+				$cmp = $this->compare_manual_sort_fallback_value($a["row"][$field] ?? "", $b["row"][$field] ?? "");
+				if ($cmp !== 0) {
+					$value_a = trim((string)($a["row"][$field] ?? ""));
+					$value_b = trim((string)($b["row"][$field] ?? ""));
+					if ($value_a === "" || $value_b === "") {
+						return $cmp;
+					}
+					return $cmp * $fallback_direction;
+				}
+			}
+			return $a["index"] <=> $b["index"];
+		});
+
+		$sorted = [];
+		foreach ($indexed_rows as $indexed_row) {
+			$sorted[] = $indexed_row["row"];
+		}
+		return $sorted;
 	}
 
 	private function is_show_search_id_enabled(): bool {
@@ -162,6 +329,41 @@ class db_exe {
 			array_unshift($fields, $this->build_search_id_field());
 		}
 		return $fields;
+	}
+
+	private function get_visibility_filter(Controller $ctl) {
+		if (!isset($ctl->dirs) || !is_object($ctl->dirs)) {
+			return null;
+		}
+		$class_name = $this->table_name . "_visibility_filter";
+		$file_path = $ctl->dirs->appdir_user . "/" . $class_name . "/" . $class_name . ".php";
+		if (!is_file($file_path)) {
+			return null;
+		}
+		require_once $file_path;
+		if (!class_exists($class_name)) {
+			return null;
+		}
+		return new $class_name();
+	}
+
+	private function append_visibility_filter_conditions(Controller $ctl, array &$search_field_list, array &$search_values, array &$search_match_patterns, string $context): void {
+		$filter = $this->get_visibility_filter($ctl);
+		if ($filter === null || !method_exists($filter, "get_filter_conditions")) {
+			return;
+		}
+		$conditions = $filter->get_filter_conditions($ctl, $context);
+		if (!is_array($conditions)) {
+			return;
+		}
+		foreach ($conditions as $condition) {
+			if (!is_array($condition) || empty($condition["field"])) {
+				continue;
+			}
+			$search_field_list[] = (string)$condition["field"];
+			$search_values[] = $condition["value"] ?? "";
+			$search_match_patterns[] = (string)($condition["match_pattern"] ?? "=");
+		}
 	}
 
 	private function normalize_timestamp_search_value($value) {
@@ -298,6 +500,7 @@ class db_exe {
 		$additional_list = $ffm_additionals->select(["tb_name","place"],[$this->table_name,0],true,"AND","sort",SORT_DESC);
 		$this->add_show_button_class($ctl,$additional_list);
 		$ctl->assign("additionals",$additional_list);
+		$this->assign_properties_management_summary($ctl);
 		
 		// Show HTML
 		$ctl->show_main_area("index.tpl", $this->title);
@@ -424,6 +627,7 @@ class db_exe {
 		$session = $ctl->get_session("search_" . $this->table_name);
 		$fields = $this->get_search_fields($ctl);
 		[$search_field_list, $search_values, $search_match_patterns] = $this->build_search_filter_parts($fields, $session);
+		$this->append_visibility_filter_conditions($ctl, $search_field_list, $search_values, $search_match_patterns, "list");
 		
 		// Getting data from DB
 		$max = $ctl->increment_post_value('max', 10);
@@ -567,6 +771,7 @@ class db_exe {
 		if($ctl->count_res_error_message()==0){
 			// Getting row
 			$id = $ctl->decrypt_post("id");
+			$before_data = $this->ffm->get($id);
 			$post["id"] = $id;
 			
 			$this->ffm->update($post);
@@ -586,7 +791,7 @@ class db_exe {
 			}
 			
 			// Post Action Class
-				$this->invoke_post_action_class($ctl, $data, "edit");
+				$this->invoke_post_action_class($ctl, $data, "edit", null, is_array($before_data) ? $before_data : null);
 		}		
 	}
 	
@@ -719,6 +924,7 @@ class db_exe {
 			array_unshift($search_field_list, "parent_id");
 			array_unshift($search_values, $parent_id);
 			array_unshift($search_match_patterns, "=");
+			$this->append_visibility_filter_conditions($ctl, $search_field_list, $search_values, $search_match_patterns, "list_on_side");
 
 			$max = $ctl->increment_post_value('max', 10);
 			$this->ffm->set_flg_filter_zero(true);
@@ -728,6 +934,7 @@ class db_exe {
 		}else{
 			// Getting data from DB
 			$rows = $this->ffm->select("parent_id",$parent_id,true,"AND",$this->db_setting["sortkey"], $this->db_setting["sort_order"]);
+			$rows = $this->sort_rows_for_manual_side_panel($ctl, $rows);
 		}
 
 		// Encrypt ID and change data
@@ -883,6 +1090,7 @@ class db_exe {
 		if($ctl->count_res_error_message()==0){
 			// Getting row
 			$id = $ctl->decrypt_post("id");
+			$before_data = $this->ffm->get($id);
 			$post["id"] = $id;
 			
 			$this->ffm->update($post);
@@ -894,7 +1102,7 @@ class db_exe {
 			$ctl->close_multi_dialog($this->window_name . "_" . $id);
 			
 			// Post Action Class
-				$this->invoke_post_action_class($ctl, $data, "edit");
+				$this->invoke_post_action_class($ctl, $data, "edit", null, is_array($before_data) ? $before_data : null);
 		}		
 	}
 	
@@ -935,6 +1143,9 @@ class db_exe {
 		$c=1;
 		foreach($ex as $id){
 			$d = $this->ffm->get($id);
+			if (!$d) {
+				continue;
+			}
 			$d["sort"] = $c++;
 			$this->ffm->update($d);
 		}

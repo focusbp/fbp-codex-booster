@@ -124,6 +124,20 @@ Do not add LINE secrets or tokens to code.
 Verify the LINE member management screen, webhook_rule list, DB schema, and PHP syntax with the FBP CLI.
 ```
 
+### Web Commerce Basic
+
+Copy the whole block below and paste it into Codex:
+
+```text
+Read README.md, fbp/docs/.agents/skills/fbp-app-samples/SKILL.md, fbp/docs/.agents/skills/fbp-app-samples/references/web-commerce-basic.md, fbp/docs/.agents/skills/fbp-app-samples/references/web-commerce-basic-db.md, and fbp/docs/.agents/skills/fbp-square-payment/SKILL.md.
+Create the Web Commerce Basic sample.
+Run the bundled installer: php fbp/docs/.agents/skills/fbp-app-samples/scripts/install_web_commerce_basic.php.
+Install the shop_member, shop_product_category, shop_product, shop_product_variant, shop_customer_order, and shop_customer_order_item DBs; email/password public member registration; public product list/detail; cart; checkout; real Square payment flow; paid order creation; simple stock_quantity decrement; member order history; Shop Orders public EC link dialog; and seed products.
+Keep all sample-owned DB tables prefixed with shop_.
+Do not add LINE entry, email verification, multi-store behavior, shop-scoped Square OAuth, lot inventory, shipment automation, email sending, receipt PDF, credentials, domains, or production data.
+Verify the public shop page, member login/register pages, DB schema, seed data, installer output, manifest JSON, and PHP syntax with the FBP CLI. Live Square payment requires Square credentials in app settings.
+```
+
 ## Generated Customer Demo
 
 After the customer prompt above, Codex creates a customer management demo with
@@ -168,6 +182,20 @@ webhook path to:
 
 ```text
 /line_webhook*receive
+```
+
+## Generated Web Commerce Basic Sample
+
+After the Web Commerce Basic prompt above, Codex creates a normal web storefront
+with `shop_member`, `shop_product_category`, `shop_product`, `shop_product_variant`,
+`shop_customer_order`, and `shop_customer_order_item`, plus public member registration,
+cart, checkout, Square payment, paid order creation, order history, and a Shop Orders
+admin button that shows the public storefront link.
+
+The public shop path is:
+
+```text
+/public_pages*shop
 ```
 
 ## Deploy To Apache

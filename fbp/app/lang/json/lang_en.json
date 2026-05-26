@@ -189,7 +189,7 @@
   "panel_constants.validation.array_name_prefix": "Array name starting with table_ is not allowed.",
   "panel_constants.validation.array_name_exists": "{name} already exists.",
   "panel_constants.validation.row_value_required": "Each row needs a value.",
-  "panel_constants.validation.row_value_numeric": "Each value must be numeric.",
+  "panel_constants.validation.row_value_numeric": "Key must be a non-negative integer without leading zeros.",
   "panel_constants.validation.row_label_required": "Each row needs a label.",
   "panel_constants.validation.row_value_duplicate": "Duplicate value {value} is not allowed.",
   "webhook_rule.dialog.add": "Add Webhook Rule",

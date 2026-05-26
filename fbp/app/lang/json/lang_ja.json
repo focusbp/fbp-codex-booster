@@ -189,7 +189,7 @@
   "panel_constants.validation.array_name_prefix": "table_ で始まる配列名は使用できません。",
   "panel_constants.validation.array_name_exists": "{name} は既に存在します。",
   "panel_constants.validation.row_value_required": "各行に値を入力してください。",
-  "panel_constants.validation.row_value_numeric": "各値は数値で入力してください。",
+  "panel_constants.validation.row_value_numeric": "キーは 0 または先頭ゼロなしの非負整数で入力してください。",
   "panel_constants.validation.row_label_required": "各行にラベルを入力してください。",
   "panel_constants.validation.row_value_duplicate": "値 {value} は重複できません。",
   "webhook_rule.dialog.add": "Webhookルールを追加",

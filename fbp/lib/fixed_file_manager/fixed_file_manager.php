@@ -38,6 +38,24 @@ class fixed_file_manager implements FFM {
 		return trim((string) $iname) === "";
 	}
 
+	private function is_numeric_text_value($value): bool {
+		return preg_match('/^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/', trim((string) $value)) === 1;
+	}
+
+	private function is_select_text_match($stored_value, $search_value): bool {
+		$stored = trim((string) $stored_value);
+		if ($stored === $search_value) {
+			return true;
+		}
+		if (!is_int($search_value) && !is_float($search_value)) {
+			return false;
+		}
+		$search = (string) $search_value;
+		return $this->is_numeric_text_value($stored)
+			&& $this->is_numeric_text_value($search)
+			&& $stored === $search;
+	}
+
 	/*
 	 * デバッグ用
 	 */
@@ -898,7 +916,7 @@ class fixed_file_manager implements FFM {
 
 					$match_pattern = $match_patterns[$key];
 					if ($match_pattern == "=") {
-						if ($v === $value[$key]) {
+						if ($this->is_select_text_match($v, $value[$key])) {
 							$check = true;
 						}
 					} else {

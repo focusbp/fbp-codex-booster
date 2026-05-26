@@ -90,7 +90,11 @@ class public_pages {
 	<input type="text" name="amount" value="{$row.amount|default:''}">
 	<p class="error_message error_amount"></p>
 
-	<button class="ajax-link" data-class="{$class}" data-function="orders_contact_exe" data-form="orders_contact_form">送信する</button>
+	<div class="public-actions">
+		<div class="public-actions-main">
+			<button type="button" class="ajax-link button_link" data-class="{$class}" data-function="orders_contact_exe" data-form="orders_contact_form">送信する</button>
+		</div>
+	</div>
 </form>
 ```
 
@@ -133,12 +137,40 @@ class public_pages {
 	box-sizing: border-box;
 }
 
-.publicsite-content .ajax-link {
+.public-actions {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-top: 16px;
+	margin-bottom: 10px;
+}
+
+.public-actions-back,
+.public-actions-main {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.public-actions-main {
+	margin-left: auto;
+	justify-content: flex-end;
+}
+
+.public-actions .button_link {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	min-height: 40px;
+	margin: 0;
 	background: #0f172a;
 	color: #ffffff;
 	border: 0;
 	border-radius: 8px;
-	padding: 10px 16px;
+	padding: 0 16px;
+	line-height: 1.2;
 	cursor: pointer;
 }
 ```

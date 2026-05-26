@@ -79,7 +79,7 @@ interface ctl_media {
 	 * @param string $to The recipient's email address.
 	 * @param string $subject The subject of the email.
 	 * @param string $body The body of the email.
-	 * @param array|null $attachment_files An array of file paths to attach to the email. Optional.
+	 * @param array|string|null $attachment_files File paths to attach, or attachment specs like ["path" => "...", "name" => "..."]. Optional.
 	 * @return void
 	 */
 	function send_mail_text($to, $subject, $body, $attachment_files = null);
@@ -89,7 +89,7 @@ interface ctl_media {
 	 *
 	 * @param string $to The recipient's email address.
 	 * @param string $format_key The key to identify the email format.
-	 * @param array|null $attachment_files An array of files to attach to the email. Optional.
+	 * @param array|string|null $attachment_files File paths to attach, or attachment specs like ["path" => "...", "name" => "..."]. Optional.
 	 * @return void
 	 */
 	function send_mail_prepared_format($to, $format_key, $attachment_files = null);

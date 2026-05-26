@@ -379,6 +379,7 @@ class pdfmaker_class {
 				//---------
 				// 表
 				//---------
+				$wPage = $pdf->GetPageWidth() - $lMargin - $rMargin;
 				// セパレーター
 				if (isset($set["separator"])) {
 					$separator = str_replace("\"", "", $set["separator"]);
@@ -760,7 +761,9 @@ class pdfmaker_class {
 		// ページ替え
 		//------------
 		if (isset($set["newpage"])) {
-			$pdf->AddPage();
+			$newpage_orientation = $set["newpage_orientation"] ?? ($set["orientation"] ?? "");
+			$newpage_pagesize = $set["newpage_pagesize"] ?? ($set["pagesize"] ?? "");
+			$pdf->AddPage($newpage_orientation, $newpage_pagesize);
 		}
 
 		//------------
@@ -839,7 +842,8 @@ class pdfmaker_class {
 		}
 		if (!isset($set["width"])) {
 			if (isset($set["marginright"])) {
-				$set["width"] = $default["wPage"] - $set["marginleft"] - $set["marginright"];
+				$current_w_page = $pdf->GetPageWidth() - $pdf->lMargin - $pdf->rMargin;
+				$set["width"] = $current_w_page - $set["marginleft"] - $set["marginright"];
 			} else {
 				$set["width"] = 0;
 			}

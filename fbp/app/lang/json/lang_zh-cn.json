@@ -189,7 +189,7 @@
     "panel_constants.validation.array_name_prefix": "不允许使用以 table_ 开头的数组名。",
     "panel_constants.validation.array_name_exists": "{name} 已存在。",
     "panel_constants.validation.row_value_required": "每一行都必须填写值。",
-    "panel_constants.validation.row_value_numeric": "每个值必须为数字。",
+    "panel_constants.validation.row_value_numeric": "键必须是非负整数，且不能包含前导零。",
     "panel_constants.validation.row_label_required": "每一行都必须填写标签。",
     "panel_constants.validation.row_value_duplicate": "不允许重复的值 {value}。",
     "webhook_rule.dialog.add": "添加 Webhook 规则",

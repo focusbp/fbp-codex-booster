@@ -28,8 +28,12 @@
 			{/if}
 		{/foreach}
 		<td>
+		{if $flg_delete_button}
 		<button class="ajax-link listbutton" data-class="{$class}" data-function="delete" data-id="{$row["_id_enc"]}" data-db_id="{$db_id}" style="float:right;color:#2d2d2d;margin-right:5px;"><span class="material-symbols-outlined">delete</span></button>
+		{/if}
+		{if $flg_edit_button}
 		<button class="ajax-link listbutton" data-class="{$class}" data-function="edit" data-id="{$row["_id_enc"]}"  data-db_id="{$db_id}" style="float:right;color:#2d2d2d;"><span class="material-symbols-outlined">edit_square</span></button>
+		{/if}
 		</td>
 	</tr>
 {/foreach}

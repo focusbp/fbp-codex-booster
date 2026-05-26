@@ -1132,6 +1132,59 @@ class db {
 		$ctl->ajax("db", "edit", ["id" => $data['db_id']]);
 	}
 
+	private function is_plain_integer_constant_key($key): bool {
+		return preg_match('/^(0|[1-9][0-9]*)$/', (string) $key) === 1;
+	}
+
+	private function constant_array_has_only_plain_integer_keys(Controller $ctl, string $array_name): bool {
+		$array_name = trim($array_name);
+		if ($array_name === "") {
+			return false;
+		}
+
+		$ffm_constant_array = $ctl->db("constant_array", "constant_array");
+		$ffm_values = $ctl->db("values", "constant_array");
+		$arrays = $ffm_constant_array->select("array_name", $array_name);
+		if (empty($arrays)) {
+			return false;
+		}
+
+		$values = $ffm_values->select("constant_array_id", (int) ($arrays[0]["id"] ?? 0));
+		if (empty($values)) {
+			return false;
+		}
+
+		foreach ($values as $value) {
+			if (!$this->is_plain_integer_constant_key($value["key"] ?? "")) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private function field_format_type(Controller $ctl, array $field): string {
+		if ($field["type"] == "number" || $field["type"] == "radio" || $field["type"] == "datetime" || $field["type"] == "date") {
+			return "N";
+		}
+		if ($field["type"] == "dropdown") {
+			$constant_array_name = (string) ($field["constant_array_name"] ?? "");
+			if (startsWith($constant_array_name, "table/")) {
+				return "N";
+			}
+			if ($this->constant_array_has_only_plain_integer_keys($ctl, $constant_array_name)) {
+				return "N";
+			}
+			return "T";
+		}
+		if ($field["type"] == "float") {
+			return "F";
+		}
+		if ($field["type"] == "checkbox") {
+			return "A";
+		}
+		return "T";
+	}
+
 	// make table format
 	function make_table_format(Controller $ctl) {
 
@@ -1159,21 +1212,7 @@ class db {
 
 			$fields = $this->fmt_db_fields->select("db_id", $db_id, true, "AND", "sort", SORT_ASC);
 			foreach ($fields as $field) {
-				$t = "";
-				if ($field["type"] == "number" || $field["type"] == "radio" || $field["type"] == "datetime" || $field["type"] == "date"
-				) {
-					$t = "N";
-				} else if ($field["type"] == "dropdown" && startsWith((string) ($field["constant_array_name"] ?? ""), "table/")) {
-					$t = "N";
-				} else if ($field["type"] == "float") {
-					$t = "F";
-				} else if ($field["type"] == "checkbox") {
-					$t = "A";
-				} else {
-					$t = "T";
-				}
-
-
+				$t = $this->field_format_type($ctl, $field);
 				$txt .= $field["parameter_name"] . "," . $field["length"] . "," . $t . "\n";
 			}
 			file_put_contents($dir . $table["tb_name"] . ".fmt", $txt);

@@ -24,12 +24,65 @@ description: Build and operate public_pages with login-free entry points, secure
 9. 公開検索や絞り込みで URL に出したくない値は、`GET` ではなく `POST -> session` で保持し、表示時に復元する。
 10. 公開側で `ajax-auto` によるスクロール追加を行う場合、初回表示関数と追加読込関数を分ける。初回は `show_public_pages()` で全体表示し、追加読込は一覧部分専用の関数から `reload_area()` で部分テンプレートだけを返す。
 
+## public action buttons
+- 公開フォーム/公開一覧の操作ボタンは、ボタンを直接横並びにせず、共通のアクションバーで包む。戻るボタンだけ左寄せ、送信/次へ/予約/保存などの主操作と補助操作は右寄せを基本にする。
+- 基本構造は `<div class="public-actions">` の中に、戻る用の `.public-actions-back` と主操作用の `.public-actions-main` を置く。戻るがない画面では `.public-actions-back` は省略してよい。
+- 下にテーブル、一覧、カード、詳細表示などが続く場合は、アクションバー下に `margin-bottom: 10px` 以上を確保する。フォーム末尾でも `margin-top` は同じ基準にして画面ごとのばらつきを避ける。
+- すべての操作ボタン/ボタン風リンクに同じ `button_link` 系クラスを付け、`min-height`、`padding`、`line-height`、`display: inline-flex`、`align-items: center` を共通CSSで揃える。個別ボタンの inline style、`float`、個別 `margin` で位置調整しない。
+- 主操作/戻る/補助で色や枠線を変えるのはよいが、高さ・左右余白・行内余白・ボタン間 `gap` は統一する。
+- `classes/app/public_pages/style.css` またはページ固有CSSに、次の形をベースとして置く。
+
+```smarty
+<div class="public-actions">
+	<div class="public-actions-back">
+		<button type="button" class="ajax-link button_link secondary" data-class="public_pages" data-function="back_function">戻る</button>
+	</div>
+	<div class="public-actions-main">
+		<button type="button" class="ajax-link button_link" data-class="public_pages" data-function="save_function" data-form="public_form">予約する</button>
+	</div>
+</div>
+```
+
+```css
+.public-actions {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-top: 16px;
+	margin-bottom: 10px;
+}
+
+.public-actions-back,
+.public-actions-main {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.public-actions-main {
+	margin-left: auto;
+	justify-content: flex-end;
+}
+
+.public-actions .button_link {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	min-height: 40px;
+	margin: 0;
+	padding: 0 16px;
+	line-height: 1.2;
+}
+```
+
 ## public wizard forms
 - 公開側の初回登録・申込みなどをウィザード形式にする場合、ステップ切替をページ内JSだけに依存しない。公開画面ではJSイベントの初期化順や差し替え後の再bindでボタンが動かないことがある。
 - 推奨形は、外枠テンプレートに `#xxx_wizard_area` を置き、フォーム部分を `_xxx_wizard_form.tpl` に切り出す。`次へ` / `戻る` は `ajax-link` + `data-form` で同一 `public_pages` 関数へ送信し、サーバー側で `current_step` と入力値を見て次のステップを決め、`reload_area("#xxx_wizard_area", "_xxx_wizard_form.tpl")` でフォーム部分だけ更新する。
 - 各ステップの入力値は次ステップでも失わないよう、表示しない項目を hidden で持ち回る。最終保存では改めて全必須チェックを行う。
 - ステップ移動時にも、そのステップで必須の項目は検証する。例: BNI選択時の `chapter_name` / `connect_name` は、BNIステップの `次へ` 時点で未入力なら同じステップを再表示し、項目下にエラーを出す。
-- ボタン順は画面ごとに明示する。戻るボタンを置く場合でも、ユーザーが次に押す主操作を先に出す指定なら `次へ`/`登録` を先、`戻る` を後にする。
+- ボタン配置は `public action buttons` のアクションバーに従い、戻るは左、`次へ`/`登録` などの主操作は右に置く。
 - 実装時にまとまったサンプルが必要な場合は `references/public_wizard_form_sample.md` を読む。
 
 ### wizard sample
@@ -92,15 +145,25 @@ function register_step(Controller $ctl) {
 		<input type="hidden" name="chapter_name" value="{$row.chapter_name|escape}">
 		<input type="hidden" name="connect_name" value="{$row.connect_name|escape}">
 		<input type="hidden" name="name" value="{$row.name|escape}">
-		<button type="button" class="ajax-link button_link" data-class="public_pages" data-function="register_step" data-form="register_wizard_form" data-step_action="next">次へ</button>
+		<div class="public-actions">
+			<div class="public-actions-main">
+				<button type="button" class="ajax-link button_link" data-class="public_pages" data-function="register_step" data-form="register_wizard_form" data-step_action="next">次へ</button>
+			</div>
+		</div>
 	{elseif $current_step == "bni"}
 		<input type="hidden" name="member_type" value="{$row.member_type|escape}">
 		{fields_form_original name="chapter_name" type="text" value=$row.chapter_name title="BNIチャプター名"}
 		<p class="error_message error_chapter_name">{$errors.chapter_name|default:''|escape}</p>
 		{fields_form_original name="connect_name" type="text" value=$row.connect_name title="コネクト氏名"}
 		<p class="error_message error_connect_name">{$errors.connect_name|default:''|escape}</p>
-		<button type="button" class="ajax-link button_link" data-class="public_pages" data-function="register_step" data-form="register_wizard_form" data-step_action="next">次へ</button>
-		<button type="button" class="ajax-link button_link" data-class="public_pages" data-function="register_step" data-form="register_wizard_form" data-step_action="back">戻る</button>
+		<div class="public-actions">
+			<div class="public-actions-back">
+				<button type="button" class="ajax-link button_link secondary" data-class="public_pages" data-function="register_step" data-form="register_wizard_form" data-step_action="back">戻る</button>
+			</div>
+			<div class="public-actions-main">
+				<button type="button" class="ajax-link button_link" data-class="public_pages" data-function="register_step" data-form="register_wizard_form" data-step_action="next">次へ</button>
+			</div>
+		</div>
 	{/if}
 </form>
 ```

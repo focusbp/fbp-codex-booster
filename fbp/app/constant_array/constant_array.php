@@ -81,6 +81,14 @@ class constant_array {
 		return substr($haystack, -$length) === $needle;
 	}
 
+	private function is_plain_integer_key($key): bool {
+		return preg_match('/^(0|[1-9][0-9]*)$/', (string) $key) === 1;
+	}
+
+	private function integer_key_error_message(): string {
+		return "Key must be a non-negative integer without leading zeros.";
+	}
+
 	//view edit page
 
 	function edit(Controller $ctl, ?int $id = null) {
@@ -113,6 +121,10 @@ class constant_array {
 			$errors[$k] = $v;
 		}
 		if (count($errors)) {
+			if (!empty($errors["rows"])) {
+				$ctl->show_notification_text($errors["rows"], 3, "#950000", "#FFF");
+				return;
+			}
 			$ctl->clear_error_message();
 			foreach ($errors as $field => $message) {
 				$ctl->res_error_message($field, $message);
@@ -229,36 +241,6 @@ class constant_array {
 		$this->edit($ctl, $constant_array_id);
 	}
 
-	function edit_values(Controller $ctl) {
-		$id = $ctl->POST('id');
-		$constant_array_id = $ctl->POST('constant_array_id');
-
-		$values = $this->fmt_values->get($id);
-
-		$ctl->assign("id", $id);
-		$ctl->assign("values", $values);
-		$ctl->assign("constant_array_id", $constant_array_id);
-		$ctl->show_multi_dialog("edit_values" . $id, "edit_values.tpl", "Edit values", 500, true, true);
-	}
-
-	function edit_values_exe(Controller $ctl) {
-		$data = $ctl->POST();
-		$constant_array_id = $data['constant_array_id'] ?? null;
-		$data['updated_at'] = time();
-		//validation
-		$errors = $this->validate_values_form($ctl, $data);
-		if (count($errors)) {
-			$ctl->assign('errors', $errors);
-			$this->edit_values($ctl);
-			return;
-		}
-
-		$this->fmt_values->update($data);
-
-		$ctl->close_multi_dialog("edit_values" . ($data['id'] ?? ""));
-		$this->edit($ctl, $constant_array_id);
-	}
-
 	function delete_values(Controller $ctl) {
 		$id = $ctl->POST("id");
 		$values = $this->fmt_values->get($id);
@@ -285,8 +267,10 @@ class constant_array {
 
 		if ($key === '')
 			$errors['key'] = "Key is required!";
+		else if (!$this->is_plain_integer_key($key))
+			$errors['key'] = $this->integer_key_error_message();
 
-		if ($key !== '') {
+		if ($key !== '' && !isset($errors['key'])) {
 			$validate_duplicate = $ctl->validate_duplicate('values', ['key', "constant_array_id"], [$key, $constant_array_id], $id, 'constant_array');
 			//var_dump($is_duplicate);
 			if (!$validate_duplicate) {
@@ -340,8 +324,8 @@ class constant_array {
 				$errors["rows"] = "Each row needs a value.";
 				continue;
 			}
-			if (!preg_match('/^\d+$/', $key)) {
-				$errors["rows"] = "Each value must be numeric.";
+			if (!$this->is_plain_integer_key($key)) {
+				$errors["rows"] = $this->integer_key_error_message();
 				continue;
 			}
 			if ($value === "") {

@@ -1,0 +1,955 @@
+{
+  "constant_arrays": [
+    {
+      "array_name": "shop_member_status"
+    },
+    {
+      "array_name": "shop_product_status"
+    },
+    {
+      "array_name": "shop_order_status"
+    },
+    {
+      "array_name": "shop_payment_status"
+    },
+    {
+      "array_name": "shop_active_status"
+    }
+  ],
+  "constant_values": {
+    "shop_member_status": [
+      {
+        "key": "active",
+        "value": "Active",
+        "color": "#16a34a",
+        "sort": 1
+      },
+      {
+        "key": "disabled",
+        "value": "Disabled",
+        "color": "#64748b",
+        "sort": 2
+      }
+    ],
+    "shop_product_status": [
+      {
+        "key": "active",
+        "value": "Active",
+        "color": "#16a34a",
+        "sort": 1
+      },
+      {
+        "key": "draft",
+        "value": "Draft",
+        "color": "#64748b",
+        "sort": 2
+      },
+      {
+        "key": "closed",
+        "value": "Closed",
+        "color": "#dc2626",
+        "sort": 3
+      }
+    ],
+    "shop_order_status": [
+      {
+        "key": "paid",
+        "value": "Paid",
+        "color": "#2563eb",
+        "sort": 1
+      },
+      {
+        "key": "shipped",
+        "value": "Shipped",
+        "color": "#16a34a",
+        "sort": 2
+      },
+      {
+        "key": "cancelled",
+        "value": "Cancelled",
+        "color": "#dc2626",
+        "sort": 3
+      }
+    ],
+    "shop_payment_status": [
+      {
+        "key": "paid",
+        "value": "Paid",
+        "color": "#2563eb",
+        "sort": 1
+      },
+      {
+        "key": "failed",
+        "value": "Failed",
+        "color": "#dc2626",
+        "sort": 2
+      }
+    ],
+    "shop_active_status": [
+      {
+        "key": "1",
+        "value": "Active",
+        "color": "#16a34a",
+        "sort": 1
+      },
+      {
+        "key": "0",
+        "value": "Inactive",
+        "color": "#64748b",
+        "sort": 2
+      }
+    ]
+  },
+  "db_tables": [
+    {
+      "tb_name": "shop_member",
+      "menu_name": "Shop Members",
+      "sort": 20,
+      "parent_tb_id": 0,
+      "description": "Public web members for the Web Commerce Basic sample",
+      "show_menu": 1,
+      "menu_visibility": 0,
+      "sortkey": "id",
+      "sort_order": 3,
+      "screen_build_type": 0,
+      "list_type": 0,
+      "side_list_type": 0,
+      "dropdown_item": "name",
+      "dropdown_item_display_type": "template",
+      "dropdown_item_template": "{$name}",
+      "list_width": 1100,
+      "edit_width": 760,
+      "start_hour": 0,
+      "end_hour": 0,
+      "show_id": 1,
+      "show_search_id": 1,
+      "show_duplicate": 0,
+      "api_allow_domain": "",
+      "api_thanks_html": "",
+      "api_scope": "",
+      "api_allow_delete": 0,
+      "show_icon_on_parent_list": 0,
+      "post_action_class": "",
+      "cascade_delete_flag": 0
+    },
+    {
+      "tb_name": "shop_product_category",
+      "menu_name": "Shop Product Categories",
+      "sort": 21,
+      "parent_tb_id": 0,
+      "description": "Product categories for the Web Commerce Basic sample",
+      "show_menu": 1,
+      "menu_visibility": 0,
+      "sortkey": "sort",
+      "sort_order": 4,
+      "screen_build_type": 0,
+      "list_type": 1,
+      "side_list_type": 0,
+      "dropdown_item": "name",
+      "dropdown_item_display_type": "template",
+      "dropdown_item_template": "{$name}",
+      "list_width": 700,
+      "edit_width": 600,
+      "start_hour": 0,
+      "end_hour": 0,
+      "show_id": 1,
+      "show_search_id": 0,
+      "show_duplicate": 0,
+      "api_allow_domain": "",
+      "api_thanks_html": "",
+      "api_scope": "",
+      "api_allow_delete": 0,
+      "show_icon_on_parent_list": 0,
+      "post_action_class": "",
+      "cascade_delete_flag": 0
+    },
+    {
+      "tb_name": "shop_product",
+      "menu_name": "Shop Products",
+      "sort": 22,
+      "parent_tb_id": 0,
+      "description": "Products for the Web Commerce Basic sample",
+      "show_menu": 1,
+      "menu_visibility": 0,
+      "sortkey": "sort",
+      "sort_order": 4,
+      "screen_build_type": 0,
+      "list_type": 0,
+      "side_list_type": 0,
+      "dropdown_item": "name",
+      "dropdown_item_display_type": "template",
+      "dropdown_item_template": "{$name}",
+      "list_width": 1200,
+      "edit_width": 860,
+      "start_hour": 0,
+      "end_hour": 0,
+      "show_id": 1,
+      "show_search_id": 1,
+      "show_duplicate": 0,
+      "api_allow_domain": "",
+      "api_thanks_html": "",
+      "api_scope": "",
+      "api_allow_delete": 0,
+      "show_icon_on_parent_list": 0,
+      "post_action_class": "",
+      "cascade_delete_flag": 0
+    },
+    {
+      "tb_name": "shop_product_variant",
+      "menu_name": "Shop Product Variants",
+      "sort": 23,
+      "parent_tb_id": 0,
+      "description": "Product variants and stock quantities for the Web Commerce Basic sample",
+      "show_menu": 0,
+      "menu_visibility": 0,
+      "sortkey": "sort",
+      "sort_order": 4,
+      "screen_build_type": 0,
+      "list_type": 1,
+      "side_list_type": 0,
+      "dropdown_item": "name",
+      "dropdown_item_display_type": "template",
+      "dropdown_item_template": "{$name}",
+      "list_width": 900,
+      "edit_width": 700,
+      "start_hour": 0,
+      "end_hour": 0,
+      "show_id": 1,
+      "show_search_id": 0,
+      "show_duplicate": 0,
+      "api_allow_domain": "",
+      "api_thanks_html": "",
+      "api_scope": "",
+      "api_allow_delete": 0,
+      "show_icon_on_parent_list": 0,
+      "post_action_class": "",
+      "cascade_delete_flag": 0
+    },
+    {
+      "tb_name": "shop_customer_order",
+      "menu_name": "Shop Orders",
+      "sort": 24,
+      "parent_tb_id": 0,
+      "description": "Orders created by Square-paid public checkout in the Web Commerce Basic sample",
+      "show_menu": 1,
+      "menu_visibility": 0,
+      "sortkey": "id",
+      "sort_order": 3,
+      "screen_build_type": 0,
+      "list_type": 0,
+      "side_list_type": 0,
+      "dropdown_item": "id",
+      "dropdown_item_display_type": "template",
+      "dropdown_item_template": "#{$id} {$buyer_name}",
+      "list_width": 1300,
+      "edit_width": 900,
+      "start_hour": 0,
+      "end_hour": 0,
+      "show_id": 1,
+      "show_search_id": 1,
+      "show_duplicate": 0,
+      "api_allow_domain": "",
+      "api_thanks_html": "",
+      "api_scope": "",
+      "api_allow_delete": 0,
+      "show_icon_on_parent_list": 0,
+      "post_action_class": "",
+      "cascade_delete_flag": 0
+    },
+    {
+      "tb_name": "shop_customer_order_item",
+      "menu_name": "Shop Order Items",
+      "sort": 25,
+      "parent_tb_id": 0,
+      "description": "Copied order line items for the Web Commerce Basic sample",
+      "show_menu": 0,
+      "menu_visibility": 0,
+      "sortkey": "sort",
+      "sort_order": 4,
+      "screen_build_type": 0,
+      "list_type": 1,
+      "side_list_type": 0,
+      "dropdown_item": "id",
+      "dropdown_item_display_type": "field",
+      "dropdown_item_template": "",
+      "list_width": 1000,
+      "edit_width": 800,
+      "start_hour": 0,
+      "end_hour": 0,
+      "show_id": 1,
+      "show_search_id": 0,
+      "show_duplicate": 0,
+      "api_allow_domain": "",
+      "api_thanks_html": "",
+      "api_scope": "",
+      "api_allow_delete": 0,
+      "show_icon_on_parent_list": 0,
+      "post_action_class": "",
+      "cascade_delete_flag": 0
+    }
+  ],
+  "db_fields": {
+    "shop_member": [
+      {
+        "parameter_name": "name",
+        "parameter_title": "Name",
+        "type": "text",
+        "length": 255,
+        "validation": 1,
+        "sort": 1
+      },
+      {
+        "parameter_name": "email",
+        "parameter_title": "Email",
+        "type": "text",
+        "length": 255,
+        "validation": 1,
+        "format_check": "email",
+        "sort": 2
+      },
+      {
+        "parameter_name": "password_hash",
+        "parameter_title": "Password Hash",
+        "type": "text",
+        "length": 255,
+        "validation": 0,
+        "sort": 3
+      },
+      {
+        "parameter_name": "tel",
+        "parameter_title": "Phone",
+        "type": "text",
+        "length": 255,
+        "validation": 0,
+        "sort": 4
+      },
+      {
+        "parameter_name": "zip",
+        "parameter_title": "ZIP",
+        "type": "text",
+        "length": 255,
+        "validation": 0,
+        "sort": 5
+      },
+      {
+        "parameter_name": "address",
+        "parameter_title": "Address",
+        "type": "text",
+        "length": 255,
+        "validation": 0,
+        "sort": 6
+      },
+      {
+        "parameter_name": "status",
+        "parameter_title": "Status",
+        "type": "dropdown",
+        "constant_array_name": "shop_member_status",
+        "default_value": "active",
+        "length": 24,
+        "validation": 1,
+        "sort": 7
+      },
+      {
+        "parameter_name": "square_customer_id",
+        "parameter_title": "Square Customer ID",
+        "type": "text",
+        "length": 255,
+        "validation": 0,
+        "sort": 8
+      },
+      {
+        "parameter_name": "square_card_id",
+        "parameter_title": "Square Card ID",
+        "type": "text",
+        "length": 255,
+        "validation": 0,
+        "sort": 9
+      },
+      {
+        "parameter_name": "created_at",
+        "parameter_title": "Created At",
+        "type": "datetime",
+        "length": 15,
+        "validation": 0,
+        "sort": 10
+      },
+      {
+        "parameter_name": "updated_at",
+        "parameter_title": "Updated At",
+        "type": "datetime",
+        "length": 15,
+        "validation": 0,
+        "sort": 11
+      }
+    ],
+    "shop_product_category": [
+      {
+        "parameter_name": "name",
+        "parameter_title": "Name",
+        "type": "text",
+        "length": 255,
+        "validation": 1,
+        "sort": 1
+      },
+      {
+        "parameter_name": "sort",
+        "parameter_title": "Sort",
+        "type": "number",
+        "length": 10,
+        "validation": 1,
+        "sort": 2
+      },
+      {
+        "parameter_name": "is_active",
+        "parameter_title": "Active",
+        "type": "dropdown",
+        "constant_array_name": "shop_active_status",
+        "default_value": "1",
+        "length": 10,
+        "validation": 1,
+        "sort": 3
+      }
+    ],
+    "shop_product": [
+      {
+        "parameter_name": "category_id",
+        "parameter_title": "Category",
+        "type": "dropdown",
+        "constant_array_name": "table/shop_product_category",
+        "display_fields_for_dropdown": "{$name}",
+        "length": 24,
+        "validation": 1,
+        "sort": 1
+      },
+      {
+        "parameter_name": "name",
+        "parameter_title": "Name",
+        "type": "text",
+        "length": 255,
+        "validation": 1,
+        "sort": 2
+      },
+      {
+        "parameter_name": "catch_copy",
+        "parameter_title": "Catch Copy",
+        "type": "text",
+        "length": 255,
+        "validation": 0,
+        "sort": 3
+      },
+      {
+        "parameter_name": "description",
+        "parameter_title": "Description",
+        "type": "textarea",
+        "length": 2000,
+        "validation": 0,
+        "sort": 4
+      },
+      {
+        "parameter_name": "tax_rate",
+        "parameter_title": "Tax Rate",
+        "type": "number",
+        "length": 10,
+        "validation": 1,
+        "sort": 5
+      },
+      {
+        "parameter_name": "image_file",
+        "parameter_title": "Image",
+        "type": "image",
+        "length": 255,
+        "validation": 0,
+        "sort": 6
+      },
+      {
+        "parameter_name": "status",
+        "parameter_title": "Status",
+        "type": "dropdown",
+        "constant_array_name": "shop_product_status",
+        "default_value": "active",
+        "length": 24,
+        "validation": 1,
+        "sort": 7
+      },
+      {
+        "parameter_name": "sort",
+        "parameter_title": "Sort",
+        "type": "number",
+        "length": 10,
+        "validation": 1,
+        "sort": 8
+      },
+      {
+        "parameter_name": "created_at",
+        "parameter_title": "Created At",
+        "type": "datetime",
+        "length": 15,
+        "validation": 0,
+        "sort": 9
+      },
+      {
+        "parameter_name": "updated_at",
+        "parameter_title": "Updated At",
+        "type": "datetime",
+        "length": 15,
+        "validation": 0,
+        "sort": 10
+      }
+    ],
+    "shop_product_variant": [
+      {
+        "parameter_name": "parent_id",
+        "parameter_title": "Product",
+        "type": "dropdown",
+        "constant_array_name": "table/shop_product",
+        "display_fields_for_dropdown": "{$name}",
+        "length": 24,
+        "validation": 1,
+        "sort": 1
+      },
+      {
+        "parameter_name": "name",
+        "parameter_title": "Name",
+        "type": "text",
+        "length": 255,
+        "validation": 1,
+        "sort": 2
+      },
+      {
+        "parameter_name": "price",
+        "parameter_title": "Price",
+        "type": "number",
+        "length": 10,
+        "validation": 1,
+        "sort": 3
+      },
+      {
+        "parameter_name": "stock_quantity",
+        "parameter_title": "Stock Quantity",
+        "type": "number",
+        "length": 10,
+        "validation": 1,
+        "sort": 4
+      },
+      {
+        "parameter_name": "sort",
+        "parameter_title": "Sort",
+        "type": "number",
+        "length": 10,
+        "validation": 1,
+        "sort": 5
+      },
+      {
+        "parameter_name": "is_active",
+        "parameter_title": "Active",
+        "type": "dropdown",
+        "constant_array_name": "shop_active_status",
+        "default_value": "1",
+        "length": 10,
+        "validation": 1,
+        "sort": 6
+      }
+    ],
+    "shop_customer_order": [
+      {
+        "parameter_name": "shop_member_id",
+        "parameter_title": "Member",
+        "type": "dropdown",
+        "constant_array_name": "table/shop_member",
+        "display_fields_for_dropdown": "{$name}",
+        "length": 24,
+        "validation": 1,
+        "sort": 1
+      },
+      {
+        "parameter_name": "order_status",
+        "parameter_title": "Order Status",
+        "type": "dropdown",
+        "constant_array_name": "shop_order_status",
+        "default_value": "paid",
+        "length": 24,
+        "validation": 1,
+        "sort": 2
+      },
+      {
+        "parameter_name": "payment_status",
+        "parameter_title": "Payment Status",
+        "type": "dropdown",
+        "constant_array_name": "shop_payment_status",
+        "default_value": "paid",
+        "length": 24,
+        "validation": 1,
+        "sort": 3
+      },
+      {
+        "parameter_name": "square_customer_id",
+        "parameter_title": "Square Customer ID",
+        "type": "text",
+        "length": 255,
+        "validation": 0,
+        "sort": 4
+      },
+      {
+        "parameter_name": "square_card_id",
+        "parameter_title": "Square Card ID",
+        "type": "text",
+        "length": 255,
+        "validation": 0,
+        "sort": 5
+      },
+      {
+        "parameter_name": "buyer_name",
+        "parameter_title": "Buyer Name",
+        "type": "text",
+        "length": 255,
+        "validation": 1,
+        "sort": 6
+      },
+      {
+        "parameter_name": "buyer_email",
+        "parameter_title": "Buyer Email",
+        "type": "text",
+        "length": 255,
+        "validation": 1,
+        "format_check": "email",
+        "sort": 7
+      },
+      {
+        "parameter_name": "buyer_tel",
+        "parameter_title": "Buyer Phone",
+        "type": "text",
+        "length": 255,
+        "validation": 1,
+        "sort": 8
+      },
+      {
+        "parameter_name": "shipping_zip",
+        "parameter_title": "Shipping ZIP",
+        "type": "text",
+        "length": 255,
+        "validation": 0,
+        "sort": 9
+      },
+      {
+        "parameter_name": "shipping_address",
+        "parameter_title": "Shipping Address",
+        "type": "text",
+        "length": 255,
+        "validation": 1,
+        "sort": 10
+      },
+      {
+        "parameter_name": "subtotal_amount",
+        "parameter_title": "Subtotal Amount",
+        "type": "number",
+        "length": 10,
+        "validation": 1,
+        "sort": 11
+      },
+      {
+        "parameter_name": "shipping_fee",
+        "parameter_title": "Shipping Fee",
+        "type": "number",
+        "length": 10,
+        "validation": 1,
+        "sort": 12
+      },
+      {
+        "parameter_name": "tax_amount",
+        "parameter_title": "Tax Amount",
+        "type": "number",
+        "length": 10,
+        "validation": 1,
+        "sort": 13
+      },
+      {
+        "parameter_name": "total_amount",
+        "parameter_title": "Total Amount",
+        "type": "number",
+        "length": 10,
+        "validation": 1,
+        "sort": 14
+      },
+      {
+        "parameter_name": "ordered_at",
+        "parameter_title": "Ordered At",
+        "type": "datetime",
+        "length": 15,
+        "validation": 1,
+        "sort": 15
+      },
+      {
+        "parameter_name": "paid_at",
+        "parameter_title": "Paid At",
+        "type": "datetime",
+        "length": 15,
+        "validation": 0,
+        "sort": 16
+      },
+      {
+        "parameter_name": "cancelled_at",
+        "parameter_title": "Cancelled At",
+        "type": "datetime",
+        "length": 15,
+        "validation": 0,
+        "sort": 17
+      },
+      {
+        "parameter_name": "memo",
+        "parameter_title": "Memo",
+        "type": "textarea",
+        "length": 1000,
+        "validation": 0,
+        "sort": 18
+      },
+      {
+        "parameter_name": "created_at",
+        "parameter_title": "Created At",
+        "type": "datetime",
+        "length": 15,
+        "validation": 0,
+        "sort": 19
+      },
+      {
+        "parameter_name": "updated_at",
+        "parameter_title": "Updated At",
+        "type": "datetime",
+        "length": 15,
+        "validation": 0,
+        "sort": 20
+      }
+    ],
+    "shop_customer_order_item": [
+      {
+        "parameter_name": "parent_id",
+        "parameter_title": "Order",
+        "type": "dropdown",
+        "constant_array_name": "table/shop_customer_order",
+        "display_fields_for_dropdown": "#{$id} {$buyer_name}",
+        "length": 24,
+        "validation": 1,
+        "sort": 1
+      },
+      {
+        "parameter_name": "sort",
+        "parameter_title": "Sort",
+        "type": "number",
+        "length": 10,
+        "validation": 1,
+        "sort": 2
+      },
+      {
+        "parameter_name": "product_id",
+        "parameter_title": "Product",
+        "type": "dropdown",
+        "constant_array_name": "table/shop_product",
+        "display_fields_for_dropdown": "{$name}",
+        "length": 24,
+        "validation": 1,
+        "sort": 3
+      },
+      {
+        "parameter_name": "product_variant_id",
+        "parameter_title": "Product Variant",
+        "type": "dropdown",
+        "constant_array_name": "table/shop_product_variant",
+        "display_fields_for_dropdown": "{$name}",
+        "length": 24,
+        "validation": 1,
+        "sort": 4
+      },
+      {
+        "parameter_name": "product_name",
+        "parameter_title": "Product Name",
+        "type": "text",
+        "length": 255,
+        "validation": 1,
+        "sort": 5
+      },
+      {
+        "parameter_name": "variant_name",
+        "parameter_title": "Variant Name",
+        "type": "text",
+        "length": 255,
+        "validation": 1,
+        "sort": 6
+      },
+      {
+        "parameter_name": "unit_price",
+        "parameter_title": "Unit Price",
+        "type": "number",
+        "length": 10,
+        "validation": 1,
+        "sort": 7
+      },
+      {
+        "parameter_name": "quantity",
+        "parameter_title": "Quantity",
+        "type": "number",
+        "length": 10,
+        "validation": 1,
+        "sort": 8
+      },
+      {
+        "parameter_name": "tax_rate",
+        "parameter_title": "Tax Rate",
+        "type": "number",
+        "length": 10,
+        "validation": 1,
+        "sort": 9
+      },
+      {
+        "parameter_name": "line_amount",
+        "parameter_title": "Line Amount",
+        "type": "number",
+        "length": 10,
+        "validation": 1,
+        "sort": 10
+      }
+    ]
+  },
+  "screen_fields": {
+    "shop_member": {
+      "list": ["name", "email", "tel", "status"],
+      "search": ["name", "email", "status"],
+      "add": ["name", "email", "tel", "zip", "address", "status"],
+      "edit": ["name", "email", "tel", "zip", "address", "status"],
+      "delete": ["name", "email"]
+    },
+    "shop_product_category": {
+      "list": ["name", "is_active"],
+      "search": ["name", "is_active"],
+      "add": ["name", "is_active"],
+      "edit": ["name", "is_active"],
+      "delete": ["name"]
+    },
+    "shop_product": {
+      "list": ["name", "category_id", "catch_copy", "status", "sort"],
+      "search": ["name", "category_id", "status"],
+      "add": ["category_id", "name", "catch_copy", "description", "tax_rate", "image_file", "status", "sort"],
+      "edit": ["category_id", "name", "catch_copy", "description", "tax_rate", "image_file", "status", "sort"],
+      "delete": ["name", "status"]
+    },
+    "shop_product_variant": {
+      "list": ["name", "price", "stock_quantity", "is_active"],
+      "list_on_side": ["name", "price", "stock_quantity", "is_active"],
+      "add": ["name", "price", "stock_quantity", "is_active"],
+      "edit": ["name", "price", "stock_quantity", "is_active"],
+      "delete": ["name", "price"]
+    },
+    "shop_customer_order": {
+      "list": ["shop_member_id", "order_status", "payment_status", "buyer_name", "total_amount", "ordered_at"],
+      "search": ["buyer_name", "buyer_email", "order_status", "payment_status"],
+      "add": ["shop_member_id", "order_status", "payment_status", "buyer_name", "buyer_email", "buyer_tel", "shipping_zip", "shipping_address", "subtotal_amount", "shipping_fee", "tax_amount", "total_amount", "ordered_at", "paid_at", "memo"],
+      "edit": ["shop_member_id", "order_status", "payment_status", "buyer_name", "buyer_email", "buyer_tel", "shipping_zip", "shipping_address", "subtotal_amount", "shipping_fee", "tax_amount", "total_amount", "ordered_at", "paid_at", "cancelled_at", "memo"],
+      "delete": ["buyer_name", "total_amount", "ordered_at"]
+    },
+    "shop_customer_order_item": {
+      "list": ["product_name", "variant_name", "unit_price", "quantity", "line_amount"],
+      "list_on_side": ["product_name", "variant_name", "unit_price", "quantity", "line_amount"],
+      "add": ["product_id", "product_variant_id", "product_name", "variant_name", "unit_price", "quantity", "tax_rate", "line_amount"],
+      "edit": ["product_id", "product_variant_id", "product_name", "variant_name", "unit_price", "quantity", "tax_rate", "line_amount"],
+      "delete": ["product_name", "variant_name", "quantity"]
+    }
+  },
+  "db_additionals": [
+    {
+      "tb_name": "shop_customer_order",
+      "button_title": "Public EC Link",
+      "class_name": "shop_public_link_dialog",
+      "function_name": "run",
+      "place": 0,
+      "code_type": [],
+      "reload": 0,
+      "user_request": "",
+      "databases": [],
+      "close_button": 2,
+      "sort": 10,
+      "ui_mode": 0,
+      "show_button": 0,
+      "dialog_width": 600,
+      "button_type": 0
+    }
+  ],
+  "seed_members": [
+    {
+      "name": "Sample Buyer",
+      "email": "buyer@example.com",
+      "password": "password123",
+      "tel": "000-0000-0000",
+      "zip": "100-0001",
+      "address": "Tokyo sample address",
+      "status": "active"
+    }
+  ],
+  "seed_categories": [
+    {
+      "_key": "food",
+      "name": "Food",
+      "sort": 1,
+      "is_active": "1"
+    },
+    {
+      "_key": "goods",
+      "name": "Goods",
+      "sort": 2,
+      "is_active": "1"
+    }
+  ],
+  "seed_products": [
+    {
+      "_key": "coffee",
+      "_category_key": "food",
+      "name": "Sample Coffee",
+      "catch_copy": "Small-batch roasted coffee",
+      "description": "A reusable sample product for the web commerce package.",
+      "tax_rate": 10,
+      "image_file": 0,
+      "status": "active",
+      "sort": 1,
+      "variants": [
+        {
+          "name": "200g bag",
+          "price": 1200,
+          "stock_quantity": 20,
+          "sort": 1,
+          "is_active": "1"
+        },
+        {
+          "name": "500g bag",
+          "price": 2600,
+          "stock_quantity": 10,
+          "sort": 2,
+          "is_active": "1"
+        }
+      ]
+    },
+    {
+      "_key": "mug",
+      "_category_key": "goods",
+      "name": "Sample Mug",
+      "catch_copy": "Everyday ceramic mug",
+      "description": "A simple physical product with stock_quantity based inventory.",
+      "tax_rate": 10,
+      "image_file": 0,
+      "status": "active",
+      "sort": 2,
+      "variants": [
+        {
+          "name": "White",
+          "price": 1800,
+          "stock_quantity": 12,
+          "sort": 1,
+          "is_active": "1"
+        },
+        {
+          "name": "Blue",
+          "price": 1800,
+          "stock_quantity": 8,
+          "sort": 2,
+          "is_active": "1"
+        }
+      ]
+    }
+  ]
+}

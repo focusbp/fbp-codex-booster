@@ -28,6 +28,11 @@ When creating a new reusable sample from an existing app or feature, read `refer
   - Read `references/line-bot-basic-db.md` for note/table structure.
   - Use `assets/line-bot-basic/` for starter code.
   - Prefer `scripts/install_line_bot_basic.php` when creating the default sample in a clean Codex Booster app.
+- **Web Commerce Basic**: A normal web storefront with email/password members, single-store products, variants with `stock_quantity`, cart, Square payment, paid orders, and member order history. All sample-owned tables use the `shop_` prefix.
+  - Read `references/web-commerce-basic.md` for flow and implementation scope.
+  - Read `references/web-commerce-basic-db.md` for note/table structure.
+  - Use `assets/web-commerce-basic/` for starter code.
+  - Prefer `scripts/install_web_commerce_basic.php` when creating the default sample in a clean Codex Booster app.
 - **LINE-entry mall**: A LINE-only public mall with member registration, multiple shops, single-shop cart, shop-level shipping fee, Square payment, orders, order items, inquiries, and Original Screen admin pages.
   - Read `references/line-entry-mall.md` for flow and implementation scope.
   - Read `references/line-entry-mall-db.md` for note/table structure.
@@ -39,6 +44,7 @@ When creating a new reusable sample from an existing app or feature, read `refer
 - Do not reference or depend on any live app path when using this sample.
 - Keep project-specific integrations out of reusable samples unless explicitly requested.
 - For the LINE-entry mall sample, exclude project-specific member classifications, external-app SSO, and project-specific post-order workflows.
+- For the Web Commerce Basic sample, keep the public entry as normal web login and keep all sample-owned tables prefixed with `shop_`.
 - For the LINE Bot basic sample, keep `line_member / userid / line_name / name / member_type` as the fixed base and do not create a custom `getting_member` rule unless the target app explicitly needs compatibility behavior.
 - Use normal FBP skills with this sample as needed:
   - `fbp-public-pages` for public LINE-entry pages.

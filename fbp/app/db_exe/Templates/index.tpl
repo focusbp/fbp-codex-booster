@@ -25,10 +25,18 @@
 
 
 	</div>
-</div>
-<div style="clear:both;"></div>
+	</div>
+	<div style="clear:both;"></div>
 
-{if $show_search_box || $testserver}
+	{if $show_properties_management_summary}
+		<div class="properties_management_summary" style="margin:8px 0 14px 0;padding:12px 16px;border:1px solid #d7deea;border-radius:0;background:#f8fafc;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+			<span style="font-size:13px;font-weight:bold;color:#334155;">現在進行中の総管理物件数</span>
+			<span style="font-size:26px;line-height:1;font-weight:bold;color:#0051ba;">{$properties_management_count|number_format}</span>
+			<span style="font-size:13px;color:#334155;">件</span>
+		</div>
+	{/if}
+	
+	{if $show_search_box || $testserver}
 
 
 	<div class="search_box" data-db-id="{$db_id}" data-tb-name="{$tb_name|escape}" style="margin:8px 0 14px 0;padding:25px 14px 5px 14px;border:1px solid #d7deea;border-radius:0px;background:#f8fafc;position: relative;">

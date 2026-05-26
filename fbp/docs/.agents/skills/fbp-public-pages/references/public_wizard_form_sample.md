@@ -145,7 +145,11 @@ private function assign_register_form(Controller $ctl, array $row, string $curre
 		<input type="hidden" name="connect_name" value="{$row.connect_name|escape}">
 		<input type="hidden" name="name" value="{$row.name|escape}">
 		<input type="hidden" name="email" value="{$row.email|escape}">
-		<button type="button" class="ajax-link button_link" data-class="public_pages" data-function="register_step" data-form="register_wizard_form" data-step_action="next">次へ</button>
+		<div class="public-actions">
+			<div class="public-actions-main">
+				<button type="button" class="ajax-link button_link" data-class="public_pages" data-function="register_step" data-form="register_wizard_form" data-step_action="next">次へ</button>
+			</div>
+		</div>
 	{elseif $current_step == "bni"}
 		<input type="hidden" name="member_type" value="{$row.member_type|escape}">
 		{fields_form_original name="chapter_name" type="text" value=$row.chapter_name title="BNIチャプター名"}
@@ -154,8 +158,14 @@ private function assign_register_form(Controller $ctl, array $row, string $curre
 		<p class="error_message error_connect_name">{$errors.connect_name|default:''|escape}</p>
 		<input type="hidden" name="name" value="{$row.name|escape}">
 		<input type="hidden" name="email" value="{$row.email|escape}">
-		<button type="button" class="ajax-link button_link" data-class="public_pages" data-function="register_step" data-form="register_wizard_form" data-step_action="next">次へ</button>
-		<button type="button" class="ajax-link button_link" data-class="public_pages" data-function="register_step" data-form="register_wizard_form" data-step_action="back">戻る</button>
+		<div class="public-actions">
+			<div class="public-actions-back">
+				<button type="button" class="ajax-link button_link secondary" data-class="public_pages" data-function="register_step" data-form="register_wizard_form" data-step_action="back">戻る</button>
+			</div>
+			<div class="public-actions-main">
+				<button type="button" class="ajax-link button_link" data-class="public_pages" data-function="register_step" data-form="register_wizard_form" data-step_action="next">次へ</button>
+			</div>
+		</div>
 	{else}
 		<input type="hidden" name="member_type" value="{$row.member_type|escape}">
 		<input type="hidden" name="chapter_name" value="{$row.chapter_name|escape}">
@@ -163,8 +173,14 @@ private function assign_register_form(Controller $ctl, array $row, string $curre
 		{fields_form_original name="name" type="text" value=$row.name title="氏名"}
 		<p class="error_message error_name">{$errors.name|default:''|escape}</p>
 		<input type="hidden" name="email" value="{$row.email|escape}">
-		<button type="button" class="ajax-link button_link" data-class="public_pages" data-function="register_save" data-form="register_wizard_form">登録</button>
-		<button type="button" class="ajax-link button_link" data-class="public_pages" data-function="register_step" data-form="register_wizard_form" data-step_action="back">戻る</button>
+		<div class="public-actions">
+			<div class="public-actions-back">
+				<button type="button" class="ajax-link button_link secondary" data-class="public_pages" data-function="register_step" data-form="register_wizard_form" data-step_action="back">戻る</button>
+			</div>
+			<div class="public-actions-main">
+				<button type="button" class="ajax-link button_link" data-class="public_pages" data-function="register_save" data-form="register_wizard_form">登録</button>
+			</div>
+		</div>
 	{/if}
 </form>
 ```
@@ -184,4 +200,4 @@ Confirm that:
 - the first response contains `response_json.reloadarea`
 - the BNI response stays on the `bni` step when required fields are blank
 - required field messages are included in the partial HTML
-- the final step button order matches the requested primary action order
+- the final step uses `.public-actions`: 戻る is left-aligned and the primary action is right-aligned

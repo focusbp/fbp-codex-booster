@@ -7,19 +7,19 @@
   "constant_values": {
     "schedule_appointment_status": [
       {
-        "key": "booked",
+        "key": "0",
         "value": "Booked",
         "color": "#2563eb",
         "sort": 1
       },
       {
-        "key": "blocked",
+        "key": "1",
         "value": "Blocked",
         "color": "#64748b",
         "sort": 2
       },
       {
-        "key": "cancelled",
+        "key": "2",
         "value": "Cancelled",
         "color": "#dc2626",
         "sort": 3
@@ -100,7 +100,7 @@
         "parameter_title": "Status",
         "type": "dropdown",
         "constant_array_name": "schedule_appointment_status",
-        "default_value": "booked",
+        "default_value": "0",
         "length": 24,
         "validation": 1,
         "sort": 5
@@ -162,7 +162,7 @@
       "date_offset_days": 3,
       "start_time": "10:00",
       "duration_minutes": 30,
-      "status": "booked",
+      "status": "0",
       "customer_name": "",
       "customer_email": "",
       "customer_phone": "",
@@ -175,7 +175,7 @@
       "date_offset_days": 4,
       "start_time": "14:00",
       "duration_minutes": 60,
-      "status": "blocked",
+      "status": "1",
       "customer_name": "",
       "customer_email": "",
       "customer_phone": "",
@@ -188,7 +188,7 @@
       "date_offset_days": 5,
       "start_time": "11:00",
       "duration_minutes": 30,
-      "status": "booked",
+      "status": "0",
       "customer_name": "Sample Customer",
       "customer_email": "sample@example.com",
       "customer_phone": "000-0000-0000",

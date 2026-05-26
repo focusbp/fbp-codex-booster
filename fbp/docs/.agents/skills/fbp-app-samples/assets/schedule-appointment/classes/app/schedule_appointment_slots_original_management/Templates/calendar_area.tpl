@@ -107,10 +107,10 @@
 		justify-content: center;
 		width: 24px;
 	}
-	.schedule_appointment_slot_status_booked {
+	.schedule_appointment_slot_status_0 {
 		border-color: #2563eb;
 	}
-	.schedule_appointment_slot_status_blocked {
+	.schedule_appointment_slot_status_1 {
 		border-color: #64748b;
 		opacity: .82;
 	}

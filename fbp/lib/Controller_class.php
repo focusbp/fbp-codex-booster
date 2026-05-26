@@ -983,7 +983,7 @@ class Controller_class implements Controller {
 					}
 				}
 
-				$id = $row[$parameter_name];
+				$id = $row[$parameter_name] ?? null;
 				if ($id) {
 					$this->delete_file($id);
 				}
@@ -1392,8 +1392,10 @@ class Controller_class implements Controller {
 		// 出力（JPEG 以外も必要なら条件分岐）
 		imagejpeg($canvas, $this->dirs->datadir . "/upload/$outputfile", $quality);
 
-		imagedestroy($image);
-		imagedestroy($canvas);
+		if (PHP_VERSION_ID < 80000) {
+			imagedestroy($image);
+			imagedestroy($canvas);
+		}
 	}
 
 	function set_check_login($flg) {
@@ -2483,6 +2485,53 @@ class Controller_class implements Controller {
 		$this->send_mail_string(null, $to, $subject, $body, $attachment_files, $throw_on_error);
 	}
 
+	private function normalize_mail_attachment_file($attachment_file) {
+		if (is_array($attachment_file)) {
+			$path = trim((string) ($attachment_file["path"] ?? ""));
+			$name = trim((string) ($attachment_file["name"] ?? ""));
+		} else {
+			$path = trim((string) $attachment_file);
+			$name = "";
+		}
+
+		if ($path === "") {
+			return null;
+		}
+
+		$name = str_replace(["\r", "\n", "\0"], "", $name);
+		$name = $this->get_uploaded_basename($name);
+
+		return [
+		    "path" => $path,
+		    "name" => $name,
+		];
+	}
+
+	private function normalize_mail_attachment_files($attachment_files) {
+		if ($attachment_files === null || $attachment_files === "") {
+			return [];
+		}
+
+		if (!is_array($attachment_files)) {
+			$attachment = $this->normalize_mail_attachment_file($attachment_files);
+			return $attachment === null ? [] : [$attachment];
+		}
+
+		if (array_key_exists("path", $attachment_files)) {
+			$attachment = $this->normalize_mail_attachment_file($attachment_files);
+			return $attachment === null ? [] : [$attachment];
+		}
+
+		$attachments = [];
+		foreach ($attachment_files as $attachment_file) {
+			$attachment = $this->normalize_mail_attachment_file($attachment_file);
+			if ($attachment !== null) {
+				$attachments[] = $attachment;
+			}
+		}
+		return $attachments;
+	}
+
 	function send_mail_string($from, $to, $subject, $body, $attachment_files = null, $throw_on_error = false) {
 
 		$this->console_log("### MAIL ###");
@@ -2533,13 +2582,12 @@ class Controller_class implements Controller {
 			$email->Subject = $subject;
 			$email->Body = $body;
 
-			if ($attachment_files != null) {
-				if (is_array($attachment_files)) {
-					foreach ($attachment_files as $f) {
-						$email->addAttachment($this->dirs->datadir . "/upload/" . $f);
-					}
+			foreach ($this->normalize_mail_attachment_files($attachment_files) as $attachment) {
+				$attachment_path = $this->dirs->datadir . "/upload/" . $attachment["path"];
+				if ($attachment["name"] !== "") {
+					$email->addAttachment($attachment_path, $attachment["name"]);
 				} else {
-					$email->addAttachment($this->dirs->datadir . "/upload/" . $attachment_files);
+					$email->addAttachment($attachment_path);
 				}
 			}
 
@@ -3671,6 +3719,8 @@ class Controller_class implements Controller {
 		$this->assign("_use_thumbnail", $use_thumbnail);
 
 		$arr_list = [];
+		$fmt_screen_fields = $this->db("screen_fields", "db");
+		$fmt_fields = $this->db("db_fields", "db");
 		if (!is_array($screen_or_fieldnamearray)) {
 			$screen_name = $screen_or_fieldnamearray;
 			$flg = "screen";
@@ -3687,12 +3737,40 @@ class Controller_class implements Controller {
 			}
 		}
 
+		if ($flg == "screen") {
+			$screen_fields_list = $fmt_screen_fields->select(["tb_name", "screen_name"], [$table_name, $screen_name], true, "AND", "sort", SORT_ASC);
+			foreach ($screen_fields_list as $key => $sf) {
+				$f = $fmt_fields->get($sf["db_fields_id"]);
+				if (($f["parameter_name"] ?? "") === "parent_id") {
+					$add_parent_dropdown = true;
+					unset($screen_fields_list[$key]);
+				}
+			}
+			$screen_fields_list = array_values($screen_fields_list);
+		} else {
+			$fmt_db = $this->db("db", "db");
+			$db = $fmt_db->select("tb_name", $table_name)[0];
+			$screen_fields_list = [];
+			foreach ($field_names as $fieldname) {
+				$f = $fmt_fields->select(["db_id", "parameter_name"], [$db["id"], $fieldname])[0];
+				$screen_fields_list[] = ["db_fields_id" => $f["id"]];
+			}
+		}
+
 		// Making Parent field
 		if ($add_parent_dropdown) {
 			$fmt_db = $this->db("db", "db");
 			$db = $fmt_db->select("tb_name", $table_name)[0];
 			if ($db["parent_tb_id"] > 0) {
 				$db_parent = $fmt_db->get($db["parent_tb_id"]);
+				$parent_title = $db_parent["menu_name"];
+				$parent_field_rows = $fmt_fields->select(["db_id", "parameter_name"], [$db["id"], "parent_id"], true, "AND", "id", SORT_ASC);
+				if (count($parent_field_rows) > 0) {
+					$configured_title = trim((string) ($parent_field_rows[0]["parameter_title"] ?? ""));
+					if ($configured_title !== "" && $configured_title !== "Parent ID") {
+						$parent_title = $configured_title;
+					}
+				}
 				$dropdown_item = $db_parent["dropdown_item"];
 				if (empty($dropdown_item)) {
 					$dropdown_item = "id";
@@ -3718,27 +3796,12 @@ class Controller_class implements Controller {
 
 				$arr = [
 				    "parameter_name" => "parent_id",
-				    "parameter_title" => $db_parent["menu_name"],
+				    "parameter_title" => $parent_title,
 				    "type" => "dropdown",
 				    "is_table_dropdown" => true,
 				    "options" => $option_arr,
 				];
 				$arr_list[] = $arr;
-			}
-		}
-
-		$fmt_screen_fields = $this->db("screen_fields", "db");
-		$fmt_fields = $this->db("db_fields", "db");
-		if ($flg == "screen") {
-			$screen_fields_list = $fmt_screen_fields->select(["tb_name", "screen_name"], [$table_name, $screen_name], true, "AND", "sort", SORT_ASC);
-			
-		} else {
-			$fmt_db = $this->db("db", "db");
-			$db = $fmt_db->select("tb_name", $table_name)[0];
-			$screen_fields_list = [];
-			foreach ($field_names as $fieldname) {
-				$f = $fmt_fields->select(["db_id", "parameter_name"], [$db["id"], $fieldname])[0];
-				$screen_fields_list[] = ["db_fields_id" => $f["id"]];
 			}
 		}
 
@@ -3948,9 +4011,24 @@ class Controller_class implements Controller {
 		$arr_list = [];
 
 		if ($db["parent_tb_id"] > 0) {
+			$parent_title = $db["menu_name"];
+			$parent_tb_id = (int) ($db["parent_tb_id"] ?? 0);
+			if ($parent_tb_id > 0) {
+				$db_parent = $fmt_db->get($parent_tb_id);
+				if (!empty($db_parent["menu_name"])) {
+					$parent_title = $db_parent["menu_name"];
+				}
+			}
+			$parent_field_rows = $fmt_fields->select(["db_id", "parameter_name"], [$db["id"], "parent_id"], true, "AND", "id", SORT_ASC);
+			if (count($parent_field_rows) > 0) {
+				$configured_title = trim((string) ($parent_field_rows[0]["parameter_title"] ?? ""));
+				if ($configured_title !== "" && $configured_title !== "Parent ID") {
+					$parent_title = $configured_title;
+				}
+			}
 			$f = [
 			    "parameter_name" => "parent_id",
-			    "parameter_title" => $db["menu_name"],
+			    "parameter_title" => $parent_title,
 			    "validation" => 1,
 			];
 			$arr_list[] = $f;
@@ -3958,6 +4036,9 @@ class Controller_class implements Controller {
 
 		foreach ($screen_fields_list as &$sf) {
 			$f = $fmt_fields->get($sf["db_fields_id"]);
+			if (($f["parameter_name"] ?? "") === "parent_id") {
+				continue;
+			}
 			$arr_list[] = $f;
 		}
 		return $arr_list;

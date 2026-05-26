@@ -26,7 +26,7 @@ Fields:
 | `title` | text | yes | Internal/public slot label. |
 | `starts_at` | datetime | yes | Slot start timestamp. |
 | `duration_minutes` | number | yes | Slot length. Public calendar assumes 30-minute grid rows, but longer slots are allowed. |
-| `status` | dropdown `schedule_appointment_status` | yes | `booked`, `blocked`, `cancelled`. |
+| `status` | dropdown `schedule_appointment_status` | yes | `0`, `1`, `2`. |
 | `customer_name` | text | no | Filled by public booking. |
 | `customer_email` | text | no | Filled by public booking. |
 | `customer_phone` | text | no | Filled by public booking. |
@@ -40,15 +40,15 @@ Fields:
 
 | Key | Value | Use |
 | --- | --- | --- |
-| `booked` | Booked | Reserved by public booking or admin. |
-| `blocked` | Blocked | Admin-held time, not public. |
-| `cancelled` | Cancelled | Historical/cancelled slot, not public. |
+| `0` | Booked | Reserved by public booking or admin. |
+| `1` | Blocked | Admin-held time, not public. |
+| `2` | Cancelled | Historical/cancelled slot, not public. |
 
 ## Data Rules
 
 - Admin create/edit always sets `user_id` from the current login session.
 - Public URLs carry encrypted `user.id`, never a plain user ID.
 - Public booking only allows future empty 30-minute cells.
-- Public booking does not create a second table; it inserts a new `booked` row in this table.
+- Public booking does not create a second table; it inserts a new `status = 0` row in this table.
 - Public pages do not expose slots for other users.
 - Existing non-cancelled rows block public booking for overlapping times.

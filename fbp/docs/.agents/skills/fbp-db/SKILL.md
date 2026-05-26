@@ -1,6 +1,6 @@
 ---
 name: fbp-db
-description: Manage FBP DB schema using CLI (db tables/fields), relation setup, and screen_fields reflection requirements.
+description: Manage FBP DB schema using CLI (db tables/fields), relation setup, text/textarea field length policy, and screen_fields reflection requirements.
 ---
 
 # fbp-db
@@ -48,6 +48,11 @@ description: Manage FBP DB schema using CLI (db tables/fields), relation setup, 
 - `text + format_check=date_yyyy_mm_dd` での日付実装は新規作成で禁止する。
 - 既存が `text` の場合は、改修時に `date` へ移行可否を確認し、不可の場合のみ理由を作業ログに明記して暫定維持する。
 
+## text field length policy
+- ノートの `text` / `textarea` 項目で「500文字」など文字数で長さを指定された場合は、日本語3バイト想定で DB の length を `指定文字数 * 3` にする。
+- 例: `500文字` 指定なら `length=1500`、`1000文字` 指定なら `length=3000`。
+- 既存仕様がバイト数・DB length として明示されている場合は、その値を優先し、3倍変換しない。
+
 ## table dropdown policy
 - `constant_array_name` に `table/<tb_name>` を使う項目では、`display_fields_for_dropdown` を必ず設定する。
 - テンプレート記法は Smarty 形式の `{$name}`、`{$order_no}` を使う。
@@ -61,4 +66,5 @@ description: Manage FBP DB schema using CLI (db tables/fields), relation setup, 
 - checkbox の有無判定は `count($value ?? [])` ベースで行い、必要なら `is_array` ガードを入れる。
 - `db_tables_list` の結果で対象テーブルの `list_width` / `edit_width` が `600`〜`1200` に入っていることを確認する。
 - 日付項目を `text` 型で新規追加しない（必ず `type=date` を使う）。
+- `text` / `textarea` 項目の文字数指定を、そのまま DB length として設定しない。
 - メニューリンク追加で `/common/menu.tpl` は使わない。メニュー追加は DB追加 / Dashboard登録 / 設定の「ホームページを表示」で行う。

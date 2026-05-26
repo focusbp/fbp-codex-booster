@@ -10,6 +10,15 @@ class schedule_appointment_public {
 		return "schedule_appointment_public_user_id";
 	}
 
+	private function bookedStatus(): string {
+		return "0";
+	}
+
+	private function isCancelledStatus($status): bool {
+		$status = (string) $status;
+		return $status === "2" || $status === "cancelled";
+	}
+
 	function __construct(Controller $ctl) {
 		$ctl->set_check_login(false);
 	}
@@ -249,7 +258,7 @@ class schedule_appointment_public {
 	}
 
 	private function isOccupied(array $slot): bool {
-		return (string) ($slot["status"] ?? "") !== "cancelled";
+		return !$this->isCancelledStatus($slot["status"] ?? "");
 	}
 
 	private function emptySlot(array $context, int $startsAt): array {
@@ -258,7 +267,7 @@ class schedule_appointment_public {
 			"title" => "Appointment",
 			"starts_at" => $startsAt,
 			"duration_minutes" => 30,
-			"status" => "booked",
+			"status" => $this->bookedStatus(),
 			"customer_name" => "",
 			"customer_email" => "",
 			"customer_phone" => "",
