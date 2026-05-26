@@ -8,10 +8,6 @@
 <script src="js/react-dom.production.min.js"></script>
 <script src="js/react-jsx-runtime-shim.js"></script>
 <script src="js/reactflow.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css">
-<script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.min.js"></script>
-<script src="js/codex_terminal.js"></script>
 
 <!-- SQUARE -->
 {if $testserver }

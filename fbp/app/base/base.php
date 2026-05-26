@@ -75,7 +75,6 @@ class base {
 			"release_backup" => $ctl->t("base.menu.release_backup"),
 			"user_management" => $ctl->t("base.menu.user_management"),
 			"system_setting" => $ctl->t("base.menu.system_setting"),
-			"codex_terminal" => $ctl->t("base.menu.codex_terminal"),
 		]);
 		$ctl->assign("base_empty_i18n", [
 			"no_items" => $ctl->t("base.empty_state.no_items"),
@@ -197,7 +196,6 @@ class base {
 			"release_backup" => $ctl->t("base.menu.release_backup"),
 			"user_management" => $ctl->t("base.menu.user_management"),
 			"system_setting" => $ctl->t("base.menu.system_setting"),
-			"codex_terminal" => $ctl->t("base.menu.codex_terminal"),
 		]);
 		
 		// Database Menu
@@ -245,13 +243,6 @@ class base {
 
 		$admin_items = [];
 		if ($ctl->is_app_admin() || $ctl->has_developer_permission()) {
-			$admin_items[] = [
-				"type" => "ajax",
-				"label" => $ctl->t("base.menu.codex_terminal"),
-				"class" => "wizard",
-				"function" => "run",
-				"attributes" => [],
-			];
 			if ($setting["force_testmode"] == 1 ||
 				($setting["force_testmode"] == 0 && $setting["show_developer_panel"] == 1)) {
 				$admin_items[] = [

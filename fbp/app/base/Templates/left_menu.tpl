@@ -26,11 +26,11 @@
 			{/if}
 		{/if}
 
-		{if $MYSESSION.app_admin || $MYSESSION.developer_permission == 1 || $MYSESSION.data_manager_permission == 1}
+		{if $MYSESSION.app_admin || $MYSESSION.data_manager_permission == 1 ||
+			(($MYSESSION.developer_permission == 1) &&
+				($setting["force_testmode"] == 1 ||
+				($setting["force_testmode"] == 0 && $setting["show_developer_panel"] == 1)))}
 			<h3>{$base_menu_i18n.admin_console}</h3>
-		{/if}
-		{if $MYSESSION.app_admin || $MYSESSION.developer_permission == 1}
-			<a class="ajax-link lang" data-class="wizard" data-function="run">{$base_menu_i18n.codex_terminal}</a>
 		{/if}
 		{if $MYSESSION.app_admin || $MYSESSION.developer_permission == 1}
 			{if $setting["force_testmode"] == 1 ||

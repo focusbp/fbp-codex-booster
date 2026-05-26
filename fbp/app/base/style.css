@@ -362,7 +362,7 @@ footer {
 	border-width: 0;
 	border-color: transparent;
 	box-shadow: 0 6px 16px rgba(11, 79, 153, 0.25);
-	animation: codex-terminal-flow 1.4s linear infinite;
+	animation: base-empty-main-flow 1.4s linear infinite;
 }
 
 .base-empty-main-card-badge {
@@ -588,58 +588,12 @@ button.logout-icon {
 	cursor: pointer;
 }
 
-#left_menu .codex-terminal-menu {
-	background: linear-gradient(120deg, #0b4f99 0%, #1567c4 42%, #0b4f99 100%);
-	background-size: 220% 220%;
-	background-position: 0% 50%;
-	border-left: 0 !important;
-	color: #fff;
-	font-weight: bold;
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 8px;
-	padding: 6px 10px;
-	border-radius: 8px;
-	transition: transform 0.2s ease;
-}
-
-#left_menu .codex-terminal-menu:hover {
-	background: linear-gradient(120deg, #0b4f99 0%, #1567c4 42%, #0b4f99 100%) !important;
-	color: #fff !important;
-	border-left: 0 !important;
-	box-shadow: none !important;
-	animation: codex-terminal-flow 1.4s linear infinite;
-	transform: translateX(0);
-}
-
-#left_menu .codex-terminal-menu-label {
-	white-space: nowrap;
-}
-
-#left_menu .codex-terminal-menu-badge {
-	font-size: 11px;
-	line-height: 1;
-	padding: 3px 7px;
-	border-radius: 999px;
-	background: rgba(255, 255, 255, 0.18);
-	border: 1px solid rgba(255, 255, 255, 0.35);
-}
-
-#left_menu button.codex-terminal-menu {
-	border-left: 0 !important;
-}
-
-#left_menu button.codex-terminal-menu:hover {
-	border-left: 0 !important;
-}
-
 .ui-sortable tr {
 	background: #fff;
 }
 
 
-@keyframes codex-terminal-flow {
+@keyframes base-empty-main-flow {
 	0% {
 		background-position: 0% 50%;
 	}
