@@ -80,6 +80,17 @@ class setting {
 
 	}
 
+	private function normalize_project_portal_url($url) {
+		$url = trim((string) $url);
+		if ($url === "") {
+			return "";
+		}
+		if (!preg_match('#^https?://#i', $url)) {
+			return "";
+		}
+		return $url;
+	}
+
 	function update(Controller $ctl) {
 		$setting = $this->ffm->get(1);
 		if ($setting == null) {
@@ -143,6 +154,7 @@ class setting {
 		if (!isset($setting["line_forward_unknown_to_manager"])) {
 			$setting["line_forward_unknown_to_manager"] = 0;
 		}
+		$setting["project_portal_url"] = $this->normalize_project_portal_url($setting["project_portal_url"] ?? "");
 		$setting["error_report_level"] = $this->normalize_error_report_level($setting["error_report_level"] ?? "");
 		
 		

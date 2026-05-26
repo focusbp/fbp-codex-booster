@@ -13,9 +13,10 @@ description: Manage FBP DB schema using CLI (db tables/fields), relation setup, 
 ## workflow
 1. `db_schema` と `db_tables_list` で現状確認。
 2. `db_tables_*` / `db_fields_*` でスキーマ変更。新規ノートでは `screen_build_type` を先に決める。
-3. `screen_build_type=Original Screen` なら `screen_fields` を前提にせず、`<tb_name>_original_management` 実装へ進む。
-4. `screen_build_type=Standard Screen` のときだけ、`screen_fields` を `list/add/edit/delete`（必要なら `list_on_side`）へ反映。
-5. `data_*` で実データ確認。
+3. 単純な標準CRUDノートとして使うだけで、専用画面クラスを作らない場合は `screen_build_type=Standard Screen` にする。
+4. `screen_build_type=Original Screen` なら `screen_fields` を前提にせず、同じ作業内で `<tb_name>_original_management` 実装へ進む。
+5. `screen_build_type=Standard Screen` のときだけ、`screen_fields` を `list/add/edit/delete/search`（必要なら `list_on_side`）へ反映。
+6. `data_*` で実データ確認。
 
 ## terminology
 - `メニュー画面`: `show_sidemenu()` で開く UI。DOM は `#sidemenu`。
@@ -36,6 +37,7 @@ description: Manage FBP DB schema using CLI (db tables/fields), relation setup, 
 
 ## list type policy
 - 新規テーブル作成時は、原則 `screen_build_type=Original Screen` を選ぶ。`Standard Screen` は既存保守や特殊事情がある場合だけ使う。
+- ただし、今回の作業範囲で `classes/app/<tb_name>_original_management/<tb_name>_original_management.php` を作らない場合は `Original Screen` にしない。標準CRUDノート、取込確認用ノート、一時的なデータ管理ノートは `Standard Screen` を選び、`screen_fields` を `list/add/edit/delete/search/list_on_side` に反映する。
 - `list_type` は `Standard Screen` の一覧パターン、または `Original Screen` 実装時の補助設定として扱う。画面構築方式そのものを `list_type` に混ぜない。
 - 新規テーブル作成時、`sort` 項目で手動並び替えを運用するテーブルは、`一覧タイプ` を `Manual Sort` に設定する。
 - CLI では `db_tables_add` / `db_tables_edit` の `list_type=1` を使う。
@@ -60,7 +62,8 @@ description: Manage FBP DB schema using CLI (db tables/fields), relation setup, 
 
 ## constraints
 - DB追加後の画面反映漏れを禁止。
-- `Original Screen` を選んだ新規ノートで、惰性で `screen_fields` ベース実装へ戻さない。
+- `Original Screen` を選んだ新規ノートで、対応する `classes/app/<tb_name>_original_management/<tb_name>_original_management.php` を未作成のまま終えない。
+- `screen_build_type=Original Screen` のまま標準CRUDだけを期待しない。実装しないなら `Standard Screen` に戻し、`db_exe/page` を `app_call` して `Original management class not found` が出ないことを確認する。
 - 型依存値（date/datetime等）は仕様どおりに扱う。
 - `type=checkbox` は値を配列として扱う前提で実装する（単一値文字列前提で判定しない）。
 - checkbox の有無判定は `count($value ?? [])` ベースで行い、必要なら `is_array` ガードを入れる。

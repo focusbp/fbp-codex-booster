@@ -90,7 +90,7 @@
 							<td><input type="text" name="currency_decimal_digits" value="{$setting.currency_decimal_digits}"></td>
 						</tr>
 						<tr>
-							<th rowspan="4">{t key="setting.mode"}</th>
+							<th rowspan="5">{t key="setting.mode"}</th>
 							<td>{t key="setting.mode"}</td>
 							<td>{html_options name="force_testmode" options=$arr_force_testmode selected=$setting.force_testmode}</td>
 						</tr>
@@ -105,6 +105,10 @@
 						<tr>
 							<td>{t key="setting.show_homepage_link"}</td>
 							<td>{html_options name="show_menu_homepage" options=$arr_show_menu selected=$setting.show_menu_homepage}</td>
+						</tr>
+						<tr>
+							<td>{t key="setting.project_portal_url"}</td>
+							<td><input type="text" name="project_portal_url" value="{$setting.project_portal_url|escape}"></td>
 						</tr>
 					</table>
 				</div>

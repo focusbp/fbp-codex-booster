@@ -20,7 +20,8 @@ description: Build custom note management screens as the default FBP approach by
 5. `classes/app/<tb_name>_original_management/<tb_name>_original_management.php` を作る。
 6. `run(Controller $ctl)` で自由な画面を表示する。
 7. 初回の骨組み確認なら `minimal_*`、案件流用なら `sample_*` を起点に流用する。
-8. 検証は `references/verification.md` の `app_call` / `data_*` パターンで行う。
+8. `copy_to_web.sh <appcode>` 後、対象ノートを `db_exe/page` で `app_call` し、`Original management class not found` が出ないことを確認する。
+9. 検証は `references/verification.md` の `app_call` / `data_*` パターンで行う。
 
 ## naming rules
 - クラス名は固定で `<tb_name>_original_management`
@@ -31,6 +32,8 @@ description: Build custom note management screens as the default FBP approach by
 
 ## constraints
 - 新規制作の基本方針は Original Screen とする。特段の理由がない限り `screen_fields` 主体の新規画面へ戻さない。
+- `screen_build_type=Original Screen` にしたノートは、同じ作業内で `<tb_name>_original_management/run` を実装してテスト環境へ同期する。クラスを作らない単純CRUDノートは `Standard Screen` を選ぶ。
+- Original Screen の完了条件は、対象ノートの `db_exe/page` が成功し、`Original management class not found: <tb_name>_original_management` が出ないこと。
 - URL生成は必ず `$ctl->get_APP_URL()` を使う
 - バリデーションエラーは `res_error_message()` を返して即 `return`
 - エラー時に `show_multi_dialog()` 再実行や `reload_work_area()` をしない

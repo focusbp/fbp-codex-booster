@@ -5,6 +5,20 @@
 				<h3>{$section.title|escape}</h3>
 				<div class="base-empty-main-grid">
 					{foreach $section.items as $item}
+						{if $item.type|default:'ajax' == 'external'}
+						<a
+							class="base-empty-main-card{if $item.badge|default:'' != ''} base-empty-main-card-accent{/if}"
+							href="{$item.url|escape}"
+							{foreach $item.attributes as $attr_key => $attr_value}
+								{$attr_key}="{$attr_value|escape}"
+							{/foreach}
+						>
+							<span>{$item.label|escape}</span>
+							{if $item.badge|default:'' != ''}
+								<span class="base-empty-main-card-badge">{$item.badge|escape}</span>
+							{/if}
+						</a>
+						{else}
 						<button
 							type="button"
 							class="ajax-link base-empty-main-card{if $item.badge|default:'' != ''} base-empty-main-card-accent{/if}"
@@ -19,6 +33,7 @@
 								<span class="base-empty-main-card-badge">{$item.badge|escape}</span>
 							{/if}
 						</button>
+						{/if}
 					{/foreach}
 				</div>
 			</section>

@@ -16,6 +16,17 @@ class base {
 
 		$this->fmt_db = $ctl->db("db","db");
 	}
+
+	private function normalize_external_url($url) {
+		$url = trim((string) $url);
+		if ($url === "") {
+			return "";
+		}
+		if (!preg_match('#^https?://#i', $url)) {
+			return "";
+		}
+		return $url;
+	}
 	
 
 	function page(Controller $ctl) {
@@ -59,7 +70,9 @@ class base {
 		$ctl->assign("js_class_list", $js_class_list);
 		
 		$setting = $ctl->get_setting();
+		$project_portal_url = $this->normalize_external_url($setting["project_portal_url"] ?? "");
 		$ctl->assign("setting",$setting);
+		$ctl->assign("project_portal_url", $project_portal_url);
 		$ctl->assign("base_i18n", [
 			"app_name" => $ctl->t("base.app_name"),
 			"tagline" => $ctl->t("base.tagline"),
@@ -71,6 +84,7 @@ class base {
 			"public_side" => $ctl->t("base.menu.public_side"),
 			"homepage" => $ctl->t("base.menu.homepage"),
 			"admin_console" => $ctl->t("base.menu.admin_console"),
+			"project_portal" => $ctl->t("base.menu.project_portal"),
 			"development_panel" => $ctl->t("base.menu.development_panel"),
 			"release_backup" => $ctl->t("base.menu.release_backup"),
 			"user_management" => $ctl->t("base.menu.user_management"),
@@ -185,13 +199,16 @@ class base {
 		}
 		
 		$setting = $ctl->get_setting();
+		$project_portal_url = $this->normalize_external_url($setting["project_portal_url"] ?? "");
 		$ctl->assign("setting",$setting);
+		$ctl->assign("project_portal_url", $project_portal_url);
 		$ctl->assign("base_menu_i18n", [
 			"dashboard" => $ctl->t("base.menu.dashboard"),
 			"databases" => $ctl->t("base.menu.databases"),
 			"public_side" => $ctl->t("base.menu.public_side"),
 			"homepage" => $ctl->t("base.menu.homepage"),
 			"admin_console" => $ctl->t("base.menu.admin_console"),
+			"project_portal" => $ctl->t("base.menu.project_portal"),
 			"development_panel" => $ctl->t("base.menu.development_panel"),
 			"release_backup" => $ctl->t("base.menu.release_backup"),
 			"user_management" => $ctl->t("base.menu.user_management"),
@@ -243,6 +260,17 @@ class base {
 
 		$admin_items = [];
 		if ($ctl->is_app_admin() || $ctl->has_developer_permission()) {
+			if ($project_portal_url !== "") {
+				$admin_items[] = [
+					"type" => "external",
+					"label" => $ctl->t("base.menu.project_portal"),
+					"url" => $project_portal_url,
+					"attributes" => [
+						"target" => "_blank",
+						"rel" => "noopener",
+					],
+				];
+			}
 			if ($setting["force_testmode"] == 1 ||
 				($setting["force_testmode"] == 0 && $setting["show_developer_panel"] == 1)) {
 				$admin_items[] = [

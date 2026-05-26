@@ -44,6 +44,7 @@ ssl,1,N
 flg_show_lang_on_chat,1,N
 default_class_name,255,T
 show_menu_homepage,1,N
+project_portal_url,1000,T
 timezone,50,T
 date_format,50,T
 datetime_format,50,T

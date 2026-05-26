@@ -28,11 +28,15 @@
 
 		{if $MYSESSION.app_admin || $MYSESSION.data_manager_permission == 1 ||
 			(($MYSESSION.developer_permission == 1) &&
-				($setting["force_testmode"] == 1 ||
+				(($project_portal_url|default:'' != '') ||
+				$setting["force_testmode"] == 1 ||
 				($setting["force_testmode"] == 0 && $setting["show_developer_panel"] == 1)))}
 			<h3>{$base_menu_i18n.admin_console}</h3>
 		{/if}
 		{if $MYSESSION.app_admin || $MYSESSION.developer_permission == 1}
+			{if $project_portal_url|default:'' != ''}
+			<a href="{$project_portal_url|escape}" target="_blank" rel="noopener">{$base_menu_i18n.project_portal}</a>
+			{/if}
 			{if $setting["force_testmode"] == 1 ||
 				($setting["force_testmode"] == 0 && $setting["show_developer_panel"] == 1) }
 			<a class="ajax-link lang" data-class="panel" data-function="page">{$base_menu_i18n.development_panel}</a>
