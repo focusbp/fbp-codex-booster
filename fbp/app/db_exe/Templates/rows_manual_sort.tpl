@@ -4,7 +4,9 @@
 {foreach $rows as $row}
 	<tr id="{$row["id"]}" class="active_indicator">
 		<td>
+			{if $manual_sort_search_active != true}
 			<span><span class="material-symbols-outlined handle">swap_vert</span></span>
+			{/if}
 		</td>
 		{if $show_id}
 		<td class="row_style">
@@ -52,6 +54,7 @@
 	});
 	
 	
+	{if $manual_sort_search_active != true}
     $("#manual_sort" + "{$db_id}").sortable({
         handle:".handle",
         cancel:"button",
@@ -76,4 +79,5 @@
             appcon("app.php", fd);
         }
     });
+	{/if}
 </script>

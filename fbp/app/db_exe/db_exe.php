@@ -309,6 +309,26 @@ class db_exe {
 		return $sorted;
 	}
 
+	private function search_session_has_values($session): bool {
+		if (!is_array($session)) {
+			return false;
+		}
+		foreach ($session as $value) {
+			if (is_array($value)) {
+				foreach ($value as $nested_value) {
+					if (trim((string)$nested_value) !== "") {
+						return true;
+					}
+				}
+				continue;
+			}
+			if (trim((string)$value) !== "") {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	private function is_show_search_id_enabled(): bool {
 		return (int) ($this->db_setting["show_search_id"] ?? 0) === 1;
 	}
@@ -480,6 +500,12 @@ class db_exe {
 			
 		}else if($this->db_setting["list_type"] == 1){
 			//List Type is "Manual Sort"
+			$search = $ctl->get_session("search_" . $this->table_name);
+			$search_fields = $this->assign_search_group($ctl, "group1", true, true);
+			if(count($search_fields)>0){
+				$ctl->assign("show_search_box",true);
+			}
+			$ctl->assign("row",$search);
 			$ctl->invoke("rows",["max"=>0,"db_id"=>$this->db_setting_id]);
 			
 		}else if($this->db_setting["list_type"] == 2){
@@ -628,6 +654,7 @@ class db_exe {
 		$fields = $this->get_search_fields($ctl);
 		[$search_field_list, $search_values, $search_match_patterns] = $this->build_search_filter_parts($fields, $session);
 		$this->append_visibility_filter_conditions($ctl, $search_field_list, $search_values, $search_match_patterns, "list");
+		$ctl->assign("manual_sort_search_active", $this->search_session_has_values($session));
 		
 		// Getting data from DB
 		$max = $ctl->increment_post_value('max', 10);
@@ -907,24 +934,27 @@ class db_exe {
 		// Table Title
 		$ctl->assign("table_title",$this->db_setting["menu_name"]);
 		
-		if($this->get_side_panel_list_type() == 1){
-			$search_fields = $this->get_side_search_fields($ctl);
-			$ctl->assign("search_group", $search_fields);
-			$search_row = $ctl->get_session($this->get_side_search_session_key());
-			if(!is_array($search_row)){
-				$search_row = [];
-			}
-			$ctl->assign("row", $search_row);
-			if(count($search_fields) > 0){
-				$ctl->assign("show_search_box", true);
-			}
+		$side_panel_list_type = $this->get_side_panel_list_type();
+		$search_fields = $this->get_side_search_fields($ctl);
+		$ctl->assign("search_group", $search_fields);
+		$search_row = $ctl->get_session($this->get_side_search_session_key());
+		if(!is_array($search_row)){
+			$search_row = [];
+		}
+		$ctl->assign("row", $search_row);
+		if(count($search_fields) > 0){
+			$ctl->assign("show_search_box", true);
+		}
 
-			$base_fields = $this->get_search_fields($ctl);
-			[$search_field_list, $search_values, $search_match_patterns] = $this->build_search_filter_parts($base_fields, $search_row);
-			array_unshift($search_field_list, "parent_id");
-			array_unshift($search_values, $parent_id);
-			array_unshift($search_match_patterns, "=");
-			$this->append_visibility_filter_conditions($ctl, $search_field_list, $search_values, $search_match_patterns, "list_on_side");
+		$base_fields = $this->get_search_fields($ctl);
+		[$search_field_list, $search_values, $search_match_patterns] = $this->build_search_filter_parts($base_fields, $search_row);
+		array_unshift($search_field_list, "parent_id");
+		array_unshift($search_values, $parent_id);
+		array_unshift($search_match_patterns, "=");
+		$this->append_visibility_filter_conditions($ctl, $search_field_list, $search_values, $search_match_patterns, "list_on_side");
+		$ctl->assign("manual_sort_search_active", $this->search_session_has_values($search_row));
+
+		if($side_panel_list_type == 1){
 
 			$max = $ctl->increment_post_value('max', 10);
 			$this->ffm->set_flg_filter_zero(true);
@@ -933,7 +963,8 @@ class db_exe {
 			$ctl->assign("is_last", $is_last);
 		}else{
 			// Getting data from DB
-			$rows = $this->ffm->select("parent_id",$parent_id,true,"AND",$this->db_setting["sortkey"], $this->db_setting["sort_order"]);
+			$this->ffm->set_flg_filter_zero(true);
+			$rows = $this->ffm->filter($search_field_list, $search_values, false, 'AND', $this->db_setting["sortkey"], $this->db_setting["sort_order"], null, $is_last, $search_match_patterns);
 			$rows = $this->sort_rows_for_manual_side_panel($ctl, $rows);
 		}
 
@@ -991,7 +1022,7 @@ class db_exe {
 		}else{
 			$width=$this->db_setting["list_width"];
 		}
-		if($this->get_side_panel_list_type() == 1){
+		if($side_panel_list_type == 1){
 			$ctl->show_second_work_area("rows_child.tpl",$width);
 		}else{
 			$ctl->show_second_work_area("rows_child_manual_sort.tpl",$width);
