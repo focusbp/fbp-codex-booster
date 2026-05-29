@@ -3217,10 +3217,6 @@ class Controller_class implements Controller {
 			$key = $setting["chatgpt_api_key"];
 			$url = $setting["chatgpt_api_url"];
 			$model = $setting["chatgpt_api_model"];
-		} else if ($mode == "coding") {
-			$key = $setting["chatgpt_coding_key"];
-			$url = $setting["chatgpt_coding_url"];
-			$model = $setting["chatgpt_coding_model"];
 		} else {
 			throw new Exception("chatGPT(): \$mode is wrong");
 		}
@@ -3245,10 +3241,6 @@ class Controller_class implements Controller {
 		if ($mode == "api") {
 			$key = $setting["chatgpt_api_key"];
 			$url = $setting["chatgpt_api_url"];
-			$model = $setting["chatgpt_api_model"];
-		} else if ($mode == "coding") {
-			$key = $setting["chatgpt_coding_key"];
-			$url = $setting["chatgpt_coding_url"];
 			$model = $setting["chatgpt_api_model"];
 		} else {
 			throw new Exception("chatGPT_image_analysis(): \$mode is wrong");
@@ -3936,6 +3928,14 @@ class Controller_class implements Controller {
 		if ($template === "") {
 			return "";
 		}
+		$template = preg_replace_callback('/{if\s+\$?([a-zA-Z0-9_]+)}(.*?){\/if}/s', function ($m) use ($row) {
+			$key = $m[1];
+			$val = $row[$key] ?? "";
+			if (is_array($val)) {
+				return "";
+			}
+			return trim((string) $val) !== "" ? $m[2] : "";
+		}, $template);
 		$formatter = $this->create_ValueFormatter();
 		return preg_replace_callback('/{\$([a-zA-Z0-9_]+)}/', function ($m) use ($row, $field_map, $formatter) {
 			$key = $m[1];
@@ -4210,12 +4210,10 @@ class Controller_class implements Controller {
 		$this->assistant = $assistant;
 
 		$class_dir = $this->dirs->get_class_dir($this->class);
-		$vectorSyncDir = $class_dir . "/vector_store";
 		$toolsDir = $class_dir . "/function_tools";
 
-		$vectorStoreId = $assistant["openai_vector_store_id"];
-		$vectorStoreName = "vs_" . $assistant["name"] . "_" . $assistant["id"];
-		$vs = $this->encrypt($vectorStoreName);
+		$assistantSessionName = "openai_" . ($assistant["name"] ?? "assistant") . "_" . ($assistant["id"] ?? "0");
+		$vs = $this->encrypt($assistantSessionName);
 
 		if ($message_recorder == null) {
 			$message_recorder = new openai\SessionRecorder($this->windowcode, $vs);
@@ -4232,7 +4230,6 @@ class Controller_class implements Controller {
 		$status_manager->get_status("Start");
 
 		$openai = new \openai\OpenAI_class($setting["chatgpt_api_key"],
-			$vectorSyncDir,
 			$toolsDir,
 			$model,
 			$setting["openai_logfile"],
@@ -4243,13 +4240,6 @@ class Controller_class implements Controller {
 			$network_logger,
 			$this
 		);
-
-		// vector store 作成
-		if (empty($vectorStoreId)) {
-			$vectorStoreId = $openai->createVectorStore($vectorStoreName);
-			$assistant["openai_vector_store_id"] = $vectorStoreId;
-		}
-		$openai->set_vector_store_id($vectorStoreId);
 
 		$openai->curl_timeout = $assistant["curl_timeout"];
 

@@ -33,9 +33,6 @@ system_tag_line,255,T
 chatgpt_api_key,255,T
 chatgpt_api_url,255,T
 chatgpt_api_model,255,T
-chatgpt_coding_key,255,T
-chatgpt_coding_url,255,T
-chatgpt_coding_model,255,T
 viewport_base,255,T
 viewport_public,255,T
 currency,255,T
@@ -60,7 +57,6 @@ line_channel_secret,50,T
 line_accesstoken,255,T
 line_logfile,255,T
 openai_logfile,255,T
-max_vs,24,N
 api_key,255,T
 api_secret,255,T
 release_api_key,255,T

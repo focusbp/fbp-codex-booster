@@ -29,12 +29,6 @@ interface OpenAI {
 	
 	public function delete_all_files(?string $purpose = null): array;
 	
-	public function listVectorStoreFileIds(string $vectorStoreId): array;
-	
-	public function hydrateFileIdsWithNamesParallel(array $fileIds, $concurrency = 4): array;
-	
-	public function deleteVectorStore(string $vectorStoreId): void;
-	
 	public function set_messages_history_max($max);
 	
 }

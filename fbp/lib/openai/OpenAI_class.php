@@ -3,7 +3,7 @@
 namespace openai;
 
 /**
- * OpenAI Responses API / Vector Stores を手軽に扱うユーティリティ
+ * OpenAI Responses API を手軽に扱うユーティリティ
  * - PHP 7.3 対応（typed properties 未使用）
  * - 依存: cURL, JSON 拡張
  */
@@ -21,14 +21,8 @@ class OpenAI_class implements \openai\OpenAI {
 	/** @var string|null */
 	private $toolsDir;
 
-	/** @var string|null */
-	private $vectorSyncDir;
-
 	/** @var array<string, FunctionTool> name => instance */
 	private $tools = [];
-
-	/** @var string|null */
-	private $vectorStoreId;
 
 	/** @var string|null 最新の Responses API response_id（ツール往復用） */
 	private $responseId = null;
@@ -52,14 +46,12 @@ class OpenAI_class implements \openai\OpenAI {
 
 	/**
 	 * @param string      $apiKey            OpenAI API Key
-	 * @param string|null $vectorSyncDir     Vector Store と同期するローカルディレクトリ（null可）
 	 * @param string|null $toolsDir          FunctionTool クラス群を置くディレクトリ（null可）
 	 * @param string      $model             使用モデル（例: 'gpt-4.1-mini' など）
 	 * @param string      $baseUrl           API ベースURL（通常は https://api.openai.com/v1）
 	 */
 	public function __construct(
 		$apiKey,
-		$vectorSyncDir = null,
 		$toolsDir = null,
 		$model = 'gpt-5',
 		$logfile = null,
@@ -71,7 +63,6 @@ class OpenAI_class implements \openai\OpenAI {
 		\Controller $ctl = null
 	) {
 		$this->apiKey = $apiKey;
-		$this->vectorSyncDir = $vectorSyncDir;
 		$this->toolsDir = $toolsDir;
 		$this->model = $model;
 		if (!empty($logfile)) {
@@ -90,10 +81,6 @@ class OpenAI_class implements \openai\OpenAI {
 		$this->baseUrl = 'https://api.openai.com/v1';
 
 		$this->instructions = $instructions;
-	}
-
-	public function set_vector_store_id($id) {
-		$this->vectorStoreId = $id;
 	}
 
 	public function set_messages_history_max($max) {
@@ -212,12 +199,6 @@ class OpenAI_class implements \openai\OpenAI {
 		$messages = $this->get_messages();
 
 		$toolDefs = $this->buildToolDefinitions();
-
-		// ★ file_search を tools に追加（vector_store_ids は直置き）
-		$vsIds = array_values(array_unique(array_filter([$this->vectorStoreId])));
-		if (!empty($vsIds)) {
-			$toolDefs[] = ['type' => 'file_search', 'vector_store_ids' => $vsIds];
-		}
 
 		$request = [
 		    'model' => $this->model,
@@ -509,173 +490,6 @@ class OpenAI_class implements \openai\OpenAI {
 	}
 
 	/* =========================
-	  内部: Vector Store ヘルパ
-	  ========================= */
-
-	private function listLocalFiles(string $dir): array {
-		$rii = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir));
-		$out = [];
-		foreach ($rii as $file) {
-			if ($file->isDir())
-				continue;
-			$out[] = $file->getPathname();
-		}
-		return $out;
-	}
-
-	public function createVectorStore($vector_store_name): string {
-		$name = $vector_store_name;
-		$payload = ['name' => $name];
-		$resp = $this->post('/vector_stores', $payload);
-		if (empty($resp['id'])) {
-			throw new \RuntimeException('Vector Store 作成に失敗しました。');
-		}
-		return $resp['id'];
-	}
-
-	/** Vector Store に現在添付されている file_id の配列を返す（簡易ページング対応） */
-	public function listVectorStoreFileIds(string $vectorStoreId): array {
-		$ids = [];
-		$after = null;
-
-		if ($vectorStoreId === '') {
-			throw new \InvalidArgumentException('vectorStoreId is empty.');
-		}
-
-		do {
-			$qs = $after ? ['after' => $after] : [];
-			$res = $this->get("/vector_stores/{$vectorStoreId}/files", $qs);
-
-			if (isset($res['data']) && is_array($res['data'])) {
-				foreach ($res['data'] as $row) {
-					if (isset($row['id']) && ($row["status"] == "completed" || $row["status"] == "failed")) {
-						$ids[] = $row['id'];
-					}
-				}
-			}
-
-			$hasMore = isset($res['has_more']) ? (bool) $res['has_more'] : false;
-			$after = $hasMore && isset($res['last_id']) ? $res['last_id'] : null;
-		} while (!empty($after));
-
-		return $ids;
-	}
-
-	public function hydrateFileIdsWithNamesParallel(array $fileIds, $concurrency = 4): array {
-		$mh = curl_multi_init();
-		$handles = [];
-		$results = [];
-
-		// リクエスト用のヘッダ等は既存 request() と揃える
-		$base = rtrim($this->baseUrl, '/');       // 例: https://api.openai.com/v1
-		$defaultHeaders = [
-		    'Authorization: Bearer ' . $this->apiKey,
-		    "Content-Type: application/json",
-		];
-		$headers = $defaultHeaders;
-		$timeout = 60;       // 必要なら設定
-
-		$queue = array_values($fileIds);
-		$active = 0;
-
-		// チャンク投入関数
-		$start = function () use (&$queue, &$handles, $mh, $base, $headers, $timeout, $concurrency, &$active) {
-			while ($active < $concurrency && $queue) {
-				$fid = array_shift($queue);
-				$ch = curl_init();
-				curl_setopt_array($ch, [
-				    CURLOPT_URL => "{$base}/files/{$fid}",
-				    CURLOPT_RETURNTRANSFER => true,
-				    CURLOPT_HTTPHEADER => $headers,
-				    CURLOPT_TIMEOUT => $timeout,
-				    CURLOPT_CUSTOMREQUEST => 'GET',
-				]);
-				curl_multi_add_handle($mh, $ch);
-				$handles[(int) $ch] = ['ch' => $ch, 'id' => $fid];
-				$active++;
-			}
-		};
-
-		$start();
-
-		do {
-			$mrc = curl_multi_exec($mh, $running);
-			if ($mrc == CURLM_OK) {
-				// 完了したものを回収
-				while ($info = curl_multi_info_read($mh)) {
-					$ch = $info['handle'];
-					$meta = $handles[(int) $ch];
-					$fid = $meta['id'];
-
-					$raw = curl_multi_getcontent($ch);
-					$err = curl_error($ch);
-					$obj = null;
-					if ($err === '') {
-						$decoded = json_decode($raw, true);
-						if (json_last_error() === JSON_ERROR_NONE)
-							$obj = $decoded;
-					}
-
-					$results[] = [
-					    'id' => $fid,
-					    'filename' => $obj['filename'] ?? null,
-					    'bytes' => $obj['bytes'] ?? null,
-					    'created_at' => $obj['created_at'] ?? null,
-						// 必要に応じて他のフィールド
-					];
-
-						curl_multi_remove_handle($mh, $ch);
-						unset($handles[(int) $ch]);
-					$active--;
-
-					// 追加投入
-					$start();
-				}
-				// 待機
-				if ($running)
-					curl_multi_select($mh, 1.0);
-			}
-		} while ($running || $active);
-
-		curl_multi_close($mh);
-		return $results;
-	}
-
-	public function deleteVectorStoreFile(string $vectorStoreId, string $fileId): void {
-		// Vector Store からのデタッチ
-		$this->delete("/vector_stores/{$vectorStoreId}/files/{$fileId}");
-	}
-
-	public function deleteVectorStore(string $vectorStoreId): void {
-		$this->delete("/vector_stores/{$vectorStoreId}");
-	}
-
-	public function uploadFile(string $path, string $purpose = 'assistants', ?string $uploadFilename = null): string {
-		if (!is_readable($path)) {
-			throw new \RuntimeException('ファイルが読めません: ' . $path);
-		}
-
-		$mime = mime_content_type($path) ?: 'application/octet-stream';
-		$postname = $uploadFilename ?? basename($path); // ← 任意名を指定できる
-
-		$fields = [
-		    'file' => new \CURLFile($path, $mime, $postname),
-		    'purpose' => $purpose,
-		];
-
-		$resp = $this->postMultipart('/files', $fields);
-		if (empty($resp['id'])) {
-			throw new \RuntimeException('ファイルアップロード失敗: ' . $postname);
-		}
-		return $resp['id'];
-	}
-
-	public function createVectorStoreFileBatch(string $vectorStoreId, array $fileIds): array {
-		$payload = ['file_ids' => array_values($fileIds)];
-		return $this->post("/vector_stores/{$vectorStoreId}/file_batches", $payload);
-	}
-
-	/* =========================
 	  内部: HTTP ヘルパ
 	  ========================= */
 
@@ -696,43 +510,33 @@ class OpenAI_class implements \openai\OpenAI {
 		return $this->request('DELETE', $path, null);
 	}
 
-	private function postMultipart(string $path, array $fields): array {
-		return $this->request('POST', $path, $fields, [], true);
-	}
-
-	private function request(string $method, string $path, $data = null, array $headers = [], bool $isMultipart = false): array {
+	private function request(string $method, string $path, $data = null, array $headers = []): array {
 		$url = $this->baseUrl . $path;
 		$ch = curl_init($url);
 
 		$defaultHeaders = [
 		    'Authorization: Bearer ' . $this->apiKey,
+		    'Accept: application/json',
 		];
-		if (!$isMultipart) {
-			$defaultHeaders[] = 'Accept: application/json';
-		}
 		// 送信ヘッダ（後勝ちでマージ）
 		$finalHeaders = array_merge($defaultHeaders, $headers);
 
 		if (($method === 'POST' || $method === 'PATCH') && $data !== null) {
-			if ($isMultipart) {
-				$postFields = $data; // multipart はそのまま
-			} else {
-				$json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-				if ($json === false) {
-					throw new \RuntimeException('Failed to json_encode request payload');
+			$json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+			if ($json === false) {
+				throw new \RuntimeException('Failed to json_encode request payload');
+			}
+			$postFields = $json;
+			// Content-Type を重複なしで付与
+			$hasCT = false;
+			foreach ($finalHeaders as $h) {
+				if (stripos($h, 'Content-Type:') === 0) {
+					$hasCT = true;
+					break;
 				}
-				$postFields = $json;
-				// Content-Type を重複なしで付与
-				$hasCT = false;
-				foreach ($finalHeaders as $h) {
-					if (stripos($h, 'Content-Type:') === 0) {
-						$hasCT = true;
-						break;
-					}
-				}
-				if (!$hasCT) {
-					$finalHeaders[] = 'Content-Type: application/json';
-				}
+			}
+			if (!$hasCT) {
+				$finalHeaders[] = 'Content-Type: application/json';
 			}
 		}
 
@@ -747,10 +551,12 @@ class OpenAI_class implements \openai\OpenAI {
 		}
 
 		// ---- 送信ログ
+		$requestTools = is_array($data) && isset($data["tools"]) ? $data["tools"] : [];
+		$requestInput = is_array($data) && isset($data["input"]) ? $data["input"] : null;
 		$this->log([
 		    'direction' => 'server ---> chatGPT',
-		    'tools' => $this->log_tools($data["tools"]),
-		    'data' => $this->readable_output($data["input"]),
+		    'tools' => $this->log_tools($requestTools),
+		    'data' => $this->readable_output($requestInput),
 		]);
 
 		curl_setopt_array($ch, $opts);
@@ -769,10 +575,11 @@ class OpenAI_class implements \openai\OpenAI {
 			$resp = json_decode($raw, true);
 
 		// ---- 受信ログ（JSONが取れればJSON、なければ文字列）
+		$responseOutput = is_array($resp) && isset($resp["output"]) ? $resp["output"] : null;
 		$this->log([
 		    'direction' => 'server <--- chatGPT',
 		    'status' => $status ?? null,
-		    'data' => $this->readable_output($resp["output"]),
+		    'data' => $this->readable_output($responseOutput),
 		]);
 
 		return is_array($resp) ? $resp : ['raw' => $raw];
@@ -821,7 +628,6 @@ class OpenAI_class implements \openai\OpenAI {
 	}
 
 	private function log_tools($tools) {
-		$file_search_arr = [];
 		$function_arr = [];
 
 		if (!is_array($tools)) {
@@ -831,45 +637,12 @@ class OpenAI_class implements \openai\OpenAI {
 		foreach ($tools as $tool) {
 			if ($tool["type"] == "function") {
 				$function_arr[] = $tool["name"];
-			} else if ($tool["type"] == "file_search") {
-				$file_search_arr = array_merge($file_search_arr, $tool["vector_store_ids"]);
 			}
 		}
 		return [
-		    "file_search" => implode(",", $file_search_arr),
 		    "function" => implode(",", $function_arr),
 		];
 	}
-
-	/**
-	 * Vector Store を名前で検索して ID を返す（見つからなければ null）
-	 */
-	public function findVectorStoreIdByName(string $name): ?string {
-		$after = null;
-		do {
-			$params = ['limit' => 100];
-			if ($after)
-				$params['after'] = $after;
-
-			$res = $this->get('/vector_stores', $params);
-
-			if (isset($res['data']) && is_array($res['data'])) {
-				foreach ($res['data'] as $row) {
-					$rowName = isset($row['name']) ? (string) $row['name'] : '';
-					if ($rowName === $name) {
-						return isset($row['id']) ? (string) $row['id'] : null;
-					}
-				}
-			}
-
-			$hasMore = isset($res['has_more']) ? (bool) $res['has_more'] : false;
-			$after = $hasMore && isset($res['last_id']) ? (string) $res['last_id'] : null;
-		} while (!empty($after));
-
-		return null;
-	}
-
-// class OpenAI_class 内に追加
 
 	/** output[] の1要素から message ペイロードを取り出す（新旧両対応） */
 	private function normalizeMessageItem(array $item): ?array {
@@ -990,7 +763,6 @@ class OpenAI_class implements \openai\OpenAI {
 		    'model' => $this->model,
 		    'stream' => true,
 		    'input' => $messages,
-			// 必要なら file_search を tools に。Function は後述注意
 		];
 
 		$this->sseHeaders(); // text/event-stream 等（上の stream.php と同様）
@@ -1066,8 +838,7 @@ class OpenAI_class implements \openai\OpenAI {
 
 	/**
 	 * OpenAI /files の全ファイル実体を削除するユーティリティ。
-	 * 注意: 取り消し不可。Vector Store に添付されたままのファイルは削除が失敗する場合があります。
-	 * その場合は先に Vector Store からデタッチしてください（syncVectorStore 実行時は古い添付をデタッチ済み）。
+	 * 注意: 取り消し不可。
 	 *
 	 * @param string|null $purpose 特定 purpose のみ削除（例: "assistants"）。null なら全件対象。
 	 * @return array { ok: bool, deleted: int, errors: array[] }

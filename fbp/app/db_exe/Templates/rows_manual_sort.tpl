@@ -29,13 +29,23 @@
 		</td>
 			{/if}
 		{/foreach}
-		<td>
+		<td class="row_style" style="padding:10px;display: flex;flex-direction: row-reverse;">
 		{if $flg_delete_button}
 		<button class="ajax-link listbutton" data-class="{$class}" data-function="delete" data-id="{$row["_id_enc"]}" data-db_id="{$db_id}" style="float:right;color:#2d2d2d;margin-right:5px;"><span class="material-symbols-outlined">delete</span></button>
 		{/if}
 		{if $flg_edit_button}
 		<button class="ajax-link listbutton" data-class="{$class}" data-function="edit" data-id="{$row["_id_enc"]}"  data-db_id="{$db_id}" style="float:right;color:#2d2d2d;"><span class="material-symbols-outlined">edit_square</span></button>
 		{/if}
+		{if $flg_duplicate_button}
+		<button class="ajax-link listbutton" data-class="{$class}" data-function="duplicate" data-id="{$row["_id_enc"]}"  data-db_id="{$db_id}" style="float:right;color:#2d2d2d;"><span class="material-symbols-outlined">content_copy</span></button>
+		{/if}
+		{foreach $additionals as $a}
+			{if $a.button_type == 0}
+			<button class="ajax-link lang {$a.show_button_class}" data-class="{$a.class_name}" data-function="{$a.function_name}" data-id="{$row["_id_enc"]}">{$a.button_title}</button>
+			{else}
+				<a class="ajax-link listbutton {$a.show_button_class}" style="color:black;" invoke-class="{$a.class_name}" invoke-function="{$a.function_name}" data-id="{$row["_id_enc"]}"><span class="material-symbols-outlined">{$a.button_title}</span></a>
+			{/if}
+		{/foreach}
 		</td>
 	</tr>
 {/foreach}

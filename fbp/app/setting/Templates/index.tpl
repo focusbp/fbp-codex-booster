@@ -266,7 +266,7 @@
 				<div class="setting_tab_inner">
 					<table class="setting_detail_table">
 						<tr>
-							<th rowspan="3">{t key="setting.for_bot"}</th>
+							<th rowspan="4">{t key="setting.for_bot"}</th>
 							<td>{t key="setting.api_key"}</td>
 							<td><input type="password" name="chatgpt_api_key" value="" placeholder="{$masked_setting.chatgpt_api_key}"></td>
 						</tr>
@@ -279,26 +279,8 @@
 							<td><input type="text" name="chatgpt_api_model" value="{$setting.chatgpt_api_model}"></td>
 						</tr>
 						<tr>
-							<th rowspan="3">{t key="setting.for_coding"}</th>
-							<td>{t key="setting.api_key"}</td>
-							<td><input type="password" name="chatgpt_coding_key" value="" placeholder="{$masked_setting.chatgpt_coding_key}"></td>
-						</tr>
-						<tr>
-							<td>{t key="setting.endpoint_url"}<br /><span style="font-size:10px;">{t key="setting.for_completions"}</span></td>
-							<td><input type="text" name="chatgpt_coding_url" value="{$setting.chatgpt_coding_url}"></td>
-						</tr>
-						<tr>
-							<td>{t key="setting.default_model"}</td>
-							<td><input type="text" name="chatgpt_coding_model" value="{$setting.chatgpt_coding_model}"></td>
-						</tr>
-						<tr>
-							<th rowspan="2">{t key="setting.common"}</th>
 							<td>{t key="setting.log_file"}</td>
 							<td><input type="text" name="openai_logfile" value="{$setting.openai_logfile}"></td>
-						</tr>
-						<tr>
-							<td>{t key="setting.max_vector_store_files"}</td>
-							<td><input type="text" name="max_vs" value="{$setting.max_vs}"></td>
 						</tr>
 						<tr>
 							<th rowspan="2">{t key="setting.endpoints_for_completions"}</th>
@@ -310,6 +292,9 @@
 							<td>https://api.ai.sakura.ad.jp/v1/chat/completions</td>
 						</tr>
 					</table>
+					<div class="setting_tab_actions">
+						<button type="button" class="ajax-link lang" data-class="setting" data-function="openai_connection_test" data-form="setting_form">{t key="setting.openai_connection_test"}</button>
+					</div>
 				</div>
 			</div>
 

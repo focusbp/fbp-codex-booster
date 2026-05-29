@@ -1607,6 +1607,11 @@ var myChart = new Array(); //チャート用オブジェクト
 var waitTimer;
 var flg_reloadarea_fade = true;
 
+function show_download_view() {
+	$("#download_view").appendTo("body").css("z-index", 2147483647).show();
+	$("#download_bar, #download_message, #download_progress").css("z-index", 2147483647);
+}
+
 function get_server_timezone() {
 	var timezone = $("#server_timezone").text();
 	if (timezone === undefined || timezone === null || timezone === "") {
@@ -1994,7 +1999,7 @@ function appcon(url, fd, nextfunction) {
 	var fadeflg = true;
 	fadeflg = !fd.has("max");
 
-	$("#download_view").show();
+	show_download_view();
 	$('#download_message').html("Sending data...");
 	$('#download_progress').css({'width': 5 + '%'});
 
@@ -3427,7 +3432,7 @@ function modal_download(url, fd, fileName, open_new_tab = false) { // CHANGE: �
 	xhr.open("POST", url, true);
 
 	xhr.onprogress = function (evt) {
-		$("#download_view").show();
+		show_download_view();
 		if (evt.total > 0) {
 			var load = 100 * evt.loaded / evt.total;
 			$('#download_message').html(

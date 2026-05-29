@@ -14,7 +14,6 @@ class setting {
 		"api_secret",
 		"api_key_map",
 		"chatgpt_api_key",
-		"chatgpt_coding_key",
 		"line_accesstoken",
 			"line_channel_secret",
 			"smtp_password",
@@ -313,6 +312,85 @@ class setting {
 
 		// Show credit card dialog.
 		$ctl->show_square_dialog("setting", "pay", $callback_parameter_array);
+	}
+
+	function openai_connection_test(Controller $ctl) {
+		$setting = $this->ffm->get(1);
+		if (!is_array($setting)) {
+			$setting = [];
+		}
+
+		$key = trim((string) $ctl->POST("chatgpt_api_key"));
+		if ($key === "") {
+			$key = trim((string) ($setting["chatgpt_api_key"] ?? ""));
+		}
+		$url = trim((string) $ctl->POST("chatgpt_api_url"));
+		$model = trim((string) $ctl->POST("chatgpt_api_model"));
+
+		if ($url === "") {
+			$url = trim((string) ($setting["chatgpt_api_url"] ?? ""));
+		}
+		if ($model === "") {
+			$model = trim((string) ($setting["chatgpt_api_model"] ?? ""));
+		}
+
+		if ($key === "" || $url === "" || $model === "") {
+			$ctl->show_notification_text($ctl->t("setting.openai_connection_test_missing"), 8, "#D14343", "#FFF", 16, 920);
+			return;
+		}
+
+		try {
+			$reply = $this->request_openai_connection_test($key, $url, $model);
+			$ctl->show_notification_text($ctl->t("setting.openai_connection_test_success") . ": " . $reply, 8, "#2E7D32", "#FFF", 16, 920);
+		} catch (Throwable $e) {
+			$ctl->show_notification_text($ctl->t("setting.openai_connection_test_failed") . ": " . $e->getMessage(), 8, "#D14343", "#FFF", 16, 920);
+		}
+	}
+
+	private function request_openai_connection_test(string $key, string $url, string $model): string {
+		$payload = [
+		    "model" => $model,
+		    "messages" => [
+			["role" => "user", "content" => "接続テストです。OKと返信してください。"],
+		    ],
+		    "max_completion_tokens" => 16,
+		];
+
+		$curl = curl_init();
+		curl_setopt($curl, CURLOPT_URL, $url);
+		curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($curl, CURLOPT_POST, true);
+		curl_setopt($curl, CURLOPT_TIMEOUT, 30);
+		curl_setopt($curl, CURLOPT_HTTPHEADER, [
+		    "Content-Type: application/json",
+		    "Authorization: Bearer " . $key,
+		]);
+		curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+		$response = curl_exec($curl);
+		if ($response === false) {
+			$errno = curl_errno($curl);
+			$error = curl_error($curl);
+			curl_close($curl);
+			throw new Exception("curl error(" . $errno . "): " . $error);
+		}
+		$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+		curl_close($curl);
+
+		$decoded = json_decode($response, true);
+		if (!is_array($decoded)) {
+			throw new Exception("invalid JSON response: " . json_last_error_msg());
+		}
+		if ($status < 200 || $status >= 300) {
+			$message = $decoded["error"]["message"] ?? ("HTTP " . $status);
+			throw new Exception((string) $message);
+		}
+
+		$reply = trim((string) ($decoded["choices"][0]["message"]["content"] ?? ""));
+		if ($reply === "") {
+			throw new Exception("empty response");
+		}
+		return $reply;
 	}
 
 	function pay(Controller $ctl) {

@@ -100,7 +100,7 @@ class db_exe {
 		$this->window_name = "window_" . $ctl->get_classname();
 		
 		// Getting db_id and check it
-		$this->db_setting_id = isset($post["db_id"]) ? $post["db_id"] : null;
+		$this->db_setting_id = !empty($post["db_id"]) ? $post["db_id"] : ($get["db_id"] ?? null);
 		$ctl->assign("db_id",$this->db_setting_id);
 		if(empty($this->db_setting_id)){
 			throw new Exception("db_id is needed");
