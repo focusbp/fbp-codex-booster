@@ -509,6 +509,7 @@
   "restore.restore_setting": "設定を復元",
   "restore.success": "復元が完了しました。",
   "db_exe.validation.parent_id_missing": "Parent ID がありません。",
+  "db_exe.validation.child_table_required": "このノートは子一覧として表示できません。親ノートから開き直してください。",
   "user.page_title": "ユーザー",
   "user.dialog.add": "ユーザーを追加",
   "user.dialog.edit": "ユーザーを編集",

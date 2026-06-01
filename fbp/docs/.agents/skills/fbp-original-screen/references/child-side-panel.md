@@ -22,6 +22,11 @@ Use this when a child note opened from a parent note needs behavior beyond Stand
 
 For reload support, keep these values in forms/buttons and use a stable side-area wrapper in the template.
 
+When opening a child side panel from a parent-list `db_additionals` button, do not trust the incoming
+`db_id`: it may be the parent note's `db_id`. Resolve the child note's `db_id` from the `db` table
+before rendering and before saving `_side_panel`. A wrong `_side_panel["db_id"]` makes
+`$ctl->reload_side_panel()` route to the Standard Screen `db_exe::rows_child()` with the wrong note.
+
 ## Samples
 
 - Search/table side panel: `assets/sample_child_search_original_management/`

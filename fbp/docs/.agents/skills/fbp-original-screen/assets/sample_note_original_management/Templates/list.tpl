@@ -1,4 +1,42 @@
 <div class="original_screen_page">
+    <style>
+        .original_screen_page #sample_note_original_management_filter_form {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 8px 12px;
+            align-items: end;
+        }
+        .original_screen_page #sample_note_original_management_filter_form > .search_form_item {
+            min-width: 0;
+        }
+        .original_screen_page #sample_note_original_management_filter_form .field_edit input,
+        .original_screen_page #sample_note_original_management_filter_form .field_edit select {
+            box-sizing: border-box;
+            max-width: 100%;
+            width: 100%;
+        }
+        @media (max-width: 1280px) {
+            .original_screen_page #sample_note_original_management_filter_form {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+        }
+        @media (max-width: 1024px) {
+            .original_screen_page #sample_note_original_management_filter_form {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+        @media (max-width: 760px) {
+            .original_screen_page #sample_note_original_management_filter_form {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+        @media (max-width: 520px) {
+            .original_screen_page #sample_note_original_management_filter_form {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
     <div class="original_screen_toolbar original_screen_toolbar_end">
         <button type="button" class="ajax-link button_link" data-class="sample_note_original_management" data-function="add_dialog">追加</button>
     </div>
@@ -14,28 +52,13 @@
                     <div class="search_form_item field_type_text">
                         {fields_form_original name="keyword" type="text" value=$filter.keyword title="キーワード" item_margin_top="0px"}
                     </div>
-                    <button type="button" class="ajax-link original_screen_hidden_trigger" data-class="sample_note_original_management" data-function="apply_filter" data-form="sample_note_original_management_filter_form" id="sample_note_original_management_filter_trigger"></button>
                 </form>
+            </div>
+            <div class="search_right" style="display:none;">
+                <button type="button" class="ajax-link" data-class="sample_note_original_management" data-function="apply_filter" data-form="sample_note_original_management_filter_form">Search</button>
             </div>
         </div>
     </div>
-
-    <script>
-    (function ($) {
-        var timer = null;
-        $(document).off("change.sampleNoteFilter", "#sample_note_original_management_filter_form select");
-        $(document).on("change.sampleNoteFilter", "#sample_note_original_management_filter_form select", function () {
-            $("#sample_note_original_management_filter_trigger").trigger("click");
-        });
-        $(document).off("input.sampleNoteFilter", "#sample_note_original_management_filter_form input[name='keyword']");
-        $(document).on("input.sampleNoteFilter", "#sample_note_original_management_filter_form input[name='keyword']", function () {
-            clearTimeout(timer);
-            timer = setTimeout(function () {
-                $("#sample_note_original_management_filter_trigger").trigger("click");
-            }, 300);
-        });
-    })(jQuery);
-    </script>
 
     {include file="list_area.tpl"}
 </div>

@@ -29,6 +29,7 @@ description: Build custom note management screens as the default FBP approach by
 - framework 側から `db_id` や検索条件は自動注入されない前提で作る
 - 親ノートから開く子サイドパネルを Original Screen 化する場合は、同じクラスに public `rows_child(Controller $ctl)` を実装する
 - `rows_child()` には標準サイドパネルと同じく `db_id` / `parent_id` が POST される。未実装の場合は標準サイドパネルへフォールバックする
+- 親一覧の `db_additionals` などから子サイドパネルを開く場合、POST の `db_id` は親ノートの可能性がある。`rows_child()` と `_side_panel` 保存前に必ず子ノートの `db_id` へ正規化する
 
 ## constraints
 - 新規制作の基本方針は Original Screen とする。特段の理由がない限り `screen_fields` 主体の新規画面へ戻さない。
@@ -39,6 +40,7 @@ description: Build custom note management screens as the default FBP approach by
 - エラー時に `show_multi_dialog()` 再実行や `reload_work_area()` をしない
 - 一覧の Ajax 更新は、必要な領域だけ `reload_area()` する
 - `fields_form_direct` / `fields_form_original` / `fields_view_direct` を優先する
+- 検索フォームは `references/search-pattern.md` の `db_exe` 型自動検索を優先する
 - Original Screen では原則 `style.css` を作らない
 - 画面専用 CSS が必要な場合は、対象 tpl に直接 `<style>` を書く
 - CSS を framework 共通へ上げるのは、再利用目的が明確なときだけに限定する
@@ -50,6 +52,7 @@ description: Build custom note management screens as the default FBP approach by
 - `db_additionals` / `post_action_class` 移行: `references/migration-db_additionals-post_action_class.md`
 - 子サイドパネル Original Screen: `references/child-side-panel.md`
 - CRUD ダッシュボード実装: `references/crud-dashboard.md`
+- 自動検索と5項目グリッド: `references/search-pattern.md`
 - マニュアルソート実装: `references/sort-pattern.md`
 - 週カレンダー実装: `references/calendar-pattern.md`
 - 検証手順: `references/verification.md`

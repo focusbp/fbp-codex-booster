@@ -509,6 +509,7 @@
   "restore.restore_setting": "Restore Setting",
   "restore.success": "Successfully Restored.",
   "db_exe.validation.parent_id_missing": "Parent ID is missing.",
+  "db_exe.validation.child_table_required": "This note cannot be opened as a child list. Please open it again from the parent note.",
   "user.page_title": "User",
   "user.dialog.add": "Add User",
   "user.dialog.edit": "Edit User",

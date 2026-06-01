@@ -926,6 +926,11 @@ class db_exe {
 		
 		// Create a link to display the previous table
 		$db_parent = $this->fmt_db->get($this->db_setting["parent_tb_id"]);
+		if (!is_array($db_parent) || empty($db_parent["tb_name"])) {
+			$ctl->set_session("_side_panel", null);
+			$ctl->show_notification_text($ctl->t("db_exe.validation.child_table_required"));
+			return;
+		}
 		$fmt_parent = $ctl->db($db_parent["tb_name"]);
 		$parent = $fmt_parent->get($parent_id);
 		$ctl->assign("db_parent",$db_parent);
