@@ -13,6 +13,8 @@ Development backups are local comparison snapshots. They help Codex and develope
 
 They are not release artifacts, customer-facing docs, or a substitute for production backups.
 
+Reading a `.dat` header is allowed for inspection and comparison, but it does not make `.dat` or `.fmt` the source of DB-managed schema. For DB-managed tables, `db_fields` and `screen_fields` remain the source of truth.
+
 ## Storage policy
 
 Preferred structure:
@@ -37,6 +39,13 @@ docs/backup/
 - Do not write passwords, API keys, URLs, login info, server names, local absolute source paths, or release commands into `manifest.json`.
 - Be extra careful with `setting.dat`, `user.dat`, `remember_me.dat`, upload indexes, and any customer/person data.
 - Do not take production data backups into `docs/backup/` unless the user explicitly asks and understands the sensitivity.
+
+## Schema safety
+
+- Treat `dat_read.sh`, `dat_compare.sh`, and `dat_diff.sh` as read/compare tools.
+- Do not use `.dat` backup inspection to bypass DB field management.
+- When adding, changing, or deleting fields on DB-managed tables, switch to `fbp-db` and use `db_fields_*` / CLI. Do not directly edit `classes/data/_common/fmt/*.fmt`.
+- If comparison reveals a mismatch between `.dat` header, `.fmt`, `db_fields`, and `screen_fields`, treat it as metadata inconsistency. For DB-managed tables, repair through DB CLI and clean up `screen_fields`; do not fix only `.fmt`.
 
 ## SVN policy
 
@@ -195,6 +204,7 @@ By default, `dat_diff.sh` reports changed IDs and changed field names only. It d
 6. Let `dat_backup.sh` generate `manifest.json`; use `dat_manifest.sh` only for existing snapshots.
 7. Verify backup files are ignored by SVN.
 8. Use `dat_read.sh` for read-only inspection and comparison.
+9. For schema changes on DB-managed tables, leave this workflow and use `fbp-db`.
 
 ## Restore stance
 

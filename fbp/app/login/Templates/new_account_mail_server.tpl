@@ -32,10 +32,10 @@
 	</div>
 
 	<div style="display:flex;justify-content:space-between;gap:12px;margin-top:18px;">
+		<button type="button" class="ajax-link" data-class="login" data-function="make_new_account_mail_server_back">{t key="common.back" lang=$dialog_lang}</button>
 		<div style="display:flex;gap:12px;">
-			<button type="button" class="ajax-link" data-class="login" data-function="make_new_account_mail_server_back">{t key="common.back" lang=$dialog_lang}</button>
 			<button type="button" class="ajax-link" data-class="login" data-function="make_new_account_confirm_skip_mail_server">{t key="common.skip" lang=$dialog_lang}</button>
+			<button class="ajax-link" data-form="new_account_mail_server_form">{t key="common.next" lang=$dialog_lang}</button>
 		</div>
-		<button class="ajax-link" data-form="new_account_mail_server_form">{t key="common.next" lang=$dialog_lang}</button>
 	</div>
 </form>

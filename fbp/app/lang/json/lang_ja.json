@@ -607,7 +607,7 @@
   "login.new_account_help": "管理者アカウントが存在しないため、新しいアカウントを作成してください。",
   "login.language_locale_help": "初期設定で使用する言語とロケールを選択してください。",
   "login.project_release_code_help": "プロジェクトのリリース、バックアップ、リストアでプロジェクトを識別する任意のコードを設定してください。",
-  "login.release_api_help": "リリース受信用の API Key / Secret を設定してください。未設定の場合はスキップできます。",
+  "login.release_api_help": "通常APIとリリース受信用の API Key / Secret を設定してください。未設定の場合はスキップできます。",
   "login.mail_server_setting_title": "送信用メールサーバーの設定",
   "login.mail_server_help": "送信用メールサーバーを設定できます。後で設定画面から変更することもできます。",
   "login.dialog.confirm_new_account": "新規アカウント作成の確認",

@@ -607,7 +607,7 @@
   "login.new_account_help": "For the management account does not exist, please create a new account.",
   "login.language_locale_help": "Choose the language and locale to use for the initial setup.",
   "login.project_release_code_help": "Set an optional code used to identify this project in release, backup, and restore operations.",
-  "login.release_api_help": "Set the API key and secret used for release uploads. You can also skip this step.",
+  "login.release_api_help": "Set the API key and secret used for normal API access and release uploads. You can also skip this step.",
   "login.mail_server_setting_title": "Outgoing Mail Server Settings",
   "login.mail_server_help": "Configure the outgoing mail server now, or update it later from the settings screen.",
   "login.dialog.confirm_new_account": "Confirm New Account Setup",

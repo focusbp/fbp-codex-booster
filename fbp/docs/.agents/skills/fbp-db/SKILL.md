@@ -13,6 +13,8 @@ description: Manage FBP DB schema using CLI (db tables/fields), relation setup, 
 ## workflow
 1. `db_schema` と `db_tables_list` で現状確認。
 2. `db_tables_*` / `db_fields_*` でスキーマ変更。新規ノートでは `screen_build_type` を先に決める。
+   - DB管理テーブルの項目は `db_fields_*` / CLI を正本にし、`classes/data/_common/fmt/*.fmt` を直接編集しない。
+   - `.fmt` の直接編集は、DB管理外の固定fmtを扱う場合だけに限定する。
 3. 単純な標準CRUDノートとして使うだけで、専用画面クラスを作らない場合は `screen_build_type=Standard Screen` にする。
 4. `screen_build_type=Original Screen` なら `screen_fields` を前提にせず、同じ作業内で `<tb_name>_original_management` 実装へ進む。
 5. `screen_build_type=Standard Screen` のときだけ、`screen_fields` を `list/add/edit/delete/search`（必要なら `list_on_side`）へ反映。
@@ -61,6 +63,7 @@ description: Manage FBP DB schema using CLI (db tables/fields), relation setup, 
 - `{{name}}` のような mustache 形式は使わない。
 
 ## constraints
+- DB管理テーブルで項目を追加・変更・削除する場合は、直接 `.fmt` を変更しない。必ず `db_fields_*` / CLI で変更し、必要な `screen_fields` も同時に整理する。
 - DB追加後の画面反映漏れを禁止。
 - `Original Screen` を選んだ新規ノートで、対応する `classes/app/<tb_name>_original_management/<tb_name>_original_management.php` を未作成のまま終えない。
 - `screen_build_type=Original Screen` のまま標準CRUDだけを期待しない。実装しないなら `Standard Screen` に戻し、`db_exe/page` を `app_call` して `Original management class not found` が出ないことを確認する。

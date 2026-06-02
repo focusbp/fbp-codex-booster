@@ -69,7 +69,7 @@
   "public_assets.validation.asset_key_exists": "そのアセットキー、もうあるで。",
   "public_assets.validation.asset_file_required": "画像ファイル入れといてや。",
   "public_assets.validation.asset_file_image": "画像ファイルだけアップロードしてな。",
-  "login.release_api_help": "リリース受信用の API Key / Secret を入れてな。いったんスキップもできるで。",
+  "login.release_api_help": "通常APIとリリース受信用の API Key / Secret を入れてな。いったんスキップもできるで。",
   "setting.project": "プロジェクト",
   "setting.project_portal_url": "プロジェクトポータルURL",
   "setting.release_api_hmac": "Release API 認証",

@@ -31,6 +31,8 @@ class login {
 		$framework_language_code = $this->normalize_framework_language_code((string) ($pending["framework_language_code"] ?? "en"));
 		$locale_code = $this->normalize_locale_code($pending["locale_code"] ?? "", $framework_language_code);
 		$project_release_code = trim((string) ($pending["project_release_code"] ?? ""));
+		$api_key = trim((string) ($pending["api_key"] ?? ""));
+		$api_secret = trim((string) ($pending["api_secret"] ?? ""));
 		$release_api_key = trim((string) ($pending["release_api_key"] ?? ""));
 		$release_api_secret = trim((string) ($pending["release_api_secret"] ?? ""));
 		$smtp_from = trim((string) ($pending["smtp_from"] ?? ""));
@@ -60,6 +62,8 @@ class login {
 		$setting["framework_language_code"] = $framework_language_code;
 		$setting["locale_code"] = $locale_code;
 		$setting["project_release_code"] = $project_release_code;
+		$setting["api_key"] = $api_key;
+		$setting["api_secret"] = $api_secret;
 		$setting["release_api_key"] = $release_api_key;
 		$setting["release_api_secret"] = $release_api_secret;
 		$setting["smtp_from"] = $smtp_from;
@@ -176,9 +180,11 @@ class login {
 			$setting = [];
 		}
 		$ctl->assign("dialog_lang", $framework_language_code);
+		$ctl->assign("api_key", (string) ($pending["api_key"] ?? ($setting["api_key"] ?? "")));
+		$ctl->assign("api_secret", (string) ($pending["api_secret"] ?? ($setting["api_secret"] ?? "")));
 		$ctl->assign("release_api_key", (string) ($pending["release_api_key"] ?? ($setting["release_api_key"] ?? "")));
 		$ctl->assign("release_api_secret", (string) ($pending["release_api_secret"] ?? ($setting["release_api_secret"] ?? "")));
-		$ctl->show_multi_dialog("new_account", "new_account_release_api.tpl", $ctl->t("setting.release_api_hmac", [], $framework_language_code));
+		$ctl->show_multi_dialog("new_account", "new_account_release_api.tpl", $ctl->t("setting.tab.api_hmac", [], $framework_language_code));
 	}
 
 	function make_new_account_mail_server(Controller $ctl){
@@ -189,6 +195,8 @@ class login {
 		}
 
 		$post = $ctl->POST();
+		$pending["api_key"] = trim((string) ($post["api_key"] ?? ""));
+		$pending["api_secret"] = trim((string) ($post["api_secret"] ?? ""));
 		$pending["release_api_key"] = trim((string) ($post["release_api_key"] ?? ""));
 		$pending["release_api_secret"] = trim((string) ($post["release_api_secret"] ?? ""));
 		$ctl->set_session($this->pending_account_session_key, $pending);
@@ -205,6 +213,8 @@ class login {
 			return;
 		}
 
+		$pending["api_key"] = "";
+		$pending["api_secret"] = "";
 		$pending["release_api_key"] = "";
 		$pending["release_api_secret"] = "";
 		$ctl->set_session($this->pending_account_session_key, $pending);
@@ -304,9 +314,11 @@ class login {
 
 		$framework_language_code = $this->normalize_framework_language_code((string) ($pending["framework_language_code"] ?? "en"));
 		$ctl->assign("dialog_lang", $framework_language_code);
+		$ctl->assign("api_key", (string) ($pending["api_key"] ?? ""));
+		$ctl->assign("api_secret", (string) ($pending["api_secret"] ?? ""));
 		$ctl->assign("release_api_key", (string) ($pending["release_api_key"] ?? ""));
 		$ctl->assign("release_api_secret", (string) ($pending["release_api_secret"] ?? ""));
-		$ctl->show_multi_dialog("new_account", "new_account_release_api.tpl", $ctl->t("setting.release_api_hmac", [], $framework_language_code));
+		$ctl->show_multi_dialog("new_account", "new_account_release_api.tpl", $ctl->t("setting.tab.api_hmac", [], $framework_language_code));
 	}
 
 	function make_new_account_release_api_back(Controller $ctl){
@@ -623,6 +635,8 @@ class login {
 			["label_key" => "setting.framework_language_code", "value" => $language_options[$framework_language_code] ?? $framework_language_code],
 			["label_key" => "setting.locale_code", "value" => $locale_options[$pending["locale_code"] ?? ""] ?? (string) ($pending["locale_code"] ?? "")],
 			["label_key" => "setting.project_release_code", "value" => (string) ($pending["project_release_code"] ?? "")],
+			["label_key" => "setting.api_key", "value" => ((string) ($pending["api_key"] ?? "") === "") ? "" : "********"],
+			["label_key" => "setting.api_secret", "value" => ((string) ($pending["api_secret"] ?? "") === "") ? "" : "********"],
 			["label_key" => "setting.release_api_key", "value" => ((string) ($pending["release_api_key"] ?? "") === "") ? "" : "********"],
 			["label_key" => "setting.release_api_secret", "value" => ((string) ($pending["release_api_secret"] ?? "") === "") ? "" : "********"],
 			["label_key" => "setting.mail_address_from", "value" => (string) ($pending["smtp_from"] ?? "")],

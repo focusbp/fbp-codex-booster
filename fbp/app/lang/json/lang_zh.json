@@ -345,7 +345,7 @@
   "setting.notification.saved": "已保存。",
   "setting.json_upload": "系统设置 JSON 上传",
   "common.configured": "已配置",
-  "login.release_api_help": "请输入用于发布上传的 API Key / Secret。也可以跳过此步骤。",
+  "login.release_api_help": "请输入用于普通 API 访问和发布上传的 API Key / Secret。也可以跳过此步骤。",
   "setting.release_api_hmac": "Release API 认证",
   "setting.release_api_key": "Release API Key",
   "setting.release_api_secret": "Release API Secret",

@@ -603,7 +603,7 @@
   "db_exe.search_panel_title": "搜索筛选",
   "db_exe.search_panel_help": "此区域用于筛选列表，不用于新增记录。",
   "common.configured": "已配置",
-  "login.release_api_help": "请输入用于发布上传的 API Key / Secret。也可以跳过此步骤。",
+  "login.release_api_help": "请输入用于普通 API 访问和发布上传的 API Key / Secret。也可以跳过此步骤。",
   "setting.release_api_hmac": "Release API 认证",
   "setting.release_api_key": "Release API Key",
   "setting.release_api_secret": "Release API Secret",

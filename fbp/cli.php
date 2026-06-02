@@ -412,6 +412,8 @@ function cli_initial_project_setup(Dirs $dir, array $data): array {
 	$login_id = cli_initial_project_setup_required($data, "login_id");
 	$password = cli_initial_project_setup_required($data, "password");
 	$project_release_code = cli_initial_project_setup_required($data, "project_release_code");
+	$api_key = cli_initial_project_setup_value($data, "api_key");
+	$api_secret = cli_initial_project_setup_value($data, "api_secret");
 	$release_api_key = cli_initial_project_setup_value($data, "release_api_key", cli_initial_project_setup_value($data, "api_key"));
 	$release_api_secret = cli_initial_project_setup_value($data, "release_api_secret", cli_initial_project_setup_value($data, "api_secret"));
 	$smtp_from = cli_initial_project_setup_value($data, "smtp_from");
@@ -464,6 +466,12 @@ function cli_initial_project_setup(Dirs $dir, array $data): array {
 	$setting["framework_language_code"] = $framework_language_code;
 	$setting["locale_code"] = $locale_code;
 	$setting["project_release_code"] = $project_release_code;
+	if ($api_key !== "") {
+		$setting["api_key"] = $api_key;
+	}
+	if ($api_secret !== "") {
+		$setting["api_secret"] = $api_secret;
+	}
 	$setting["release_api_key"] = $release_api_key;
 	$setting["release_api_secret"] = $release_api_secret;
 	$setting["smtp_from"] = $smtp_from;
