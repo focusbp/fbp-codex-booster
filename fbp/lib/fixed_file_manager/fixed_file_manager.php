@@ -25,6 +25,8 @@ class fixed_file_manager implements FFM {
 	private $info_classname;
 	private $info_tablename;
 	private $ctl;
+	private $read_only = false;
+	private $format_source = "fmt";
 
 	private function is_empty_filter_itemname($iname): bool {
 		if (is_array($iname)) {
@@ -63,6 +65,14 @@ class fixed_file_manager implements FFM {
 	function get_path_dat() {
 		return $this->path_dat;
 	}
+
+	public function get_header_info(): array {
+		return $this->header;
+	}
+
+	public function get_format(): array {
+		return $this->format;
+	}
 	
 	function set_controller(Controller $ctl){
 		$this->ctl = $ctl;
@@ -75,7 +85,13 @@ class fixed_file_manager implements FFM {
 	/*
 	 * コンストラクター
 	 */
-	function __construct($filename, $datadir = null, $formatdir = null) {
+	function __construct($filename, $datadir = null, $formatdir = null, array $options = []) {
+
+		$this->format_source = (string) ($options["format_source"] ?? "fmt");
+		if (!in_array($this->format_source, ["fmt", "dat_header"], true)) {
+			throw new Exception("Unknown format source : " . $this->format_source);
+		}
+		$this->read_only = !empty($options["read_only"]);
 
 		//パラメータ設定
 		if ($datadir == null) {
@@ -85,30 +101,42 @@ class fixed_file_manager implements FFM {
 			$this->datadir = $datadir . "/";
 		}
 		if ($formatdir == null) {
-			throw new Exception("formatdir is null");
-			//$this->formatdir = dirname(__FILE__) . "/fmt/";
+			if ($this->format_source === "dat_header") {
+				$this->formatdir = null;
+			} else {
+				throw new Exception("formatdir is null");
+				//$this->formatdir = dirname(__FILE__) . "/fmt/";
+			}
 		} else {
 			$this->formatdir = $formatdir . "/";
 		}
 		$this->filename = $filename;
-		$this->path_fmt = $this->formatdir . $filename . ".fmt";
+		$this->path_fmt = $this->formatdir === null ? null : $this->formatdir . $filename . ".fmt";
 		$this->path_dat = $this->datadir . $filename . ".dat";
 		$this->path_tmp = $this->datadir . $filename . ".tmp";
 		$this->path_bak = $this->datadir . $filename . "-" . date("Ymd") . ".bak";
-		$this->path_json = $this->formatdir . $filename . ".json";
+		$this->path_json = $this->formatdir === null ? null : $this->formatdir . $filename . ".json";
 
 		//フォルダ作成
-		if (!is_dir($this->datadir)) {
+		if (!$this->read_only && !is_dir($this->datadir)) {
 			$check = mkdir($this->datadir);
 			if (!$check) {
 				echo "Directory: " . $this->datadir;
 			}
 		}
-		if (!is_dir($this->formatdir)) {
+		if (!$this->read_only && $this->formatdir !== null && !is_dir($this->formatdir)) {
 			$res = @mkdir($this->formatdir, 0777, true);
 			if ($res === false) {
 				throw new Exception("Can't make directory:" . $this->formatdir);
 			}
+		}
+
+		if ($this->format_source === "dat_header") {
+			if (!is_file($this->path_dat)) {
+				throw new Exception("No dat file : " . $this->path_dat);
+			}
+			$this->openDatFile();
+			return;
 		}
 
 		// fmtファイルの読み込み
@@ -133,11 +161,34 @@ class fixed_file_manager implements FFM {
 		}
 	}
 
+	public static function open_dat_header_readonly(string $path_dat): fixed_file_manager {
+		$path_dat = trim($path_dat);
+		if ($path_dat === "") {
+			throw new Exception("dat path is empty");
+		}
+		if (substr($path_dat, -4) !== ".dat") {
+			throw new Exception("dat path must end with .dat : " . $path_dat);
+		}
+		$filename = pathinfo($path_dat, PATHINFO_FILENAME);
+		$datadir = dirname($path_dat);
+		return new fixed_file_manager($filename, $datadir, null, [
+			"format_source" => "dat_header",
+			"read_only" => true,
+		]);
+	}
+
+	private function assert_writable(string $operation): void {
+		if ($this->read_only) {
+			throw new Exception("Read-only fixed_file_manager cannot " . $operation . " : " . $this->path_dat);
+		}
+	}
+
 	/*
 	 * 全データ削除
 	 */
 
 	public function allclear() {
+		$this->assert_writable("allclear");
 		$this->close();
 		$format_txt = $this->readFmtFile();
 		$header_txt = $this->makeHeader(0, $format_txt, $this->parseFormat($format_txt));
@@ -167,7 +218,8 @@ class fixed_file_manager implements FFM {
 			}
 		}
 
-		if ($this->hf = fopen($this->path_dat, "r+b")) {
+		$open_mode = $this->read_only ? "rb" : "r+b";
+		if ($this->hf = fopen($this->path_dat, $open_mode)) {
 
 			//$this->log(realpath($this->path_dat),"WAIT");
 
@@ -201,7 +253,8 @@ class fixed_file_manager implements FFM {
 			}
 
 			//ロック実行
-			$lockresult = flock($this->hf, LOCK_EX);
+			$lock_mode = $this->read_only ? LOCK_SH : LOCK_EX;
+			$lockresult = flock($this->hf, $lock_mode);
 
 			//$this->log(realpath($this->path_dat),"LOCK");
 
@@ -221,7 +274,7 @@ class fixed_file_manager implements FFM {
 				$this->format = $this->parseFormat($this->header["format_txt"]);
 
 				// jsonを読み込み
-				if (is_file($this->path_json)) {
+				if ($this->path_json !== null && is_file($this->path_json)) {
 					$json = file_get_contents($this->path_json);
 					$this->json = json_decode($json, true);
 				} else {
@@ -265,6 +318,7 @@ class fixed_file_manager implements FFM {
 
 	// Save JSON
 	function save_json() {
+		$this->assert_writable("save_json");
 
 		foreach ($this->json as $key => $jname) {
 			$flg = false;
@@ -283,6 +337,7 @@ class fixed_file_manager implements FFM {
 	}
 
 	function insert(&$dataset) {
+		$this->assert_writable("insert");
 		// $this->hf をチェックする
 		$this->check_hf();
 
@@ -313,6 +368,7 @@ class fixed_file_manager implements FFM {
 	}
 
 	function delete($id) {
+		$this->assert_writable("delete");
 		$p = ftell($this->hf); //あとで戻す
 		$d = $this->get($id);
 		//ポインタを戻す
@@ -324,6 +380,7 @@ class fixed_file_manager implements FFM {
 	}
 
 	function update($dataset) {
+		$this->assert_writable("update");
 		$p = ftell($this->hf); //あとで戻す
 		$d = $this->get($dataset["id"]);
 
@@ -1230,11 +1287,13 @@ class fixed_file_manager implements FFM {
 					$this->readdata($arr);
 
 					// 暗号化を入れる
+					if (class_exists("Controller_class", false)) {
 						$ctl = Controller_class::getInstance();
 						if ($ctl != null && !($this->info_classname === "setting" && $this->info_tablename === "setting")) {
 							// 
 							$arr["_id_enc"] = $ctl->encrypt($arr["id"]);
 						}
+					}
 
 					return $arr;
 				} else {
@@ -1265,6 +1324,7 @@ class fixed_file_manager implements FFM {
 	 */
 
 	private function changeFormat($newformat) {
+		$this->assert_writable("changeFormat");
 
 		$newf = $this->parseFormat($newformat);
 

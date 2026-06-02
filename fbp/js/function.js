@@ -1608,8 +1608,76 @@ var waitTimer;
 var flg_reloadarea_fade = true;
 
 function show_download_view() {
+	var state = arguments.length > 0 ? arguments[0] : "";
 	$("#download_view").appendTo("body").css("z-index", 2147483647).show();
-	$("#download_bar, #download_message, #download_progress").css("z-index", 2147483647);
+	set_download_view_state(state);
+}
+
+function get_download_blocker() {
+	var $blocker = $("#download_blocker");
+	if ($blocker.length === 0) {
+		$blocker = $("<div>", {"id": "download_blocker"});
+	}
+	return $blocker.appendTo("body");
+}
+
+function show_download_blocker() {
+	get_download_blocker()
+			.off(".downloadBlocker")
+			.on("click.downloadBlocker mousedown.downloadBlocker mouseup.downloadBlocker touchstart.downloadBlocker touchmove.downloadBlocker wheel.downloadBlocker", function (e) {
+				e.preventDefault();
+				e.stopPropagation();
+				return false;
+			})
+			.show();
+}
+
+function hide_download_blocker() {
+	$("#download_blocker").off(".downloadBlocker").hide();
+}
+
+function set_download_view_state(state) {
+	var $view = $("#download_view");
+	$view.removeClass("download-preparing download-downloading");
+	if (state === "preparing" || state === "downloading") {
+		$view.addClass("download-" + state);
+	}
+}
+
+function set_download_waiting(message) {
+	show_download_view("preparing");
+	$("#download_message").html(message || "Preparing download...");
+	$("#download_progress").html("").css({"width": "100%"});
+}
+
+function set_download_progress(loaded, total) {
+	show_download_view("downloading");
+	var loadedKbyte = Math.round((loaded || 0) / 1000);
+	if (total > 0) {
+		var load = 100 * loaded / total;
+		if (load < 1) {
+			load = 1;
+		}
+		if (load > 100) {
+			load = 100;
+		}
+		$("#download_message").html(
+				"Downloading...   " +
+				loadedKbyte + " / " +
+				Math.round(total / 1000) + "kbyte"
+				);
+		$("#download_progress").html("").css({"width": load + "%"});
+	} else {
+		$("#download_message").html("Downloading...   " + loadedKbyte + " kbyte");
+		$("#download_progress").html("").css({"width": "100%"});
+	}
+}
+
+function hide_download_view() {
+	hide_download_blocker();
+	$("#download_view").hide().removeClass("download-preparing download-downloading");
+	$("#download_message").html("");
+	$("#download_progress").html("").css({"width": "0%"});
 }
 
 function get_server_timezone() {
@@ -3432,20 +3500,7 @@ function modal_download(url, fd, fileName, open_new_tab = false) { // CHANGE: Âº
 	xhr.open("POST", url, true);
 
 	xhr.onprogress = function (evt) {
-		show_download_view();
-		if (evt.total > 0) {
-			var load = 100 * evt.loaded / evt.total;
-			$('#download_message').html(
-					"Downloading...   " +
-					Math.round(evt.loaded / 1000) + " / " +
-					Math.round(evt.total / 1000) + "kbyte"
-					);
-			$('#download_progress').css({'width': load + '%'});
-		} else {
-			$('#download_message').html("");
-			$('#download_progress').html(Math.round(evt.loaded / 1000) + " kbyte");
-			$('#download_progress').css({'width': '100%'});
-		}
+		set_download_progress(evt.loaded, evt.lengthComputable ? evt.total : 0);
 	};
 
 	xhr.responseType = 'arraybuffer';
@@ -3499,8 +3554,7 @@ function modal_download(url, fd, fileName, open_new_tab = false) { // CHANGE: Âº
 		if (hasDownloadError) {
 			var errorPayload = decodeDownloadErrorPayload();
 			showDownloadErrorDialog(errorPayload.title, errorPayload.message);
-			$("#download_view").hide();
-			$('#download_progress').css({'width': '0%'});
+			hide_download_view();
 			return;
 		}
 
@@ -3563,8 +3617,7 @@ function modal_download(url, fd, fileName, open_new_tab = false) { // CHANGE: Âº
 		// IEÁ≥ª„ÅØÂæìÊù•ÈÄö„Çä
 		if (userAgent.indexOf('msie') != -1) {
 			window.navigator.msSaveBlob(blob, resolvedFileName);
-			$("#download_view").hide();
-			$('#download_progress').css({'width': '0%'});
+			hide_download_view();
 			return;
 		}
 
@@ -3605,10 +3658,21 @@ function modal_download(url, fd, fileName, open_new_tab = false) { // CHANGE: Âº
 			}, 10 * 1000);
 		}
 
-		$("#download_view").hide();
-		$('#download_progress').css({'width': '0%'});
+		hide_download_view();
 	};
 
+	xhr.onerror = function () {
+		hide_download_view();
+	};
+	xhr.onabort = function () {
+		hide_download_view();
+	};
+	xhr.ontimeout = function () {
+		hide_download_view();
+	};
+
+	show_download_blocker();
+	set_download_waiting("Preparing download...");
 	xhr.send(fd);
 	return false;
 }

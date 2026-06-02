@@ -450,48 +450,111 @@ section {
     margin-right: 10px;
 }
 
+#download_blocker{
+	display: none;
+	position: fixed;
+	inset: 0;
+	z-index: 2147483646;
+	background: rgba(0, 0, 0, 0.70);
+	cursor: wait;
+	pointer-events: auto;
+	touch-action: none;
+}
+
 #download_view{
     width: 100%;
     text-align: left;
-    opacity: 0.8;
-    height: 12px;
+    opacity: 0.88;
+    height: 18px;
     position: fixed;
-    margin-left: -10px;
+    left: 0;
+    margin-left: 0;
 	padding: 0px;
 	overflow: hidden;
 	top:0px;
 	z-index: 2147483647;
+	display: none;
+	pointer-events: none;
 }
 
 #download_bar{
-	position: fixed;
+	position: absolute;
 	top:0px;
 	left:0px;
-	height:5px;
+	height:18px;
 	width:100%;
-	z-index: 2147483647;
+	z-index: 1;
+	background: rgba(16, 24, 39, 0.22);
 }
 
 #download_message {
-	position: fixed;
-    font-size: 10px;
-    display: inline;
+	position: absolute;
+    font-size: 11px;
+    display: block;
     color: #FFF;
-    top: 0px;
-    left: 0px;
-	z-index: 2147483647;
+    top: 2px;
+    left: 10px;
+	z-index: 3;
+	line-height: 14px;
+	white-space: nowrap;
+	text-shadow: 0 1px 2px rgba(0,0,0,0.6);
 }
 
 
 
 #download_progress{
-	width:50%;
-	height:20px;
+	width:0%;
+	height:18px;
 	background: #1974D2;
-	font-size:13px;
-	transition: all 1s ease;
+	font-size:0;
+	transition: width .25s linear;
 	position: absolute;
-	z-index: 2147483647;
+	top: 0;
+	left: 0;
+	z-index: 2;
+	overflow: hidden;
+}
+
+#download_view.download-preparing #download_progress{
+	width: 100%;
+	background: #1974D2;
+	animation: none;
+	transition: none;
+}
+
+#download_view.download-preparing #download_progress::after{
+	content: "";
+	position: absolute;
+	top: -8px;
+	left: -35%;
+	width: 28%;
+	height: 34px;
+	background: linear-gradient(
+		105deg,
+		rgba(255,255,255,0) 0%,
+		rgba(255,255,255,0) 30%,
+		rgba(255,255,255,0.62) 50%,
+		rgba(255,255,255,0) 70%,
+		rgba(255,255,255,0) 100%
+	);
+	animation: fbp-download-preparing 2s ease-in-out infinite;
+}
+
+#download_view.download-downloading #download_progress{
+	background: #1974D2;
+	animation: none;
+}
+
+@keyframes fbp-download-preparing {
+	0% {
+		transform: translateX(0);
+	}
+	50% {
+		transform: translateX(485%);
+	}
+	100% {
+		transform: translateX(485%);
+	}
 }
 
 

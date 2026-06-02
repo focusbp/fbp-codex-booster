@@ -2151,6 +2151,7 @@ class Controller_class implements Controller {
 
 	function authorize_management_access(string $class, string $function): bool {
 		$admin_only_classes = [
+			"bcp_export",
 			"setting",
 			"user",
 		];

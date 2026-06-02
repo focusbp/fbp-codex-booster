@@ -29,7 +29,23 @@ class panel {
 	}
 
 	function release_backup(Controller $ctl) {
+		$setting = $ctl->get_setting();
+		$ctl->assign("setting", $setting);
+		$ctl->assign("bcp_export_enabled", $ctl->is_app_admin());
+		$ctl->assign("bcp_export_download_filename", $this->build_bcp_export_download_filename($setting));
 		$ctl->show_main_area("release_backup.tpl", $ctl->t("panel.release_backup.title"));
+	}
+
+	private function build_bcp_export_download_filename(array $setting): string {
+		$code = trim((string) ($setting["project_release_code"] ?? ""));
+		if ($code === "") {
+			$code = "system";
+		}
+		$code = preg_replace('/[^A-Za-z0-9._-]/', '_', $code);
+		if ($code === "" || $code === null) {
+			$code = "system";
+		}
+		return "bcp-system-" . $code . "-" . date("Ymd-His") . ".zip";
 	}
 
 	
