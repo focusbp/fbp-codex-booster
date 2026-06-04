@@ -3584,27 +3584,12 @@ function modal_download(url, fd, fileName, open_new_tab = false) { // CHANGE: �
 			return "download";
 		})();
 
-		// CHANGE: 取得した先頭200KBを console.log に出力（1回のみ）
-		(function logFirst300() {
-			var MAX = 300;
-			var len = Math.min(bytes.length, MAX);
-			var head = bytes.subarray(0, len);
-
-			// バイナリとして確認
-			console.log('[download head bytes]', head);
-
-			// テキストとして確認（デバッグ用）
-			try {
-				var text = new TextDecoder('utf-8', {fatal: false}).decode(head);
-				console.log('[download head text]', text);
-			} catch (e) {
-				console.log('[download head text decode error]', e);
-			}
-		})();
-
 		var lower = (resolvedFileName || '').toLowerCase();
 		var isPdf = lower.slice(-4) === '.pdf';
-		var mime = isPdf ? 'application/pdf' : 'application/octet-stream';
+		var fallbackMime = isPdf ? 'application/pdf' : 'application/octet-stream';
+		var responseMime = (xhr.getResponseHeader("Content-Type") || "").trim();
+		var responseMimeBase = responseMime.split(";")[0].trim().toLowerCase();
+		var mime = responseMimeBase !== "" && responseMimeBase !== "application/octet-stream" ? responseMime : fallbackMime;
 		var blob = new Blob([bytes], {type: mime});
 		var blobSource = blob;
 		try {
