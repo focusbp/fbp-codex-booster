@@ -36,6 +36,7 @@ $smarty = new Smarty();
 
 include("lib/fixed_file_manager/fixed_file_manager.php");
 include("lib/ValueFormatter.php");
+include("lib/FrameworkTheme.php");
 include("interface/Controller.php");
 include("lib/Controller_class.php");
 include("lib/I18nSimple.php");
@@ -231,6 +232,7 @@ if (empty($setting["locale_code"])) {
 	);
 	$ffm_setting->update($setting);
 }
+$setting = fbp_normalize_framework_theme_setting($setting);
 date_default_timezone_set($setting["timezone"]);
 
 $ffm_setting->close();  //この後使わないのでクローズ
@@ -264,6 +266,7 @@ $smarty->assign("arr_lang",["en"=>"English","jp"=>"Japanese"]);
 $smarty->assign("framework_language_code", $framework_language_code);
 $smarty->assign("locale_code", $locale_code);
 $smarty->assign("legacy_lang_default", $legacy_lang_default);
+$smarty->assign("framework_theme", fbp_framework_theme_from_setting($setting));
 $smarty->assign("setting",$setting);
 
 if (!startsWith($class, "_") && !is_appcon_request() && !class_file_exists($class, $dir)) {

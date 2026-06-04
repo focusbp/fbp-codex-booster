@@ -15,8 +15,8 @@
 			</div>
 			<div style="display: block;float: left;">
 				<div style="height:47px;display: inline-block;margin-left:10px;margin-top: 7px;">
-					<p style="font-size:22px;line-height: 10px;	color:#FFF;">{if $setting.system_name == null}{$base_i18n.app_name}{else}{$setting.system_name}{/if}</p>
-					<p style="	color:#FFF;font-size:12px;line-height:28px;"> {if $setting.system_tag_line == null}{$base_i18n.tagline}{else}{$setting.system_tag_line}{/if}</p>
+						<p style="font-size:22px;line-height: 10px; color:var(--fbp-framework-primary-text-color, #FFF);">{if $setting.system_name == null}{$base_i18n.app_name}{else}{$setting.system_name}{/if}</p>
+						<p style="color:var(--fbp-framework-primary-text-color, #FFF);font-size:12px;line-height:28px;"> {if $setting.system_tag_line == null}{$base_i18n.tagline}{else}{$setting.system_tag_line}{/if}</p>
 				</div>
 			</div>
         </div>

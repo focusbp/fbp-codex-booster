@@ -97,9 +97,9 @@ textarea {
 
 button,.button, input[type="submit"], .search-btn {
 	display: block;
-	background-color: #4BA3FF;
+	background-color: var(--fbp-framework-primary-color, #4BA3FF);
 	border-radius:5px;
-	color: #FFF;
+	color: var(--fbp-framework-primary-text-color, #FFF);
 	padding: 10px 30px;
 	transition: 0.2s;
 	border:none;
@@ -123,7 +123,7 @@ input[type="submit"]:hover,
 }
 
 button:hover .material-symbols-outlined {
-	color:#4ba3ff;
+	color: var(--fbp-framework-primary-color, #4ba3ff);
 }
 
 
@@ -606,7 +606,7 @@ section {
 	width:75%;
 	height:400px;
 	background: #FFF;
-	border:1px #4BA3FF solid;
+	border:1px var(--fbp-framework-primary-color, #4BA3FF) solid;
 	z-index: 1000;
 	box-shadow: 1px 1px 3px #ccc;
 	overflow: scroll;
@@ -659,8 +659,8 @@ section {
 .multi_dialog .multi_dialog_title_area {
 	width:100%;
 	height:30px;
-	background: #1974D2;
-    color: #FFF;
+	background: var(--fbp-framework-primary-color, #4BA3FF);
+    color: var(--fbp-framework-primary-text-color, #FFF);
     padding-left: 10px;
     padding-top: 3px;
 	cursor: move;
@@ -676,10 +676,10 @@ section {
     text-align: center;
     line-height: 21px;
     border-radius: 5px;
-    font-size: 9px;
+	font-size: 9px;
     font-weight: bold;
 	cursor: pointer;
-	color:#FFF;
+	color: inherit;
 	margin-top:3px;
 }
 
@@ -696,14 +696,14 @@ section {
 	font-size: 11px;
 	font-weight: bold;
 	cursor: pointer;
-	color:#FFF;
+	color: inherit;
 	vertical-align: middle;
 	padding: 0 4px;
 	user-select: none;
 }
 
 .multi_dialog .multi_dialog_title_area .multi_dialog_copy_title:hover {
-	background: #4BA3FF;
+	background: var(--fbp-framework-primary-color, #4BA3FF);
 }
 
 .multi_dialog .multi_dialog_title_area .multi_dialog_copy_title.copied {
@@ -721,7 +721,7 @@ section {
 	width: 20px;
 	border-radius: 5px;
 	cursor: pointer;
-	color: #FFF;
+	color: inherit;
 	line-height: 1;
 	user-select: none;
 }
@@ -731,12 +731,12 @@ section {
 	line-height: 20px;
 	width: 20px;
 	height: 20px;
-	color: #FFF;
+	color: inherit;
 	overflow: hidden;
 }
 
 .multi_dialog .multi_dialog_title_area .screen_debug_icon:hover {
-	background: #4BA3FF;
+	background: var(--fbp-framework-primary-color, #4BA3FF);
 }
 
 .multi_dialog .multi_dialog_title_area .screen_debug_icon.screen_debug_captured {
@@ -754,7 +754,7 @@ section {
 	text-overflow: ellipsis;
 	white-space: nowrap;
 	line-height: 20px;
-	color: #0f4c81;
+	color: inherit;
 }
 
 .multi_dialog .multi_dialog_title_area .screen_debug_copy_icon {
@@ -816,7 +816,7 @@ section {
 }
 
 .multi_dialog .multi_dialog_title_area .multi_dialog_close:hover {
-	background: #4BA3FF;
+	background: var(--fbp-framework-primary-color, #4BA3FF);
 }
 
 .multi_dialog .multi_dialog_contents {
@@ -872,7 +872,7 @@ section {
 
 .multi_dialog .multi_dialog_tab_area .md_tab_select {
 	background: #FFF;
-	border-bottom: 3px #4ba3ff solid;
+	border-bottom: 3px var(--fbp-framework-primary-color, #4ba3ff) solid;
 }
 
 .multi_dialog .tab_container {
@@ -1028,8 +1028,8 @@ section {
 }
 
 .menu_active {
-	background-color: #4ba3ff;
-	color: white;
+	background-color: var(--fbp-framework-primary-color, #4ba3ff);
+	color: var(--fbp-framework-primary-text-color, white);
 }
 
 #topbar_infomation_btn_mobile {
@@ -1535,9 +1535,9 @@ form p {
 
 .glocation-success {
 	margin: 0;
-	background: #4BA3FF;
+	background: var(--fbp-framework-primary-color, #4BA3FF);
 	padding-left: 10px;
-	color: #FFF;
+	color: var(--fbp-framework-primary-text-color, #FFF);
 }
 
 .ui-tooltip{
@@ -1657,7 +1657,7 @@ form p {
 }
 
 .ui-widget-content .ui-state-active {
-	background: #4ba3ff;
+	background: var(--fbp-framework-primary-color, #4ba3ff);
 	border:1px #c5c5c5 solid;
 }
 
@@ -1987,14 +1987,14 @@ line-height: 1em;
 }
 
 .original_calendar_task_compact {
-	border: 1px solid #4ba3ff;
+	border: 1px solid var(--fbp-framework-primary-color, #4ba3ff);
 	padding: 4px;
 	margin-top: 4px;
 	background: #fff;
 }
 
 .original_calendar_task {
-	border: 2px #4ba3ff solid;
+	border: 2px var(--fbp-framework-primary-color, #4ba3ff) solid;
 	border-radius: 3px;
 	padding: 2px;
 	background: #fff;
@@ -2168,7 +2168,7 @@ input[type="time"] {
 
 .class_style_db_exe button.listbutton[data-function="delete"]:hover .material-symbols-outlined,
 .class_style_db_exe button.listbutton[data-function="delete_child"]:hover .material-symbols-outlined {
-	color: #4BA3FF;
+	color: var(--fbp-framework-primary-color, #4BA3FF);
 }
 
 /* db_exe: all material icons on hover */
@@ -2176,7 +2176,7 @@ input[type="time"] {
 .class_style_db_exe button:hover .material-symbols-outlined,
 .class_style_db_exe a:hover .material-symbols-outlined,
 .class_style_db_exe .ajax-link.material-symbols-outlined:hover {
-	color: #4BA3FF !important;
+	color: var(--fbp-framework-primary-color, #4BA3FF) !important;
 }
 
 .class_style_db_exe button.lang:hover .material-symbols-outlined {

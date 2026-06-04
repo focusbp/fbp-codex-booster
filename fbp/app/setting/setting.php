@@ -5,6 +5,8 @@
  *  It will be overwritten when the framework updates.
  */
 
+include_once (__DIR__ . "/../../lib/FrameworkTheme.php");
+
 class setting {
 
 	private $ctl;
@@ -153,6 +155,7 @@ class setting {
 		if (!isset($setting["line_forward_unknown_to_manager"])) {
 			$setting["line_forward_unknown_to_manager"] = 0;
 		}
+		$setting = fbp_normalize_framework_theme_setting($setting);
 		$setting["project_portal_url"] = $this->normalize_project_portal_url($setting["project_portal_url"] ?? "");
 		$setting["error_report_level"] = $this->normalize_error_report_level($setting["error_report_level"] ?? "");
 		
@@ -262,6 +265,14 @@ class setting {
 		if (!isset($setting["line_forward_unknown_to_manager"])) {
 			$setting["line_forward_unknown_to_manager"] = 0;
 		}
+		$normalized_theme_setting = fbp_normalize_framework_theme_setting($setting);
+		if (
+			($setting["framework_primary_color"] ?? "") !== ($normalized_theme_setting["framework_primary_color"] ?? "") ||
+			($setting["framework_menu_text_color"] ?? "") !== ($normalized_theme_setting["framework_menu_text_color"] ?? "")
+		) {
+			$changed = true;
+		}
+		$setting = $normalized_theme_setting;
 		$normalized_error_report_level = $this->normalize_error_report_level($setting["error_report_level"] ?? "");
 		if (($setting["error_report_level"] ?? "") !== $normalized_error_report_level) {
 			$changed = true;

@@ -5,7 +5,7 @@
 		</div>
 	</div>
 
-	<form id="setting_form" class="setting_form_layout">
+	<form id="setting_form" class="setting_form_layout" autocomplete="off">
 		<div id="setting_tabs" style="overflow: hidden; padding-bottom: 20px; margin-top: 10px;">
 			<ul>
 				<li><a href="#setting-tab-general">{t key="setting.tab.system"}</a></li>
@@ -146,7 +146,7 @@
 							<td><input type="text" name="startup_function1" value="{$setting.startup_function1}"></td>
 						</tr>
 						<tr>
-							<th rowspan="4">{t key="setting.system_name_section"}</th>
+							<th rowspan="6">{t key="setting.system_name_section"}</th>
 							<td>{t key="setting.system_name"} {literal}{$setting.system_name}{/literal}</td>
 							<td><input type="text" name="system_name" value="{$setting.system_name}"></td>
 						</tr>
@@ -166,6 +166,20 @@
 							<td>
 								<input type="file" name="favicon" class="fr_image_paste" data-text="{t key='setting.image_uploader'}">
 								<br /><button type="button" class="ajax-link" data-class="{$class}" data-function="delete_favicon" style="margin-top:0px;">{t key="setting.delete_favicon"}</button>
+							</td>
+						</tr>
+						<tr>
+							<td>{t key="setting.framework_primary_color"}</td>
+							<td>
+								<input type="text" name="framework_primary_color" value="{$setting.framework_primary_color}" class="colorpicker" placeholder="#4BA3FF">
+								<p class="setting_field_help">{t key="setting.framework_primary_color_help"}</p>
+							</td>
+						</tr>
+						<tr>
+							<td>{t key="setting.framework_menu_text_color"}</td>
+							<td>
+								<input type="text" name="framework_menu_text_color" value="{$setting.framework_menu_text_color}" class="colorpicker" placeholder="#4BA3FF">
+								<p class="setting_field_help">{t key="setting.framework_menu_text_color_help"}</p>
 							</td>
 						</tr>
 						<tr>
@@ -209,11 +223,11 @@
 						</tr>
 						<tr>
 							<td>{t key="setting.mail_user"}</td>
-							<td><input type="text" name="smtp_user" value="{$setting.smtp_user}"></td>
+							<td><input type="text" name="smtp_user" value="{$setting.smtp_user}" autocomplete="off" spellcheck="false"></td>
 						</tr>
 						<tr>
 							<td>{t key="setting.mail_password"}</td>
-							<td><input type="password" name="smtp_password" value="" placeholder="{$masked_setting.smtp_password}" autocomplete="new-password" spellcheck="false"></td>
+							<td><input type="password" name="smtp_password_web" value="" placeholder="{$masked_setting.smtp_password}" autocomplete="new-password" spellcheck="false" data-lpignore="true" data-1p-ignore="true" readonly onfocus="this.removeAttribute('readonly');"></td>
 						</tr>
 						<tr>
 							<td>{t key="setting.smtp_secure"}</td>

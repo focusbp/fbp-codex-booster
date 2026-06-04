@@ -30,6 +30,8 @@ locale_code,10,T
 force_testmode,1,N
 system_name,255,T
 system_tag_line,255,T
+framework_primary_color,10,T
+framework_menu_text_color,10,T
 chatgpt_api_key,255,T
 chatgpt_api_url,255,T
 chatgpt_api_model,255,T

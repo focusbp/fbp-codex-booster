@@ -126,3 +126,10 @@
 .class_style_setting .setting_detail_table td:nth-child(3) {
 	width: 44%;
 }
+
+.class_style_setting .setting_field_help {
+	margin-top: 6px;
+	color: #64748b;
+	font-size: 12px;
+	line-height: 1.4;
+}

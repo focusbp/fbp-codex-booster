@@ -50,6 +50,7 @@ fbp_include_smarty();
 $smarty = new Smarty();
 
 include("lib/ValueFormatter.php");
+include("lib/FrameworkTheme.php");
 include("interface/Controller.php");
 include("lib/Controller_class.php");
 include("lib/I18nSimple.php");
@@ -106,6 +107,36 @@ function cli_prepare_smarty(Smarty $smarty) {
 	$base_template_dir = dirname(__FILE__) . "/Templates";
 	$smarty->assign("base_template_dir", $base_template_dir);
 	$smarty->assign("timestamp", strtotime("now"));
+}
+
+function cli_assign_runtime_context(Smarty $smarty, array $setting, string $class, string $appcode, bool $testserver): void {
+	if (empty($setting["viewport_public"])) {
+		$smarty->assign("viewport_public", "width=600,viewport-fit=cover");
+	} else {
+		$smarty->assign("viewport_public", $setting["viewport_public"]);
+	}
+	if (empty($setting["viewport_base"])) {
+		$smarty->assign("viewport_base", "width=device-width");
+	} else {
+		$smarty->assign("viewport_base", $setting["viewport_base"]);
+	}
+
+	$framework_language_code = I18nSimple::get_language_code_from_setting($setting);
+	$locale_code = I18nSimple::get_locale_code_from_setting($setting);
+	$legacy_lang_default = I18nSimple::get_legacy_lang_code_from_setting($setting);
+	$GLOBALS["fbp_system_error_lang"] = $framework_language_code;
+
+	$smarty->assign("testserver", $testserver);
+	$smarty->assign("appcode", $appcode);
+	$smarty->assign("class", $class);
+	$smarty->assign("css_class", $class);
+	$smarty->assign("lang", $framework_language_code);
+	$smarty->assign("arr_lang", ["en" => "English", "jp" => "Japanese"]);
+	$smarty->assign("framework_language_code", $framework_language_code);
+	$smarty->assign("locale_code", $locale_code);
+	$smarty->assign("legacy_lang_default", $legacy_lang_default);
+	$smarty->assign("framework_theme", fbp_framework_theme_from_setting($setting));
+	$smarty->assign("setting", $setting);
 }
 
 function cli_get_class_object(Controller $ctl, $class, Dirs $dir) {
@@ -301,13 +332,24 @@ function cli_prepare_setting(Dirs $dir) {
 		);
 		$ffm_setting->update($setting);
 	}
+	$normalized_setting = fbp_normalize_framework_theme_setting($setting);
+	if (
+		($setting["framework_primary_color"] ?? "") !== ($normalized_setting["framework_primary_color"] ?? "") ||
+		($setting["framework_menu_text_color"] ?? "") !== ($normalized_setting["framework_menu_text_color"] ?? "")
+	) {
+		$ffm_setting->update($normalized_setting);
+	}
 }
 
 function cli_get_setting(Dirs $dir) {
 	$setting_fmt_dir = $dir->appdir_fw . "/setting/fmt";
 	$setting_data_dir = $dir->datadir . "/setting/";
 	$ffm_setting = create_db("setting", $setting_data_dir, $setting_fmt_dir);
-	return $ffm_setting->get(1);
+	$setting = $ffm_setting->get(1);
+	if (!is_array($setting)) {
+		return [];
+	}
+	return fbp_normalize_framework_theme_setting($setting);
 }
 
 function cli_get_setting_db(Dirs $dir) {
@@ -846,6 +888,7 @@ function cli_app_call_execute(array $data, Dirs $dir, Smarty $smarty) {
 	$testserver = isset($data["testserver"]) ? (bool) $data["testserver"] : true;
 	$check_login = isset($data["check_login"]) ? (bool) $data["check_login"] : false;
 	$login = isset($data["login"]) ? (bool) $data["login"] : true;
+	cli_assign_runtime_context($smarty, $setting, $class, $appcode, $testserver);
 	$ctl->set_session("class", $class);
 	$ctl->set_session("appcode", $appcode);
 	$ctl->set_session("testserver", $testserver);
@@ -1234,6 +1277,7 @@ if ($command === "setting_edit") {
 		}
 		$setting[$k] = $v;
 	}
+	$setting = fbp_normalize_framework_theme_setting($setting);
 	$setting["id"] = 1;
 	$ffm_setting->update($setting);
 

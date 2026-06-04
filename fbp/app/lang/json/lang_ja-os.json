@@ -74,5 +74,9 @@
   "setting.project_portal_url": "プロジェクトポータルURL",
   "setting.release_api_hmac": "Release API 認証",
   "setting.release_api_key": "Release API Key",
-  "setting.release_api_secret": "Release API Secret"
+  "setting.release_api_secret": "Release API Secret",
+  "setting.framework_primary_color": "管理側メインカラー",
+  "setting.framework_primary_color_help": "空欄なら既定色 #4BA3FF を使うで。上部バー、メニュー、画面タイトル、主要ボタンに反映されるで。",
+  "setting.framework_menu_text_color": "メニューテキストカラー",
+  "setting.framework_menu_text_color_help": "空欄なら既定色 #4BA3FF を使うで。左側メニューの文字に反映されるで。"
 }
