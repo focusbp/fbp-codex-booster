@@ -32,7 +32,7 @@ class bcp_export {
 				unlink($zip_file);
 			}
 			error_log("[FBP BCP Export] " . $e->getMessage());
-			$this->respond_download_error($ctl, $ctl->t("bcp_export.download_failed"));
+			$this->respond_download_error($ctl, $ctl->t("bcp_export.download_failed"), $e->getMessage());
 		}
 	}
 
@@ -48,7 +48,7 @@ class bcp_export {
 	}
 
 	private function resolve_temp_dir(): string {
-		return rtrim($this->project_root, "/") . "/tmp/bcp_export";
+		return rtrim(sys_get_temp_dir(), "/") . "/fbp_bcp_export_" . substr(sha1($this->project_root), 0, 12);
 	}
 
 	private function assert_project_root(): void {
@@ -99,12 +99,12 @@ class bcp_export {
 				if ($this->is_excluded_path($relative_path, $file_path)) {
 					continue;
 				}
-				if (!$zip->addFile($file_path, $relative_path)) {
-					throw new Exception("Cannot add file to BCP export zip.");
-				}
 				$hash = hash_file("sha256", $file_path);
 				if ($hash === false) {
-					throw new Exception("Cannot calculate file checksum.");
+					continue;
+				}
+				if (!$this->add_file_to_zip($zip, $file_path, $relative_path)) {
+					continue;
 				}
 				$checksums[] = $hash . "  " . $relative_path;
 				$file_count++;
@@ -136,9 +136,17 @@ class bcp_export {
 			if (is_file($zip_file)) {
 				unlink($zip_file);
 			}
-			throw new Exception("Cannot close BCP export zip.");
+			$status = method_exists($zip, "getStatusString") ? $zip->getStatusString() : "";
+			throw new Exception("Cannot close BCP export zip." . ($status !== "" ? " " . $status : ""));
 		}
 		return $zip_file;
+	}
+
+	private function add_file_to_zip(ZipArchive $zip, string $file_path, string $relative_path): bool {
+		if (defined("ZipArchive::FL_OPEN_FILE_NOW")) {
+			return $zip->addFile($file_path, $relative_path, 0, 0, ZipArchive::FL_OPEN_FILE_NOW);
+		}
+		return $zip->addFile($file_path, $relative_path);
 	}
 
 	private function prepare_temp_dir(): void {
@@ -204,7 +212,6 @@ class bcp_export {
 				".git/",
 				"templates_c/",
 				"classes/log/tmp/",
-				"tmp/bcp_export/",
 				"temporary export zip",
 			],
 		];
@@ -287,7 +294,7 @@ class bcp_export {
 		exit;
 	}
 
-	private function respond_download_error(Controller $ctl, string $message): void {
+	private function respond_download_error(Controller $ctl, string $message, string $detail = ""): void {
 		while (ob_get_level() > 0) {
 			ob_end_clean();
 		}
@@ -295,10 +302,20 @@ class bcp_export {
 		header("Content-Type: application/json; charset=UTF-8");
 		header("X-FBP-Download-Error: 1");
 		header("X-FBP-Download-Error-Title: " . rawurlencode($ctl->t("bcp_export.title")));
+		if ($detail !== "") {
+			header("X-FBP-Download-Error-Detail: " . rawurlencode($this->safe_error_detail($detail)));
+		}
 		echo json_encode([
 			"title" => $ctl->t("bcp_export.title"),
 			"message" => $message,
 		], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 		exit;
+	}
+
+	private function safe_error_detail(string $detail): string {
+		$detail = str_replace($this->project_root, "{project_root}", $detail);
+		$detail = preg_replace('/[\r\n\t]+/', " ", $detail);
+		$detail = trim((string) $detail);
+		return function_exists("mb_substr") ? mb_substr($detail, 0, 240) : substr($detail, 0, 240);
 	}
 }
