@@ -1208,6 +1208,78 @@ class Controller_class implements Controller {
 		return preg_match('/^qr-code(?:-text)?-?[a-f0-9]+\.png$/', $filename) === 1;
 	}
 
+	private function saved_file_download_mimetype_by_extension($filename) {
+		$ext = strtolower((string) pathinfo((string) $filename, PATHINFO_EXTENSION));
+		if ($ext === "") {
+			return "";
+		}
+		$map = [
+		    "pdf" => "application/pdf",
+		    "txt" => "text/plain; charset=UTF-8",
+		    "csv" => "text/csv; charset=UTF-8",
+		    "json" => "application/json; charset=UTF-8",
+		    "xml" => "application/xml; charset=UTF-8",
+		    "zip" => "application/zip",
+		    "gz" => "application/gzip",
+		    "tar" => "application/x-tar",
+		    "doc" => "application/msword",
+		    "docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+		    "xls" => "application/vnd.ms-excel",
+		    "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+		    "ppt" => "application/vnd.ms-powerpoint",
+		    "pptx" => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+		    "rtf" => "application/rtf",
+		    "png" => "image/png",
+		    "gif" => "image/gif",
+		    "jpg" => "image/jpeg",
+		    "jpeg" => "image/jpeg",
+		    "webp" => "image/webp",
+		    "svg" => "image/svg+xml",
+		    "bmp" => "image/bmp",
+		    "ico" => "image/x-icon",
+		    "heic" => "image/heic",
+		    "heif" => "image/heif",
+		    "mp3" => "audio/mpeg",
+		    "wav" => "audio/wav",
+		    "m4a" => "audio/mp4",
+		    "aac" => "audio/aac",
+		    "ogg" => "audio/ogg",
+		    "oga" => "audio/ogg",
+		    "opus" => "audio/ogg",
+		    "mp4" => "video/mp4",
+		    "m4v" => "video/mp4",
+		    "mov" => "video/quicktime",
+		    "webm" => "video/webm",
+		    "avi" => "video/x-msvideo",
+		    "wmv" => "video/x-ms-wmv",
+		];
+		return isset($map[$ext]) ? $map[$ext] : "";
+	}
+
+	private function saved_file_download_mimetype($filepath, $download_name, $stored_filename) {
+		foreach ([$download_name, $stored_filename] as $name) {
+			$mimetype = $this->saved_file_download_mimetype_by_extension($name);
+			if ($mimetype !== "") {
+				return $mimetype;
+			}
+		}
+
+		if (class_exists('finfo')) {
+			$fi = new finfo(FILEINFO_MIME_TYPE);
+			$mimetype = $fi->file($filepath);
+			if (is_string($mimetype) && $mimetype !== "") {
+				return $mimetype;
+			}
+		}
+
+		$mimetype = function_exists("mime_content_type") ? mime_content_type($filepath) : "";
+		if (is_string($mimetype) && $mimetype !== "") {
+			return $mimetype;
+		}
+
+		return "application/octet-stream";
+	}
+
 	function res_saved_file($filename, $download_name = null) {
 		//エラーを非表示
 		//error_reporting(~E_ALL);
@@ -1230,17 +1302,18 @@ class Controller_class implements Controller {
 			return;
 		}
 
-		$mimeType = 'application/octet-stream';
 		if ($download_name === null || trim((string) $download_name) === "") {
 			$download_name = basename((string) $filename);
 		} else {
 			$download_name = str_replace(["\r", "\n", "\0"], "", trim((string) $download_name));
 		}
+		$mimeType = $this->saved_file_download_mimetype($filepath, $download_name, $filename);
 		$ascii_name = preg_replace('/[^A-Za-z0-9._-]/', '_', $download_name);
 		if ($ascii_name === "" || $ascii_name === null) {
 			$ascii_name = "download";
 		}
 		header('Content-Type: ' . $mimeType);
+		header('X-Content-Type-Options: nosniff');
 		header('Content-Disposition: attachment; filename="' . addcslashes($ascii_name, '"\\') . '"; filename*=UTF-8\'\'' . rawurlencode($download_name));
 		header('Content-Length: ' . filesize($filepath));
 
