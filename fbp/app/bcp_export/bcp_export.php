@@ -48,7 +48,7 @@ class bcp_export {
 	}
 
 	private function resolve_temp_dir(): string {
-		return rtrim(sys_get_temp_dir(), "/") . "/fbp_bcp_export_" . substr(sha1($this->project_root), 0, 12);
+		return rtrim($this->project_root, "/") . "/tmp/bcp_export";
 	}
 
 	private function assert_project_root(): void {
@@ -212,6 +212,7 @@ class bcp_export {
 				".git/",
 				"templates_c/",
 				"classes/log/tmp/",
+				"tmp/bcp_export/",
 				"temporary export zip",
 			],
 		];
