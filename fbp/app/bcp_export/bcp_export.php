@@ -88,11 +88,15 @@ class bcp_export {
 			);
 
 			foreach ($files as $file) {
-				if ($file->isDir() || $file->isLink()) {
-					continue;
-				}
-				$file_path = $file->getRealPath();
-				if ($file_path === false || !$file->isReadable()) {
+				try {
+					if ($file->isLink() || $file->isDir()) {
+						continue;
+					}
+					$file_path = $file->getRealPath();
+					if ($file_path === false || !$file->isReadable()) {
+						continue;
+					}
+				} catch (Throwable $e) {
 					continue;
 				}
 				$relative_path = $this->relative_path($file_path);
