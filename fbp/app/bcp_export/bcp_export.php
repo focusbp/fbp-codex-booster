@@ -7,7 +7,7 @@ class bcp_export {
 
 	function __construct(Controller $ctl) {
 		$this->project_root = $this->resolve_project_root();
-		$this->temp_dir = rtrim(sys_get_temp_dir(), "/") . "/fbp_bcp_export";
+		$this->temp_dir = $this->resolve_temp_dir();
 	}
 
 	function page(Controller $ctl) {
@@ -31,6 +31,7 @@ class bcp_export {
 			if ($zip_file !== "" && is_file($zip_file)) {
 				unlink($zip_file);
 			}
+			error_log("[FBP BCP Export] " . $e->getMessage());
 			$this->respond_download_error($ctl, $ctl->t("bcp_export.download_failed"));
 		}
 	}
@@ -44,6 +45,10 @@ class bcp_export {
 	private function resolve_project_root(): string {
 		$root = realpath(dirname(__FILE__) . "/../../..");
 		return $root !== false ? $root : dirname(__FILE__) . "/../../..";
+	}
+
+	private function resolve_temp_dir(): string {
+		return rtrim($this->project_root, "/") . "/classes/log/tmp/bcp_export";
 	}
 
 	private function assert_project_root(): void {
