@@ -26,6 +26,9 @@ description: Release FBP app projects or the shared app-framework5 framework to 
    - `~/scripts/release_project.sh <appcode>`
 6. 成功条件は `{"ok":true,"message":"リリースが完了しました。" ...}`。SVN revision が表示された場合は最終報告に含める。
 
+## cron release note
+- `app-xxx` のリリースでは release 対象データに含まれる `cron` 定義が本番へ反映され、適用時に本番側の cron 設定も自動更新される。cron 定義変更のためだけに本番で手動 `cron_set()` を実行する前提にしない。
+
 ## if new files were missed
 - リリース後に今回作業の `?` ファイルが残っていると分かった場合は、必要ファイルだけ `svn add` し、`~/scripts/release_project.sh <appcode>` を再実行して、SVNと本番リリース内容を揃える。
 - すでに1回目の release API が成功していても、再実行は同じリリース経路で上書き反映される。

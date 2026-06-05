@@ -19,6 +19,7 @@ description: Manage scheduled jobs with cron_list/add/edit/delete and verify per
 - `cron` は `cron_expression` ではなく、`min / hour / day / month / weekday` の配列項目で登録する。
 - 実行対象は `class_name + function_name` で決まる。
 - 定義反映後は `cron_set()` が必要。
+- `app-xxx` の本番リリースでは release 対象の `cron` 定義が反映され、本番側の cron 設定も自動更新される。通常は本番で別途 `cron_set()` を手動実行しない。
 
 ## constraints
 - 本番影響のある時刻指定は安全側で設定し、重複起動を避ける。
