@@ -211,7 +211,7 @@ if(empty($setting["iv"])){
 	$ffm_setting->update($setting);
 }
 if (empty($setting["timezone"])){
-	$setting["timezone"] = date_default_timezone_get();
+	$setting["timezone"] = "Asia/Tokyo";
 	$ffm_setting->update($setting);
 }
 if (empty($setting["date_format"])) {

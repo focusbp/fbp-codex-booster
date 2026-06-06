@@ -311,7 +311,7 @@ function cli_prepare_setting(Dirs $dir) {
 		$ffm_setting->update($setting);
 	}
 	if (empty($setting["timezone"])) {
-		$setting["timezone"] = date_default_timezone_get();
+		$setting["timezone"] = "Asia/Tokyo";
 		$ffm_setting->update($setting);
 	}
 	if (empty($setting["date_format"])) {
@@ -401,6 +401,14 @@ function cli_initial_project_setup_locale(string $value, string $framework_langu
 	return I18nSimple::get_default_locale_code_from_language_code($framework_language_code);
 }
 
+function cli_initial_project_setup_timezone(string $value): string {
+	$value = trim($value);
+	if ($value !== "" && in_array($value, timezone_identifiers_list(), true)) {
+		return $value;
+	}
+	return "Asia/Tokyo";
+}
+
 function cli_initial_project_setup_smtp_secure(string $value): int {
 	$normalized = (int) $value;
 	return in_array($normalized, [0, 1, 2], true) ? $normalized : 0;
@@ -467,6 +475,7 @@ function cli_initial_project_setup(Dirs $dir, array $data): array {
 	$smtp_email_test = cli_initial_project_setup_value($data, "smtp_email_test");
 	$framework_language_code = cli_initial_project_setup_language(cli_initial_project_setup_value($data, "framework_language_code", "en"));
 	$locale_code = cli_initial_project_setup_locale(cli_initial_project_setup_value($data, "locale_code"), $framework_language_code);
+	$timezone = cli_initial_project_setup_timezone(cli_initial_project_setup_value($data, "timezone", "Asia/Tokyo"));
 
 	if (!preg_match('/^[a-zA-Z0-9@._\-!#$%&*?]+$/', $login_id)) {
 		throw new Exception("Invalid login_id format.");
@@ -508,6 +517,7 @@ function cli_initial_project_setup(Dirs $dir, array $data): array {
 	$setting["framework_language_code"] = $framework_language_code;
 	$setting["locale_code"] = $locale_code;
 	$setting["project_release_code"] = $project_release_code;
+	$setting["timezone"] = $timezone;
 	if ($api_key !== "") {
 		$setting["api_key"] = $api_key;
 	}
@@ -545,6 +555,7 @@ function cli_initial_project_setup(Dirs $dir, array $data): array {
 		"smtp_configured" => ($smtp_from !== "" && $smtp_server !== "" && $smtp_port !== "" && $smtp_user !== ""),
 		"framework_language_code" => $framework_language_code,
 		"locale_code" => $locale_code,
+		"timezone" => $timezone,
 		"htaccess_written" => $htaccess_written,
 	];
 }

@@ -120,7 +120,7 @@ class setting {
 			$setting["robots"] = "User-Agent: *\nAllow: /\n";
 		}
 		if (empty($setting["timezone"])){
-			$setting["timezone"] = date_default_timezone_get();
+			$setting["timezone"] = "Asia/Tokyo";
 		}
 		if (empty($setting["date_format"])) {
 			$setting["date_format"] = "Y/m/d";
@@ -230,7 +230,7 @@ class setting {
 			$setting["currency"] = "JPY";
 		}
 		if (empty($setting["timezone"])){
-			$setting["timezone"] = date_default_timezone_get();
+			$setting["timezone"] = "Asia/Tokyo";
 		}
 		if (empty($setting["date_format"])) {
 			$setting["date_format"] = "Y/m/d";

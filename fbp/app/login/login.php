@@ -8,6 +8,7 @@ class login {
 	private $remember_me_ttl = 2592000; // 30 days
 	private $pending_account_session_key = "login_first_account_pending";
 	private $arr_smtp_secure = [0 => "false", 1 => "tls", 2 => "ssl"];
+	private $default_timezone = "Asia/Tokyo";
 
 	function __construct(Controller $ctl) {
 		$ctl->set_check_login(false);
@@ -31,6 +32,7 @@ class login {
 		$framework_language_code = $this->normalize_framework_language_code((string) ($pending["framework_language_code"] ?? "en"));
 		$locale_code = $this->normalize_locale_code($pending["locale_code"] ?? "", $framework_language_code);
 		$project_release_code = trim((string) ($pending["project_release_code"] ?? ""));
+		$timezone = $this->normalize_timezone($pending["timezone"] ?? $this->default_timezone);
 		$api_key = trim((string) ($pending["api_key"] ?? ""));
 		$api_secret = trim((string) ($pending["api_secret"] ?? ""));
 		$release_api_key = trim((string) ($pending["release_api_key"] ?? ""));
@@ -62,6 +64,7 @@ class login {
 		$setting["framework_language_code"] = $framework_language_code;
 		$setting["locale_code"] = $locale_code;
 		$setting["project_release_code"] = $project_release_code;
+		$setting["timezone"] = $timezone;
 		$setting["api_key"] = $api_key;
 		$setting["api_secret"] = $api_secret;
 		$setting["release_api_key"] = $release_api_key;
@@ -153,9 +156,10 @@ class login {
 			$setting = [];
 		}
 		$pending["project_release_code"] = (string) ($pending["project_release_code"] ?? ($setting["project_release_code"] ?? ""));
+		$pending["timezone"] = $this->normalize_timezone($pending["timezone"] ?? ($setting["timezone"] ?? $this->default_timezone));
 		$ctl->set_session($this->pending_account_session_key, $pending);
 		$ctl->assign("dialog_lang", $framework_language_code);
-		$ctl->assign("project_release_code", (string) ($pending["project_release_code"] ?? ""));
+		$this->assign_project_release_code_dialog($ctl, $pending);
 		$ctl->show_multi_dialog("new_account", "new_account_project_release_code.tpl", $ctl->t("setting.project_release_code", [], $framework_language_code));
 	}
 
@@ -168,7 +172,9 @@ class login {
 
 		$post = $ctl->POST();
 		$pending["project_release_code"] = trim((string) ($post["project_release_code"] ?? ""));
+		$pending["timezone"] = trim((string) ($post["timezone"] ?? $this->default_timezone));
 		$this->validate_project_release_code($ctl, $pending["project_release_code"]);
+		$this->validate_timezone($ctl, $pending["timezone"]);
 		if($ctl->count_res_error_message()>0){
 			return;
 		}
@@ -330,7 +336,7 @@ class login {
 
 		$framework_language_code = $this->normalize_framework_language_code((string) ($pending["framework_language_code"] ?? "en"));
 		$ctl->assign("dialog_lang", $framework_language_code);
-		$ctl->assign("project_release_code", (string) ($pending["project_release_code"] ?? ""));
+		$this->assign_project_release_code_dialog($ctl, $pending);
 		$ctl->show_multi_dialog("new_account", "new_account_project_release_code.tpl", $ctl->t("setting.project_release_code", [], $framework_language_code));
 	}
 
@@ -558,6 +564,12 @@ class login {
 		}
 	}
 
+	private function validate_timezone(Controller $ctl, string $timezone): void {
+		if (!in_array($timezone, timezone_identifiers_list(), true)) {
+			$ctl->res_error_message("timezone", $ctl->t("login.validation.timezone_invalid"));
+		}
+	}
+
 	private function normalize_smtp_secure($value): int {
 		$normalized = (int) $value;
 		if (!array_key_exists($normalized, $this->arr_smtp_secure)) {
@@ -581,6 +593,19 @@ class login {
 			return $value;
 		}
 		return I18nSimple::get_default_locale_code_from_language_code($framework_language_code);
+	}
+
+	private function normalize_timezone($value): string {
+		$value = trim((string) $value);
+		if ($value !== "" && in_array($value, timezone_identifiers_list(), true)) {
+			return $value;
+		}
+		return $this->default_timezone;
+	}
+
+	private function get_timezone_options(): array {
+		$timezones = timezone_identifiers_list();
+		return array_combine($timezones, $timezones);
 	}
 
 	private function get_locale_option_map(): array {
@@ -626,6 +651,17 @@ class login {
 		$ctl->assign("arr_smtp_secure", $this->arr_smtp_secure);
 	}
 
+	private function assign_project_release_code_dialog(Controller $ctl, array $pending): void {
+		$setting = $ctl->get_setting();
+		if (!is_array($setting)) {
+			$setting = [];
+		}
+
+		$ctl->assign("project_release_code", (string) ($pending["project_release_code"] ?? ($setting["project_release_code"] ?? "")));
+		$ctl->assign("timezone", $this->normalize_timezone($pending["timezone"] ?? ($setting["timezone"] ?? $this->default_timezone)));
+		$ctl->assign("timezones", $this->get_timezone_options());
+	}
+
 	private function show_new_account_confirm_dialog(Controller $ctl, array $pending, string $framework_language_code): void {
 		$locale_options = I18nSimple::get_locale_options();
 		$language_options = I18nSimple::get_language_options();
@@ -635,6 +671,7 @@ class login {
 			["label_key" => "setting.framework_language_code", "value" => $language_options[$framework_language_code] ?? $framework_language_code],
 			["label_key" => "setting.locale_code", "value" => $locale_options[$pending["locale_code"] ?? ""] ?? (string) ($pending["locale_code"] ?? "")],
 			["label_key" => "setting.project_release_code", "value" => (string) ($pending["project_release_code"] ?? "")],
+			["label_key" => "setting.timezone", "value" => $this->normalize_timezone($pending["timezone"] ?? $this->default_timezone)],
 			["label_key" => "setting.api_key", "value" => ((string) ($pending["api_key"] ?? "") === "") ? "" : "********"],
 			["label_key" => "setting.api_secret", "value" => ((string) ($pending["api_secret"] ?? "") === "") ? "" : "********"],
 			["label_key" => "setting.release_api_key", "value" => ((string) ($pending["release_api_key"] ?? "") === "") ? "" : "********"],
