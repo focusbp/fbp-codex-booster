@@ -1906,7 +1906,16 @@ function parse_date_string_to_timestamp(value, format) {
 		})) {
 		return "";
 	}
-	return Math.floor(new Date(year, month - 1, day).getTime() / 1000);
+
+	var timezone = arguments.length >= 3 ? arguments[2] : get_server_timezone();
+	var guessMs = Date.UTC(year, month - 1, day, 0, 0, 0);
+	for (var i = 0; i < 2; i++) {
+		var actualParts = get_datetime_parts_in_timezone(Math.floor(guessMs / 1000), timezone);
+		var desiredMs = Date.UTC(year, month - 1, day, 0, 0, 0);
+		var actualMs = Date.UTC(parseInt(actualParts.year, 10), parseInt(actualParts.month, 10) - 1, parseInt(actualParts.day, 10), parseInt(actualParts.hour, 10), parseInt(actualParts.minute, 10), 0);
+		guessMs += desiredMs - actualMs;
+	}
+	return Math.floor(guessMs / 1000);
 }
 
 function parse_year_month_by_format(value, format) {

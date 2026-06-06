@@ -28,14 +28,20 @@ function smarty_function_html_input_date($params, Smarty_Internal_Template $temp
 	
 	$setting = $template->getTemplateVars("setting");
 	$date_format = !empty($setting["date_format"]) ? (string) $setting["date_format"] : "Y/m/d";
+	$timezone = !empty($setting["timezone"]) ? (string) $setting["timezone"] : date_default_timezone_get();
 
 	if(empty($value)){
 		$str = "";
+	}else if(is_numeric($value)){
+		$moto = date_default_timezone_get();
+		date_default_timezone_set($timezone);
+		$str = date($date_format, (int) $value);
+		date_default_timezone_set($moto);
 	}else{
-		$str = date($date_format, $value);
+		$str = (string) $value;
 	}
 	
-	$_html_result = "<input $extra value=\"$str\">"; 
+	$_html_result = "<input $extra value=\"" . smarty_function_escape_special_chars($str) . "\">"; 
 
     return $_html_result;
 }

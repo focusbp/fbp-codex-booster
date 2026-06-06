@@ -24,6 +24,13 @@ description: Build and operate public_pages with login-free entry points, secure
 9. 公開検索や絞り込みで URL に出したくない値は、`GET` ではなく `POST -> session` で保持し、表示時に復元する。
 10. 公開側で `ajax-auto` によるスクロール追加を行う場合、初回表示関数と追加読込関数を分ける。初回は `show_public_pages()` で全体表示し、追加読込は一覧部分専用の関数から `reload_area()` で部分テンプレートだけを返す。
 
+## public downloads
+- 公開側でも、LINE Bot関係ではない通常導線のダウンロードは `download-link` を基本にしてよい。
+- LINE Botで送るURL、LINEメッセージから開く公開ページ、LINE内ブラウザでの利用が主目的のダウンロードは `<a href>` でGETのダウンロードURLを開く。XHR/blob経由ではなく、ブラウザに実URLの `Content-Type` / `Content-Disposition` を直接見せる。
+- 実ファイル応答は特別な要件がない限り独自header実装を作らず、`$ctl->res_saved_file($stored, $download_name)` を使う。
+- ダウンロードURLは文字列連結せず、`$ctl->get_APP_URL("<class>", "file_download", ["code" => $code, "download" => "1"])` のように生成する。LINE側の古い判定を避けたい場合は `download=1` などの明示パラメータを付ける。
+- サンプルコードは `fbp-csv-media` の `download links` を参照する。
+
 ## public action buttons
 - 公開フォーム/公開一覧の操作ボタンは、ボタンを直接横並びにせず、共通のアクションバーで包む。戻るボタンだけ左寄せ、送信/次へ/予約/保存などの主操作と補助操作は右寄せを基本にする。
 - 基本構造は `<div class="public-actions">` の中に、戻る用の `.public-actions-back` と主操作用の `.public-actions-main` を置く。戻るがない画面では `.public-actions-back` は省略してよい。
