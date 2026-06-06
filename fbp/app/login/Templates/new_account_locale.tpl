@@ -1,6 +1,7 @@
 <p>{t key="login.language_locale_help" lang=$dialog_lang}</p>
+<p>{t key="login.timezone_help" lang=$dialog_lang}</p>
 
-<form id="new_account_locale_form" style="height:300px;" onsubmit="return false;">
+<form id="new_account_locale_form" style="height:380px;" onsubmit="return false;">
 	<input type="hidden" name="class" value="login">
 	<input type="hidden" name="function" value="make_new_account_next">
 	<div class="form-wrap form-wrap-validation has-error">
@@ -15,6 +16,12 @@
 			{html_options options=$arr_locale_code selected=$locale_code}
 		</select>
 		<p class="error_message error_locale_code"></p>
+
+		<p style="margin-top:10px;">{t key="setting.timezone" lang=$dialog_lang}</p>
+		<select name="timezone">
+			{html_options options=$timezones selected=$timezone}
+		</select>
+		<p class="error_message error_timezone"></p>
 	</div>
 
 	<div style="display:flex;justify-content:space-between;gap:12px;margin-top:18px;">

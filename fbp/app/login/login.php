@@ -116,9 +116,15 @@ class login {
 		$post = $ctl->POST();
 		$framework_language_code = $this->normalize_framework_language_code((string) ($post["framework_language_code"] ?? "en"));
 		$locale_code = $this->normalize_locale_code($post["locale_code"] ?? "", $framework_language_code);
+		$timezone = trim((string) ($post["timezone"] ?? $this->default_timezone));
+		$this->validate_timezone($ctl, $timezone);
+		if($ctl->count_res_error_message()>0){
+			return;
+		}
 
 		$pending["framework_language_code"] = $framework_language_code;
 		$pending["locale_code"] = $locale_code;
+		$pending["timezone"] = $timezone;
 		$ctl->set_session($this->pending_account_session_key, $pending);
 
 		$ctl->assign("dialog_lang", $framework_language_code);
@@ -172,12 +178,11 @@ class login {
 
 		$post = $ctl->POST();
 		$pending["project_release_code"] = trim((string) ($post["project_release_code"] ?? ""));
-		$pending["timezone"] = trim((string) ($post["timezone"] ?? $this->default_timezone));
 		$this->validate_project_release_code($ctl, $pending["project_release_code"]);
-		$this->validate_timezone($ctl, $pending["timezone"]);
 		if($ctl->count_res_error_message()>0){
 			return;
 		}
+		$pending["timezone"] = $this->normalize_timezone($pending["timezone"] ?? $this->default_timezone);
 		$ctl->set_session($this->pending_account_session_key, $pending);
 
 		$framework_language_code = $this->normalize_framework_language_code((string) ($pending["framework_language_code"] ?? "en"));
@@ -293,6 +298,8 @@ class login {
 		$ctl->assign("dialog_lang", $framework_language_code);
 		$ctl->assign("arr_framework_language_code", I18nSimple::get_language_options());
 		$ctl->assign("arr_locale_code", I18nSimple::get_locale_options());
+		$ctl->assign("timezone", $this->normalize_timezone($pending["timezone"] ?? ($setting["timezone"] ?? $this->default_timezone)));
+		$ctl->assign("timezones", $this->get_timezone_options());
 		$ctl->assign("locale_option_map_json", json_encode($this->get_locale_option_map(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 		$ctl->show_multi_dialog("new_account", "new_account_locale.tpl", $ctl->t("login.dialog.language_locale", [], $framework_language_code));
 	}
@@ -373,6 +380,8 @@ class login {
 			$ctl->assign("dialog_lang", $framework_language_code);
 			$ctl->assign("arr_framework_language_code", I18nSimple::get_language_options());
 			$ctl->assign("arr_locale_code", I18nSimple::get_locale_options());
+			$ctl->assign("timezone", $this->normalize_timezone($setting["timezone"] ?? $this->default_timezone));
+			$ctl->assign("timezones", $this->get_timezone_options());
 			$ctl->assign("locale_option_map_json", json_encode($this->get_locale_option_map(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 			$ctl->show_multi_dialog("new_account", "new_account_locale.tpl", $ctl->t("login.dialog.language_locale", [], $framework_language_code));
 			
@@ -658,8 +667,6 @@ class login {
 		}
 
 		$ctl->assign("project_release_code", (string) ($pending["project_release_code"] ?? ($setting["project_release_code"] ?? "")));
-		$ctl->assign("timezone", $this->normalize_timezone($pending["timezone"] ?? ($setting["timezone"] ?? $this->default_timezone)));
-		$ctl->assign("timezones", $this->get_timezone_options());
 	}
 
 	private function show_new_account_confirm_dialog(Controller $ctl, array $pending, string $framework_language_code): void {
