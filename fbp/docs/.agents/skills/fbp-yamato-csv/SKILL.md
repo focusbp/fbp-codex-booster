@@ -153,8 +153,8 @@ exit;
 
 ## verification
 - `php -l` for additional class PHP.
-- `~/scripts/fbp_cli_check.sh --app app-xxx db_tables_list`
-- `~/scripts/fbp_cli_check.sh --app app-xxx db_fields_list <yamato_shipping_setting db_id>`
-- `~/scripts/fbp_cli_check.sh --app app-xxx screen_fields_list yamato_shipping_setting list`
-- `~/scripts/fbp_cli_check.sh --app app-xxx app_call customer_order_yamato_csv_additional run`
+- `php <app-root>/fbp/cli.php db_tables_list`
+- `php <app-root>/fbp/cli.php db_fields_list --json='{"db_id":<yamato_shipping_setting db_id>}'`
+- `php <app-root>/fbp/cli.php screen_fields_list --json='{"tb_name":"yamato_shipping_setting","screen_name":"list"}'`
+- `php <app-root>/fbp/cli.php app_call --json='{"class":"customer_order_yamato_csv_additional","function":"run"}'`
 - CSV downloadはCLIの `output_file` で保存し、ヘッダ列数が95、文字コードがShift_JIS、改行がCRLFであることを確認する。

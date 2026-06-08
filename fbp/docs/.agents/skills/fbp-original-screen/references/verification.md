@@ -5,16 +5,16 @@
 ## base checks
 
 - 表示確認
-  `~/scripts/fbp_cli_check.sh --app app-xxx app_call <tb_name>_original_management run`
+  `php <app-root>/fbp/cli.php app_call --json='{"class":"<tb_name>_original_management","function":"run"}'`
 
 - 一覧部分更新確認
-  `php /home/nakama/web/app-xxx/fbp/cli.php app_call --json='{"class":"<tb_name>_original_management","function":"apply_filter","post":{...}}'`
+  `php <app-root>/fbp/cli.php app_call --json='{"class":"<tb_name>_original_management","function":"apply_filter","post":{...}}'`
 
 - 追加結果確認
-  `~/scripts/fbp_cli_check.sh --app app-xxx data_get <tb_name> <id>`
+  `php <app-root>/fbp/cli.php data_get --json='{"table":"<tb_name>","id":<id>}'`
 
 - 一覧確認
-  `~/scripts/fbp_cli_check.sh --app app-xxx data_list <tb_name> 100`
+  `php <app-root>/fbp/cli.php data_list --json='{"table":"<tb_name>","max":100}'`
 
 ## expected checks
 
@@ -25,5 +25,5 @@
 
 ## caution
 
-- `cli` は必ず `web/app-xxx` 側を対象に実行する
+- `cli` は対象環境の実行側 app root を対象に実行する
 - `Original` 種別でも URL は直書きせず `$ctl->get_APP_URL()` を使う

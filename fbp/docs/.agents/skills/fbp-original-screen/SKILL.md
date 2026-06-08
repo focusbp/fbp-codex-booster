@@ -20,7 +20,7 @@ description: Build custom note management screens as the default FBP approach by
 5. `classes/app/<tb_name>_original_management/<tb_name>_original_management.php` を作る。
 6. `run(Controller $ctl)` で自由な画面を表示する。
 7. 初回の骨組み確認なら `minimal_*`、案件流用なら `sample_*` を起点に流用する。
-8. `copy_to_web.sh <appcode>` 後、対象ノートを `db_exe/page` で `app_call` し、`Original management class not found` が出ないことを確認する。
+8. 環境側の同期手順で実行環境へ反映した後、対象ノートを `db_exe/page` で `app_call` し、`Original management class not found` が出ないことを確認する。
 9. 検証は `references/verification.md` の `app_call` / `data_*` パターンで行う。
 
 ## naming rules

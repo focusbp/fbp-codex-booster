@@ -189,8 +189,8 @@ private function assign_register_form(Controller $ctl, array $row, string $curre
 
 ```bash
 php -l classes/app/public_pages/public_pages.php
-~/scripts/copy_to_web.sh app-xxx
-cd ~/web/app-xxx/fbp
+sync source to the target runtime using the environment's normal procedure
+cd <app-root>/fbp
 php cli.php app_call --json='{"class":"public_pages","function":"register_step","post":{"userid":"U_TEST","current_step":"member_type","member_type":"1","step_action":"next"}}'
 php cli.php app_call --json='{"class":"public_pages","function":"register_step","post":{"userid":"U_TEST","current_step":"bni","member_type":"1","chapter_name":"","connect_name":"","step_action":"next"}}'
 ```

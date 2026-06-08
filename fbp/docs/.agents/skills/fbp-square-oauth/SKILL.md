@@ -95,7 +95,7 @@ description: Implement seller/shop-scoped Square OAuth connection flows in FBP a
 
 ## verification
 - `php -l` for changed PHP files.
-- `copy_to_web.sh app-xxx`.
+- Sync source to the target runtime using the environment's normal procedure.
 - `app_call <shop_management_class> run` succeeds.
 - `setting.page` shows `Application Secret` as masked/blank input, not raw secret.
 - OAuth authorize request reaches Square without 400.

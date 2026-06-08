@@ -23,7 +23,7 @@
 - `weekday`
   - 曜日の配列
 
-定義は [cron.fmt](/home/nakama/NetBeansProjects/app-framework5/fbp/app/cron/fmt/cron.fmt) を参照。
+定義は `fbp/app/cron/fmt/cron.fmt` を参照。
 
 ## 2. 実行の仕組み
 
@@ -36,7 +36,7 @@
 5. `$obj->$function_name($ctl)` を実行
 
 参照:
-- [cron.php](/home/nakama/NetBeansProjects/app-framework5/fbp/app/cron/cron.php)
+- `fbp/app/cron/cron.php`
 
 つまり、Cron登録で重要なのは `class_name` と `function_name` であり、時刻指定は `min/hour/day/month/weekday` に分かれて保存される。
 

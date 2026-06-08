@@ -81,9 +81,9 @@ description: Add a new localization language to app-framework5, including framew
 - `fbp/js/function.js`
 
 ## cli checks
-- `php /home/nakama/web/app-framework5/fbp/cli.php setting_get`
-- `php /home/nakama/web/app-framework5/fbp/cli.php app_call --json='{"class":"setting","function":"page"}'`
-- `php /home/nakama/web/app-framework5/fbp/cli.php app_call --json='{"class":"wizard","function":"run"}'`
+- `php <framework-web-root>/fbp/cli.php setting_get`
+- `php <framework-web-root>/fbp/cli.php app_call --json='{"class":"setting","function":"page"}'`
+- `php <framework-web-root>/fbp/cli.php app_call --json='{"class":"wizard","function":"run"}'`
 - 必要に応じて `app_call` で対象画面の HTML を確認する。
 
 ## browser checklist

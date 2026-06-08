@@ -30,10 +30,10 @@ Use this skill when an FBP app needs fixed, non-sensitive system images, QR imag
 2. Create `classes/app/images/` if needed, and place the asset file there.
 3. Replace embedded base64/data URI or class-local file reads with `images/<filename>` in the template.
 4. Remove now-unused PHP file reads, `base64_encode()`, and template assignments.
-5. Sync source to web with the normal `NetBeansProjects -> web` procedure.
+5. Sync source to the target runtime using the environment's normal procedure.
 6. Verify the asset URL returns the expected MIME type and the affected screen still renders.
 
 ## verification
 - Use `curl -I <app-base>/images/<filename>` or an equivalent request to confirm the route returns `200` and the expected content type.
 - Use `app_call` for the affected class/function when the asset is inside a dashboard, public page, or dialog.
-- If the asset is binary, also check that the source and web copies match after sync.
+- If the asset is binary, also check that the source and runtime copies match after sync.
