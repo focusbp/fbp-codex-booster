@@ -215,19 +215,37 @@ class user {
 
 	function password_reset(Controller $ctl) {
 		$id = (int) $ctl->POST("id");
-		try {
-			$this->show_account_invite_compose_dialog(
-				$ctl,
-				$id,
-				"user_password_reset_" . $id,
-				$ctl->t("user.dialog.reset_password"),
-				$ctl->t("user.notification.password_setup_link_sent")
-			);
-		} catch (Throwable $e) {
-			$data = $this->ffm->get($id);
-			$ctl->res_error_message("email", $this->get_account_invite_error_message($ctl, $e, is_array($data) ? $data : []));
+		$data = $this->ffm->get($id);
+		if (!is_array($data) || empty($data["id"])) {
+			$ctl->res_error_message("id", $ctl->t("user.validation.user_not_found"));
 			return;
 		}
+		if (!$this->has_valid_email($data)) {
+			$this->show_password_reset_email_dialog($ctl, $data);
+			return;
+		}
+		$this->show_password_reset_compose_dialog($ctl, $id);
+	}
+
+	function password_reset_email_exe(Controller $ctl) {
+		$id = (int) $ctl->POST("id");
+		$email = trim((string) $ctl->POST("email"));
+		$data = $this->ffm->get($id);
+		if (!is_array($data) || empty($data["id"])) {
+			$ctl->res_error_message("email", $ctl->t("user.validation.user_not_found"));
+			return;
+		}
+		if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+			$data["email"] = $email;
+			$ctl->assign("err_email", $ctl->t("validation.email.invalid"));
+			$this->show_password_reset_email_dialog($ctl, $data);
+			return;
+		}
+
+		$data["email"] = $email;
+		$this->ffm->update($data);
+		$ctl->close_multi_dialog($this->password_reset_email_dialog_name($id));
+		$this->show_password_reset_compose_dialog($ctl, $id);
 	}
 
 	function password_reset_exe(Controller $ctl) {
@@ -465,6 +483,41 @@ class user {
 	private function send_account_invite(Controller $ctl, int $id): void {
 		$mail = $this->build_account_invite_mail($ctl, $id);
 		$ctl->send_mail_text((string) $mail["email"], (string) $mail["subject"], (string) $mail["body"], null, true);
+	}
+
+	private function has_valid_email(array $data): bool {
+		return !empty($data["email"]) && filter_var((string) $data["email"], FILTER_VALIDATE_EMAIL);
+	}
+
+	private function password_reset_email_dialog_name(int $id): string {
+		return "user_password_reset_email_" . $id;
+	}
+
+	private function show_password_reset_email_dialog(Controller $ctl, array $data): void {
+		$ctl->assign("data", $data);
+		$ctl->show_multi_dialog(
+			$this->password_reset_email_dialog_name((int) $data["id"]),
+			"password_reset_email.tpl",
+			$ctl->t("user.dialog.set_reset_email"),
+			600,
+			true,
+			true
+		);
+	}
+
+	private function show_password_reset_compose_dialog(Controller $ctl, int $id): void {
+		try {
+			$this->show_account_invite_compose_dialog(
+				$ctl,
+				$id,
+				"user_password_reset_" . $id,
+				$ctl->t("user.dialog.reset_password"),
+				$ctl->t("user.notification.password_setup_link_sent")
+			);
+		} catch (Throwable $e) {
+			$data = $this->ffm->get($id);
+			$ctl->res_error_message("email", $this->get_account_invite_error_message($ctl, $e, is_array($data) ? $data : []));
+		}
 	}
 
 	private function show_account_invite_compose_dialog(Controller $ctl, int $id, string $dialog_name = "", string $dialog_title = "", string $notify_text = ""): void {
