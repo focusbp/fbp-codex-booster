@@ -169,6 +169,7 @@ function create_db($name, $data_dir, $fmt_dir) {
 		return $pool[$key];
 	}
 	$pool[$key] = new fixed_file_manager($name, $data_dir, $fmt_dir);
+	$pool[$key]->set_info($name, basename(rtrim((string) $data_dir, "/")));
 	return $pool[$key];
 }
 

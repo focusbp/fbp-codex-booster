@@ -11,6 +11,7 @@ class db_exe {
 	private $days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 	private $window_name;
 	private $title;
+	private $access_denied = false;
 
 	private function original_management_class_name(): string {
 		return (string) $this->table_name . "_original_management";
@@ -119,6 +120,12 @@ class db_exe {
 		
 		// Setting
 		$this->title = $db["menu_name"];
+
+		$function_name = $post_function !== "" ? $post_function : $get_function;
+		if (!$this->check_table_access($ctl, $function_name)) {
+			$this->deny_table_access($ctl);
+			return;
+		}
 		
 		$ctl->assign("tb_name",$this->table_name);
 		
@@ -367,6 +374,28 @@ class db_exe {
 		return new $class_name();
 	}
 
+	private function check_table_access(Controller $ctl, string $function_name): bool {
+		$filter = $this->get_visibility_filter($ctl);
+		if ($filter === null || !method_exists($filter, "can_access")) {
+			return true;
+		}
+		return (bool) $filter->can_access($ctl, $function_name, $this->table_name, $this->db_setting);
+	}
+
+	private function deny_table_access(Controller $ctl): void {
+		$this->access_denied = true;
+		$ctl->show_notification_text("この画面の閲覧権限がありません。", 4, "#B42318", "#FFF", 18, 620);
+		$ctl->stop_executing_function();
+	}
+
+	private function can_execute(Controller $ctl): bool {
+		if (!$this->access_denied) {
+			return true;
+		}
+		$ctl->stop_executing_function();
+		return false;
+	}
+
 	private function append_visibility_filter_conditions(Controller $ctl, array &$search_field_list, array &$search_values, array &$search_match_patterns, string $context): void {
 		$filter = $this->get_visibility_filter($ctl);
 		if ($filter === null || !method_exists($filter, "get_filter_conditions")) {
@@ -483,6 +512,9 @@ class db_exe {
 
 	
 	function page(Controller $ctl){
+		if (!$this->can_execute($ctl)) {
+			return;
+		}
 		if ((int) ($this->db_setting["screen_build_type"] ?? 0) === 1) {
 			$this->invoke_original_management($ctl);
 			return;
@@ -533,6 +565,9 @@ class db_exe {
 	}
 
 	function search(Controller $ctl){
+		if (!$this->can_execute($ctl)) {
+			return;
+		}
 		// Getting post data
 		$post = $ctl->POST();
 		
@@ -624,6 +659,9 @@ class db_exe {
 	}
 
 	function search_child(Controller $ctl){
+		if (!$this->can_execute($ctl)) {
+			return;
+		}
 		$post = $ctl->POST();
 		$parent_id = isset($post["parent_id"]) ? (int)$post["parent_id"] : 0;
 		if($parent_id <= 0){
@@ -636,6 +674,9 @@ class db_exe {
 	}
 	
 	function search_weekly_calendar(Controller $ctl){
+		if (!$this->can_execute($ctl)) {
+			return;
+		}
 		// Getting post data
 		$post = $ctl->POST();
 		
@@ -648,6 +689,9 @@ class db_exe {
 	
 	
 	function rows(Controller $ctl){
+		if (!$this->can_execute($ctl)) {
+			return;
+		}
 		
 		// Getting search fields and search values
 		$session = $ctl->get_session("search_" . $this->table_name);
@@ -713,6 +757,9 @@ class db_exe {
 	}
 	
 	function add(Controller $ctl){
+		if (!$this->can_execute($ctl)) {
+			return;
+		}
 		
 		$ctl->assign_field_settings("group1",$this->table_name, "add", false,true);
 		$row = $ctl->get_default_values($this->table_name);
@@ -727,6 +774,9 @@ class db_exe {
 	}
 	
 	function add_exe(Controller $ctl){
+		if (!$this->can_execute($ctl)) {
+			return;
+		}
 		
 		// Getting Post data
 		$post = $ctl->POST();
@@ -759,6 +809,9 @@ class db_exe {
 	}
 	
 	function edit(Controller $ctl){
+		if (!$this->can_execute($ctl)) {
+			return;
+		}
 		
 		// Getting Post data
 		$post = $ctl->POST();
@@ -779,6 +832,9 @@ class db_exe {
 	}
 	
 	function edit_exe(Controller $ctl){
+		if (!$this->can_execute($ctl)) {
+			return;
+		}
 		
 		// Getting Post data
 		$post = $ctl->POST();
@@ -823,6 +879,9 @@ class db_exe {
 	}
 	
 	function duplicate(Controller $ctl){
+		if (!$this->can_execute($ctl)) {
+			return;
+		}
 		$id = $ctl->decrypt_post("id");
 		
 		$new_id = $ctl->duplicate_rows($this->table_name, $id);
@@ -840,6 +899,9 @@ class db_exe {
 	}
 	
 	function edit_datetime_exe(Controller $ctl){
+		if (!$this->can_execute($ctl)) {
+			return;
+		}
 		
 		// Getting Post data
 		$post = $ctl->POST();
@@ -857,6 +919,9 @@ class db_exe {
 	}
 	
 	function delete(Controller $ctl){
+		if (!$this->can_execute($ctl)) {
+			return;
+		}
 		
 		// Assign the post data
 		$id = $ctl->decrypt_post("id");
@@ -895,6 +960,9 @@ class db_exe {
 	
 	
 	function delete_exe(Controller $ctl){
+		if (!$this->can_execute($ctl)) {
+			return;
+		}
 		$id = $ctl->decrypt_post("id");
 		$data = $this->ffm->get($id);
 		
@@ -915,6 +983,9 @@ class db_exe {
 	
 	
 	function rows_child(Controller $ctl){
+		if (!$this->can_execute($ctl)) {
+			return;
+		}
 		$post = $ctl->POST();
 		if ((int) ($this->db_setting["screen_build_type"] ?? 0) === 1
 				&& $this->invoke_original_management_function($ctl, "rows_child", $post)) {
@@ -1036,6 +1107,9 @@ class db_exe {
 	
 	
 	function add_child(Controller $ctl){
+		if (!$this->can_execute($ctl)) {
+			return;
+		}
 		$post = $ctl->POST();
 		$ctl->assign_field_settings("group1",$this->table_name, "add", false,false);
 		$row = $ctl->get_default_values($this->table_name);
@@ -1051,6 +1125,9 @@ class db_exe {
 	}
 	
 	function add_child_exe(Controller $ctl){
+		if (!$this->can_execute($ctl)) {
+			return;
+		}
 		
 		// Getting Post data
 		$post = $ctl->POST();
@@ -1084,6 +1161,9 @@ class db_exe {
 	}
 	
 	function edit_child(Controller $ctl){
+		if (!$this->can_execute($ctl)) {
+			return;
+		}
 		
 		// Getting Post data
 		$post = $ctl->POST();
@@ -1105,6 +1185,9 @@ class db_exe {
 	}
 	
 	function edit_child_exe(Controller $ctl){
+		if (!$this->can_execute($ctl)) {
+			return;
+		}
 		
 		// Getting Post data
 		$post = $ctl->POST();
@@ -1143,6 +1226,9 @@ class db_exe {
 	}
 	
 	function delete_child(Controller $ctl){
+		if (!$this->can_execute($ctl)) {
+			return;
+		}
 		
 		$post = $ctl->POST();
 		
@@ -1159,6 +1245,9 @@ class db_exe {
 	}
 	
 	function delete_child_exe(Controller $ctl){
+		if (!$this->can_execute($ctl)) {
+			return;
+		}
 		$post = $ctl->POST();
 		$parent_id = $post["parent_id"] ?? null;
 		$id = $ctl->decrypt_post("id");
@@ -1174,6 +1263,9 @@ class db_exe {
 	}
 	
 	function manual_sort(Controller $ctl){
+		if (!$this->can_execute($ctl)) {
+			return;
+		}
 		$post = $ctl->POST();
 		$ex = explode(",", (string) ($post["log"] ?? ""));
 		$c=1;
@@ -1188,6 +1280,9 @@ class db_exe {
 	}
 	
 	function rows_weekly_calendar(Controller $ctl){
+		if (!$this->can_execute($ctl)) {
+			return;
+		}
 		
 		// SET BROWSER TIMEZONE
 		date_default_timezone_set($ctl->POST("_timezone"));
@@ -1364,6 +1459,9 @@ class db_exe {
 	}
 	
 	function unassigned_tasks(Controller $ctl){
+		if (!$this->can_execute($ctl)) {
+			return;
+		}
 		
 		// field of each task
 		$ctl->assign_field_settings("group1",$this->table_name, 'list', false,true);
@@ -1394,6 +1492,9 @@ class db_exe {
 	}
 
 	function set_datetime(Controller $ctl){
+		if (!$this->can_execute($ctl)) {
+			return;
+		}
 		$d = $ctl->POST("d");
 		if(!is_numeric($d)){
 			// from the "Jump"
@@ -1431,6 +1532,9 @@ class db_exe {
 	}
 	
 	function reload(Controller $ctl){
+		if (!$this->can_execute($ctl)) {
+			return;
+		}
 		$ctl->reload_work_area();
 		$ctl->reload_side_panel();
 		$ctl->invoke("show_menu",[],"base");

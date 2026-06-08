@@ -27,6 +27,7 @@ class fixed_file_manager implements FFM {
 	private $ctl;
 	private $read_only = false;
 	private $format_source = "fmt";
+	private $operation_log_dir;
 
 	private function is_empty_filter_itemname($iname): bool {
 		if (is_array($iname)) {
@@ -189,6 +190,10 @@ class fixed_file_manager implements FFM {
 
 	public function allclear() {
 		$this->assert_writable("allclear");
+		$snapshot = $this->snapshot_dat_file("allclear");
+		$this->write_operation_log("allclear", null, null, [
+			"snapshot" => $snapshot,
+		]);
 		$this->close();
 		$format_txt = $this->readFmtFile();
 		$header_txt = $this->makeHeader(0, $format_txt, $this->parseFormat($format_txt));
@@ -196,6 +201,7 @@ class fixed_file_manager implements FFM {
 		//パーミッションを変更する
 		chmod($this->path_dat, 0770);
 
+		$this->flg_prepared = false;
 		$this->openDatFile();
 	}
 
@@ -347,6 +353,7 @@ class fixed_file_manager implements FFM {
 		$this->header["maxid"]++;
 		$id = $this->header["maxid"];
 		$dataset["id"] = $id;
+		$this->write_operation_log("insert", null, $dataset);
 
 		//最大IDの変更のためヘッダを保存
 		$header_txt = $this->makeHeader($this->header["maxid"], $this->header["format_txt"], $this->format);
@@ -373,6 +380,7 @@ class fixed_file_manager implements FFM {
 		$d = $this->get($id);
 		//ポインタを戻す
 		if ($d != null) {
+			$this->write_operation_log("delete", $d, null);
 			fseek($this->hf, -1 * $this->header["recordsize"], SEEK_CUR);
 			fwrite($this->hf, "X");
 		}
@@ -391,6 +399,8 @@ class fixed_file_manager implements FFM {
 			foreach ($dataset as $key => $val) {
 				$d[$key] = $val;
 			}
+			$before = $this->get($dataset["id"]);
+			$this->write_operation_log("update", $before, $d);
 
 			fseek($this->hf, -1 * $this->header["recordsize"], SEEK_CUR);
 			$this->writedata($d);
@@ -419,6 +429,81 @@ class fixed_file_manager implements FFM {
 			}
 		}
 		return null;
+	}
+
+	private function find_record_offset_by_id($id, bool $include_deleted = false): ?array {
+		if (empty($id)) {
+			return null;
+		}
+
+		$this->check_hf();
+		$current = ftell($this->hf);
+
+		try {
+			fseek($this->hf, $this->header["headersize"]);
+
+			$start = 1;
+			$end = ($this->eof - $this->header["headersize"]) / $this->header["recordsize"];
+			if ($end < 1) {
+				return null;
+			}
+			$center = $start + floor(($end - $start) / 2);
+
+			while (true) {
+				$offset = $this->header["headersize"] + $this->header["recordsize"] * ($center - 1);
+				fseek($this->hf, $offset);
+
+				$flg = fread($this->hf, 1);
+				$id_f = (int) fread($this->hf, $this->format[0]["size"]);
+
+				if ((int) $id === $id_f) {
+					if ($flg === " " || ($include_deleted && $flg === "X")) {
+						return [
+							"offset" => $offset,
+							"flag" => $flg,
+							"id" => $id_f,
+						];
+					}
+					return null;
+				}
+
+				if ($start >= $end) {
+					return null;
+				}
+
+				if ((int) $id > $id_f) {
+					$start = $center + 1;
+				} else {
+					$end = $center - 1;
+				}
+				$center = $start + floor(($end - $start) / 2);
+			}
+		} finally {
+			fseek($this->hf, $current);
+		}
+	}
+
+	public function restore_deleted_record(array $dataset): void {
+		$this->assert_writable("restore_deleted_record");
+		if (empty($dataset["id"])) {
+			throw new Exception("id is required to restore deleted record");
+		}
+
+		$record = $this->find_record_offset_by_id((int) $dataset["id"], true);
+		if ($record === null) {
+			throw new Exception("Deleted record was not found: " . (int) $dataset["id"]);
+		}
+		if ($record["flag"] !== "X") {
+			throw new Exception("Record is not deleted: " . (int) $dataset["id"]);
+		}
+
+		$p = ftell($this->hf);
+		$this->write_operation_log("restore_deleted_record", null, $dataset, [
+			"restored_from_flag" => "X",
+		]);
+		fseek($this->hf, (int) $record["offset"]);
+		$this->writedata($dataset);
+		fseek($this->hf, $p);
 	}
 
 	// 指定した件数のデータに移動する
@@ -1327,6 +1412,12 @@ class fixed_file_manager implements FFM {
 		$this->assert_writable("changeFormat");
 
 		$newf = $this->parseFormat($newformat);
+		$snapshot = $this->snapshot_dat_file("change_format");
+		$this->write_operation_log("change_format", null, null, [
+			"snapshot" => $snapshot,
+			"before_format_hash" => hash("sha256", (string) ($this->header["format_txt"] ?? "")),
+			"after_format_hash" => hash("sha256", $newformat),
+		]);
 
 		//tmpファイルをオープンする
 		if ($h_tmp = fopen($this->path_tmp, "wb")) {
@@ -1351,10 +1442,9 @@ class fixed_file_manager implements FFM {
 			// datファイルをバックアップする
 			flock($this->hf, LOCK_UN);
 			fclose($this->hf);
-			if (file_exists($this->path_bak)) {
-				unlink($this->path_dat);
-			} else {
-				rename($this->path_dat, $this->path_bak);
+			$backup_path = $this->make_unique_backup_path();
+			if (!rename($this->path_dat, $backup_path)) {
+				throw new Exception("Can't backup dat file:" . $this->path_dat);
 			}
 
 			// tmpからdatに変換する
@@ -1362,6 +1452,7 @@ class fixed_file_manager implements FFM {
 
 			// datを一度閉じて、再度再度オープンする
 			$this->close();
+			$this->flg_prepared = false;
 			$this->openDatFile();
 		} else {
 			throw new Exception("Can't open tmpfile:" . $this->path_tmp);
@@ -1481,6 +1572,213 @@ class fixed_file_manager implements FFM {
 		$ft_size = $arr["headersize"] - 4 - 16 - 8 - 16;
 		$arr["format_txt"] = trim(fread($this->hf, $ft_size));
 		return $arr;
+	}
+
+	private function write_operation_log(string $operation, ?array $before, ?array $after, array $meta = []): string {
+		if ($this->read_only || (string) getenv("FBP_FFM_LOG_DISABLE") === "1") {
+			return "";
+		}
+
+		$txid = $this->generate_operation_txid();
+		$entry = [
+			"version" => 1,
+			"txid" => $txid,
+			"timestamp" => date("c"),
+			"source" => $this->get_operation_log_source(),
+			"pid" => getmypid(),
+			"class" => $this->get_operation_log_classname(),
+			"table" => $this->info_tablename ?: $this->filename,
+			"operation" => $operation,
+			"id" => $this->get_operation_log_id($before, $after),
+			"before" => $this->normalize_operation_log_row($before),
+			"after" => $this->normalize_operation_log_row($after),
+			"dat_path" => $this->get_classes_relative_path($this->path_dat),
+			"fmt_path" => $this->path_fmt === null ? "" : $this->get_classes_relative_path($this->path_fmt),
+			"header" => [
+				"maxid" => (int) ($this->header["maxid"] ?? 0),
+				"recordsize" => (int) ($this->header["recordsize"] ?? 0),
+				"headersize" => (int) ($this->header["headersize"] ?? 0),
+				"format_hash" => hash("sha256", (string) ($this->header["format_txt"] ?? "")),
+			],
+			"request" => $this->get_operation_log_request_context(),
+			"actor" => $this->get_operation_log_actor(),
+			"meta" => $meta,
+			"status" => "committed",
+		];
+
+		$json = json_encode($entry, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+		if ($json === false) {
+			throw new Exception("Failed to encode fixed file operation log");
+		}
+
+		$log_dir = $this->get_operation_log_dir();
+		$path = $log_dir . "/" . date("Ymd") . ".jsonl";
+		$fh = fopen($path, "ab");
+		if ($fh === false) {
+			throw new Exception("Can't open fixed file operation log:" . $path);
+		}
+		try {
+			if (!flock($fh, LOCK_EX)) {
+				throw new Exception("Can't lock fixed file operation log:" . $path);
+			}
+			if (fwrite($fh, $json . "\n") === false) {
+				throw new Exception("Can't write fixed file operation log:" . $path);
+			}
+			fflush($fh);
+			flock($fh, LOCK_UN);
+		} finally {
+			fclose($fh);
+		}
+		return $txid;
+	}
+
+	private function snapshot_dat_file(string $operation): array {
+		if (!is_file($this->path_dat)) {
+			return [
+				"created" => false,
+				"reason" => "dat_not_found",
+			];
+		}
+		$dir = $this->get_operation_log_dir() . "/snapshots/" . date("Ymd");
+		if (!is_dir($dir) && !mkdir($dir, 0777, true) && !is_dir($dir)) {
+			throw new Exception("Can't make fixed file snapshot directory:" . $dir);
+		}
+
+		$class = preg_replace('/[^a-zA-Z0-9_\\-]/', "_", $this->get_operation_log_classname());
+		$table = preg_replace('/[^a-zA-Z0-9_\\-]/', "_", $this->info_tablename ?: $this->filename);
+		$base = date("His") . "_" . $operation . "_" . $class . "_" . $table;
+		$path = $dir . "/" . $base . ".dat";
+		$seq = 2;
+		while (is_file($path)) {
+			$path = $dir . "/" . $base . "_" . $seq . ".dat";
+			$seq++;
+		}
+		if (!copy($this->path_dat, $path)) {
+			throw new Exception("Can't create fixed file snapshot:" . $this->path_dat);
+		}
+		return [
+			"created" => true,
+			"path" => $this->get_classes_relative_path($path),
+			"size" => filesize($path),
+			"sha256" => hash_file("sha256", $path),
+		];
+	}
+
+	private function make_unique_backup_path(): string {
+		$base = $this->datadir . $this->filename . "-" . date("Ymd_His");
+		$path = $base . ".bak";
+		$seq = 2;
+		while (is_file($path)) {
+			$path = $base . "_" . $seq . ".bak";
+			$seq++;
+		}
+		return $path;
+	}
+
+	private function get_operation_log_dir(): string {
+		if ($this->operation_log_dir !== null) {
+			return $this->operation_log_dir;
+		}
+		$classes_dir = $this->get_classes_dir_from_path($this->datadir);
+		$log_dir = $classes_dir . "/log/ffm";
+		if (!is_dir($log_dir) && !mkdir($log_dir, 0777, true) && !is_dir($log_dir)) {
+			throw new Exception("Can't make fixed file operation log directory:" . $log_dir);
+		}
+		$this->operation_log_dir = $log_dir;
+		return $this->operation_log_dir;
+	}
+
+	private function get_classes_dir_from_path(string $path): string {
+		$normalized = rtrim(str_replace("\\", "/", $path), "/");
+		$marker = "/classes/data";
+		$pos = strpos($normalized, $marker);
+		if ($pos !== false) {
+			return substr($normalized, 0, $pos + strlen("/classes"));
+		}
+		return rtrim(dirname($normalized), "/");
+	}
+
+	private function get_classes_relative_path(string $path): string {
+		$classes_dir = $this->get_classes_dir_from_path($this->datadir);
+		$normalized_path = str_replace("\\", "/", $path);
+		$normalized_classes = rtrim(str_replace("\\", "/", $classes_dir), "/") . "/";
+		if (strpos($normalized_path, $normalized_classes) === 0) {
+			return substr($normalized_path, strlen($normalized_classes));
+		}
+		return basename($path);
+	}
+
+	private function generate_operation_txid(): string {
+		try {
+			$rand = bin2hex(random_bytes(8));
+		} catch (Throwable $e) {
+			$rand = substr(str_replace(".", "", uniqid("", true)), -16);
+		}
+		return "FFM-" . date("Ymd-His") . "-" . $rand;
+	}
+
+	private function get_operation_log_source(): string {
+		if (PHP_SAPI === "cli") {
+			return "cli";
+		}
+		$class = (string) ($_GET["class"] ?? $_POST["class"] ?? "");
+		if (substr($class, -4) === "_api") {
+			return "api";
+		}
+		return "web";
+	}
+
+	private function get_operation_log_classname(): string {
+		if (!empty($this->info_classname)) {
+			return (string) $this->info_classname;
+		}
+		$dir = basename(rtrim($this->datadir, "/"));
+		return $dir === "" ? "" : $dir;
+	}
+
+	private function get_operation_log_id(?array $before, ?array $after): ?int {
+		$id = null;
+		if (is_array($after) && isset($after["id"])) {
+			$id = $after["id"];
+		} else if (is_array($before) && isset($before["id"])) {
+			$id = $before["id"];
+		}
+		if ($id === null || $id === "") {
+			return null;
+		}
+		return (int) $id;
+	}
+
+	private function normalize_operation_log_row(?array $row): ?array {
+		if ($row === null) {
+			return null;
+		}
+		unset($row["_id_enc"]);
+		return $row;
+	}
+
+	private function get_operation_log_request_context(): array {
+		return [
+			"class" => (string) ($_GET["class"] ?? $_POST["class"] ?? ""),
+			"function" => (string) ($_GET["function"] ?? $_POST["function"] ?? ""),
+			"method" => (string) ($_SERVER["REQUEST_METHOD"] ?? (PHP_SAPI === "cli" ? "CLI" : "")),
+		];
+	}
+
+	private function get_operation_log_actor(): array {
+		$actor = [];
+		if ($this->ctl !== null) {
+			if (method_exists($this->ctl, "get_login_user_id")) {
+				$actor["login_user_id"] = $this->ctl->get_login_user_id();
+			}
+			if (method_exists($this->ctl, "get_login_id")) {
+				$actor["login_id"] = $this->ctl->get_login_id();
+			}
+			if (method_exists($this->ctl, "get_login_type")) {
+				$actor["login_type"] = $this->ctl->get_login_type();
+			}
+		}
+		return $actor;
 	}
 
 	public function get_prohibition_items() {

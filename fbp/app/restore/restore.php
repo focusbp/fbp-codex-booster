@@ -68,6 +68,9 @@ class restore {
 			if (!$file->isDir()) {
 				$filePath = $file->getRealPath();
 				$relativePath = substr($filePath, strlen($this->dir) + 1);
+				if ($this->isExcludedRestoreArchivePath($relativePath)) {
+					continue;
+				}
 				$zip->addFile($filePath, $relativePath);
 			}
 		}
@@ -208,6 +211,11 @@ class restore {
 			}
 		}
 		return false;
+	}
+
+	private function isExcludedRestoreArchivePath($relativePath) {
+		$targetPath = ltrim(str_replace("\\", "/", (string) $relativePath), "/");
+		return $targetPath === "log/ffm" || strpos($targetPath, "log/ffm/") === 0;
 	}
 
 	private function getRestoreExcludedPaths(Controller $ctl) {

@@ -41,6 +41,14 @@ interface FFM {
 	function update($dataset);
 
 	/**
+	 * Restores an in-place deleted record whose flag is X.
+	 *
+	 * @param array $dataset The full data row to restore, including id.
+	 * @return void
+	 */
+	function restore_deleted_record(array $dataset): void;
+
+	/**
 	 * Retrieves the next available data entry.
 	 * 
 	 * @return array|null The next data entry or null if no data is available.

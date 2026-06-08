@@ -166,9 +166,7 @@ class ReleaseManager {
 			mkdir($this->public_assets_dir, 0777, true);
 			$this->deleteDirectory($this->datadir . "/templates_c");
 
-			if (!$zip->extractTo($this->extractdir)) {
-				throw new Exception($ctl->t("release.validation.cannot_open_file", ["file" => basename($zipFile)]));
-			}
+			$this->extractReleaseZip($zip, $ctl, $zipFile);
 		} finally {
 			$zip->close();
 		}
@@ -229,6 +227,9 @@ class ReleaseManager {
 				continue;
 			}
 			$relativePath = substr($filePath, strlen($this->extractdir) + 1);
+			if ($this->isExcludedArchivePath($relativePath)) {
+				continue;
+			}
 			$zip->addFile($filePath, $relativePath);
 		}
 	}
@@ -251,8 +252,33 @@ class ReleaseManager {
 				continue;
 			}
 			$relativePath = substr($filePath, strlen($this->extractdir) + 1);
+			if ($this->isExcludedArchivePath($relativePath)) {
+				continue;
+			}
 			$zip->addFile($filePath, $relativePath);
 		}
+	}
+
+	private function extractReleaseZip(ZipArchive $zip, Controller $ctl, string $zipFile): void {
+		$entries = [];
+		for ($i = 0; $i < $zip->numFiles; $i++) {
+			$filename = $zip->getNameIndex($i);
+			if (!is_string($filename) || $filename === "" || $this->isExcludedArchivePath($filename)) {
+				continue;
+			}
+			$entries[] = $filename;
+		}
+		if (count($entries) === 0) {
+			return;
+		}
+		if (!$zip->extractTo($this->extractdir, $entries)) {
+			throw new Exception($ctl->t("release.validation.cannot_open_file", ["file" => basename($zipFile)]));
+		}
+	}
+
+	private function isExcludedArchivePath(string $relativePath): bool {
+		$path = ltrim(str_replace("\\", "/", $relativePath), "/");
+		return $path === "log/ffm" || strpos($path, "log/ffm/") === 0;
 	}
 
 	private function endsWith(string $haystack, string $needle): bool {

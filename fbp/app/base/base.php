@@ -189,6 +189,40 @@ class base {
 		
 		$ctl->show_sidemenu("left_menu.tpl", 300, 200, "left");
 	}
+
+	private function get_table_visibility_filter(Controller $ctl, string $table_name) {
+		if (!isset($ctl->dirs) || !is_object($ctl->dirs)) {
+			return null;
+		}
+		$class_name = $table_name . "_visibility_filter";
+		$file_path = $ctl->dirs->appdir_user . "/" . $class_name . "/" . $class_name . ".php";
+		if (!is_file($file_path)) {
+			return null;
+		}
+		require_once $file_path;
+		if (!class_exists($class_name)) {
+			return null;
+		}
+		return new $class_name();
+	}
+
+	private function can_show_database_menu(Controller $ctl, array $db): bool {
+		$table_name = (string)($db["tb_name"] ?? "");
+		if ($table_name === "") {
+			return true;
+		}
+		$filter = $this->get_table_visibility_filter($ctl, $table_name);
+		if ($filter === null) {
+			return true;
+		}
+		if (method_exists($filter, "can_show_menu")) {
+			return (bool) $filter->can_show_menu($ctl, $table_name, $db);
+		}
+		if (method_exists($filter, "can_access")) {
+			return (bool) $filter->can_access($ctl, "menu", $table_name, $db);
+		}
+		return true;
+	}
 	
 	private function assign_menu(Controller $ctl){
 		// If there is a menu.tpl, put it into the side menu.
@@ -222,6 +256,9 @@ class base {
 		foreach ($list as $db) {
 			$menu_visibility = (int) ($db["menu_visibility"] ?? 0);
 			if ($menu_visibility === 1 && !$is_app_admin) {
+				continue;
+			}
+			if (!$this->can_show_database_menu($ctl, $db)) {
 				continue;
 			}
 			$database_menu[] = $db;
