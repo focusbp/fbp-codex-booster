@@ -13,7 +13,7 @@ Project docs are source-side context for AI and developers. They are not runtime
 
 ## Priority
 
-Project docs are lower priority than common `AGENTS.md`, applicable Skills, and `NetBeansProjects` environment rules.
+Project docs are lower priority than common `AGENTS.md`, applicable Skills, and local environment rules.
 
 - Use docs as support history and decision context, not as rule authority.
 - If docs conflict with common rules or Skills, follow the common rules or Skills.

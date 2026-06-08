@@ -5,14 +5,17 @@ if (PHP_SAPI !== 'cli') {
 	exit;
 }
 
-// Safety guard: do not run CLI from NetBeansProjects workspace.
+// Safety guard: do not run CLI from the local source workspace.
 $cli_path = realpath(__FILE__);
 if ($cli_path === false) {
 	$cli_path = __FILE__;
 }
-if (strpos($cli_path, "/NetBeansProjects/") !== false) {
-	fwrite(STDERR, "ERROR: cli.php must not be executed under NetBeansProjects.\n");
-	exit(1);
+$source_workspace_markers = ["/projects/", "/NetBeansProjects/"];
+foreach ($source_workspace_markers as $source_workspace_marker) {
+	if (strpos($cli_path, $source_workspace_marker) !== false) {
+		fwrite(STDERR, "ERROR: cli.php must not be executed under the source workspace.\n");
+		exit(1);
+	}
 }
 
 ini_set('display_errors', 1);

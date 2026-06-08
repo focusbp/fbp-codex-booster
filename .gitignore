@@ -15,6 +15,9 @@ nbproject/private/
 *.bak
 NetBeansProjects.md
 **/NetBeansProjects.md
+local-*.md
+**/local-*.md
+fbp/docs/.agents/skills/local-*/
 
 # Local Codex/server operation skills. Keep framework-generic skills in Git,
 # but do not publish this server's support/release/runtime automation guides.
