@@ -267,7 +267,7 @@ class base {
 
 		// Dashboard Menu
 		$dashboard_widgets = $ctl->db("dashboard", "dashboard")->getall("sort", SORT_ASC);
-		$show_dashboard_menu = count($dashboard_widgets) > 0;
+		$show_dashboard_menu = count($dashboard_widgets) > 0 && $ctl->authorize_management_access("dashboard", "page");
 		$ctl->assign("show_dashboard_menu", $show_dashboard_menu);
 		
 		// Homepage
@@ -296,30 +296,36 @@ class base {
 		}
 
 		$admin_items = [];
-		if ($ctl->is_app_admin() || $ctl->has_developer_permission()) {
-			if ($project_portal_url !== "") {
-				$admin_items[] = [
-					"type" => "external",
-					"label" => $ctl->t("base.menu.project_portal"),
-					"url" => $project_portal_url,
-					"attributes" => [
-						"target" => "_blank",
-						"rel" => "noopener",
-					],
-				];
-			}
-			if ($setting["force_testmode"] == 1 ||
-				($setting["force_testmode"] == 0 && $setting["show_developer_panel"] == 1)) {
-				$admin_items[] = [
-					"type" => "ajax",
-					"label" => $ctl->t("base.menu.development_panel"),
-					"class" => "panel",
-					"function" => "page",
-					"attributes" => [],
-				];
-			}
+		$can_show_project_portal = $project_portal_url !== "" && $ctl->authorize_management_access("panel", "page");
+		$can_show_development_panel = (
+			$setting["force_testmode"] == 1 ||
+			($setting["force_testmode"] == 0 && $setting["show_developer_panel"] == 1)
+		) && $ctl->authorize_management_access("panel", "page");
+		$can_show_release_backup = $ctl->authorize_management_access("panel", "release_backup");
+		$can_show_user_management = $ctl->authorize_management_access("user", "page");
+		$can_show_system_setting = $ctl->authorize_management_access("setting", "page");
+
+		if ($can_show_project_portal) {
+			$admin_items[] = [
+				"type" => "external",
+				"label" => $ctl->t("base.menu.project_portal"),
+				"url" => $project_portal_url,
+				"attributes" => [
+					"target" => "_blank",
+					"rel" => "noopener",
+				],
+			];
 		}
-		if ($ctl->is_app_admin() || $ctl->has_data_manager_permission()) {
+		if ($can_show_development_panel) {
+			$admin_items[] = [
+				"type" => "ajax",
+				"label" => $ctl->t("base.menu.development_panel"),
+				"class" => "panel",
+				"function" => "page",
+				"attributes" => [],
+			];
+		}
+		if ($can_show_release_backup) {
 			$admin_items[] = [
 				"type" => "ajax",
 				"label" => $ctl->t("base.menu.release_backup"),
@@ -328,7 +334,7 @@ class base {
 				"attributes" => [],
 			];
 		}
-		if ($ctl->is_app_admin()) {
+		if ($can_show_user_management) {
 			$admin_items[] = [
 				"type" => "ajax",
 				"label" => $ctl->t("base.menu.user_management"),
@@ -336,6 +342,8 @@ class base {
 				"function" => "page",
 				"attributes" => [],
 			];
+		}
+		if ($can_show_system_setting) {
 			$admin_items[] = [
 				"type" => "ajax",
 				"label" => $ctl->t("base.menu.system_setting"),
@@ -344,6 +352,12 @@ class base {
 				"attributes" => [],
 			];
 		}
+		$ctl->assign("can_show_project_portal", $can_show_project_portal);
+		$ctl->assign("can_show_development_panel", $can_show_development_panel);
+		$ctl->assign("can_show_release_backup", $can_show_release_backup);
+		$ctl->assign("can_show_user_management", $can_show_user_management);
+		$ctl->assign("can_show_system_setting", $can_show_system_setting);
+		$ctl->assign("show_admin_console_menu", count($admin_items) > 0);
 
 		if (count($admin_items) > 0) {
 			$empty_main_sections[] = [

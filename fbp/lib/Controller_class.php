@@ -2222,7 +2222,33 @@ class Controller_class implements Controller {
 		return (int) ($_SESSION[$this->windowcode]["data_manager_permission"] ?? 0) === 1;
 	}
 
+	private function get_app_management_access_guard() {
+		$class_name = "app_management_access_guard";
+		$file_path = $this->dirs->appdir_user . "/" . $class_name . "/" . $class_name . ".php";
+		if (!is_file($file_path)) {
+			return null;
+		}
+		require_once $file_path;
+		if (!class_exists($class_name)) {
+			return null;
+		}
+		return new $class_name();
+	}
+
+	private function authorize_with_app_management_access_guard(string $class, string $function) {
+		$guard = $this->get_app_management_access_guard();
+		if ($guard === null || !method_exists($guard, "authorize")) {
+			return null;
+		}
+		return $guard->authorize($this, $class, $function);
+	}
+
 	function authorize_management_access(string $class, string $function): bool {
+		$app_guard_result = $this->authorize_with_app_management_access_guard($class, $function);
+		if ($app_guard_result !== null) {
+			return (bool) $app_guard_result;
+		}
+
 		if ($class === "dashboard" && $function === "page") {
 			return true;
 		}

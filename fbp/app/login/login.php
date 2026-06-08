@@ -462,6 +462,9 @@ class login {
 	}
 
 	function login_ok(Controller $ctl, $user, $login_id, $password) {
+		if ($this->defer_login_to_app_guard($ctl, $user, $login_id, $password)) {
+			return;
+		}
 		
 		$ctl->set_session("login", true);
 
@@ -484,11 +487,28 @@ class login {
 		$this->set_remember_me_cookie($ctl, $login_id);
 		
 		if ((int) ($user["flg_password_change_required"] ?? 0) === 1) {
-			$ctl->res_redirect("app.php?class=password_reset&function=force_page");
+			$ctl->res_redirect($ctl->get_APP_URL("password_reset", "force_page"));
 			return;
 		}
 		
-		$ctl->res_redirect("app.php?class=base");
+		$ctl->res_redirect($ctl->get_APP_URL("base", "page"));
+	}
+
+	private function defer_login_to_app_guard(Controller $ctl, $user, $login_id, $password): bool {
+		if (!isset($ctl->dirs) || !is_object($ctl->dirs) || !is_array($user)) {
+			return false;
+		}
+		$class_name = "login_two_factor_guard";
+		$file_path = $ctl->dirs->appdir_user . "/" . $class_name . "/" . $class_name . ".php";
+		if (!is_file($file_path)) {
+			return false;
+		}
+		require_once $file_path;
+		if (!class_exists($class_name) || !method_exists($class_name, "defer_login")) {
+			return false;
+		}
+		$guard = new $class_name();
+		return (bool)$guard->defer_login($ctl, $user, (string)$login_id, (string)$password);
 	}
 
 	function logo(Controller $ctl) {
@@ -506,7 +526,7 @@ class login {
 		app_setcookie("password", "",time() - 3600);
 		app_setcookie($this->remember_me_cookie_name, "",time() - 3600);
 		app_setcookie("login_status", "",time() - 3600);
-		$ctl->res_redirect("app.php?class=login");
+		$ctl->res_redirect($ctl->get_APP_URL("login", "page"));
 	}
 
 	private function find_user_by_credentials($login_id, $password) {

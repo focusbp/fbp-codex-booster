@@ -26,27 +26,22 @@
 			{/if}
 		{/if}
 
-		{if $MYSESSION.app_admin || $MYSESSION.data_manager_permission == 1 ||
-			(($MYSESSION.developer_permission == 1) &&
-				(($project_portal_url|default:'' != '') ||
-				$setting["force_testmode"] == 1 ||
-				($setting["force_testmode"] == 0 && $setting["show_developer_panel"] == 1)))}
+		{if $show_admin_console_menu}
 			<h3>{$base_menu_i18n.admin_console}</h3>
 		{/if}
-		{if $MYSESSION.app_admin || $MYSESSION.developer_permission == 1}
-			{if $project_portal_url|default:'' != ''}
+		{if $can_show_project_portal}
 			<a href="{$project_portal_url|escape}" target="_blank" rel="noopener">{$base_menu_i18n.project_portal}</a>
-			{/if}
-			{if $setting["force_testmode"] == 1 ||
-				($setting["force_testmode"] == 0 && $setting["show_developer_panel"] == 1) }
-			<a class="ajax-link lang" data-class="panel" data-function="page">{$base_menu_i18n.development_panel}</a>
-			{/if}
 		{/if}
-		{if $MYSESSION.app_admin || $MYSESSION.data_manager_permission == 1 }
+		{if $can_show_development_panel}
+			<a class="ajax-link lang" data-class="panel" data-function="page">{$base_menu_i18n.development_panel}</a>
+		{/if}
+		{if $can_show_release_backup}
 			<a class="ajax-link lang" data-class="panel" data-function="release_backup">{$base_menu_i18n.release_backup}</a>
 		{/if}
-		{if $MYSESSION.app_admin}
+		{if $can_show_user_management}
 			<a class="ajax-link lang" data-class="user" data-function="page">{$base_menu_i18n.user_management}</a>
+		{/if}
+		{if $can_show_system_setting}
 			<a class="ajax-link lang" data-class="setting" data-function="page">{$base_menu_i18n.system_setting}</a>
 		{/if}
 
