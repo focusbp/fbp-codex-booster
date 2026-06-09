@@ -234,8 +234,12 @@ class base {
 		
 		$setting = $ctl->get_setting();
 		$project_portal_url = $this->normalize_external_url($setting["project_portal_url"] ?? "");
+		$homepage_url = $this->normalize_external_url($setting["website_url"] ?? "");
+		$show_homepage_menu = ((int) ($setting["show_menu_homepage"] ?? 0) === 1 && $homepage_url !== "");
 		$ctl->assign("setting",$setting);
 		$ctl->assign("project_portal_url", $project_portal_url);
+		$ctl->assign("homepage_url", $homepage_url);
+		$ctl->assign("show_homepage_menu", $show_homepage_menu);
 		$ctl->assign("base_menu_i18n", [
 			"dashboard" => $ctl->t("base.menu.dashboard"),
 			"databases" => $ctl->t("base.menu.databases"),

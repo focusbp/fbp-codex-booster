@@ -90,7 +90,7 @@
 							<td><input type="text" name="currency_decimal_digits" value="{$setting.currency_decimal_digits}"></td>
 						</tr>
 						<tr>
-							<th rowspan="5">{t key="setting.mode"}</th>
+							<th rowspan="6">{t key="setting.mode"}</th>
 							<td>{t key="setting.mode"}</td>
 							<td>{html_options name="force_testmode" options=$arr_force_testmode selected=$setting.force_testmode}</td>
 						</tr>
@@ -105,6 +105,10 @@
 						<tr>
 							<td>{t key="setting.show_homepage_link"}</td>
 							<td>{html_options name="show_menu_homepage" options=$arr_show_menu selected=$setting.show_menu_homepage}</td>
+						</tr>
+						<tr>
+							<td>{t key="setting.website_url"}</td>
+							<td><input type="text" name="website_url" value="{$setting.website_url|escape}"></td>
 						</tr>
 						<tr>
 							<td>{t key="setting.project_portal_url"}</td>
@@ -181,11 +185,6 @@
 								<input type="text" name="framework_menu_text_color" value="{$setting.framework_menu_text_color}" class="colorpicker" placeholder="#4BA3FF">
 								<p class="setting_field_help">{t key="setting.framework_menu_text_color_help"}</p>
 							</td>
-						</tr>
-						<tr>
-							<th>{t key="setting.website"}</th>
-							<td>{t key="setting.website_url"}</td>
-							<td><input type="text" name="website_url" value="{$setting.website_url}"></td>
 						</tr>
 						<tr>
 							<th rowspan="2">{t key="setting.viewport"}</th>

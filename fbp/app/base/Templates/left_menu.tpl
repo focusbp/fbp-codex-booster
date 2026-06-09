@@ -19,11 +19,9 @@
 			{include file="$menu_file"}
 		{/if}
 
-		{if $setting["show_menu_homepage"] == 1}
+		{if $show_homepage_menu}
 			<h3>{$base_menu_i18n.public_side}</h3>
-			{if $setting["show_menu_homepage"] == 1}
-				<a href="{$root_url}" target="_blank">{$base_menu_i18n.homepage}</a>
-			{/if}
+			<a href="{$homepage_url|escape}" target="_blank" rel="noopener">{$base_menu_i18n.homepage}</a>
 		{/if}
 
 		{if $show_admin_console_menu}
