@@ -37,6 +37,7 @@ description: Build and operate public_pages with login-free entry points, secure
 - 下にテーブル、一覧、カード、詳細表示などが続く場合は、アクションバー下に `margin-bottom: 10px` 以上を確保する。フォーム末尾でも `margin-top` は同じ基準にして画面ごとのばらつきを避ける。
 - すべての操作ボタン/ボタン風リンクに同じ `button_link` 系クラスを付け、`min-height`、`padding`、`line-height`、`display: inline-flex`、`align-items: center` を共通CSSで揃える。個別ボタンの inline style、`float`、個別 `margin` で位置調整しない。
 - 主操作/戻る/補助で色や枠線を変えるのはよいが、高さ・左右余白・行内余白・ボタン間 `gap` は統一する。
+- `appstyle.css` 側の汎用 `button` 上マージンが公開側UIに干渉するため、公開ページのルートスコープ内で `button { margin-top: 0; }` または `button { margin: 0; }` を明示して打ち消す。
 - `classes/app/public_pages/style.css` またはページ固有CSSに、次の形をベースとして置く。
 
 ```smarty
@@ -81,6 +82,10 @@ description: Build and operate public_pages with login-free entry points, secure
 	margin: 0;
 	padding: 0 16px;
 	line-height: 1.2;
+}
+
+.public-page-root button {
+	margin-top: 0;
 }
 ```
 
@@ -268,17 +273,29 @@ private function assign_news_list(Controller $ctl) {
 - メニュー順は `menu_sort` 昇順を前提にする。
 - まだ公開ページが揃っていない段階でも、ヘッダ側は `public_pages_registry` のメニュー取得に寄せておく。
 - LINEモールや小規模ECの公開側で、今回のような整った赤基調のモール画面を作る場合は `references/public_mall_ui_sample.md` を読む。ヘッダ、検索、商品カード、カート、履歴、空表示、フォーム、モバイル対応のCSSサンプルを含む。
+- FC店ポータル、会員マイページ、店舗用業務画面など、公開側を管理画面風の業務ポータルにする場合は `references/public_admin_portal_ui_sample.md` を読む。上バー、左メニュー、検索付き一覧、サマリー、親情報を子一覧上部へ表示する横罫線テーブル、Material Symbols、AjaxでURLを変えない操作、appstyle打ち消し、dropdown/label/datetime調整、CRUD helper、`ajax-auto` の基準を含む。
+- 管理画面風ポータルでは、初回URL以後はURLを変えず、CRUD・検索・削除・ページングを `ajax-link` / `ajax-button` / `reload_area()` / dialog で処理する。
 
 ## URL design rules
 - URLは文字列連結せず、必ず `$ctl->get_APP_URL()` を使う。
 - `id` などの公開パラメータは平文IDを使わず `encrypt()` した値を渡す。
 - 受け側は `GET("id")` / `decrypt_post("id")` で復号し、対象が取れない場合は公開エラーを返して終了する。
 - 公開フォームの継続導線で同じ識別子を何度も使う場合は、初回入口で暗号化済み値を session に保持してよい。`続けて入力する` リンクはパラメータ省略で同一 function に戻すほうが安定する。
+- 公開側を管理画面風ポータルやアプリ型UIとして作る場合、初回入口以後はURLを変更しない。内部の画面切替・検索・保存・削除・ページングは `ajax-link` / `ajax-button` と `reload_area()` / dialog で処理する。
 - `public_pages` の関数名が URL 導線単位になるため、用途ごとに関数を分ける。
 - URL発行側と受け側で、クラス名・関数名・パラメータキー（例: `id`）を必ず一致させる。
 - URLの基本形は `/<class>*<function>`。例: `public_pages -> lp` の場合は `/public_pages*lp`。
 - クエリ付き例: `$ctl->get_APP_URL("public_pages", "lp", ["id" => $id_enc])` は `/public_pages*lp?id=<encrypted>` 形式になる。
 - このフレームワークでは `/<class>*<function>&key=value` や `/<class>*<function>?key=value` を公開URLの正常系として扱う。`*` による class/function 表記や、先頭が `?class=` でないこと自体を異常扱いしない。
+
+## root rewrite and homepage menu
+- 管理側の「メニューにホームページリンクを表示」は `website_url` をリンク先として使う。`show_menu_homepage=1` でも `website_url` が空、または `http/https` URLでなければ表示されない。
+- 公開側LPをホームページリンクにする場合、ルートアクセス時の rewrite と `website_url` を必ずセットで考える。
+- `website_url` にシステムと関係ない外部サイトや通常の会社ホームページを入れる場合、ルートアクセス時の rewrite 設定は気にしなくてよい。
+- `rewrite_rule_root=login` / `rewrite_rule_function=page` のようにルートが管理ログイン側の場合、ホームページリンクは LP の明示URLにする。例: `.../public_pages*page`。
+- `rewrite_rule_root=public_pages` / `rewrite_rule_function=page` のようにルート自体がLPの場合、ホームページリンクはアプリルート `.../` でよい。
+- LP関数が `page` 以外の場合や、ルートを管理側に残す場合は、`website_url` を必ず `.../public_pages*<lp_function>` にする。
+- 設定後は管理メニューのリンク先だけでなく、リンク先URLがLP本文を返すことまで確認する。
 
 ## constraints
 - 公開導線でも `_buttons_prompt_form.tpl` の allowlist に従う。
@@ -289,6 +306,7 @@ private function assign_news_list(Controller $ctl) {
 - 公開側エントリクラス名は必ず `public_pages` を使用する（別クラス名で公開導線を作らない）。
 - 公開側の通常 `form` / 通常リンクは `appcon()` を通らない。会員文脈が必要な内部導線は、原則 `ajax-link` / `invoke-function` / `appcon()` 経由を優先する。
 - 公開側の通常 `<a href>` に状態維持用パラメータを付けて引き回す運用は原則禁止。検索エンジンのクロールや重複URL増殖の原因になる。
+- 公開側ポータル内の通常操作に `<a href>` 遷移や通常 `form submit` を使わない。URLを変える必要があるのは、初回公開URL、外部サイト、ファイルダウンロード、決済/認証などブラウザ遷移が必要な導線に限定する。
 - 公開側で画面切替する際に、`$this->other_function($ctl)` のように別 public_pages 関数を直接呼んで遷移しない。内部状態・共通ヘッダ・Square callback 復帰・class 解決が崩れやすい。
 - 公開側の画面遷移は用途に応じて `invoke()` / `show_public_pages()` / `reload_area()` / `res_redirect()` を使う。特に callback 後や保存成功後に別ページへ進める場合は、直接関数呼び出しではなく `res_redirect()` または `invoke()` を優先する。
 
