@@ -28,7 +28,7 @@ class sample_child_sort_original_management
         }
         $this->assignSideArea($ctl, $parentId);
         $ctl->assign("table_title", "Sample Child Sort");
-        $ctl->show_second_work_area("rows_child.tpl", 760);
+        $ctl->show_second_work_area("rows_child.tpl");
     }
 
     function sort_child_save(Controller $ctl) {

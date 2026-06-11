@@ -22,6 +22,21 @@ Use this when a child note opened from a parent note needs behavior beyond Stand
 
 For reload support, keep these values in forms/buttons and use a stable side-area wrapper in the template.
 
+## Side panel width
+
+The note setting `db.list_width` is used as the default second work area width while
+Original Screen `rows_child()` is being invoked through `db_exe::rows_child()`.
+The framework forwards that width to the delegated Original Screen Ajax request
+with the reserved `_second_work_area_default_width` POST key. To use the setting,
+omit the width argument:
+
+```php
+$ctl->show_second_work_area("rows_child.tpl");
+```
+
+Passing an explicit width, such as `show_second_work_area("rows_child.tpl", 760)`,
+continues to override the note setting.
+
 When opening a child side panel from a parent-list `db_additionals` button, do not trust the incoming
 `db_id`: it may be the parent note's `db_id`. Resolve the child note's `db_id` from the `db` table
 before rendering and before saving `_side_panel`. A wrong `_side_panel["db_id"]` makes

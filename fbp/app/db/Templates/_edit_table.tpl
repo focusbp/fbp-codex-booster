@@ -45,13 +45,13 @@
 		{html_options name="show_menu" options=$show_menu_opt selected=$data["show_menu"]}
 		<p class="lang">{t key="db.menu_visibility"}</p>
 		{html_options name="menu_visibility" options=$menu_visibility_opt selected=$data["menu_visibility"]}
+		<p class="lang">{t key="db.side_panel_width"}</p>
+		<input type="text" name="list_width" value="{$data["list_width"]}">
 		<div class="standard-screen-only-fields">
 			<p class="lang">{t key="db.sort"}</p>
 			{html_options id="sortkey" name="sortkey" options=$sortkey_opt selected=$data["sortkey"]}
 			<p class="lang">{t key="db.sort_order"}</p>
 			{html_options id="sort_order" name="sort_order" options=$sort_order_opt selected=$data["sort_order"]}
-			<p class="lang">{t key="db.side_panel_width"}</p>
-			<input type="text" name="list_width" value="{$data["list_width"]}">
 			<p class="lang">{t key="db.dialog_width"}</p>
 			<input type="text" name="edit_width" value="{$data["edit_width"]}">
 			<p class="lang">{t key="db.list_type"}</p>

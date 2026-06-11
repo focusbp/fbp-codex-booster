@@ -65,7 +65,7 @@ class sample_child_search_original_management
     private function showSidePanel(Controller $ctl, $parentId, array $filter, int $max = 10) {
         $this->assignSideArea($ctl, $parentId, $filter, $max);
         $ctl->assign("table_title", "Sample Child");
-        $ctl->show_second_work_area("rows_child.tpl", 760);
+        $ctl->show_second_work_area("rows_child.tpl");
     }
 
     function rows_child(Controller $ctl) {

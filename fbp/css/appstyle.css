@@ -122,8 +122,9 @@ input[type="submit"]:hover,
 	margin-top:28px;
 }
 
-button:hover .material-symbols-outlined {
-	color: var(--fbp-framework-primary-color, #4ba3ff);
+button:not(.listbutton):not(.index-icon) .material-symbols-outlined,
+button:not(.listbutton):not(.index-icon):hover .material-symbols-outlined {
+	color: var(--fbp-framework-primary-text-color, #FFF);
 }
 
 
@@ -2102,6 +2103,11 @@ input[type="time"] {
 	word-break: break-all;
 }
 
+.item_viewer_dropdown_badge {
+	display: inline-block;
+	white-space: nowrap;
+}
+
 .item_viewer_dropdown_left {
 	display: block;
 	text-align: left;
@@ -2177,6 +2183,11 @@ input[type="time"] {
 .class_style_db_exe a:hover .material-symbols-outlined,
 .class_style_db_exe .ajax-link.material-symbols-outlined:hover {
 	color: var(--fbp-framework-primary-color, #4BA3FF) !important;
+}
+
+.class_style_db_exe button.ajax-link:not(.listbutton):not(.index-icon):hover .material-symbols-outlined,
+.class_style_db_exe button:not(.listbutton):not(.index-icon):hover .material-symbols-outlined {
+	color: var(--fbp-framework-primary-text-color, #FFF) !important;
 }
 
 .class_style_db_exe button.lang:hover .material-symbols-outlined {

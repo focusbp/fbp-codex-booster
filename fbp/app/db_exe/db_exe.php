@@ -50,6 +50,11 @@ class db_exe {
 		if (!$this->original_management_has_function($function)) {
 			return false;
 		}
+		if ($function === "rows_child") {
+			$post["_second_work_area_default_width"] = $this->get_side_panel_width();
+			$ctl->invoke($function, $post, $this->original_management_class_name());
+			return true;
+		}
 		$ctl->invoke($function, $post, $this->original_management_class_name());
 		return true;
 	}
@@ -197,6 +202,11 @@ class db_exe {
 			return ($main_type === 0) ? 1 : 2;
 		}
 		return ($side_type === 1) ? 1 : 2;
+	}
+
+	private function get_side_panel_width(): int {
+		$width = isset($this->db_setting["list_width"]) ? (int)$this->db_setting["list_width"] : 0;
+		return $width > 0 ? $width : 400;
 	}
 
 	private function get_table_field_names(Controller $ctl): array {

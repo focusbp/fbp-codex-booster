@@ -1,0 +1,4 @@
+interface:
+  display_name: "FBP Playwright"
+  short_description: "FBP画面をPlaywrightで安定検証しスクショ保存"
+  default_prompt: "Use $fbp-playwright to verify an FBP screen with Playwright and save a screenshot."

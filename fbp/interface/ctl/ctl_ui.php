@@ -241,13 +241,21 @@ interface ctl_ui {
 	function count_res_error_message();
 
 	/**
+	 * Sets the default width for the second work area.
+	 *
+	 * @param int|null $width The default width in pixels. If null, the framework default is used.
+	 * @return void This function does not return a result.
+	 */
+	function set_second_work_area_default_width($width = null);
+
+	/**
 	 * Displays content in the second work area with a specified width.
 	 *
 	 * @param string $template The template to use for displaying content.
-	 * @param int $width The width of the second work area in pixels. Default is 300.
+	 * @param int|null $width The width of the second work area in pixels. If null, the current default width or 300 is used.
 	 * @return void This function does not return a result.
 	 */
-	function show_second_work_area($template, $width = 300);
+	function show_second_work_area($template, $width = null);
 	
 	
 	/**

@@ -33,6 +33,7 @@ class Controller_class implements Controller {
 	private $mcrypt;
 	private $dashbord_items = [];
 	private $dashbord_column_width = 1;
+	private $second_work_area_default_width = null;
 
 	function __construct($class = null, $smarty = null) {
 
@@ -1660,7 +1661,20 @@ class Controller_class implements Controller {
 		$this->arr["close_sidemenu"] = true;
 	}
 
-	function show_second_work_area($template, $width = 300) {
+	function set_second_work_area_default_width($width = null) {
+		$width = $width === null ? null : (int)$width;
+		$this->second_work_area_default_width = ($width !== null && $width > 0) ? $width : null;
+	}
+
+	private function second_work_area_default_width_from_post() {
+		$width = isset($_POST["_second_work_area_default_width"]) ? (int)$_POST["_second_work_area_default_width"] : 0;
+		return $width > 0 ? $width : null;
+	}
+
+	function show_second_work_area($template, $width = null) {
+		if ($width === null) {
+			$width = $this->second_work_area_default_width ?? $this->second_work_area_default_width_from_post() ?? 300;
+		}
 		$this->smarty->assign("MYSESSION", $_SESSION[$this->windowcode]);
 		$dialog_name = "secondworkarea";
 		$screen_debug_key = $this->register_screen_debug_context($dialog_name, $template);
