@@ -124,7 +124,7 @@ input[type="submit"]:hover,
 
 button:not(.listbutton):not(.index-icon) .material-symbols-outlined,
 button:not(.listbutton):not(.index-icon):hover .material-symbols-outlined {
-	color: var(--fbp-framework-primary-text-color, #FFF);
+	color: inherit;
 }
 
 
