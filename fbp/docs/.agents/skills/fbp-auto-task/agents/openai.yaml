@@ -1,4 +1,0 @@
-interface:
-  display_name: "FBP Auto Task"
-  short_description: "auto-task運用・調査・修正の標準手順"
-  default_prompt: "Use $fbp-auto-task to inspect or maintain the local auto-task workflow."
