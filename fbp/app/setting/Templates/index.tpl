@@ -16,6 +16,7 @@
 				<li><a href="#setting-tab-payment">{t key="setting.tab.square"}</a></li>
 				<li><a href="#setting-tab-google">{t key="setting.tab.google"}</a></li>
 				<li><a href="#setting-tab-api-auth">{t key="setting.tab.api_hmac"}</a></li>
+				<li><a href="#setting-tab-mcp-server">{t key="setting.tab.mcp_server"}</a></li>
 				<li><a href="#setting-tab-vimeo">{t key="setting.tab.vimeo"}</a></li>
 			</ul>
 
@@ -374,6 +375,40 @@
 						<tr>
 							<td>{t key="setting.release_api_secret"}</td>
 							<td><input type="text" name="release_api_secret" value="" placeholder="{$masked_setting.release_api_secret}" autocomplete="off" spellcheck="false"></td>
+						</tr>
+					</table>
+				</div>
+			</div>
+
+			<div id="setting-tab-mcp-server" class="setting_tab_panel">
+				<div class="setting_tab_inner">
+					<table class="setting_detail_table setting_readonly_table">
+						<tr>
+							<th rowspan="5">MCP Server</th>
+							<td>{t key="setting.mcp_status"}</td>
+							<td><div class="setting_readonly_value">{$mcp_server_info.status|escape}</div></td>
+						</tr>
+						<tr>
+							<td>{t key="setting.mcp_title"}</td>
+							<td><div class="setting_readonly_value">{$mcp_server_info.title|escape}</div></td>
+						</tr>
+						<tr>
+							<td>{t key="setting.mcp_auth_mode"}</td>
+							<td><div class="setting_readonly_value">{$mcp_server_info.auth_mode|escape}</div></td>
+						</tr>
+						<tr>
+							<td>{t key="setting.mcp_endpoint_url"}</td>
+							<td><div class="setting_readonly_value setting_url_value">{$mcp_server_info.endpoint_url|escape}</div></td>
+						</tr>
+						<tr>
+							<td>{t key="setting.mcp_oauth_urls"}</td>
+							<td>
+								<div class="setting_readonly_value setting_url_value">
+									authorization: {$mcp_server_info.authorization_url|escape}<br>
+									token: {$mcp_server_info.token_url|escape}<br>
+									resource metadata: {$mcp_server_info.resource_metadata_url|escape}
+								</div>
+							</td>
 						</tr>
 					</table>
 				</div>

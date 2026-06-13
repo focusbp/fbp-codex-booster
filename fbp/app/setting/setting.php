@@ -285,8 +285,21 @@ class setting {
 		$ctl->assign("setting", $setting);
 		$ctl->assign("masked_setting", $this->mask_sensitive_setting($setting));
 		$ctl->assign("line_webhook_url", $ctl->get_APP_URL("webhook_line", "receive"));
+		$ctl->assign("mcp_server_info", $this->get_mcp_server_info($ctl));
 
 		$ctl->show_main_area("index.tpl", $ctl->t("setting.dialog.index"));
+	}
+
+	private function get_mcp_server_info(Controller $ctl): array {
+		return [
+			"status" => $ctl->t("setting.mcp_status_enabled"),
+			"title" => "FBP MCP Server",
+			"auth_mode" => "oauth2",
+			"endpoint_url" => $ctl->get_APP_URL("mcp_server", "rpc"),
+			"authorization_url" => $ctl->get_APP_URL("mcp_server", "authorize"),
+			"token_url" => $ctl->get_APP_URL("mcp_server", "token"),
+			"resource_metadata_url" => $ctl->get_APP_URL("mcp_server", "oauth_protected_resource"),
+		];
 	}
 
 	function json_upload(Controller $ctl) {

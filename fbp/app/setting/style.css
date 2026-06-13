@@ -133,3 +133,13 @@
 	font-size: 12px;
 	line-height: 1.4;
 }
+
+.class_style_setting .setting_readonly_value {
+	line-height: 1.6;
+	color: #111827;
+}
+
+.class_style_setting .setting_url_value {
+	font-size: 12px;
+	word-break: break-all;
+}
