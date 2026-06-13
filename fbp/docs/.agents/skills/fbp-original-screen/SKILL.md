@@ -43,6 +43,7 @@ description: Build custom note management screens as the default FBP approach by
 - 検索フォームは `references/search-pattern.md` の `db_exe` 型自動検索を優先する
 - Original Screen では原則 `style.css` を作らない
 - 画面専用 CSS が必要な場合は、対象 tpl に直接 `<style>` を書く
+- Smarty tpl 内の `<style>` では、CSS の `{}` が Smarty 構文として解釈されないように、必ず `{literal}` ... `{/literal}` で CSS 本文を囲む
 - CSS を framework 共通へ上げるのは、再利用目的が明確なときだけに限定する
 - ブラウザ再起動なしで反映確認したい要件を優先し、案件画面の初回実装は tpl 内 `<style>` を正本とする
 - 行操作アイコンは `original_screen_action_cell` 内で `float:right` にして右寄せする。一覧テーブルは `width:100%` を指定し、PC表示のアクションセルは `display:table-cell` に戻して行の右端まで届くようにする。モバイルのカード表示では `float:none` に戻す。

@@ -71,6 +71,7 @@ private function normalize_datetime_to_timestamp($value): int
 - `fields_form_original` / 手書きinput / checkbox / textarea を含む、POST対象の全入力項目にも `error_項目名` を必ず配置する。
 - 実装完了前に「`res_error_message(field, ...)` の `field` 名」と「テンプレート上の `error_field` クラス」が1対1で存在することを確認する（不足がある状態で完了扱いにしない）。
 - `res_error_message()` を使う場合、表示先タグ（`error_項目名`）が存在することを必ず事前確認する。表示タグを設置できない導線（フォーム未描画前・一覧ボタン直叩き等）では `show_notification_text()` を使う。
+- Smarty tpl 内の `<style>` では、CSS の `{}` が Smarty 構文として解釈されないように、必ず `{literal}` ... `{/literal}` で CSS 本文を囲む。
 - 確認表示・詳細表示の値描画は `fields_view_direct` を優先し、手書き展開は必要最小限にする。
 - DBに登録された file/image を `<img>` で直接表示する場合、テンプレートから保存パスを直参照せず、表示元クラスに `view_image(Controller $ctl)` などの画像表示関数を必ず実装してそこを通す。
 - 上記の画像表示関数では、受け取った識別子や暗号化pathを検証し、`is_saved_file()` 確認後に `res_saved_image()` を返す。ダウンロード用は別に `download_file()` を用意して `res_saved_file()` を返す。

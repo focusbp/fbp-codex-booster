@@ -38,6 +38,7 @@ description: Build and operate public_pages with login-free entry points, secure
 - すべての操作ボタン/ボタン風リンクに同じ `button_link` 系クラスを付け、`min-height`、`padding`、`line-height`、`display: inline-flex`、`align-items: center` を共通CSSで揃える。個別ボタンの inline style、`float`、個別 `margin` で位置調整しない。
 - 主操作/戻る/補助で色や枠線を変えるのはよいが、高さ・左右余白・行内余白・ボタン間 `gap` は統一する。
 - `appstyle.css` 側の汎用 `button` 上マージンが公開側UIに干渉するため、公開ページのルートスコープ内で `button { margin-top: 0; }` または `button { margin: 0; }` を明示して打ち消す。
+- Smarty tpl 内の `<style>` では、CSS の `{}` が Smarty 構文として解釈されないように、必ず `{literal}` ... `{/literal}` で CSS 本文を囲む。
 - `classes/app/public_pages/style.css` またはページ固有CSSに、次の形をベースとして置く。
 
 ```smarty
