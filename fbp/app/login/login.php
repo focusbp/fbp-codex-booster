@@ -490,8 +490,27 @@ class login {
 			$ctl->res_redirect($ctl->get_APP_URL("password_reset", "force_page"));
 			return;
 		}
+
+		$oauth_return_url = $this->consume_mcp_oauth_return_url($ctl);
+		if ($oauth_return_url !== "") {
+			$ctl->res_redirect($oauth_return_url);
+			return;
+		}
 		
 		$ctl->res_redirect($ctl->get_APP_URL("base", "page"));
+	}
+
+	private function consume_mcp_oauth_return_url(Controller $ctl): string {
+		$url = (string) ($_SESSION["mcp_oauth_authorize_return"] ?? "");
+		unset($_SESSION["mcp_oauth_authorize_return"]);
+		if ($url === "") {
+			return "";
+		}
+		$expected = $ctl->get_APP_URL("mcp_server", "authorize");
+		if ($url === $expected || strpos($url, $expected . "?") === 0 || strpos($url, $expected . "&") === 0) {
+			return $url;
+		}
+		return "";
 	}
 
 	private function defer_login_to_app_guard(Controller $ctl, $user, $login_id, $password): bool {

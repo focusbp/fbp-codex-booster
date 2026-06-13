@@ -3,6 +3,7 @@ server_id,24,N
 user_id,24,N
 client_id,255,T
 scope,255,T
+resource,1000,T
 access_token_hash,255,T
 refresh_token_hash,255,T
 expires_at,24,N

@@ -4,6 +4,7 @@ user_id,24,N
 client_id,255,T
 redirect_uri,1000,T
 scope,255,T
+resource,1000,T
 code_hash,255,T
 code_challenge,255,T
 code_challenge_method,32,T

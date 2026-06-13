@@ -20,6 +20,15 @@ class mcp_server {
 	}
 
 	function rpc(Controller $ctl) {
+		if ((string) ($_SERVER["REQUEST_METHOD"] ?? "") !== "POST") {
+			$server = $this->get_server();
+			if ((string) ($server["auth_mode"] ?? "oauth2") !== "noauth") {
+				$this->respond_oauth_http_challenge($ctl, "missing_access_token");
+			}
+			http_response_code(405);
+			header("Allow: POST");
+			$this->respond_json(["ok" => false, "error" => "method_not_allowed"]);
+		}
 		$request = $this->read_json_request();
 		if (!is_array($request)) {
 			$this->respond_json($this->json_error(null, -32700, "Parse error"));
@@ -54,7 +63,7 @@ class mcp_server {
 		$this->respond_json([
 			"resource" => $resource,
 			"authorization_servers" => [
-				$ctl->get_APP_URL("mcp_server", "oauth_authorization_server"),
+				$this->oauth_issuer($ctl),
 			],
 			"scopes_supported" => $this->supported_scopes(),
 			"bearer_methods_supported" => ["header"],
@@ -63,13 +72,14 @@ class mcp_server {
 
 	function oauth_authorization_server(Controller $ctl) {
 		$this->respond_json([
-			"issuer" => $ctl->get_APP_URL("mcp_server", "oauth_authorization_server"),
+			"issuer" => $this->oauth_issuer($ctl),
 			"authorization_endpoint" => $ctl->get_APP_URL("mcp_server", "authorize"),
 			"token_endpoint" => $ctl->get_APP_URL("mcp_server", "token"),
 			"response_types_supported" => ["code"],
 			"grant_types_supported" => ["authorization_code", "refresh_token"],
 			"code_challenge_methods_supported" => ["S256", "plain"],
 			"scopes_supported" => $this->supported_scopes(),
+			"client_id_metadata_document_supported" => true,
 			"token_endpoint_auth_methods_supported" => ["none"],
 		]);
 	}
@@ -85,13 +95,13 @@ class mcp_server {
 
 		$user = $this->current_login_user($ctl);
 		if ($user === null) {
-			$ctl->assign("message", $ctl->t("mcp_server.login_required"));
-			$ctl->display("message.tpl");
-			return;
+			$_SESSION["mcp_oauth_authorize_return"] = $this->current_request_url();
+			header("Location: " . $ctl->get_APP_URL("login", "page"), true, 302);
+			exit;
 		}
 
 		$params = $this->oauth_authorize_params($ctl);
-		$error = $this->validate_authorize_params($params);
+		$error = $this->validate_authorize_params($params, $ctl);
 		if ($error !== "") {
 			http_response_code(400);
 			$ctl->assign("message", $error);
@@ -120,7 +130,7 @@ class mcp_server {
 		}
 
 		$params = $this->oauth_authorize_params($ctl);
-		$error = $this->validate_authorize_params($params);
+		$error = $this->validate_authorize_params($params, $ctl);
 		if ($error !== "") {
 			http_response_code(400);
 			$this->respond_json(["ok" => false, "error" => $error]);
@@ -133,6 +143,7 @@ class mcp_server {
 			"client_id" => $params["client_id"],
 			"redirect_uri" => $params["redirect_uri"],
 			"scope" => $scope,
+			"resource" => $this->normalize_oauth_resource($ctl, $params["resource"] ?? ""),
 			"code_hash" => hash("sha256", $code),
 			"code_challenge" => $params["code_challenge"],
 			"code_challenge_method" => $params["code_challenge_method"],
@@ -496,6 +507,10 @@ class mcp_server {
 			if ((int) ($row["revoked"] ?? 0) === 1 || (int) ($row["expires_at"] ?? 0) <= time()) {
 				continue;
 			}
+			$resource = (string) ($row["resource"] ?? "");
+			if ($resource !== "" && $resource !== $ctl->get_APP_URL("mcp_server", "rpc")) {
+				continue;
+			}
 			$user = $user_ffm->get((int) ($row["user_id"] ?? 0));
 			if (!is_array($user) || empty($user["id"]) || (int) ($user["status"] ?? 1) !== 0) {
 				continue;
@@ -543,6 +558,12 @@ class mcp_server {
 			if ($client_id !== "" && (string) ($auth_code["client_id"] ?? "") !== $client_id) {
 				continue;
 			}
+			$expected_resource = (string) ($auth_code["resource"] ?? "");
+			$request_resource = trim((string) ($params["resource"] ?? ""));
+			if ($request_resource !== "" && $expected_resource !== "" && $request_resource !== $expected_resource) {
+				http_response_code(400);
+				$this->respond_json(["error" => "invalid_target"]);
+			}
 			if (!$this->verify_pkce($auth_code, (string) ($params["code_verifier"] ?? ""))) {
 				http_response_code(400);
 				$this->respond_json(["error" => "invalid_grant"]);
@@ -555,7 +576,7 @@ class mcp_server {
 			$auth_code["consumed"] = 1;
 			$auth_code["updated_at"] = time();
 			$this->ffm_auth_codes->update($auth_code);
-			$this->issue_token_response((int) $server["id"], (int) $user["id"], (string) ($auth_code["client_id"] ?? ""), (string) ($auth_code["scope"] ?? ""));
+			$this->issue_token_response((int) $server["id"], (int) $user["id"], (string) ($auth_code["client_id"] ?? ""), (string) ($auth_code["scope"] ?? ""), (string) ($auth_code["resource"] ?? ""));
 		}
 		http_response_code(400);
 		$this->respond_json(["error" => "invalid_grant"]);
@@ -583,13 +604,13 @@ class mcp_server {
 			$token_row["revoked"] = 1;
 			$token_row["updated_at"] = time();
 			$this->ffm_tokens->update($token_row);
-			$this->issue_token_response((int) $server["id"], (int) $user["id"], (string) ($token_row["client_id"] ?? ""), (string) ($token_row["scope"] ?? ""));
+			$this->issue_token_response((int) $server["id"], (int) $user["id"], (string) ($token_row["client_id"] ?? ""), (string) ($token_row["scope"] ?? ""), (string) ($token_row["resource"] ?? ""));
 		}
 		http_response_code(400);
 		$this->respond_json(["error" => "invalid_grant"]);
 	}
 
-	private function issue_token_response(int $server_id, int $user_id, string $client_id, string $scope): void {
+	private function issue_token_response(int $server_id, int $user_id, string $client_id, string $scope, string $resource): void {
 		$access_token = $this->random_token();
 		$refresh_token = $this->random_token();
 		$row = [
@@ -597,6 +618,7 @@ class mcp_server {
 			"user_id" => $user_id,
 			"client_id" => $client_id,
 			"scope" => $scope,
+			"resource" => $resource,
 			"access_token_hash" => hash("sha256", $access_token),
 			"refresh_token_hash" => hash("sha256", $refresh_token),
 			"expires_at" => time() + 3600,
@@ -787,10 +809,11 @@ class mcp_server {
 			"state" => trim((string) ($ctl->GET("state") ?: $ctl->POST("state"))),
 			"code_challenge" => trim((string) ($ctl->GET("code_challenge") ?: $ctl->POST("code_challenge"))),
 			"code_challenge_method" => trim((string) ($ctl->GET("code_challenge_method") ?: $ctl->POST("code_challenge_method"))),
+			"resource" => trim((string) ($ctl->GET("resource") ?: $ctl->POST("resource"))),
 		];
 	}
 
-	private function validate_authorize_params(array $params): string {
+	private function validate_authorize_params(array $params, ?Controller $ctl = null): string {
 		if ($params["response_type"] !== "code") {
 			return "response_type must be code.";
 		}
@@ -802,6 +825,9 @@ class mcp_server {
 		}
 		if ($params["code_challenge_method"] !== "" && !in_array($params["code_challenge_method"], ["S256", "plain"], true)) {
 			return "Unsupported code_challenge_method.";
+		}
+		if ($ctl !== null && ($params["resource"] ?? "") !== "" && $params["resource"] !== $ctl->get_APP_URL("mcp_server", "rpc")) {
+			return "resource is invalid.";
 		}
 		return "";
 	}
@@ -935,10 +961,56 @@ class mcp_server {
 			],
 			"_meta" => [
 				"mcp/www_authenticate" => [
-					'Bearer resource_metadata="' . $ctl->get_APP_URL("mcp_server", "oauth_protected_resource") . '", error="' . $error . '", error_description="OAuth authorization is required."',
+					$this->www_authenticate_value($ctl, $error),
 				],
 			],
 		];
+	}
+
+	private function oauth_issuer(Controller $ctl): string {
+		return $this->app_base_url($ctl);
+	}
+
+	private function oauth_protected_resource_url(Controller $ctl): string {
+		return $this->app_base_url($ctl) . "/.well-known/oauth-protected-resource";
+	}
+
+	private function normalize_oauth_resource(Controller $ctl, string $resource): string {
+		$resource = trim($resource);
+		if ($resource === "") {
+			return $ctl->get_APP_URL("mcp_server", "rpc");
+		}
+		return $resource;
+	}
+
+	private function app_base_url(Controller $ctl): string {
+		$resource = $ctl->get_APP_URL("mcp_server", "rpc");
+		$suffix = "/mcp_server*rpc";
+		if (substr($resource, -strlen($suffix)) === $suffix) {
+			return substr($resource, 0, -strlen($suffix));
+		}
+		return rtrim(preg_replace('#/mcp_server\*rpc(?:[?&].*)?$#', "", $resource), "/");
+	}
+
+	private function current_request_url(): string {
+		$scheme = (!empty($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] !== "off") ? "https" : "http";
+		$host = (string) ($_SERVER["HTTP_HOST"] ?? "");
+		$uri = (string) ($_SERVER["REQUEST_URI"] ?? "");
+		return $scheme . "://" . $host . $uri;
+	}
+
+	private function respond_oauth_http_challenge(Controller $ctl, string $error): void {
+		http_response_code(401);
+		header('WWW-Authenticate: ' . $this->www_authenticate_value($ctl, $error));
+		$this->respond_json([
+			"ok" => false,
+			"error" => $error,
+			"resource_metadata" => $this->oauth_protected_resource_url($ctl),
+		]);
+	}
+
+	private function www_authenticate_value(Controller $ctl, string $error): string {
+		return 'Bearer resource_metadata="' . $this->oauth_protected_resource_url($ctl) . '", error="' . $error . '", error_description="OAuth authorization is required."';
 	}
 
 	private function json_result($id, $result): array {

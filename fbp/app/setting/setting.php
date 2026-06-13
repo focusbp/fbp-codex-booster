@@ -291,6 +291,7 @@ class setting {
 	}
 
 	private function get_mcp_server_info(Controller $ctl): array {
+		$base_url = $this->get_mcp_base_url($ctl);
 		return [
 			"status" => $ctl->t("setting.mcp_status_enabled"),
 			"title" => "FBP MCP Server",
@@ -298,8 +299,17 @@ class setting {
 			"endpoint_url" => $ctl->get_APP_URL("mcp_server", "rpc"),
 			"authorization_url" => $ctl->get_APP_URL("mcp_server", "authorize"),
 			"token_url" => $ctl->get_APP_URL("mcp_server", "token"),
-			"resource_metadata_url" => $ctl->get_APP_URL("mcp_server", "oauth_protected_resource"),
+			"resource_metadata_url" => $base_url . "/.well-known/oauth-protected-resource",
 		];
+	}
+
+	private function get_mcp_base_url(Controller $ctl): string {
+		$resource = $ctl->get_APP_URL("mcp_server", "rpc");
+		$suffix = "/mcp_server*rpc";
+		if (substr($resource, -strlen($suffix)) === $suffix) {
+			return substr($resource, 0, -strlen($suffix));
+		}
+		return rtrim(preg_replace('#/mcp_server\*rpc(?:[?&].*)?$#', "", $resource), "/");
 	}
 
 	function json_upload(Controller $ctl) {

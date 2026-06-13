@@ -29,6 +29,14 @@ RewriteRule ^fbp/images/(.*)$ {$subpath}/classes/app/images/$1 [L]
 RewriteCond %{REQUEST_URI} ^{$subpath}/robots.txt$ [NC]
 RewriteRule ^ - [L]
 
+# OAuth discovery for MCP clients
+RewriteCond %{REQUEST_URI} ^{$subpath}/\.well-known/oauth-protected-resource$ [NC]
+RewriteRule ^\.well-known/oauth-protected-resource$ {$subpath}/fbp/app.php?class=mcp_server&function=oauth_protected_resource [L,QSA]
+RewriteCond %{REQUEST_URI} ^{$subpath}/\.well-known/oauth-authorization-server$ [NC]
+RewriteRule ^\.well-known/oauth-authorization-server$ {$subpath}/fbp/app.php?class=mcp_server&function=oauth_authorization_server [L,QSA]
+RewriteCond %{REQUEST_URI} ^{$subpath}/\.well-known/openid-configuration$ [NC]
+RewriteRule ^\.well-known/openid-configuration$ {$subpath}/fbp/app.php?class=mcp_server&function=oauth_authorization_server [L,QSA]
+
 # http://domain.com/class_name*function_name
 RewriteCond %{REQUEST_URI} ^{$subpath}/(.*)\*(.*)$ [NC]
 RewriteRule ^(.*)\*(.*)$ {$subpath}/fbp/app.php?class=$1&function=$2 [L]

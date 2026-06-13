@@ -1,0 +1,5 @@
+RewriteEngine On
+
+RewriteRule ^oauth-protected-resource$ ../app.php?class=mcp_server&function=oauth_protected_resource [L,QSA]
+RewriteRule ^oauth-authorization-server$ ../app.php?class=mcp_server&function=oauth_authorization_server [L,QSA]
+RewriteRule ^openid-configuration$ ../app.php?class=mcp_server&function=oauth_authorization_server [L,QSA]

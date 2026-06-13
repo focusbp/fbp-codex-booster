@@ -31,8 +31,17 @@ class mcp_manage {
 		$ctl->assign("mcp_endpoint_url", $ctl->get_APP_URL("mcp_server", "rpc"));
 		$ctl->assign("mcp_authorize_url", $ctl->get_APP_URL("mcp_server", "authorize"));
 		$ctl->assign("mcp_token_url", $ctl->get_APP_URL("mcp_server", "token"));
-		$ctl->assign("mcp_resource_metadata_url", $ctl->get_APP_URL("mcp_server", "oauth_protected_resource"));
+		$ctl->assign("mcp_resource_metadata_url", $this->mcp_base_url($ctl) . "/.well-known/oauth-protected-resource");
 		$ctl->reload_area("#tabs-mcp-server", "index.tpl");
+	}
+
+	private function mcp_base_url(Controller $ctl): string {
+		$resource = $ctl->get_APP_URL("mcp_server", "rpc");
+		$suffix = "/mcp_server*rpc";
+		if (substr($resource, -strlen($suffix)) === $suffix) {
+			return substr($resource, 0, -strlen($suffix));
+		}
+		return rtrim(preg_replace('#/mcp_server\*rpc(?:[?&].*)?$#', "", $resource), "/");
 	}
 
 	function edit_server(Controller $ctl) {

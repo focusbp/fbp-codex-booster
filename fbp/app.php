@@ -181,6 +181,22 @@ if(empty($class) || empty($function)){
 	$function = "page";
 }
 
+$request_path_for_well_known = (string) parse_url((string) ($_SERVER["REQUEST_URI"] ?? ""), PHP_URL_PATH);
+$well_known_route = "";
+if (preg_match('#/\.well-known/(oauth-protected-resource|oauth-authorization-server|openid-configuration)$#', $request_path_for_well_known, $matches)) {
+	$well_known_route = $matches[1];
+} elseif (in_array($function, [".well-known/oauth-protected-resource", ".well-known/oauth-authorization-server", ".well-known/openid-configuration"], true)) {
+	$well_known_route = basename((string) $function);
+}
+if ($well_known_route !== "") {
+	$class = "mcp_server";
+	if ($well_known_route === "oauth-protected-resource") {
+		$function = "oauth_protected_resource";
+	} else {
+		$function = "oauth_authorization_server";
+	}
+}
+
 $smarty->assign("class",$class);
 $smarty->assign("css_class",$class); // Default
 
