@@ -510,6 +510,15 @@ class login {
 		if ($url === $expected || strpos($url, $expected . "?") === 0 || strpos($url, $expected . "&") === 0) {
 			return $url;
 		}
+		$url_parts = parse_url($url);
+		$expected_parts = parse_url($expected);
+		$url_host = (string) ($url_parts["host"] ?? "");
+		$expected_host = (string) ($expected_parts["host"] ?? "");
+		$url_path = rawurldecode((string) ($url_parts["path"] ?? ""));
+		$expected_path = rawurldecode((string) ($expected_parts["path"] ?? ""));
+		if ($url_host !== "" && $url_host === $expected_host && $url_path === $expected_path) {
+			return $url;
+		}
 		return "";
 	}
 

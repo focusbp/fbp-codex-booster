@@ -801,16 +801,54 @@ class mcp_server {
 	}
 
 	private function oauth_authorize_params(Controller $ctl): array {
-		return [
-			"response_type" => trim((string) ($ctl->GET("response_type") ?: $ctl->POST("response_type"))),
-			"client_id" => trim((string) ($ctl->GET("client_id") ?: $ctl->POST("client_id"))),
-			"redirect_uri" => trim((string) ($ctl->GET("redirect_uri") ?: $ctl->POST("redirect_uri"))),
-			"scope" => trim((string) ($ctl->GET("scope") ?: $ctl->POST("scope"))),
-			"state" => trim((string) ($ctl->GET("state") ?: $ctl->POST("state"))),
-			"code_challenge" => trim((string) ($ctl->GET("code_challenge") ?: $ctl->POST("code_challenge"))),
-			"code_challenge_method" => trim((string) ($ctl->GET("code_challenge_method") ?: $ctl->POST("code_challenge_method"))),
-			"resource" => trim((string) ($ctl->GET("resource") ?: $ctl->POST("resource"))),
+		$params = [
+			"response_type" => $this->oauth_request_param($ctl, "response_type"),
+			"client_id" => $this->oauth_request_param($ctl, "client_id"),
+			"redirect_uri" => $this->oauth_request_param($ctl, "redirect_uri"),
+			"scope" => $this->oauth_request_param($ctl, "scope"),
+			"state" => $this->oauth_request_param($ctl, "state"),
+			"code_challenge" => $this->oauth_request_param($ctl, "code_challenge"),
+			"code_challenge_method" => $this->oauth_request_param($ctl, "code_challenge_method"),
+			"resource" => $this->oauth_request_param($ctl, "resource"),
 		];
+		if ($params["response_type"] === "" && $params["client_id"] !== "" && $params["redirect_uri"] !== "") {
+			$params["response_type"] = "code";
+		}
+		return $params;
+	}
+
+	private function oauth_request_param(Controller $ctl, string $key): string {
+		$value = $ctl->GET($key);
+		if ($value === null || $value === "") {
+			$value = $ctl->POST($key);
+		}
+		if ($value === null || $value === "") {
+			$uri_params = $this->oauth_request_uri_params();
+			$value = $uri_params[$key] ?? "";
+		}
+		if (is_array($value)) {
+			return "";
+		}
+		return trim((string) $value);
+	}
+
+	private function oauth_request_uri_params(): array {
+		$params = [];
+		$query = (string) ($_SERVER["QUERY_STRING"] ?? "");
+		if ($query !== "") {
+			parse_str($query, $query_params);
+			if (is_array($query_params)) {
+				$params = array_merge($params, $query_params);
+			}
+		}
+		$path = (string) parse_url((string) ($_SERVER["REQUEST_URI"] ?? ""), PHP_URL_PATH);
+		if (preg_match('#\*authorize&(.*)$#', $path, $matches)) {
+			parse_str($matches[1], $path_params);
+			if (is_array($path_params)) {
+				$params = array_merge($params, $path_params);
+			}
+		}
+		return $params;
 	}
 
 	private function validate_authorize_params(array $params, ?Controller $ctl = null): string {
