@@ -1,0 +1,10 @@
+id,24,N
+server_id,24,N
+tool_id,24,N
+user_id,24,N
+method,128,T
+tool_name,128,T
+request_json,4000,T
+result_status,32,T
+error_message,2000,T
+created_at,24,N

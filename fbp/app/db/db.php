@@ -143,7 +143,6 @@ class db {
 	    0 => "Do not delete",
 	    1 => "Cascade delete"
 	];
-
 	private function get_dropdown_display_field_candidates(): array {
 		$candidates = [];
 		$db_list = $this->fmt_db->getall("tb_name", SORT_ASC);
@@ -163,6 +162,13 @@ class db {
 			}
 		}
 		return $candidates;
+	}
+
+	private function get_parent_relation_flag_options(Controller $ctl): array {
+		return [
+			0 => $ctl->t("db.parent_relation.none"),
+			1 => $ctl->t("db.parent_relation.show"),
+		];
 	}
 
 	private function get_display_format_options(Controller $ctl): array {
@@ -211,6 +217,7 @@ class db {
 		$ctl->assign("cascade_delete_flag_opt",$this->cascade_delete_flag_opt);
 		$ctl->assign("dropdown_item_display_type_opt", $this->dropdown_item_display_type_opt);
 		$ctl->assign("dropdown_display_field_candidates", $this->get_dropdown_display_field_candidates());
+		$ctl->assign("parent_relation_flag_opt", $this->get_parent_relation_flag_options($ctl));
 	}
 
 	function get_parent_opt($my_id) {
@@ -827,7 +834,10 @@ class db {
 		$post["image_width_thumbnail"] = 50;
 		$post["title_color"] = $ctl->get_session("title_color");
 		$post["display_format"] = 0;
+		$post["parent_relation_flag"] = 0;
+		$post["parent_db_id"] = 0;
 		$ctl->assign('post', $post);
+		$ctl->assign("parent_db_opt", $this->get_parent_opt($post['db_id'] ?? null));
 		$ctl->show_multi_dialog("add_db_fields", "add_fields.tpl", $ctl->t("db.dialog.add_parameters"), 1000, true, true);
 	}
 
@@ -885,6 +895,7 @@ class db {
 				$ctl->res_error_message("display_fields_for_dropdown", $ctl->t("db.validation.display_fields_required"));
 			}
 		}
+		$this->validate_parent_relation_field($ctl, $post, $is_table_only);
 
 		if ($ctl->count_res_error_message() > 0) {
 			return;
@@ -909,6 +920,7 @@ class db {
 		if (!$is_table_only && !startsWith($constant_array_name, "table/")) {
 			$post["display_fields_for_dropdown"] = "";
 		}
+		$this->normalize_parent_relation_field($post);
 
 		$this->fmt_db_fields->insert($post);
 
@@ -1007,7 +1019,10 @@ class db {
 
 		$data = array_merge($data, $post);
 		$data["display_format"] = $this->normalize_display_format((string) ($data["type"] ?? ""), $data["display_format"] ?? 0);
+		$data["parent_relation_flag"] = isset($data["parent_relation_flag"]) ? (int) $data["parent_relation_flag"] : 0;
+		$data["parent_db_id"] = isset($data["parent_db_id"]) ? (int) $data["parent_db_id"] : 0;
 		$ctl->assign("data", $data);
+		$ctl->assign("parent_db_opt", $this->get_parent_opt($data['db_id'] ?? null));
 		$ctl->show_multi_dialog("edit_db_fields", "edit_fields.tpl", $ctl->t("db.dialog.edit_parameters"), 1000, true, true);
 	}
 
@@ -1064,6 +1079,7 @@ class db {
 				$ctl->res_error_message("display_fields_for_dropdown", $ctl->t("db.validation.display_fields_required"));
 			}
 		}
+		$this->validate_parent_relation_field($ctl, $post, $is_table_only);
 
 		// length
 		if (empty($post["length"])) {
@@ -1087,6 +1103,7 @@ class db {
 		if (!$is_table_only && !startsWith($constant_array_name, "table/")) {
 			$data["display_fields_for_dropdown"] = "";
 		}
+		$this->normalize_parent_relation_field($data);
 
 		if (empty($post["api_access_policy"])) {
 			$data["api_access_policy"] = [];
@@ -1098,6 +1115,37 @@ class db {
 		$ctl->close_multi_dialog("edit_db_fields");
 		//$this->page($ctl);
 		$ctl->ajax("db", "edit", ["id" => $data['db_id']]);
+	}
+
+	private function normalize_parent_relation_field(array &$data): void {
+		$flag = isset($data["parent_relation_flag"]) ? (int) $data["parent_relation_flag"] : 0;
+		$data["parent_relation_flag"] = ($flag === 1) ? 1 : 0;
+		$data["parent_db_id"] = ($data["parent_relation_flag"] === 1) ? (int) ($data["parent_db_id"] ?? 0) : 0;
+	}
+
+	private function validate_parent_relation_field(Controller $ctl, array $post, bool $is_table_only): void {
+		$flag = isset($post["parent_relation_flag"]) ? (int) $post["parent_relation_flag"] : 0;
+		if ($flag !== 1) {
+			return;
+		}
+
+		$type = (string) ($post["type"] ?? "");
+		$parent_db_id = (int) ($post["parent_db_id"] ?? 0);
+		$constant_array_name = (string) ($post["constant_array_name"] ?? "");
+		if ($type !== "dropdown" || !$is_table_only || !startsWith($constant_array_name, "table/")) {
+			$ctl->res_error_message("parent_relation_flag", $ctl->t("db.validation.parent_relation_dropdown_required"));
+			return;
+		}
+		if ($parent_db_id <= 0) {
+			$ctl->res_error_message("parent_db_id", $ctl->t("db.validation.parent_relation_parent_required"));
+			return;
+		}
+
+		$parent_db = $this->fmt_db->get($parent_db_id);
+		$target_table = substr($constant_array_name, 6);
+		if (!is_array($parent_db) || (string) ($parent_db["tb_name"] ?? "") !== $target_table) {
+			$ctl->res_error_message("parent_db_id", $ctl->t("db.validation.parent_relation_parent_mismatch"));
+		}
 	}
 
 	//view delete page

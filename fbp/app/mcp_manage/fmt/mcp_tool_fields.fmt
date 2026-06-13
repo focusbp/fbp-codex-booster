@@ -1,0 +1,9 @@
+id,24,N
+tool_id,24,N
+field_name,255,T
+role,32,T
+required,1,N
+readonly,1,N
+sort,24,N
+created_at,24,N
+updated_at,24,N

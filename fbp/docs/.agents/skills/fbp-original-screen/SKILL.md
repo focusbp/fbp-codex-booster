@@ -45,6 +45,10 @@ description: Build custom note management screens as the default FBP approach by
 - 画面専用 CSS が必要な場合は、対象 tpl に直接 `<style>` を書く
 - CSS を framework 共通へ上げるのは、再利用目的が明確なときだけに限定する
 - ブラウザ再起動なしで反映確認したい要件を優先し、案件画面の初回実装は tpl 内 `<style>` を正本とする
+- 行操作アイコンは `original_screen_action_cell` 内で `float:right` にして右寄せする。一覧テーブルは `width:100%` を指定し、PC表示のアクションセルは `display:table-cell` に戻して行の右端まで届くようにする。モバイルのカード表示では `float:none` に戻す。
+- 表示する検索ボタンを置く場合は、`.search_right` を `display:flex; justify-content:flex-end; align-items:flex-end; margin-left:auto;` にし、ボタン側は `float:none !important;` で右寄せする。
+- ダイアログや詳細パネルでボタン行の直後に表・見出しを置く場合は、`.button_row` を `display:flex; justify-content:flex-end;` にし、ボタン側の `float` を解除したうえで下に 12px 程度の余白を入れる。
+- ダイアログ本文や詳細パネル内の入力フォームでは、textarea/input/select の横に保存・追加ボタンを置かない。入力部品の下に操作行を置き、ボタンは右寄せにする。検索フォームの検索ボタンだけは横配置を許可する。
 
 ## references
 - Standard からの移行手順: `references/migration-standard-to-original.md`

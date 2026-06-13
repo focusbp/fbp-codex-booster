@@ -42,8 +42,9 @@ classes/app/<tb_name>_original_management/
 - 一覧を月などの必須条件で絞って全件表示する画面では、`ajax-auto` を使わず一括表示してよい
 - 汎用一覧で件数が多いときは、初期表示 10 件 + `ajax-auto` による 10 件ずつの段階表示を検討する
 - 一覧はテーブル見出しより、`row_style` を使ったカード風の横並び行を優先する
-- 行操作は `listbutton + material-symbols-outlined` で右寄せにし、削除だけ赤にする
+- 一覧テーブルは `width:100%` にし、行操作セルはPC表示で `display:table-cell` に戻して `listbutton + material-symbols-outlined` を右端に揃える。削除だけ赤にする
 - 追加 / 編集ダイアログの項目間は `db_exe` に合わせて `margin-top:10px` を標準にする
+- ダイアログ本文や詳細内の追加入力フォームは縦積みにし、保存・追加ボタンをフォーム部品の横に置かない。ボタンは入力部品の下で右寄せにする
 
 ## notes
 

@@ -1,0 +1,13 @@
+id,24,N
+server_id,24,N
+user_id,24,N
+client_id,255,T
+redirect_uri,1000,T
+scope,255,T
+code_hash,255,T
+code_challenge,255,T
+code_challenge_method,32,T
+expires_at,24,N
+consumed,1,N
+created_at,24,N
+updated_at,24,N

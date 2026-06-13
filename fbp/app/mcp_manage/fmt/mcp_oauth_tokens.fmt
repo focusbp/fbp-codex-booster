@@ -1,0 +1,11 @@
+id,24,N
+server_id,24,N
+user_id,24,N
+client_id,255,T
+scope,255,T
+access_token_hash,255,T
+refresh_token_hash,255,T
+expires_at,24,N
+revoked,1,N
+created_at,24,N
+updated_at,24,N

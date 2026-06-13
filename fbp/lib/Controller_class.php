@@ -2283,6 +2283,7 @@ class Controller_class implements Controller {
 			"db_additionals",
 			"email_format",
 			"embed_app",
+			"mcp_manage",
 			"panel_constants",
 			"public_assets",
 			"public_pages_registry",

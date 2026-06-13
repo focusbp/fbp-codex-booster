@@ -10,6 +10,9 @@ description: Verify FBP application screens with Playwright browser automation. 
 Use `~/scripts/playwright_node.sh` as the Playwright entrypoint. Do not start with raw
 `node`, `npx playwright test`, or `@playwright/test`; this environment may only have the
 `playwright` package inside the npx cache, and the wrapper sets `NODE_PATH` correctly.
+Do not run Playwright from `~/` in a way that creates default output directories such as
+`~/test-results` or `~/playwright-report`. Put temporary scripts and artifacts under
+`~/scripts/tmp/...`, and put retained screenshots under `/home/nakama/Screenshot/<appcode>/`.
 
 Write scripts with:
 
@@ -40,7 +43,9 @@ const browser = await chromium.launch({
 5. Use `page.screenshot({ path, fullPage: true })` by default.
 6. Always print relevant DOM metrics for layout bugs, such as rendered width, `data-*`
    attributes, `scrollWidth`, and `clientWidth`.
-7. Remove temporary Playwright scripts after use unless the user explicitly asks to keep them.
+7. Keep any temporary Playwright script or test output under `~/scripts/tmp/...`, never under
+   `~/` directly.
+8. Remove temporary Playwright scripts after use unless the user explicitly asks to keep them.
 
 ## FBP interaction pattern
 

@@ -9,15 +9,15 @@
 
 		<div class="side_panel_button_area" style="display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap;margin-bottom:10px;">
 			{if $flg_add_button}
-				<button class="ajax-link lang" data-class="{$class}" data-function="add_child" data-db_id="{$db_id}" data-parent_id={$parent_id}><span class="material-symbols-outlined" style="font-size:18px;vertical-align:text-bottom;margin-right:2px;">add_circle</span>{t key="common.add"}</button>
+				<button class="ajax-link lang" data-class="{$class}" data-function="add_child" data-db_id="{$db_id}" data-parent_id={$parent_id} data-parent_field="{$parent_field|default:'parent_id'}" data-parent_db_id="{$parent_db_id|default:''}"><span class="material-symbols-outlined" style="font-size:18px;vertical-align:text-bottom;margin-right:2px;">add_circle</span>{t key="common.add"}</button>
 			{else}
 			{/if}
 
 			{foreach $additionals as $a}
 				{if $a.button_type == 0}
-				<button class="ajax-link lang {$a.show_button_class}" data-class="{$a.class_name}" data-function="{$a.function_name}" data-parent_id="{$parent_id}">{$a.button_title}</button>
+				<button class="ajax-link lang {$a.show_button_class}" data-class="{$a.class_name}" data-function="{$a.function_name}" data-parent_id="{$parent_id}" data-parent_field="{$parent_field|default:'parent_id'}" data-parent_db_id="{$parent_db_id|default:''}">{$a.button_title}</button>
 				{else}
-					<button class="ajax-link lang {$a.show_button_class}" data-class="{$a.class_name}" data-function="{$a.function_name}" data-parent_id="{$parent_id}" style="padding:6px;"><span class="material-symbols-outlined">{$a.button_title}</span></button>
+					<button class="ajax-link lang {$a.show_button_class}" data-class="{$a.class_name}" data-function="{$a.function_name}" data-parent_id="{$parent_id}" data-parent_field="{$parent_field|default:'parent_id'}" data-parent_db_id="{$parent_db_id|default:''}" style="padding:6px;"><span class="material-symbols-outlined">{$a.button_title}</span></button>
 				{/if}
 			{/foreach}
 		</div>
@@ -34,6 +34,8 @@
 			<form id="form_side_{$timestamp}" class="search_form_flex" data-db-id="{$db_id}" data-tb-name="{$tb_name|escape}">
 				<input type="hidden" name="db_id" value="{$db_id}">
 				<input type="hidden" name="parent_id" value="{$parent_id}">
+				<input type="hidden" name="parent_field" value="{$parent_field|default:'parent_id'}">
+				<input type="hidden" name="parent_db_id" value="{$parent_db_id|default:''}">
 				{foreach $search_group as $field}
 					<div class="search_form_item field_type_{$field.type|escape}" data-parameter-name="{$field.parameter_name|escape}" data-parameter-title="{$field.parameter_title|escape}" data-field-type="{$field.type|escape}">
 						{include file="{$base_template_dir}/__item_search.tpl"}
@@ -46,7 +48,7 @@
 			</form>
 		</div>
 		<div class="search_right" style="display:none;">
-			<button class="ajax-link lang" data-class="{$class}" data-function="search_child" data-form="form_side_{$timestamp}" data-db-id="{$db_id}" data-parent_id="{$parent_id}">Search</button>
+			<button class="ajax-link lang" data-class="{$class}" data-function="search_child" data-form="form_side_{$timestamp}" data-db-id="{$db_id}" data-parent_id="{$parent_id}" data-parent_field="{$parent_field|default:'parent_id'}" data-parent_db_id="{$parent_db_id|default:''}">Search</button>
 		</div>
 		{else}
 			<p class="lang" style="color:#4ba3ff;margin-left:10px;">{t key="db_exe.search_fields_not_configured"}</p>
@@ -69,20 +71,20 @@
 		<td>
 			
 		{if $flg_delete_button}
-		<button class="ajax-link listbutton" data-class="{$class}" data-function="delete_child" data-id="{$row["_id_enc"]}" data-db_id="{$db_id}" data-parent_id="{$parent_id}" style="float:right;color:#dc2626;margin-right:5px;"><span class="material-symbols-outlined">delete</span></button>
+		<button class="ajax-link listbutton" data-class="{$class}" data-function="delete_child" data-id="{$row["_id_enc"]}" data-db_id="{$db_id}" data-parent_id="{$parent_id}" data-parent_field="{$parent_field|default:'parent_id'}" data-parent_db_id="{$parent_db_id|default:''}" style="float:right;color:#dc2626;margin-right:5px;"><span class="material-symbols-outlined">delete</span></button>
 		{/if}
 		
 		{if $flg_edit_button}
-		<button class="ajax-link listbutton" data-class="{$class}" data-function="edit_child" data-id="{$row["_id_enc"]}"  data-db_id="{$db_id}" data-parent_id="{$parent_id}" style="float:right;color:#2d2d2d;"><span class="material-symbols-outlined">edit_square</span></button>
+		<button class="ajax-link listbutton" data-class="{$class}" data-function="edit_child" data-id="{$row["_id_enc"]}"  data-db_id="{$db_id}" data-parent_id="{$parent_id}" data-parent_field="{$parent_field|default:'parent_id'}" data-parent_db_id="{$parent_db_id|default:''}" style="float:right;color:#2d2d2d;"><span class="material-symbols-outlined">edit_square</span></button>
 		{/if}
 		
 		
 
 		{foreach $additionals_row as $a}			
 			{if $a.button_type == 0}
-			<button class="ajax-link lang {$a.show_button_class}" data-class="{$a.class_name}" data-function="{$a.function_name}" data-id="{$row["_id_enc"]}" data-parent_id="{$parent_id}">{$a.button_title}</button>
+			<button class="ajax-link lang {$a.show_button_class}" data-class="{$a.class_name}" data-function="{$a.function_name}" data-id="{$row["_id_enc"]}" data-parent_id="{$parent_id}" data-parent_field="{$parent_field|default:'parent_id'}" data-parent_db_id="{$parent_db_id|default:''}">{$a.button_title}</button>
 			{else}
-				<button class="ajax-link listbutton {$a.show_button_class}" data-class="{$a.class_name}" data-function="{$a.function_name}"  data-id="{$row["_id_enc"]}" data-parent_id="{$parent_id}" style="color:black;"><span class="material-symbols-outlined">{$a.button_title}</span></button>
+				<button class="ajax-link listbutton {$a.show_button_class}" data-class="{$a.class_name}" data-function="{$a.function_name}"  data-id="{$row["_id_enc"]}" data-parent_id="{$parent_id}" data-parent_field="{$parent_field|default:'parent_id'}" data-parent_db_id="{$parent_db_id|default:''}" style="color:black;"><span class="material-symbols-outlined">{$a.button_title}</span></button>
 			{/if}
 		
 		{/foreach}
@@ -95,7 +97,7 @@
 </table>
 
 {if $is_last == false}
-	<div class="ajax-auto" data-class="{$class}" data-function="rows_child" {if $show_search_box}data-form="form_side_{$timestamp}"{/if} data-max="{$max}" data-db_id="{$db_id}" data-parent_id="{$parent_id}">{$max}</div>
+	<div class="ajax-auto" data-class="{$class}" data-function="rows_child" {if $show_search_box}data-form="form_side_{$timestamp}"{/if} data-max="{$max}" data-db_id="{$db_id}" data-parent_id="{$parent_id}" data-parent_field="{$parent_field|default:'parent_id'}" data-parent_db_id="{$parent_db_id|default:''}">{$max}</div>
 {/if}
 
 <div>

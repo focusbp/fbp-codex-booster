@@ -16,6 +16,13 @@ class ReleaseManager {
 	    "cron",
 	    "api_studio"
 	];
+	private $db_file_copy_list = [
+	    "mcp_manage" => [
+	        "mcp_server_config.dat",
+	        "mcp_tools.dat",
+	        "mcp_tool_fields.dat",
+	    ],
+	];
 	private $appdir;
 	private $datadir;
 	private $zipfile;
@@ -104,6 +111,7 @@ class ReleaseManager {
 			}
 		}
 
+		$this->addSelectedDataFilesToZip($zip);
 		$this->addCommonFormatFilesToZip($zip);
 		$this->addDirectoryFilesToZip($zip, $this->public_assets_dir);
 		$zip->close();
@@ -231,6 +239,30 @@ class ReleaseManager {
 				continue;
 			}
 			$zip->addFile($filePath, $relativePath);
+		}
+	}
+
+	private function addSelectedDataFilesToZip(ZipArchive $zip): void {
+		foreach ($this->db_file_copy_list as $dirName => $files) {
+			$dirName = trim((string) $dirName, "/");
+			if ($dirName === "" || !is_array($files)) {
+				continue;
+			}
+			foreach ($files as $fileName) {
+				$fileName = basename((string) $fileName);
+				if ($fileName === "" || !$this->endsWith($fileName, ".dat")) {
+					continue;
+				}
+				$filePath = $this->datadir . "/" . $dirName . "/" . $fileName;
+				if (!is_file($filePath)) {
+					continue;
+				}
+				$relativePath = substr($filePath, strlen($this->extractdir) + 1);
+				if ($this->isExcludedArchivePath($relativePath)) {
+					continue;
+				}
+				$zip->addFile($filePath, $relativePath);
+			}
 		}
 	}
 

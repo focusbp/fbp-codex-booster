@@ -1,0 +1,10 @@
+id,24,N
+enabled,1,N
+server_key,128,T
+title,255,T
+description,2000,T
+auth_mode,32,T
+default_scope,255,T
+sort,24,N
+created_at,24,N
+updated_at,24,N

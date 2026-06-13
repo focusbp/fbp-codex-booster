@@ -1,0 +1,17 @@
+id,24,N
+server_id,24,N
+enabled,1,N
+tool_name,128,T
+title,255,T
+description,2000,T
+tool_type,32,T
+operation,32,T
+target_note,255,T
+required_scope,255,T
+requires_confirmation,1,N
+read_only,1,N
+destructive,1,N
+max_limit,5,N
+sort,24,N
+created_at,24,N
+updated_at,24,N

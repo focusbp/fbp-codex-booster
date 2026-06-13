@@ -1,0 +1,969 @@
+<?php
+
+class mcp_server {
+
+	private $ffm_server;
+	private $ffm_tools;
+	private $ffm_fields;
+	private $ffm_logs;
+	private $ffm_auth_codes;
+	private $ffm_tokens;
+
+	function __construct(Controller $ctl) {
+		$ctl->set_check_login(false);
+		$this->ffm_server = $ctl->db("mcp_server_config", "mcp_manage");
+		$this->ffm_tools = $ctl->db("mcp_tools", "mcp_manage");
+		$this->ffm_fields = $ctl->db("mcp_tool_fields", "mcp_manage");
+		$this->ffm_logs = $ctl->db("mcp_call_logs", "mcp_manage");
+		$this->ffm_auth_codes = $ctl->db("mcp_oauth_auth_codes", "mcp_manage");
+		$this->ffm_tokens = $ctl->db("mcp_oauth_tokens", "mcp_manage");
+	}
+
+	function rpc(Controller $ctl) {
+		$request = $this->read_json_request();
+		if (!is_array($request)) {
+			$this->respond_json($this->json_error(null, -32700, "Parse error"));
+		}
+		$response = $this->handle_json_rpc($ctl, $request);
+		$this->respond_json($response);
+	}
+
+	function sse(Controller $ctl) {
+		if ($_SERVER["REQUEST_METHOD"] === "GET") {
+			header("Content-Type: text/event-stream; charset=UTF-8");
+			header("Cache-Control: no-cache");
+			echo "event: endpoint\n";
+			echo "data: " . $ctl->get_APP_URL("mcp_server", "rpc") . "\n\n";
+			exit;
+		}
+		$this->rpc($ctl);
+	}
+
+	function health(Controller $ctl) {
+		$server = $this->get_server();
+		$this->respond_json([
+			"ok" => true,
+			"enabled" => (int) ($server["enabled"] ?? 0) === 1,
+			"title" => (string) ($server["title"] ?? "FBP MCP Server"),
+			"auth_mode" => (string) ($server["auth_mode"] ?? "oauth2"),
+		]);
+	}
+
+	function oauth_protected_resource(Controller $ctl) {
+		$resource = $ctl->get_APP_URL("mcp_server", "rpc");
+		$this->respond_json([
+			"resource" => $resource,
+			"authorization_servers" => [
+				$ctl->get_APP_URL("mcp_server", "oauth_authorization_server"),
+			],
+			"scopes_supported" => $this->supported_scopes(),
+			"bearer_methods_supported" => ["header"],
+		]);
+	}
+
+	function oauth_authorization_server(Controller $ctl) {
+		$this->respond_json([
+			"issuer" => $ctl->get_APP_URL("mcp_server", "oauth_authorization_server"),
+			"authorization_endpoint" => $ctl->get_APP_URL("mcp_server", "authorize"),
+			"token_endpoint" => $ctl->get_APP_URL("mcp_server", "token"),
+			"response_types_supported" => ["code"],
+			"grant_types_supported" => ["authorization_code", "refresh_token"],
+			"code_challenge_methods_supported" => ["S256", "plain"],
+			"scopes_supported" => $this->supported_scopes(),
+			"token_endpoint_auth_methods_supported" => ["none"],
+		]);
+	}
+
+	function authorize(Controller $ctl) {
+		$server = $this->get_server();
+		if ((int) ($server["enabled"] ?? 0) !== 1) {
+			http_response_code(503);
+			$ctl->assign("message", "MCP server is disabled.");
+			$ctl->display("message.tpl");
+			return;
+		}
+
+		$user = $this->current_login_user($ctl);
+		if ($user === null) {
+			$ctl->assign("message", $ctl->t("mcp_server.login_required"));
+			$ctl->display("message.tpl");
+			return;
+		}
+
+		$params = $this->oauth_authorize_params($ctl);
+		$error = $this->validate_authorize_params($params);
+		if ($error !== "") {
+			http_response_code(400);
+			$ctl->assign("message", $error);
+			$ctl->display("message.tpl");
+			return;
+		}
+
+		$scope = $params["scope"] !== "" ? $params["scope"] : (string) ($server["default_scope"] ?? "");
+		$ctl->assign("server", $server);
+		$ctl->assign("user", $user);
+		$ctl->assign("oauth_params", $params);
+		$ctl->assign("scope", $scope);
+		$ctl->display("authorize.tpl");
+	}
+
+	function authorize_confirm(Controller $ctl) {
+		$server = $this->get_server();
+		if ((int) ($server["enabled"] ?? 0) !== 1) {
+			http_response_code(503);
+			$this->respond_json(["ok" => false, "error" => "mcp_server_disabled"]);
+		}
+		$user = $this->current_login_user($ctl);
+		if ($user === null) {
+			http_response_code(401);
+			$this->respond_json(["ok" => false, "error" => "login_required"]);
+		}
+
+		$params = $this->oauth_authorize_params($ctl);
+		$error = $this->validate_authorize_params($params);
+		if ($error !== "") {
+			http_response_code(400);
+			$this->respond_json(["ok" => false, "error" => $error]);
+		}
+		$scope = $params["scope"] !== "" ? $params["scope"] : (string) ($server["default_scope"] ?? "");
+		$code = $this->random_token();
+		$row = [
+			"server_id" => (int) $server["id"],
+			"user_id" => (int) $user["id"],
+			"client_id" => $params["client_id"],
+			"redirect_uri" => $params["redirect_uri"],
+			"scope" => $scope,
+			"code_hash" => hash("sha256", $code),
+			"code_challenge" => $params["code_challenge"],
+			"code_challenge_method" => $params["code_challenge_method"],
+			"expires_at" => time() + 600,
+			"consumed" => 0,
+			"created_at" => time(),
+			"updated_at" => time(),
+		];
+		$this->ffm_auth_codes->insert($row);
+
+		$redirect = $this->append_query($params["redirect_uri"], [
+			"code" => $code,
+			"state" => $params["state"],
+		]);
+		header("Location: " . $redirect, true, 302);
+		exit;
+	}
+
+	function token(Controller $ctl) {
+		$params = $this->read_oauth_params();
+		$grant_type = (string) ($params["grant_type"] ?? "");
+		if ($grant_type === "authorization_code") {
+			$this->token_from_authorization_code($ctl, $params);
+		}
+		if ($grant_type === "refresh_token") {
+			$this->token_from_refresh_token($ctl, $params);
+		}
+		http_response_code(400);
+		$this->respond_json(["error" => "unsupported_grant_type"]);
+	}
+
+	function revoke(Controller $ctl) {
+		$params = $this->read_oauth_params();
+		$token = (string) ($params["token"] ?? "");
+		if ($token !== "") {
+			$hash = hash("sha256", $token);
+			foreach ($this->ffm_tokens->select("access_token_hash", $hash) as $row) {
+				$row["revoked"] = 1;
+				$row["updated_at"] = time();
+				$this->ffm_tokens->update($row);
+			}
+			foreach ($this->ffm_tokens->select("refresh_token_hash", $hash) as $row) {
+				$row["revoked"] = 1;
+				$row["updated_at"] = time();
+				$this->ffm_tokens->update($row);
+			}
+		}
+		$this->respond_json(["ok" => true]);
+	}
+
+	private function handle_json_rpc(Controller $ctl, array $request): array {
+		$id = $request["id"] ?? null;
+		$method = (string) ($request["method"] ?? "");
+		$params = is_array($request["params"] ?? null) ? $request["params"] : [];
+		$server = $this->get_server();
+
+		if ($method === "") {
+			return $this->json_error($id, -32600, "Invalid Request");
+		}
+		if ($method === "initialize") {
+			return $this->json_result($id, [
+				"protocolVersion" => "2024-11-05",
+				"capabilities" => [
+					"tools" => ["listChanged" => false],
+				],
+				"serverInfo" => [
+					"name" => (string) ($server["title"] ?? "FBP MCP Server"),
+					"version" => "0.1.0",
+				],
+			]);
+		}
+		if ($method === "notifications/initialized") {
+			return $this->json_result($id, new stdClass());
+		}
+		if ((int) ($server["enabled"] ?? 0) !== 1) {
+			return $this->json_error($id, -32000, "MCP server is disabled.");
+		}
+		if ($method === "tools/list") {
+			return $this->json_result($id, ["tools" => $this->build_tool_descriptors($ctl, $server)]);
+		}
+		if ($method === "tools/call") {
+			return $this->json_result($id, $this->handle_tool_call($ctl, $server, $params));
+		}
+		if ($method === "ping") {
+			return $this->json_result($id, new stdClass());
+		}
+		return $this->json_error($id, -32601, "Method not found");
+	}
+
+	private function build_tool_descriptors(Controller $ctl, array $server): array {
+		$tools = [];
+		foreach ($this->ffm_tools->select("server_id", $server["id"], true, "AND", "sort", SORT_ASC) as $tool) {
+			if (!$this->is_tool_ready($tool)) {
+				continue;
+			}
+			$tools[] = $this->build_tool_descriptor($ctl, $server, $tool);
+		}
+		return $tools;
+	}
+
+	private function build_tool_descriptor(Controller $ctl, array $server, array $tool): array {
+		$name = (string) ($tool["tool_name"] ?? "");
+		$scope = $this->tool_scope($server, $tool);
+		$descriptor = [
+			"name" => $name,
+			"title" => (string) ($tool["title"] ?? $name),
+			"description" => (string) ($tool["description"] ?? ""),
+			"inputSchema" => $this->build_input_schema($ctl, $tool),
+			"annotations" => [
+				"readOnlyHint" => (int) ($tool["read_only"] ?? 0) === 1,
+				"destructiveHint" => (int) ($tool["destructive"] ?? 0) === 1,
+				"openWorldHint" => false,
+			],
+		];
+		if ((string) ($server["auth_mode"] ?? "oauth2") === "noauth") {
+			$descriptor["securitySchemes"] = [["type" => "noauth"]];
+		} else {
+			$descriptor["securitySchemes"] = [[
+				"type" => "oauth2",
+				"scopes" => $this->split_scopes($scope),
+			]];
+		}
+		return $descriptor;
+	}
+
+	private function handle_tool_call(Controller $ctl, array $server, array $params): array {
+		$name = (string) ($params["name"] ?? "");
+		$args = is_array($params["arguments"] ?? null) ? $params["arguments"] : [];
+		$tool = $this->find_tool_by_name((int) $server["id"], $name);
+		if ($tool === null || !$this->is_tool_ready($tool)) {
+			return $this->tool_error("Tool is not available.");
+		}
+		$auth = $this->authorize_tool_call($ctl, $server, $tool);
+		if (!$auth["ok"]) {
+			return $this->tool_auth_error($ctl, $auth["error"]);
+		}
+
+		$user_id = (int) ($auth["user_id"] ?? 0);
+		try {
+			if ((int) ($tool["requires_confirmation"] ?? 0) === 1 && empty($args["confirm"])) {
+				throw new Exception("This tool requires confirm=true.");
+			}
+			$result = $this->execute_note_tool($ctl, $tool, $args);
+			$this->log_call($server, $tool, $user_id, "tools/call", $args, "ok", "");
+			return [
+				"content" => [[
+					"type" => "text",
+					"text" => (string) ($result["message"] ?? "Done."),
+				]],
+				"structuredContent" => $result,
+			];
+		} catch (Throwable $e) {
+			$this->log_call($server, $tool, $user_id, "tools/call", $args, "error", $e->getMessage());
+			return $this->tool_error($e->getMessage());
+		}
+	}
+
+	private function execute_note_tool(Controller $ctl, array $tool, array $args): array {
+		if ((string) ($tool["tool_type"] ?? "") !== "note_crud") {
+			throw new Exception("Custom action tools are not implemented yet.");
+		}
+		$operation = (string) ($tool["operation"] ?? "");
+		$table = (string) ($tool["target_note"] ?? "");
+		if ($table === "") {
+			throw new Exception("Target note is not configured.");
+		}
+		$ffm = $ctl->db($table);
+		if ($operation === "list") {
+			return $this->execute_list($ctl, $ffm, $tool, $args);
+		}
+		if ($operation === "get") {
+			return $this->execute_get($ctl, $ffm, $tool, $args);
+		}
+		if ($operation === "create") {
+			return $this->execute_create($ctl, $ffm, $tool, $args);
+		}
+		if ($operation === "update") {
+			return $this->execute_update($ctl, $ffm, $tool, $args);
+		}
+		if ($operation === "delete") {
+			return $this->execute_delete($ffm, $tool, $args);
+		}
+		throw new Exception("Unsupported operation.");
+	}
+
+	private function execute_list(Controller $ctl, FFM $ffm, array $tool, array $args): array {
+		$limit = max(1, min((int) ($tool["max_limit"] ?? 20), (int) ($args["limit"] ?? ($tool["max_limit"] ?? 20))));
+		$query = trim((string) ($args["query"] ?? ""));
+		$output_fields = $this->tool_fields((int) $tool["id"], "output");
+		$search_fields = $this->tool_fields((int) $tool["id"], "search");
+		if (count($search_fields) === 0) {
+			$search_fields = $output_fields;
+		}
+		$rows = $ffm->getall("id", SORT_DESC);
+		$items = [];
+		foreach ($rows as $row) {
+			if ($query !== "" && !$this->row_matches_query($row, $search_fields, $query)) {
+				continue;
+			}
+			$items[] = $this->project_row($row, $output_fields);
+			if (count($items) >= $limit) {
+				break;
+			}
+		}
+		return [
+			"message" => count($items) . " item(s) found.",
+			"count" => count($items),
+			"items" => $items,
+		];
+	}
+
+	private function execute_get(Controller $ctl, FFM $ffm, array $tool, array $args): array {
+		$id = $this->required_id($args);
+		$row = $ffm->get($id);
+		if (empty($row)) {
+			throw new Exception("Item not found.");
+		}
+		$item = $this->project_row($row, $this->tool_fields((int) $tool["id"], "output"));
+		return [
+			"message" => "Item loaded.",
+			"item" => $item,
+		];
+	}
+
+	private function execute_create(Controller $ctl, FFM $ffm, array $tool, array $args): array {
+		$input_fields = $this->tool_field_rows((int) $tool["id"], "input");
+		$data = $this->build_input_data($input_fields, $args, true);
+		$id = $ffm->insert($data);
+		$row = $ffm->get((int) $id);
+		return [
+			"message" => "Item created.",
+			"id" => (int) $id,
+			"item" => $this->project_row($row, $this->tool_fields((int) $tool["id"], "output")),
+		];
+	}
+
+	private function execute_update(Controller $ctl, FFM $ffm, array $tool, array $args): array {
+		$id = $this->required_id($args);
+		$row = $ffm->get($id);
+		if (empty($row)) {
+			throw new Exception("Item not found.");
+		}
+		$data = $this->build_input_data($this->tool_field_rows((int) $tool["id"], "input"), $args, false);
+		foreach ($data as $key => $value) {
+			$row[$key] = $value;
+		}
+		$ffm->update($row);
+		$row = $ffm->get($id);
+		return [
+			"message" => "Item updated.",
+			"id" => $id,
+			"item" => $this->project_row($row, $this->tool_fields((int) $tool["id"], "output")),
+		];
+	}
+
+	private function execute_delete(FFM $ffm, array $tool, array $args): array {
+		$id = $this->required_id($args);
+		if (empty($args["confirm"])) {
+			throw new Exception("Delete requires confirm=true.");
+		}
+		$row = $ffm->get($id);
+		if (empty($row)) {
+			throw new Exception("Item not found.");
+		}
+		$ffm->delete($id);
+		return [
+			"message" => "Item deleted.",
+			"id" => $id,
+		];
+	}
+
+	private function build_input_schema(Controller $ctl, array $tool): array {
+		$operation = (string) ($tool["operation"] ?? "");
+		$schema = [
+			"type" => "object",
+			"properties" => [],
+			"required" => [],
+			"additionalProperties" => false,
+		];
+		if ($operation === "list") {
+			$schema["properties"]["query"] = ["type" => "string", "description" => "Optional text search."];
+			$schema["properties"]["limit"] = ["type" => "integer", "minimum" => 1, "maximum" => (int) ($tool["max_limit"] ?? 20)];
+		} elseif ($operation === "get") {
+			$schema["properties"]["id"] = ["type" => "integer"];
+			$schema["required"][] = "id";
+		} elseif (in_array($operation, ["create", "update"], true)) {
+			if ($operation === "update") {
+				$schema["properties"]["id"] = ["type" => "integer"];
+				$schema["required"][] = "id";
+			}
+			$field_map = $this->note_field_map($ctl, (string) ($tool["target_note"] ?? ""));
+			foreach ($this->tool_field_rows((int) ($tool["id"] ?? 0), "input") as $field) {
+				$name = (string) ($field["field_name"] ?? "");
+				if ($name === "") {
+					continue;
+				}
+				$db_field = $field_map[$name] ?? [];
+				$schema["properties"][$name] = $this->json_schema_for_db_field($db_field);
+				if ($operation === "create" && (int) ($field["required"] ?? 0) === 1) {
+					$schema["required"][] = $name;
+				}
+			}
+		} elseif ($operation === "delete") {
+			$schema["properties"]["id"] = ["type" => "integer"];
+			$schema["properties"]["confirm"] = ["type" => "boolean", "description" => "Must be true to delete."];
+			$schema["required"] = ["id", "confirm"];
+		}
+		if ((int) ($tool["requires_confirmation"] ?? 0) === 1 && !isset($schema["properties"]["confirm"])) {
+			$schema["properties"]["confirm"] = ["type" => "boolean", "description" => "Must be true to execute this write operation."];
+			$schema["required"][] = "confirm";
+		}
+		return $schema;
+	}
+
+	private function json_schema_for_db_field(array $field): array {
+		$type = (string) ($field["type"] ?? "text");
+		$title = (string) ($field["parameter_title"] ?? ($field["parameter_name"] ?? ""));
+		$description = (string) ($field["parameter_description"] ?? "");
+		$schema = ["type" => "string"];
+		if (in_array($type, ["number", "int", "integer"], true)) {
+			$schema = ["type" => "number"];
+		} elseif ($type === "checkbox") {
+			$schema = ["type" => "array", "items" => ["type" => "string"]];
+		}
+		if ($title !== "") {
+			$schema["title"] = $title;
+		}
+		if ($description !== "") {
+			$schema["description"] = $description;
+		}
+		return $schema;
+	}
+
+	private function authorize_tool_call(Controller $ctl, array $server, array $tool): array {
+		if ((string) ($server["auth_mode"] ?? "oauth2") === "noauth") {
+			return ["ok" => true, "user_id" => 0, "scope" => ""];
+		}
+		$token = $this->bearer_token();
+		if ($token === "") {
+			return ["ok" => false, "error" => "missing_access_token"];
+		}
+		$token_row = $this->find_valid_token($ctl, (int) $server["id"], $token);
+		if ($token_row === null) {
+			return ["ok" => false, "error" => "invalid_access_token"];
+		}
+		$required_scope = $this->tool_scope($server, $tool);
+		if (!$this->scope_allows((string) ($token_row["scope"] ?? ""), $required_scope)) {
+			return ["ok" => false, "error" => "insufficient_scope"];
+		}
+		return ["ok" => true, "user_id" => (int) ($token_row["user_id"] ?? 0), "scope" => (string) ($token_row["scope"] ?? "")];
+	}
+
+	private function find_valid_token(Controller $ctl, int $server_id, string $token): ?array {
+		$hash = hash("sha256", $token);
+		$list = $this->ffm_tokens->select("access_token_hash", $hash);
+		$user_ffm = $ctl->db("user", "user");
+		foreach ($list as $row) {
+			if ((int) ($row["server_id"] ?? 0) !== $server_id) {
+				continue;
+			}
+			if ((int) ($row["revoked"] ?? 0) === 1 || (int) ($row["expires_at"] ?? 0) <= time()) {
+				continue;
+			}
+			$user = $user_ffm->get((int) ($row["user_id"] ?? 0));
+			if (!is_array($user) || empty($user["id"]) || (int) ($user["status"] ?? 1) !== 0) {
+				continue;
+			}
+			return $row;
+		}
+		return null;
+	}
+
+	private function current_login_user(Controller $ctl): ?array {
+		if (!$ctl->get_session("login")) {
+			return null;
+		}
+		$user_id = (int) ($ctl->get_session("user_id") ?? 0);
+		if ($user_id <= 0) {
+			return null;
+		}
+		$user = $ctl->db("user", "user")->get($user_id);
+		if (!is_array($user) || empty($user["id"]) || (int) ($user["status"] ?? 1) !== 0) {
+			return null;
+		}
+		return $user;
+	}
+
+	private function token_from_authorization_code(Controller $ctl, array $params): void {
+		$server = $this->get_server();
+		$code = (string) ($params["code"] ?? "");
+		$redirect_uri = (string) ($params["redirect_uri"] ?? "");
+		$client_id = (string) ($params["client_id"] ?? "");
+		if ($code === "" || $redirect_uri === "") {
+			http_response_code(400);
+			$this->respond_json(["error" => "invalid_request"]);
+		}
+		$list = $this->ffm_auth_codes->select("code_hash", hash("sha256", $code));
+		foreach ($list as $auth_code) {
+			if ((int) ($auth_code["server_id"] ?? 0) !== (int) ($server["id"] ?? 0)) {
+				continue;
+			}
+			if ((int) ($auth_code["consumed"] ?? 0) === 1 || (int) ($auth_code["expires_at"] ?? 0) <= time()) {
+				continue;
+			}
+			if ((string) ($auth_code["redirect_uri"] ?? "") !== $redirect_uri) {
+				continue;
+			}
+			if ($client_id !== "" && (string) ($auth_code["client_id"] ?? "") !== $client_id) {
+				continue;
+			}
+			if (!$this->verify_pkce($auth_code, (string) ($params["code_verifier"] ?? ""))) {
+				http_response_code(400);
+				$this->respond_json(["error" => "invalid_grant"]);
+			}
+			$user = $ctl->db("user", "user")->get((int) ($auth_code["user_id"] ?? 0));
+			if (!is_array($user) || empty($user["id"]) || (int) ($user["status"] ?? 1) !== 0) {
+				http_response_code(400);
+				$this->respond_json(["error" => "invalid_grant"]);
+			}
+			$auth_code["consumed"] = 1;
+			$auth_code["updated_at"] = time();
+			$this->ffm_auth_codes->update($auth_code);
+			$this->issue_token_response((int) $server["id"], (int) $user["id"], (string) ($auth_code["client_id"] ?? ""), (string) ($auth_code["scope"] ?? ""));
+		}
+		http_response_code(400);
+		$this->respond_json(["error" => "invalid_grant"]);
+	}
+
+	private function token_from_refresh_token(Controller $ctl, array $params): void {
+		$server = $this->get_server();
+		$refresh_token = (string) ($params["refresh_token"] ?? "");
+		if ($refresh_token === "") {
+			http_response_code(400);
+			$this->respond_json(["error" => "invalid_request"]);
+		}
+		$list = $this->ffm_tokens->select("refresh_token_hash", hash("sha256", $refresh_token));
+		foreach ($list as $token_row) {
+			if ((int) ($token_row["server_id"] ?? 0) !== (int) ($server["id"] ?? 0)) {
+				continue;
+			}
+			if ((int) ($token_row["revoked"] ?? 0) === 1) {
+				continue;
+			}
+			$user = $ctl->db("user", "user")->get((int) ($token_row["user_id"] ?? 0));
+			if (!is_array($user) || empty($user["id"]) || (int) ($user["status"] ?? 1) !== 0) {
+				continue;
+			}
+			$token_row["revoked"] = 1;
+			$token_row["updated_at"] = time();
+			$this->ffm_tokens->update($token_row);
+			$this->issue_token_response((int) $server["id"], (int) $user["id"], (string) ($token_row["client_id"] ?? ""), (string) ($token_row["scope"] ?? ""));
+		}
+		http_response_code(400);
+		$this->respond_json(["error" => "invalid_grant"]);
+	}
+
+	private function issue_token_response(int $server_id, int $user_id, string $client_id, string $scope): void {
+		$access_token = $this->random_token();
+		$refresh_token = $this->random_token();
+		$row = [
+			"server_id" => $server_id,
+			"user_id" => $user_id,
+			"client_id" => $client_id,
+			"scope" => $scope,
+			"access_token_hash" => hash("sha256", $access_token),
+			"refresh_token_hash" => hash("sha256", $refresh_token),
+			"expires_at" => time() + 3600,
+			"revoked" => 0,
+			"created_at" => time(),
+			"updated_at" => time(),
+		];
+		$this->ffm_tokens->insert($row);
+		$this->respond_json([
+			"access_token" => $access_token,
+			"token_type" => "Bearer",
+			"expires_in" => 3600,
+			"refresh_token" => $refresh_token,
+			"scope" => $scope,
+		]);
+	}
+
+	private function get_server(): array {
+		$list = $this->ffm_server->getall("sort", SORT_ASC);
+		if (count($list) === 0) {
+			return [
+				"id" => 0,
+				"enabled" => 0,
+				"title" => "FBP MCP Server",
+				"description" => "",
+				"auth_mode" => "oauth2",
+				"default_scope" => "mcp.read mcp.write",
+			];
+		}
+		return $list[0];
+	}
+
+	private function find_tool_by_name(int $server_id, string $name): ?array {
+		foreach ($this->ffm_tools->select(["server_id", "tool_name"], [$server_id, $name]) as $tool) {
+			return $tool;
+		}
+		return null;
+	}
+
+	private function is_tool_ready(array $tool): bool {
+		if ((int) ($tool["enabled"] ?? 0) !== 1) {
+			return false;
+		}
+		if ((string) ($tool["tool_type"] ?? "") !== "note_crud") {
+			return false;
+		}
+		$operation = (string) ($tool["operation"] ?? "");
+		if (in_array($operation, ["list", "get"], true)) {
+			return count($this->tool_fields((int) ($tool["id"] ?? 0), "output")) > 0;
+		}
+		if (in_array($operation, ["create", "update"], true)) {
+			return count($this->tool_fields((int) ($tool["id"] ?? 0), "input")) > 0;
+		}
+		return $operation === "delete";
+	}
+
+	private function tool_fields(int $tool_id, string $role): array {
+		$fields = [];
+		foreach ($this->tool_field_rows($tool_id, $role) as $row) {
+			$name = (string) ($row["field_name"] ?? "");
+			if ($name !== "") {
+				$fields[] = $name;
+			}
+		}
+		return $fields;
+	}
+
+	private function tool_field_rows(int $tool_id, string $role): array {
+		return $this->ffm_fields->select(["tool_id", "role"], [$tool_id, $role], true, "AND", "sort", SORT_ASC);
+	}
+
+	private function note_field_map(Controller $ctl, string $tb_name): array {
+		$map = [];
+		$db_list = $ctl->db("db", "db")->select("tb_name", $tb_name);
+		if (count($db_list) === 0) {
+			return $map;
+		}
+		$db_id = (int) ($db_list[0]["id"] ?? 0);
+		foreach ($ctl->db("db_fields", "db")->select("db_id", $db_id) as $field) {
+			$name = (string) ($field["parameter_name"] ?? "");
+			if ($name !== "") {
+				$map[$name] = $field;
+			}
+		}
+		return $map;
+	}
+
+	private function build_input_data(array $field_rows, array $args, bool $require_required): array {
+		$data = [];
+		foreach ($field_rows as $field) {
+			$name = (string) ($field["field_name"] ?? "");
+			if ($name === "") {
+				continue;
+			}
+			if (!array_key_exists($name, $args)) {
+				if ($require_required && (int) ($field["required"] ?? 0) === 1) {
+					throw new Exception("Required field missing: " . $name);
+				}
+				continue;
+			}
+			$data[$name] = $args[$name];
+		}
+		if (count($data) === 0) {
+			throw new Exception("No writable fields were provided.");
+		}
+		return $data;
+	}
+
+	private function project_row(array $row, array $fields): array {
+		$item = ["id" => (int) ($row["id"] ?? 0)];
+		foreach ($fields as $field) {
+			$item[$field] = $row[$field] ?? "";
+		}
+		return $item;
+	}
+
+	private function row_matches_query(array $row, array $fields, string $query): bool {
+		$query = mb_strtolower($query, "UTF-8");
+		foreach ($fields as $field) {
+			$value = mb_strtolower((string) ($row[$field] ?? ""), "UTF-8");
+			if ($value !== "" && mb_strpos($value, $query, 0, "UTF-8") !== false) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private function required_id(array $args): int {
+		$id = (int) ($args["id"] ?? 0);
+		if ($id <= 0) {
+			throw new Exception("id is required.");
+		}
+		return $id;
+	}
+
+	private function tool_scope(array $server, array $tool): string {
+		$scope = trim((string) ($tool["required_scope"] ?? ""));
+		if ($scope !== "") {
+			return $scope;
+		}
+		return trim((string) ($server["default_scope"] ?? ""));
+	}
+
+	private function supported_scopes(): array {
+		$scopes = [];
+		$server = $this->get_server();
+		foreach ($this->split_scopes((string) ($server["default_scope"] ?? "")) as $scope) {
+			$scopes[$scope] = true;
+		}
+		foreach ($this->ffm_tools->getall() as $tool) {
+			foreach ($this->split_scopes((string) ($tool["required_scope"] ?? "")) as $scope) {
+				$scopes[$scope] = true;
+			}
+		}
+		return array_values(array_keys($scopes));
+	}
+
+	private function split_scopes(string $scope): array {
+		$result = [];
+		foreach (preg_split('/\s+/', trim($scope)) as $s) {
+			if ($s !== "") {
+				$result[] = $s;
+			}
+		}
+		return $result;
+	}
+
+	private function scope_allows(string $granted, string $required): bool {
+		$required_scopes = $this->split_scopes($required);
+		if (count($required_scopes) === 0) {
+			return true;
+		}
+		$granted_map = array_flip($this->split_scopes($granted));
+		foreach ($required_scopes as $scope) {
+			if (!isset($granted_map[$scope])) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private function oauth_authorize_params(Controller $ctl): array {
+		return [
+			"response_type" => trim((string) ($ctl->GET("response_type") ?: $ctl->POST("response_type"))),
+			"client_id" => trim((string) ($ctl->GET("client_id") ?: $ctl->POST("client_id"))),
+			"redirect_uri" => trim((string) ($ctl->GET("redirect_uri") ?: $ctl->POST("redirect_uri"))),
+			"scope" => trim((string) ($ctl->GET("scope") ?: $ctl->POST("scope"))),
+			"state" => trim((string) ($ctl->GET("state") ?: $ctl->POST("state"))),
+			"code_challenge" => trim((string) ($ctl->GET("code_challenge") ?: $ctl->POST("code_challenge"))),
+			"code_challenge_method" => trim((string) ($ctl->GET("code_challenge_method") ?: $ctl->POST("code_challenge_method"))),
+		];
+	}
+
+	private function validate_authorize_params(array $params): string {
+		if ($params["response_type"] !== "code") {
+			return "response_type must be code.";
+		}
+		if ($params["client_id"] === "") {
+			return "client_id is required.";
+		}
+		if ($params["redirect_uri"] === "" || !preg_match('#^https?://#i', $params["redirect_uri"])) {
+			return "redirect_uri must be http or https URL.";
+		}
+		if ($params["code_challenge_method"] !== "" && !in_array($params["code_challenge_method"], ["S256", "plain"], true)) {
+			return "Unsupported code_challenge_method.";
+		}
+		return "";
+	}
+
+	private function read_json_request() {
+		$raw = file_get_contents("php://input");
+		$content_type = (string) ($_SERVER["CONTENT_TYPE"] ?? "");
+		if (stripos($content_type, "application/json") !== false && is_string($raw) && trim($raw) !== "") {
+			$decoded = json_decode($raw, true);
+			if (is_array($decoded)) {
+				return $decoded;
+			}
+			return null;
+		}
+		if (isset($_POST["payload"])) {
+			$decoded = json_decode((string) $_POST["payload"], true);
+			if (is_array($decoded)) {
+				return $decoded;
+			}
+		}
+		if (isset($_POST["jsonrpc"]) || isset($_POST["method"])) {
+			return $_POST;
+		}
+		return null;
+	}
+
+	private function read_oauth_params(): array {
+		$raw = file_get_contents("php://input");
+		$content_type = (string) ($_SERVER["CONTENT_TYPE"] ?? "");
+		if (stripos($content_type, "application/json") !== false && is_string($raw) && trim($raw) !== "") {
+			$decoded = json_decode($raw, true);
+			return is_array($decoded) ? $decoded : [];
+		}
+		return $_POST;
+	}
+
+	private function bearer_token(): string {
+		$header = (string) ($_SERVER["HTTP_AUTHORIZATION"] ?? $_SERVER["Authorization"] ?? "");
+		if ($header === "" && function_exists("apache_request_headers")) {
+			$headers = apache_request_headers();
+			$header = (string) ($headers["Authorization"] ?? $headers["authorization"] ?? "");
+		}
+		if (preg_match('/^Bearer\s+(.+)$/i', $header, $m)) {
+			return trim($m[1]);
+		}
+		return "";
+	}
+
+	private function verify_pkce(array $auth_code, string $verifier): bool {
+		$challenge = (string) ($auth_code["code_challenge"] ?? "");
+		if ($challenge === "") {
+			return true;
+		}
+		if ($verifier === "") {
+			return false;
+		}
+		$method = (string) ($auth_code["code_challenge_method"] ?? "plain");
+		if ($method === "S256") {
+			return hash_equals($challenge, $this->base64url(hash("sha256", $verifier, true)));
+		}
+		return hash_equals($challenge, $verifier);
+	}
+
+	private function random_token(): string {
+		return $this->base64url(random_bytes(32));
+	}
+
+	private function base64url(string $data): string {
+		return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
+	}
+
+	private function append_query(string $url, array $params): string {
+		$query = [];
+		foreach ($params as $key => $value) {
+			if ($value !== "") {
+				$query[$key] = $value;
+			}
+		}
+		if (count($query) === 0) {
+			return $url;
+		}
+		return $url . (strpos($url, "?") === false ? "?" : "&") . http_build_query($query);
+	}
+
+	private function log_call(array $server, array $tool, int $user_id, string $method, array $request, string $status, string $error): void {
+		$request_json = json_encode($request, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+		if ($request_json === false) {
+			$request_json = "";
+		}
+		if (mb_strlen($request_json, "UTF-8") > 1800) {
+			$request_json = mb_substr($request_json, 0, 1800, "UTF-8") . "...";
+		}
+		$row = [
+			"server_id" => (int) ($server["id"] ?? 0),
+			"tool_id" => (int) ($tool["id"] ?? 0),
+			"user_id" => $user_id,
+			"method" => $method,
+			"tool_name" => (string) ($tool["tool_name"] ?? ""),
+			"request_json" => $request_json,
+			"result_status" => $status,
+			"error_message" => $error,
+			"created_at" => time(),
+		];
+		$this->ffm_logs->insert($row);
+	}
+
+	private function tool_error(string $message): array {
+		return [
+			"isError" => true,
+			"content" => [[
+				"type" => "text",
+				"text" => $message,
+			]],
+			"structuredContent" => [
+				"ok" => false,
+				"error" => $message,
+			],
+		];
+	}
+
+	private function tool_auth_error(Controller $ctl, string $error): array {
+		return [
+			"isError" => true,
+			"content" => [[
+				"type" => "text",
+				"text" => "Authentication required: " . $error,
+			]],
+			"structuredContent" => [
+				"ok" => false,
+				"error" => $error,
+			],
+			"_meta" => [
+				"mcp/www_authenticate" => [
+					'Bearer resource_metadata="' . $ctl->get_APP_URL("mcp_server", "oauth_protected_resource") . '", error="' . $error . '", error_description="OAuth authorization is required."',
+				],
+			],
+		];
+	}
+
+	private function json_result($id, $result): array {
+		return [
+			"jsonrpc" => "2.0",
+			"id" => $id,
+			"result" => $result,
+		];
+	}
+
+	private function json_error($id, int $code, string $message): array {
+		return [
+			"jsonrpc" => "2.0",
+			"id" => $id,
+			"error" => [
+				"code" => $code,
+				"message" => $message,
+			],
+		];
+	}
+
+	private function respond_json(array $payload): void {
+		header("Content-Type: application/json; charset=UTF-8");
+		echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+		exit;
+	}
+
+}

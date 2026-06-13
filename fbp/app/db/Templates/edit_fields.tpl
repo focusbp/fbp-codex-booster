@@ -32,6 +32,17 @@
 	</div>
 
 	<div>
+		<p class="lang">{t key="db.parent_relation_flag"}:</p>
+		{html_options name="parent_relation_flag" selected=$data.parent_relation_flag|default:0 options=$parent_relation_flag_opt}
+		<p class="error_message lang error_parent_relation_flag"></p>
+	</div>
+	<div>
+		<p class="lang">{t key="db.parent_relation_parent"}:</p>
+		{html_options name="parent_db_id" selected=$data.parent_db_id|default:0 options=$parent_db_opt}
+		<p class="error_message lang error_parent_db_id"></p>
+	</div>
+
+	<div>
 		<p class="lang">{t key="db.data_length_bytes"}:</p>
 		<input class="field_length" type="text" name="length" value="{$data.length}">
 		<p class="recommended_length"></p>

@@ -8,17 +8,19 @@ Use the same structure as `db_exe` so framework JS can bind auto-submit:
 
 ```smarty
 <div class="search_box">
-    <div class="search_left">
-        <form id="example_filter_form" class="search_form_flex">
-            {fields_form_direct field_group="search_field_group" data=$filter item_margin_top="0px"}
-        </form>
-    </div>
-    <div class="search_right" style="display:none;">
-        <button type="button"
-                class="ajax-link"
-                data-class="example_original_management"
-                data-function="apply_filter"
-                data-form="example_filter_form">Search</button>
+    <div class="original_search_panel_body">
+        <div class="search_left">
+            <form id="example_filter_form" class="search_form_flex">
+                {fields_form_direct field_group="search_field_group" data=$filter item_margin_top="0px"}
+            </form>
+        </div>
+        <div class="search_right" style="display:none;">
+            <button type="button"
+                    class="ajax-link"
+                    data-class="example_original_management"
+                    data-function="apply_filter"
+                    data-form="example_filter_form">Search</button>
+        </div>
     </div>
 </div>
 ```
@@ -28,6 +30,7 @@ Use the same structure as `db_exe` so framework JS can bind auto-submit:
 - Text inputs and textareas auto-submit after a short delay; selects submit immediately.
 - `apply_filter()` should reload only the list area, for example `reload_area($list_area, "list_area.tpl")`.
 - Required search values should return `res_error_message()` and immediately `return`.
+- If a visible `検索` button is used instead of hidden auto search, keep it in `.search_right` and right-align it with flex. Set the button to `float:none !important;` because shared button CSS may float buttons.
 
 ## Five-Column Field Layout
 
@@ -50,6 +53,23 @@ For compact operational screens, search items should wrap after 5 items per row 
         max-width: 100%;
         width: 100%;
     }
+    .example-page .original_search_panel_body {
+        display: flex;
+        gap: 12px;
+        align-items: flex-end;
+    }
+    .example-page .search_right {
+        display: flex;
+        justify-content: flex-end;
+        align-items: flex-end;
+        flex: 0 0 auto;
+        margin-left: auto;
+        min-width: 0;
+    }
+    .example-page .search_right .button_link {
+        float: none !important;
+        white-space: nowrap;
+    }
     @media (max-width: 1280px) {
         .example-page #example_filter_form {
             grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -68,6 +88,16 @@ For compact operational screens, search items should wrap after 5 items per row 
     @media (max-width: 520px) {
         .example-page #example_filter_form {
             grid-template-columns: 1fr;
+        }
+        .example-page .original_search_panel_body {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .example-page .search_right {
+            width: 100%;
+        }
+        .example-page .search_right .button_link {
+            width: 100%;
         }
     }
 </style>

@@ -14,7 +14,7 @@
 			{if $c.show_icon_on_parent_list == 0}
 			<div class="row_style task_child_table_link">
 				<span class="row_title">{$c.menu_name}</span>
-				<span class="row_value active_indicator_trigger"><span class="ajax-link material-symbols-outlined" style="cursor:pointer;width:24px;" data-class="{$class}" data-function="rows_child" data-db_id="{$c.id}" data-parent_id="{$row.id}">table_rows</span></span>
+				<span class="row_value active_indicator_trigger"><span class="ajax-link material-symbols-outlined" style="cursor:pointer;width:24px;" data-class="{$class}" data-function="rows_child" data-db_id="{$c.id}" data-parent_id="{$row.id}" data-parent_field="{$c._parent_field_name|default:'parent_id'}" data-parent_db_id="{$c._parent_db_id|default:''}">table_rows</span></span>
 			</div>
 			{/if}
 		{/foreach}

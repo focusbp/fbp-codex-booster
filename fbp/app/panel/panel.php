@@ -19,6 +19,7 @@ class panel {
 			"constants" => $ctl->t("panel.tab.constants"),
 			"webhook" => $ctl->t("panel.tab.webhook"),
 			"embed_app" => $ctl->t("panel.tab.embed_app"),
+			"mcp_server" => $ctl->t("panel.tab.mcp_server"),
 			"public_pages" => $ctl->t("panel.tab.public_pages"),
 			"public_assets" => $ctl->t("panel.tab.public_assets"),
 			"db_additionals" => $ctl->t("panel.tab.db_additionals"),

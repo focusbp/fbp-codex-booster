@@ -60,6 +60,7 @@ private function normalize_datetime_to_timestamp($value): int
 - 上部固定操作は第5引数 `fixed_bar_template` に分離して指定する（例: `"_fixed_bar.tpl"`）。
 - ダイアログメニュー（タブ）は `add_tab()` を使って `.multi_dialog_tab_area` に追加する。
 - 配置指針: 全体操作=固定バー、画面名=title、内容切替=タブ、フォーム本文=contents。
+- ダイアログ本文のフォームでは、入力部品の横に実行ボタンを置かない。フォーム項目の下に `.button_row` などの操作行を置き、ボタンは右寄せにする。検索ツールバーの検索ボタンだけは例外として横配置を許可する。
 
 ## constraints
 - エラー時の再描画（`show_multi_dialog` 再実行、`reload_area`）を禁止。

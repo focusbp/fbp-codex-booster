@@ -221,6 +221,120 @@ class db_exe {
 		return $names;
 	}
 
+	private function get_child_tables_for_parent_list(Controller $ctl, ?int $parent_db_id = null): array {
+		$parent_db_id = $parent_db_id ?? (int) $this->db_setting_id;
+		$child_tables = [];
+
+		$legacy_children = $this->fmt_db->select("parent_tb_id", $parent_db_id, true, "AND", "sort", SORT_ASC);
+		foreach ($legacy_children as $child) {
+			$child["_parent_field_name"] = "parent_id";
+			$child["_parent_db_id"] = $parent_db_id;
+			$child["_parent_relation_type"] = "parent_id";
+			$child_tables[] = $child;
+		}
+
+		$fields = $ctl->db("db_fields", "db")->select(
+			["parent_relation_flag", "parent_db_id"],
+			[1, $parent_db_id],
+			true,
+			"AND",
+			"sort",
+			SORT_ASC
+		);
+		foreach ($fields as $field) {
+			$child_db_id = (int) ($field["db_id"] ?? 0);
+			$parent_field = (string) ($field["parameter_name"] ?? "");
+			if ($child_db_id <= 0 || $parent_field === "") {
+				continue;
+			}
+			$child = $this->fmt_db->get($child_db_id);
+			if (!is_array($child) || empty($child["tb_name"])) {
+				continue;
+			}
+			$child["_parent_field_name"] = $parent_field;
+			$child["_parent_db_id"] = $parent_db_id;
+			$child["_parent_relation_field_id"] = $field["id"] ?? "";
+			$child["_parent_relation_type"] = "dropdown_fk";
+			$child["_parent_relation_title"] = $field["parameter_title"] ?: $parent_field;
+			$child_tables[] = $child;
+		}
+
+		usort($child_tables, function ($a, $b) {
+			$sort_a = (int) ($a["sort"] ?? 0);
+			$sort_b = (int) ($b["sort"] ?? 0);
+			if ($sort_a === $sort_b) {
+				return strcmp((string) ($a["_parent_field_name"] ?? ""), (string) ($b["_parent_field_name"] ?? ""));
+			}
+			return $sort_a <=> $sort_b;
+		});
+
+		return $child_tables;
+	}
+
+	private function find_parent_relation_field(Controller $ctl, string $parent_field, int $parent_db_id = 0): ?array {
+		if ($parent_field === "") {
+			return null;
+		}
+		$rows = $ctl->db("db_fields", "db")->select(
+			["db_id", "parameter_name"],
+			[$this->db_setting_id, $parent_field],
+			true,
+			"AND",
+			"id",
+			SORT_ASC
+		);
+		foreach ($rows as $field) {
+			if ((int) ($field["parent_relation_flag"] ?? 0) !== 1) {
+				continue;
+			}
+			$field_parent_db_id = (int) ($field["parent_db_id"] ?? 0);
+			if ($parent_db_id > 0 && $field_parent_db_id !== $parent_db_id) {
+				continue;
+			}
+			return $field;
+		}
+		return null;
+	}
+
+	private function get_child_relation_context(Controller $ctl, array $post): ?array {
+		$parent_id = isset($post["parent_id"]) ? (int) $post["parent_id"] : 0;
+		if ($parent_id <= 0) {
+			$ctl->res_error_message("parent_id", $ctl->t("db_exe.validation.parent_id_missing"));
+			return null;
+		}
+
+		$parent_field = trim((string) ($post["parent_field"] ?? ""));
+		if ($parent_field === "") {
+			$parent_field = "parent_id";
+		}
+
+		$relation_field = null;
+		if ($parent_field === "parent_id") {
+			$db_parent = $this->fmt_db->get($this->db_setting["parent_tb_id"]);
+		} else {
+			$relation_field = $this->find_parent_relation_field($ctl, $parent_field, (int) ($post["parent_db_id"] ?? 0));
+			if ($relation_field === null) {
+				$ctl->show_notification_text($ctl->t("db_exe.validation.child_table_required"));
+				return null;
+			}
+			$db_parent = $this->fmt_db->get((int) ($relation_field["parent_db_id"] ?? 0));
+		}
+
+		if (!is_array($db_parent) || empty($db_parent["tb_name"])) {
+			$ctl->set_session("_side_panel", null);
+			$ctl->show_notification_text($ctl->t("db_exe.validation.child_table_required"));
+			return null;
+		}
+
+		return [
+			"parent_id" => $parent_id,
+			"parent_field" => $parent_field,
+			"parent_db_id" => (int) ($db_parent["id"] ?? 0),
+			"db_parent" => $db_parent,
+			"relation_field" => $relation_field,
+		];
+	}
+
 	private function get_manual_sort_fallback_fields(Controller $ctl): array {
 		$field_names = $this->get_table_field_names($ctl);
 		$candidates = [];
@@ -449,7 +563,7 @@ class db_exe {
 		return "";
 	}
 
-	private function collect_search_session_from_post(Controller $ctl, array $post, bool $exclude_parent_id = false): array {
+	private function collect_search_session_from_post(Controller $ctl, array $post, bool $exclude_parent_id = false, string $exclude_field_name = ""): array {
 		$fields = $this->get_search_fields($ctl);
 		$search = [];
 		foreach ($fields as $field) {
@@ -457,7 +571,7 @@ class db_exe {
 			if ($name === "") {
 				continue;
 			}
-			if ($exclude_parent_id && $name === "parent_id") {
+			if (($exclude_parent_id && $name === "parent_id") || ($exclude_field_name !== "" && $name === $exclude_field_name)) {
 				continue;
 			}
 			$type = $field["type"] ?? "";
@@ -592,12 +706,12 @@ class db_exe {
 		return "search_side_" . $this->db_setting_id;
 	}
 
-	private function get_side_search_field_names(Controller $ctl): array {
+	private function get_side_search_field_names(Controller $ctl, string $parent_field = "parent_id"): array {
 		$fields = $this->get_search_fields($ctl);
 		$names = [];
 		foreach ($fields as $field) {
 			$name = $field["parameter_name"] ?? "";
-			if ($name === "" || $name === "parent_id") {
+			if ($name === "" || $name === "parent_id" || $name === $parent_field) {
 				continue;
 			}
 			$names[] = $name;
@@ -605,13 +719,13 @@ class db_exe {
 		return $names;
 	}
 
-	private function get_side_search_fields(Controller $ctl): array {
+	private function get_side_search_fields(Controller $ctl, string $parent_field = "parent_id"): array {
 		$tmp_group_name = "__tmp_side_search_group_" . uniqid();
 		$fields = $this->assign_search_group($ctl, $tmp_group_name, true, false);
 		$list = [];
 		foreach ($fields as $field) {
 			$name = $field["parameter_name"] ?? "";
-			if ($name === "" || $name === "parent_id") {
+			if ($name === "" || $name === "parent_id" || $name === $parent_field) {
 				continue;
 			}
 			$list[] = $field;
@@ -673,14 +787,18 @@ class db_exe {
 			return;
 		}
 		$post = $ctl->POST();
-		$parent_id = isset($post["parent_id"]) ? (int)$post["parent_id"] : 0;
-		if($parent_id <= 0){
-			$ctl->res_error_message("parent_id", $ctl->t("db_exe.validation.parent_id_missing"));
+		$context = $this->get_child_relation_context($ctl, $post);
+		if ($context === null) {
 			return;
 		}
 
-		$ctl->set_session($this->get_side_search_session_key(), $this->collect_search_session_from_post($ctl, $post, true));
-		$ctl->invoke("rows_child",["db_id"=>$this->db_setting_id,"parent_id"=>$parent_id]);
+		$ctl->set_session($this->get_side_search_session_key(), $this->collect_search_session_from_post($ctl, $post, true, $context["parent_field"]));
+		$ctl->invoke("rows_child",[
+			"db_id"=>$this->db_setting_id,
+			"parent_id"=>$context["parent_id"],
+			"parent_field"=>$context["parent_field"],
+			"parent_db_id"=>$context["parent_db_id"],
+		]);
 	}
 	
 	function search_weekly_calendar(Controller $ctl){
@@ -720,8 +838,7 @@ class db_exe {
 		$ctl->assign("rows",$rows);
 		
 		// Checking child tables
-		$child_tables = $this->fmt_db->select("parent_tb_id",$this->db_setting_id,true,"AND","sort",SORT_ASC);
-		$ctl->assign("child_tables",$child_tables);
+		$ctl->assign("child_tables", $this->get_child_tables_for_parent_list($ctl));
 		
 		// Assign data
 		$ctl->assign("max", $max);
@@ -1002,16 +1119,18 @@ class db_exe {
 			return;
 		}
 
-		$parent_id = $post["parent_id"] ?? null;
-		$ctl->assign("parent_id",$parent_id);
-		
-		// Create a link to display the previous table
-		$db_parent = $this->fmt_db->get($this->db_setting["parent_tb_id"]);
-		if (!is_array($db_parent) || empty($db_parent["tb_name"])) {
-			$ctl->set_session("_side_panel", null);
-			$ctl->show_notification_text($ctl->t("db_exe.validation.child_table_required"));
+		$context = $this->get_child_relation_context($ctl, $post);
+		if ($context === null) {
 			return;
 		}
+		$parent_id = $context["parent_id"];
+		$parent_field = $context["parent_field"];
+		$ctl->assign("parent_id",$parent_id);
+		$ctl->assign("parent_field",$parent_field);
+		$ctl->assign("parent_db_id",$context["parent_db_id"]);
+		
+		// Create a link to display the previous table
+		$db_parent = $context["db_parent"];
 		$fmt_parent = $ctl->db($db_parent["tb_name"]);
 		$parent = $fmt_parent->get($parent_id);
 		$ctl->assign("db_parent",$db_parent);
@@ -1021,7 +1140,7 @@ class db_exe {
 		$ctl->assign("table_title",$this->db_setting["menu_name"]);
 		
 		$side_panel_list_type = $this->get_side_panel_list_type();
-		$search_fields = $this->get_side_search_fields($ctl);
+		$search_fields = $this->get_side_search_fields($ctl, $parent_field);
 		$ctl->assign("search_group", $search_fields);
 		$search_row = $ctl->get_session($this->get_side_search_session_key());
 		if(!is_array($search_row)){
@@ -1032,9 +1151,8 @@ class db_exe {
 			$ctl->assign("show_search_box", true);
 		}
 
-		$base_fields = $this->get_search_fields($ctl);
-		[$search_field_list, $search_values, $search_match_patterns] = $this->build_search_filter_parts($base_fields, $search_row);
-		array_unshift($search_field_list, "parent_id");
+		[$search_field_list, $search_values, $search_match_patterns] = $this->build_search_filter_parts($search_fields, $search_row);
+		array_unshift($search_field_list, $parent_field);
 		array_unshift($search_values, $parent_id);
 		array_unshift($search_match_patterns, "=");
 		$this->append_visibility_filter_conditions($ctl, $search_field_list, $search_values, $search_match_patterns, "list_on_side");
@@ -1059,8 +1177,7 @@ class db_exe {
 		$ctl->assign("rows",$rows);
 		
 		// Checking child tables
-		$child_tables = $this->fmt_db->select("parent_tb_id",$this->db_setting_id,true,"AND","sort",SORT_ASC);
-		$ctl->assign("child_tables",$child_tables);
+		$ctl->assign("child_tables", $this->get_child_tables_for_parent_list($ctl));
 		
 		// Additional Features
 		$ffm_additionals =  $ctl->db("additionals","db_additionals");
@@ -1076,7 +1193,9 @@ class db_exe {
 		// reload_side_panel()用にセッションに保存
 		$sidepanel= [
 		    "db_id" => $post["db_id"] ?? null,
-		    "parent_id" => $post["parent_id"] ?? null
+		    "parent_id" => $parent_id,
+		    "parent_field" => $parent_field,
+		    "parent_db_id" => $context["parent_db_id"]
 		];
 		$ctl->set_session("_side_panel", $sidepanel);
 		
@@ -1121,10 +1240,17 @@ class db_exe {
 			return;
 		}
 		$post = $ctl->POST();
+		$context = $this->get_child_relation_context($ctl, $post);
+		if ($context === null) {
+			return;
+		}
 		$ctl->assign_field_settings("group1",$this->table_name, "add", false,false);
 		$row = $ctl->get_default_values($this->table_name);
+		$row[$context["parent_field"]] = $context["parent_id"];
 		$ctl->assign("row",$row);
-		$ctl->assign("parent_id",$post["parent_id"] ?? null);
+		$ctl->assign("parent_id",$context["parent_id"]);
+		$ctl->assign("parent_field",$context["parent_field"]);
+		$ctl->assign("parent_db_id",$context["parent_db_id"]);
 
 		if($this->db_setting["edit_width"] == 0){
 			$width=800;
@@ -1141,12 +1267,12 @@ class db_exe {
 		
 		// Getting Post data
 		$post = $ctl->POST();
-		$parent_id = isset($post["parent_id"]) ? (int)$post["parent_id"] : 0;
-		if($parent_id <= 0){
-			$ctl->res_error_message("parent_id", $ctl->t("db_exe.validation.parent_id_missing"));
+		$context = $this->get_child_relation_context($ctl, $post);
+		if ($context === null) {
 			return;
 		}
-		$post["parent_id"] = $parent_id;
+		$parent_id = $context["parent_id"];
+		$post[$context["parent_field"]] = $parent_id;
 		
 		// Validate
 		$ctl->validate($this->table_name, "add", $post);
@@ -1162,7 +1288,12 @@ class db_exe {
 			$data = $this->ffm->get($post["id"] ?? null);
 			
 			// Refresh the table and close the window
-			$ctl->invoke("rows_child",["db_id"=>$this->db_setting_id,"parent_id"=>$parent_id]);
+			$ctl->invoke("rows_child",[
+				"db_id"=>$this->db_setting_id,
+				"parent_id"=>$parent_id,
+				"parent_field"=>$context["parent_field"],
+				"parent_db_id"=>$context["parent_db_id"],
+			]);
 			$ctl->close_multi_dialog($this->window_name);
 			
 			// Post Action Class
@@ -1177,6 +1308,10 @@ class db_exe {
 		
 		// Getting Post data
 		$post = $ctl->POST();
+		$context = $this->get_child_relation_context($ctl, $post);
+		if ($context === null) {
+			return;
+		}
 
 		$id = $ctl->decrypt_post("id");
 		$row = $this->ffm->get($id);
@@ -1184,7 +1319,9 @@ class db_exe {
 		
 		$ctl->assign_field_settings("group1",$this->table_name, "edit", false,false);
 		$ctl->assign("row",$row);
-		$ctl->assign("parent_id",$post["parent_id"] ?? null);
+		$ctl->assign("parent_id",$context["parent_id"]);
+		$ctl->assign("parent_field",$context["parent_field"]);
+		$ctl->assign("parent_db_id",$context["parent_db_id"]);
 		
 		if($this->db_setting["edit_width"] == 0){
 			$width=800;
@@ -1201,7 +1338,12 @@ class db_exe {
 		
 		// Getting Post data
 		$post = $ctl->POST();
-		$parent_id = $post["parent_id"] ?? null;
+		$context = $this->get_child_relation_context($ctl, $post);
+		if ($context === null) {
+			return;
+		}
+		$parent_id = $context["parent_id"];
+		$post[$context["parent_field"]] = $parent_id;
 		
 		// field
 		$fields = $ctl->get_field_list($this->table_name, "edit");
@@ -1227,7 +1369,12 @@ class db_exe {
 			$ctl->save_posted_files($this->table_name, $data);
 			
 			// Update the table
-			$ctl->invoke("rows_child",["db_id"=>$this->db_setting_id,"parent_id"=>$parent_id]);
+			$ctl->invoke("rows_child",[
+				"db_id"=>$this->db_setting_id,
+				"parent_id"=>$parent_id,
+				"parent_field"=>$context["parent_field"],
+				"parent_db_id"=>$context["parent_db_id"],
+			]);
 			$ctl->close_multi_dialog($this->window_name . "_" . $id);
 			
 			// Post Action Class
@@ -1241,6 +1388,10 @@ class db_exe {
 		}
 		
 		$post = $ctl->POST();
+		$context = $this->get_child_relation_context($ctl, $post);
+		if ($context === null) {
+			return;
+		}
 		
 		// Assign the post data
 		$id = $ctl->decrypt_post("id");
@@ -1249,7 +1400,9 @@ class db_exe {
 
 		$ctl->assign_field_settings("group1",$this->table_name, "delete", false,false);
 		$ctl->assign("row",$row);
-		$ctl->assign("parent_id",$post["parent_id"] ?? null);
+		$ctl->assign("parent_id",$context["parent_id"]);
+		$ctl->assign("parent_field",$context["parent_field"]);
+		$ctl->assign("parent_db_id",$context["parent_db_id"]);
 		
 		$ctl->show_multi_dialog($this->window_name, "delete_child.tpl", $ctl->t("common.delete"),600,"_delete_button_child.tpl");
 	}
@@ -1259,14 +1412,23 @@ class db_exe {
 			return;
 		}
 		$post = $ctl->POST();
-		$parent_id = $post["parent_id"] ?? null;
+		$context = $this->get_child_relation_context($ctl, $post);
+		if ($context === null) {
+			return;
+		}
+		$parent_id = $context["parent_id"];
 		$id = $ctl->decrypt_post("id");
 		$data = $this->ffm->get($id);
 		
 		$this->delete_recurring($ctl, $this->table_name, $id);		
 		
 		$ctl->close_multi_dialog($this->window_name);
-		$ctl->invoke("rows_child",["db_id"=>$this->db_setting_id,"parent_id"=>$parent_id]);
+		$ctl->invoke("rows_child",[
+			"db_id"=>$this->db_setting_id,
+			"parent_id"=>$parent_id,
+			"parent_field"=>$context["parent_field"],
+			"parent_db_id"=>$context["parent_db_id"],
+		]);
 		
 		// Post Action Class
 				$this->invoke_post_action_class($ctl, $data, "delete");
@@ -1458,8 +1620,7 @@ class db_exe {
 		$ctl->assign("additionals",$additional_list);
 		
 		// Checking child tables
-		$child_tables = $this->fmt_db->select("parent_tb_id",$this->db_setting_id,true,"AND","sort",SORT_ASC);
-		$ctl->assign("child_tables",$child_tables);
+		$ctl->assign("child_tables", $this->get_child_tables_for_parent_list($ctl));
 		
 		// Show 
 		$ctl->show_main_area("rows_weekly.tpl", $this->db_setting["menu_name"]);
@@ -1477,8 +1638,7 @@ class db_exe {
 		$ctl->assign_field_settings("group1",$this->table_name, 'list', false,true);
 		
 		// Checking child tables (for _row_for_weekly.tpl small table links)
-		$child_tables = $this->fmt_db->select("parent_tb_id",$this->db_setting_id,true,"AND","sort",SORT_ASC);
-		$ctl->assign("child_tables",$child_tables);
+		$ctl->assign("child_tables", $this->get_child_tables_for_parent_list($ctl));
 		
 		// filter data
 		$session = $ctl->get_session("search_" . $this->table_name);

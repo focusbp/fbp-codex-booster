@@ -17,3 +17,5 @@ format_check,15,T
 api_access_policy,100,A
 title_color,10,T
 display_format,1,N
+parent_relation_flag,1,N
+parent_db_id,24,N
