@@ -23,6 +23,11 @@ class ReleaseManager {
 	        "mcp_tool_fields.dat",
 	    ],
 	];
+	private $root_file_copy_list = [
+		".htaccess",
+		"robots.txt",
+	];
+	private $projectRoot;
 	private $appdir;
 	private $datadir;
 	private $zipfile;
@@ -38,6 +43,7 @@ class ReleaseManager {
 		if ($resolvedProjectRoot !== false && $resolvedProjectRoot !== "") {
 			$projectRoot = $resolvedProjectRoot;
 		}
+		$this->projectRoot = $projectRoot;
 
 		$classesRoot = $projectRoot . "/classes";
 		$resolvedClassesRoot = realpath($classesRoot);
@@ -114,6 +120,7 @@ class ReleaseManager {
 		$this->addSelectedDataFilesToZip($zip);
 		$this->addCommonFormatFilesToZip($zip);
 		$this->addDirectoryFilesToZip($zip, $this->public_assets_dir);
+		$this->addRootFilesToZip($zip);
 		$zip->close();
 
 		return $this->zipfile;
@@ -242,6 +249,17 @@ class ReleaseManager {
 		}
 	}
 
+	private function addRootFilesToZip(ZipArchive $zip): void {
+		foreach ($this->root_file_copy_list as $fileName) {
+			$fileName = basename((string) $fileName);
+			$filePath = $this->projectRoot . "/" . $fileName;
+			if ($fileName === "" || !is_file($filePath)) {
+				continue;
+			}
+			$zip->addFile($filePath, "project_root/" . $fileName);
+		}
+	}
+
 	private function addSelectedDataFilesToZip(ZipArchive $zip): void {
 		foreach ($this->db_file_copy_list as $dirName => $files) {
 			$dirName = trim((string) $dirName, "/");
@@ -293,18 +311,38 @@ class ReleaseManager {
 
 	private function extractReleaseZip(ZipArchive $zip, Controller $ctl, string $zipFile): void {
 		$entries = [];
+		$rootEntries = [];
 		for ($i = 0; $i < $zip->numFiles; $i++) {
 			$filename = $zip->getNameIndex($i);
 			if (!is_string($filename) || $filename === "" || $this->isExcludedArchivePath($filename)) {
 				continue;
 			}
+			if (strpos($filename, "project_root/") === 0) {
+				$rootEntries[] = $filename;
+				continue;
+			}
 			$entries[] = $filename;
 		}
-		if (count($entries) === 0) {
+		if (count($entries) === 0 && count($rootEntries) === 0) {
 			return;
 		}
-		if (!$zip->extractTo($this->extractdir, $entries)) {
+		if (count($entries) > 0 && !$zip->extractTo($this->extractdir, $entries)) {
 			throw new Exception($ctl->t("release.validation.cannot_open_file", ["file" => basename($zipFile)]));
+		}
+		$this->extractRootFiles($zip, $ctl, $zipFile, $rootEntries);
+	}
+
+	private function extractRootFiles(ZipArchive $zip, Controller $ctl, string $zipFile, array $entries): void {
+		foreach ($entries as $entry) {
+			$fileName = substr((string) $entry, strlen("project_root/"));
+			if ($fileName === "" || basename($fileName) !== $fileName || !in_array($fileName, $this->root_file_copy_list, true)) {
+				continue;
+			}
+			$contents = $zip->getFromName((string) $entry);
+			if ($contents === false) {
+				throw new Exception($ctl->t("release.validation.cannot_open_file", ["file" => basename($zipFile)]));
+			}
+			file_put_contents($this->projectRoot . "/" . $fileName, $contents);
 		}
 	}
 

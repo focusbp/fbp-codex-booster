@@ -39,11 +39,11 @@ RewriteRule ^\.well-known/openid-configuration$ {$subpath}/fbp/app.php?class=mcp
 
 # http://domain.com/class_name*function_name
 RewriteCond %{REQUEST_URI} ^{$subpath}/(.*)\*(.*)$ [NC]
-RewriteRule ^(.*)\*(.*)$ {$subpath}/fbp/app.php?class=$1&function=$2 [L]
+RewriteRule ^(.*)\*(.*)$ {$subpath}/fbp/app.php?class=$1&function=$2 [L,QSA]
 
 # http://domain.com/class_name*function_name/anything
 RewriteCond %{REQUEST_URI} ^{$subpath}/(.*)\*(.*)&(.*)$ [NC]
-RewriteRule ^(.*)\*(.*)/(.*)$ {$subpath}/fbp/app.php?class=$1&function=$2&$3 [L]
+RewriteRule ^(.*)\*(.*)/(.*)$ {$subpath}/fbp/app.php?class=$1&function=$2&$3 [L,QSA]
 
 # http://domain.com/app/
 RewriteCond %{REQUEST_URI} ^{$subpath}/app/(.*)$ [NC]
