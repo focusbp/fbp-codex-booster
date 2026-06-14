@@ -33,6 +33,7 @@ class ReleaseManager {
 	private $zipfile;
 	private $extractdir;
 	private $public_assets_dir;
+	private $releaseInfo = [];
 
 		function __construct(?string $projectRoot = null, ?string $zipFile = null) {
 		if ($projectRoot === null || $projectRoot === "") {
@@ -75,6 +76,7 @@ class ReleaseManager {
 	}
 
 	function create_release_zip_from_info(array $info): string {
+		$this->releaseInfo = $info;
 		$zip = new ZipArchive();
 
 		if ($zip->open($this->zipfile, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== TRUE) {
@@ -252,12 +254,35 @@ class ReleaseManager {
 	private function addRootFilesToZip(ZipArchive $zip): void {
 		foreach ($this->root_file_copy_list as $fileName) {
 			$fileName = basename((string) $fileName);
+			if ($fileName === ".htaccess" && array_key_exists("htaccess_subpath", $this->releaseInfo)) {
+				$zip->addFromString("project_root/.htaccess", $this->renderHtaccessForRelease());
+				continue;
+			}
 			$filePath = $this->projectRoot . "/" . $fileName;
 			if ($fileName === "" || !is_file($filePath)) {
 				continue;
 			}
 			$zip->addFile($filePath, "project_root/" . $fileName);
 		}
+	}
+
+	private function renderHtaccessForRelease(): string {
+		$templatePath = $this->projectRoot . "/fbp/app/setting/Templates/htaccess.tpl";
+		if (!is_file($templatePath)) {
+			return "";
+		}
+		$template = file_get_contents($templatePath);
+		$ssl = ((int) ($this->releaseInfo["htaccess_ssl"] ?? 0) === 1)
+			? 'RewriteCond %{HTTPS} off' . "\n" . 'RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R]'
+			: "";
+		$replacements = [
+			'{$class}' => (string) ($this->releaseInfo["htaccess_rewrite_rule_root"] ?? "login"),
+			'{$function}' => (string) ($this->releaseInfo["htaccess_rewrite_rule_function"] ?? "page"),
+			'{$subpath}' => (string) ($this->releaseInfo["htaccess_subpath"] ?? ""),
+			'{$default_class_name}' => (string) ($this->releaseInfo["htaccess_default_class_name"] ?? ""),
+			'{$ssl}' => $ssl,
+		];
+		return str_replace(array_keys($replacements), array_values($replacements), $template);
 	}
 
 	private function addSelectedDataFilesToZip(ZipArchive $zip): void {
