@@ -461,7 +461,10 @@ class mcp_server {
 	private function json_schema_for_db_field(Controller $ctl, array $field): array {
 		$type = (string) ($field["type"] ?? "text");
 		$title = (string) ($field["parameter_title"] ?? ($field["parameter_name"] ?? ""));
-		$description = (string) ($field["parameter_description"] ?? "");
+		$description = trim((string) ($field["parameter_description"] ?? ""));
+		if ($description === "" && $title !== "") {
+			$description = $title;
+		}
 		$schema = ["type" => "string"];
 		if (in_array($type, ["number", "int", "integer"], true)) {
 			$schema = ["type" => "number"];
