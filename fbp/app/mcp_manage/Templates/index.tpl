@@ -68,8 +68,7 @@
 					<td>{$item.operation|escape}</td>
 					<td>{$item.target_note|escape}</td>
 					<td>
-						<button class="ajax-link" data-class="{$class}" data-function="fields" data-id="{$item.id}" style="float:right;">{t key="mcp_manage.fields"}</button>
-						<div style="clear:both;font-size:11px;color:#6b7280;">{$item.field_summary|escape}</div>
+						<div style="font-size:11px;color:#6b7280;">{$item.field_summary|escape}</div>
 					</td>
 					<td>
 						{if $item.enabled == 1}{$enabled_opt[1]}{else}{$enabled_opt[0]}{/if}

@@ -77,8 +77,10 @@ class mcp_manage {
 		$post = $ctl->POST();
 		$post["server_id"] = $server["id"];
 		$post["enabled"] = $post["enabled"] ?? 1;
-		$post["tool_type"] = $post["tool_type"] ?? "note_crud";
+		$post["tool_type"] = "note_crud";
 		$post["operation"] = $post["operation"] ?? "list";
+		$post["required_scope"] = $post["required_scope"] ?? $this->scope_for_operation((string) $post["operation"]);
+		$post["description"] = $post["description"] ?? $this->description_for_operation((string) ($post["target_note"] ?? ""), (string) $post["operation"]);
 		$post["max_limit"] = $post["max_limit"] ?? 20;
 		$this->assign_tool_form($ctl, $post);
 		$ctl->show_multi_dialog("mcp_tool_add", "tool_edit.tpl", $ctl->t("mcp_manage.dialog.tool_add"), 980, true, true);
@@ -86,7 +88,7 @@ class mcp_manage {
 
 	function add_tool_exe(Controller $ctl) {
 		$server = $this->ensure_default_server($ctl);
-		$post = $this->normalize_tool_post($ctl->POST());
+		$post = $this->normalize_tool_post($ctl->POST(), true);
 		$post["server_id"] = (int) $server["id"];
 		$errors = $this->validate_tool($ctl, $post, "add");
 		if (count($errors) > 0) {
@@ -113,7 +115,7 @@ class mcp_manage {
 	}
 
 	function edit_tool_exe(Controller $ctl) {
-		$post = $this->normalize_tool_post($ctl->POST());
+		$post = $this->normalize_tool_post($ctl->POST(), false);
 		$id = (int) ($post["id"] ?? 0);
 		$errors = $this->validate_tool($ctl, $post, "edit");
 		if (count($errors) > 0) {
@@ -203,8 +205,7 @@ class mcp_manage {
 		}
 		$tool_id = (int) ($ctl->POST("tool_id") ?? 0);
 		$target_note = trim((string) ($ctl->POST("target_note") ?? ""));
-		$tool_type = trim((string) ($ctl->POST("tool_type") ?? "note_crud"));
-		$field_rows = $tool_type === "note_crud" ? $this->field_rows_for_tool($ctl, $target_note, $tool_id) : [];
+		$field_rows = $this->field_rows_for_tool($ctl, $target_note, $tool_id);
 
 		$ctl->assign("selected_target_note", $target_note);
 		$ctl->assign("field_rows", $field_rows);
@@ -338,21 +339,28 @@ class mcp_manage {
 		return $errors;
 	}
 
-	private function normalize_tool_post(array $post): array {
+	private function normalize_tool_post(array $post, bool $auto_required_scope): array {
 		$operation = trim((string) ($post["operation"] ?? "list"));
 		$read_only = in_array($operation, ["list", "get"], true) ? 1 : 0;
 		$destructive = $operation === "delete" ? 1 : (int) ($post["destructive"] ?? 0);
+		$target_note = trim((string) ($post["target_note"] ?? ""));
+		$required_scope = $auto_required_scope
+			? $this->scope_for_operation($operation)
+			: trim((string) ($post["required_scope"] ?? ""));
+		$description = $auto_required_scope
+			? $this->description_for_operation($target_note, $operation)
+			: trim((string) ($post["description"] ?? ""));
 		return [
 			"id" => (int) ($post["id"] ?? 0),
 			"server_id" => (int) ($post["server_id"] ?? 0),
 			"enabled" => isset($post["enabled"]) ? (int) $post["enabled"] : 0,
-			"tool_name" => trim((string) ($post["tool_name"] ?? "")),
-			"title" => trim((string) ($post["title"] ?? "")),
-			"description" => trim((string) ($post["description"] ?? "")),
-			"tool_type" => trim((string) ($post["tool_type"] ?? "note_crud")),
+			"tool_name" => $this->auto_tool_name($target_note, $operation),
+			"title" => $this->auto_tool_title($target_note, $operation),
+			"description" => $description,
+			"tool_type" => "note_crud",
 			"operation" => $operation,
-			"target_note" => trim((string) ($post["target_note"] ?? "")),
-			"required_scope" => trim((string) ($post["required_scope"] ?? "")),
+			"target_note" => $target_note,
+			"required_scope" => $required_scope,
 			"requires_confirmation" => $operation === "delete" ? 1 : (int) ($post["requires_confirmation"] ?? 0),
 			"read_only" => $read_only,
 			"destructive" => $destructive,
@@ -379,7 +387,7 @@ class mcp_manage {
 		if ($post["title"] === "") {
 			$errors["title"] = $ctl->t("mcp_manage.validation.title_required");
 		}
-		if (!in_array($post["tool_type"], ["note_crud", "custom_action"], true)) {
+		if ($post["tool_type"] !== "note_crud") {
 			$errors["tool_type"] = $ctl->t("mcp_manage.validation.tool_type");
 		}
 		if (!in_array($post["operation"], ["list", "get", "create", "update", "delete"], true)) {
@@ -403,6 +411,17 @@ class mcp_manage {
 		$id = (int) ($data["id"] ?? 0);
 		$form_key = $id > 0 ? (string) $id : "new";
 		$target_note = trim((string) ($data["target_note"] ?? ""));
+		$operation = trim((string) ($data["operation"] ?? "list"));
+		$data["tool_type"] = "note_crud";
+		$data["operation"] = $operation === "" ? "list" : $operation;
+		$data["tool_name"] = $this->auto_tool_name($target_note, (string) $data["operation"]);
+		$data["title"] = $this->auto_tool_title($target_note, (string) $data["operation"]);
+		if ($id <= 0 && trim((string) ($data["required_scope"] ?? "")) === "") {
+			$data["required_scope"] = $this->scope_for_operation((string) $data["operation"]);
+		}
+		if ($id <= 0 && trim((string) ($data["description"] ?? "")) === "") {
+			$data["description"] = $this->description_for_operation($target_note, (string) $data["operation"]);
+		}
 
 		$ctl->assign("data", $data);
 		$ctl->assign("form_key", $form_key);
@@ -411,6 +430,63 @@ class mcp_manage {
 		$ctl->assign("selected_target_note", $target_note);
 		$ctl->assign("field_rows", $this->field_rows_for_tool($ctl, $target_note, $id));
 		$this->assign_note_options($ctl);
+	}
+
+	private function auto_tool_name(string $target_note, string $operation): string {
+		$operation = $this->safe_operation_for_name($operation);
+		$note = strtolower(preg_replace('/[^a-zA-Z0-9_]+/', '_', $target_note));
+		$note = trim($note, "_");
+		if ($note === "" || !preg_match('/^[a-zA-Z]/', $note)) {
+			$note = "note";
+		}
+		if ($operation === "list" && substr($note, -1) !== "s") {
+			$note .= "s";
+		}
+		return $operation . "_" . $note;
+	}
+
+	private function auto_tool_title(string $target_note, string $operation): string {
+		$labels = [
+			"list" => "List",
+			"get" => "Get",
+			"create" => "Create",
+			"update" => "Update",
+			"delete" => "Delete",
+		];
+		$safe_operation = $this->safe_operation_for_name($operation);
+		$note = trim((string) preg_replace('/[^a-zA-Z0-9_ -]+/', ' ', $target_note));
+		$note = preg_replace('/\s+/', ' ', $note);
+		if ($note === "") {
+			$note = "note";
+		}
+		if ($safe_operation === "list" && substr($note, -1) !== "s") {
+			$note .= "s";
+		}
+		return ($labels[$safe_operation] ?? ucfirst($safe_operation)) . " " . $note;
+	}
+
+	private function safe_operation_for_name(string $operation): string {
+		return in_array($operation, ["list", "get", "create", "update", "delete"], true) ? $operation : "list";
+	}
+
+	private function scope_for_operation(string $operation): string {
+		return in_array($operation, ["list", "get"], true) ? "mcp.read" : "mcp.write";
+	}
+
+	private function description_for_operation(string $target_note, string $operation): string {
+		$note = trim(str_replace("_", " ", $target_note));
+		if ($note === "") {
+			$note = "the selected note";
+		}
+		$safe_operation = $this->safe_operation_for_name($operation);
+		$descriptions = [
+			"list" => "Use this to list or search records in " . $note . ".",
+			"get" => "Use this to retrieve one record from " . $note . ".",
+			"create" => "Use this to create a record in " . $note . ".",
+			"update" => "Use this to update a record in " . $note . ".",
+			"delete" => "Use this to delete a record from " . $note . ".",
+		];
+		return $descriptions[$safe_operation];
 	}
 
 	private function assign_note_options(Controller $ctl): void {

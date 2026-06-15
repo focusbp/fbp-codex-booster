@@ -441,7 +441,7 @@ class mcp_server {
 					continue;
 				}
 				$db_field = $field_map[$name] ?? [];
-				$schema["properties"][$name] = $this->json_schema_for_db_field($db_field);
+				$schema["properties"][$name] = $this->json_schema_for_db_field($ctl, $db_field);
 				if ($operation === "create" && (int) ($field["required"] ?? 0) === 1) {
 					$schema["required"][] = $name;
 				}
@@ -458,7 +458,7 @@ class mcp_server {
 		return $schema;
 	}
 
-	private function json_schema_for_db_field(array $field): array {
+	private function json_schema_for_db_field(Controller $ctl, array $field): array {
 		$type = (string) ($field["type"] ?? "text");
 		$title = (string) ($field["parameter_title"] ?? ($field["parameter_name"] ?? ""));
 		$description = (string) ($field["parameter_description"] ?? "");
@@ -474,7 +474,120 @@ class mcp_server {
 		if ($description !== "") {
 			$schema["description"] = $description;
 		}
+		$schema = $this->apply_table_reference_schema($ctl, $field, $schema);
+		return $this->apply_constant_array_schema($ctl, $field, $schema);
+	}
+
+	private function apply_table_reference_schema(Controller $ctl, array $field, array $schema): array {
+		$array_name = trim((string) ($field["constant_array_name"] ?? ""));
+		if ($array_name === "" || strpos($array_name, "table/") !== 0) {
+			return $schema;
+		}
+		$reference = $this->parse_table_reference($ctl, $array_name);
+		if (count($reference) === 0) {
+			return $schema;
+		}
+		$schema["x-fbp-reference"] = $reference;
+
+		$target = (string) ($reference["table"] ?? "");
+		$label_field = (string) ($reference["labelField"] ?? "");
+		$description = "Reference to " . $target . ". Use " . $target . " id as the value.";
+		if ($label_field !== "") {
+			$description .= " Display field: " . $label_field . ".";
+		}
+		return $this->append_schema_description($schema, $description);
+	}
+
+	private function parse_table_reference(Controller $ctl, string $array_name): array {
+		$path = substr($array_name, 6);
+		$parts = explode("/", $path);
+		$table = trim((string) ($parts[0] ?? ""));
+		if ($table === "") {
+			return [];
+		}
+		$label_field = trim((string) ($parts[1] ?? ""));
+		$reference = [
+			"type" => "table",
+			"table" => $table,
+			"valueField" => "id",
+			"constantArray" => $array_name,
+		];
+		if ($label_field !== "") {
+			$reference["labelField"] = $label_field;
+		}
+		$title = $this->table_title($ctl, $table);
+		if ($title !== "") {
+			$reference["title"] = $title;
+		}
+		return $reference;
+	}
+
+	private function table_title(Controller $ctl, string $table): string {
+		$rows = $ctl->db("db", "db")->select("tb_name", $table);
+		if (count($rows) === 0) {
+			return "";
+		}
+		$title = trim((string) ($rows[0]["menu_name"] ?? ""));
+		return $title === "" ? $table : $title;
+	}
+
+	private function apply_constant_array_schema(Controller $ctl, array $field, array $schema): array {
+		$array_name = trim((string) ($field["constant_array_name"] ?? ""));
+		if ($array_name === "" || strpos($array_name, "table/") === 0) {
+			return $schema;
+		}
+		if (!$ctl->is_constant_array($array_name)) {
+			return $schema;
+		}
+		$options = $ctl->get_constant_array($array_name, false);
+		if (!is_array($options) || count($options) === 0) {
+			return $schema;
+		}
+
+		$enum = [];
+		$labels = [];
+		$enum_options = [];
+		$description_parts = [];
+		foreach ($options as $key => $label) {
+			$value = (string) $key;
+			$label = $this->single_line((string) $label);
+			$enum[] = $value;
+			$labels[] = $label;
+			$enum_options[] = [
+				"value" => $value,
+				"label" => $label,
+			];
+			$description_parts[] = $value . " = " . $label;
+		}
+		if (count($enum) === 0) {
+			return $schema;
+		}
+
+		if (($schema["type"] ?? "") === "array") {
+			$schema["items"]["enum"] = $enum;
+			$schema["items"]["x-enumLabels"] = $labels;
+			$schema["items"]["x-fbp-enum"] = $enum_options;
+			$schema["items"]["x-fbp-constantArray"] = $array_name;
+		} else {
+			$schema["type"] = "string";
+			$schema["enum"] = $enum;
+			$schema["x-enumLabels"] = $labels;
+			$schema["x-fbp-enum"] = $enum_options;
+			$schema["x-fbp-constantArray"] = $array_name;
+		}
+
+		$option_description = "Allowed values (" . $array_name . "): " . implode("; ", $description_parts) . ".";
+		return $this->append_schema_description($schema, $option_description);
+	}
+
+	private function append_schema_description(array $schema, string $description): array {
+		$current = trim((string) ($schema["description"] ?? ""));
+		$schema["description"] = $current === "" ? $description : $current . "\n" . $description;
 		return $schema;
+	}
+
+	private function single_line(string $value): string {
+		return trim(preg_replace('/\s+/', ' ', $value));
 	}
 
 	private function authorize_tool_call(Controller $ctl, array $server, array $tool): array {
