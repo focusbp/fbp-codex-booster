@@ -2,6 +2,36 @@
 
 include dirname(__FILE__) . '/../../interface/FFM.php';
 
+if (!class_exists("FixedFileManagerFieldLengthException", false)) {
+	class FixedFileManagerFieldLengthException extends Exception {
+		private $violations;
+
+		function __construct(array $violations) {
+			$this->violations = array_values($violations);
+			parent::__construct($this->build_message($this->violations));
+		}
+
+		public function getViolations(): array {
+			return $this->violations;
+		}
+
+		private function build_message(array $violations): string {
+			if (count($violations) === 0) {
+				return "フィールドサイズを超えています。";
+			}
+			$messages = [];
+			foreach ($violations as $violation) {
+				$field = (string) ($violation["field"] ?? "");
+				$actual = (int) ($violation["actual_bytes"] ?? 0);
+				$max = (int) ($violation["max_bytes"] ?? 0);
+				$ja = (int) ($violation["max_chars_ja"] ?? 0);
+				$messages[] = $field . " は " . $actual . " bytes です（上限 " . $max . " bytes / 日本語目安 " . $ja . "文字）。";
+			}
+			return "フィールドサイズを超えています: " . implode(" ", $messages);
+		}
+	}
+}
+
 class fixed_file_manager implements FFM {
 	
 
@@ -28,6 +58,7 @@ class fixed_file_manager implements FFM {
 	private $read_only = false;
 	private $format_source = "fmt";
 	private $operation_log_dir;
+	private $strict_field_length = false;
 
 	private function is_empty_filter_itemname($iname): bool {
 		if (is_array($iname)) {
@@ -77,6 +108,14 @@ class fixed_file_manager implements FFM {
 	
 	function set_controller(Controller $ctl){
 		$this->ctl = $ctl;
+	}
+
+	public function set_strict_field_length(bool $flg): void {
+		$this->strict_field_length = $flg;
+	}
+
+	public function validate_field_lengths(array $dataset): array {
+		return $this->field_length_violations($dataset);
 	}
 
 //	function get_unique_key(){
@@ -342,10 +381,58 @@ class fixed_file_manager implements FFM {
 		file_put_contents($this->path_json, json_encode($this->json));
 	}
 
+	private function field_length_value_string(array $field, $value): string {
+		if ($field["type"] === "A") {
+			$encoded = json_encode($value);
+			return $encoded === false ? "" : (string) $encoded;
+		}
+		if (is_array($value)) {
+			throw new Exception($field["name"] . " has array value. Please check the file format. The type should be A(=array)");
+		}
+		return (string) $value;
+	}
+
+	private function field_length_violations(array $dataset): array {
+		$violations = [];
+		foreach ($this->format as $field) {
+			$name = (string) ($field["name"] ?? "");
+			$max_bytes = (int) ($field["size"] ?? 0);
+			if ($name === "" || $name === "id" || $max_bytes <= 0 || !array_key_exists($name, $dataset)) {
+				continue;
+			}
+			$value_string = $this->field_length_value_string($field, $dataset[$name]);
+			$actual_bytes = strlen($value_string);
+			if ($actual_bytes <= $max_bytes) {
+				continue;
+			}
+			$violations[] = [
+				"field" => $name,
+				"type" => (string) ($field["type"] ?? ""),
+				"max_bytes" => $max_bytes,
+				"max_chars_ja" => max(1, (int) floor($max_bytes / 3)),
+				"actual_bytes" => $actual_bytes,
+				"actual_chars" => function_exists("mb_strlen") ? mb_strlen($value_string, "UTF-8") : strlen($value_string),
+				"value_preview" => function_exists("mb_strimwidth") ? mb_strimwidth($value_string, 0, 80, "...", "UTF-8") : substr($value_string, 0, 80),
+			];
+		}
+		return $violations;
+	}
+
+	private function assert_field_lengths(array $dataset): void {
+		if (!$this->strict_field_length) {
+			return;
+		}
+		$violations = $this->field_length_violations($dataset);
+		if (count($violations) > 0) {
+			throw new FixedFileManagerFieldLengthException($violations);
+		}
+	}
+
 	function insert(&$dataset) {
 		$this->assert_writable("insert");
 		// $this->hf をチェックする
 		$this->check_hf();
+		$this->assert_field_lengths($dataset);
 
 		$p = ftell($this->hf); //あとで戻す
 		// 
@@ -389,6 +476,7 @@ class fixed_file_manager implements FFM {
 
 	function update($dataset) {
 		$this->assert_writable("update");
+		$this->assert_field_lengths($dataset);
 		$p = ftell($this->hf); //あとで戻す
 		$d = $this->get($dataset["id"]);
 

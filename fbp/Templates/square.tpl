@@ -1,4 +1,5 @@
 {t key="square.button.pay" assign="square_button_pay"}
+{if $square_button_label|default:'' != ''}{assign var="square_button_pay" value=$square_button_label}{/if}
 {t key="square.status.success" assign="square_status_success"}
 {t key="square.status.failure" assign="square_status_failure"}
 {t key="square.status.missing_credentials" assign="square_status_missing_credentials"}

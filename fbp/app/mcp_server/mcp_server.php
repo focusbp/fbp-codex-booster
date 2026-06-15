@@ -236,7 +236,7 @@ class mcp_server {
 	private function build_tool_descriptors(Controller $ctl, array $server): array {
 		$tools = [];
 		foreach ($this->ffm_tools->select("server_id", $server["id"], true, "AND", "sort", SORT_ASC) as $tool) {
-			if (!$this->is_tool_ready($tool)) {
+			if (!$this->is_tool_ready($tool, $ctl)) {
 				continue;
 			}
 			$tools[] = $this->build_tool_descriptor($ctl, $server, $tool);
@@ -251,7 +251,7 @@ class mcp_server {
 			"name" => $name,
 			"title" => (string) ($tool["title"] ?? $name),
 			"description" => (string) ($tool["description"] ?? ""),
-			"inputSchema" => $this->build_input_schema($ctl, $tool),
+			"inputSchema" => $this->build_tool_input_schema($ctl, $tool),
 			"annotations" => [
 				"readOnlyHint" => (int) ($tool["read_only"] ?? 0) === 1,
 				"destructiveHint" => (int) ($tool["destructive"] ?? 0) === 1,
@@ -273,7 +273,7 @@ class mcp_server {
 		$name = (string) ($params["name"] ?? "");
 		$args = is_array($params["arguments"] ?? null) ? $params["arguments"] : [];
 		$tool = $this->find_tool_by_name((int) $server["id"], $name);
-		if ($tool === null || !$this->is_tool_ready($tool)) {
+		if ($tool === null || !$this->is_tool_ready($tool, $ctl)) {
 			return $this->tool_error("Tool is not available.");
 		}
 		$auth = $this->authorize_tool_call($ctl, $server, $tool);
@@ -302,8 +302,12 @@ class mcp_server {
 	}
 
 	private function execute_note_tool(Controller $ctl, array $tool, array $args): array {
-		if ((string) ($tool["tool_type"] ?? "") !== "note_crud") {
-			throw new Exception("Custom action tools are not implemented yet.");
+		$tool_type = (string) ($tool["tool_type"] ?? "");
+		if ($tool_type === "app_action") {
+			return $this->execute_app_action_tool($ctl, $tool, $args);
+		}
+		if ($tool_type !== "note_crud") {
+			throw new Exception("Unsupported tool type.");
 		}
 		$operation = (string) ($tool["operation"] ?? "");
 		$table = (string) ($tool["target_note"] ?? "");
@@ -327,6 +331,12 @@ class mcp_server {
 			return $this->execute_delete($ffm, $tool, $args);
 		}
 		throw new Exception("Unsupported operation.");
+	}
+
+	private function execute_app_action_tool(Controller $ctl, array $tool, array $args): array {
+		$action = $this->load_app_action($ctl, $tool);
+		$result = $action->execute($ctl, new McpActionRequest($tool, $args));
+		return $result->toStructuredContent();
 	}
 
 	private function execute_list(Controller $ctl, FFM $ffm, array $tool, array $args): array {
@@ -368,9 +378,16 @@ class mcp_server {
 		];
 	}
 
+	private function enable_strict_field_length(FFM $ffm): void {
+		if (method_exists($ffm, "set_strict_field_length")) {
+			$ffm->set_strict_field_length(true);
+		}
+	}
+
 	private function execute_create(Controller $ctl, FFM $ffm, array $tool, array $args): array {
 		$input_fields = $this->tool_field_rows((int) $tool["id"], "input");
 		$data = $this->build_input_data($input_fields, $args, true);
+		$this->enable_strict_field_length($ffm);
 		$id = $ffm->insert($data);
 		$row = $ffm->get((int) $id);
 		return [
@@ -390,6 +407,7 @@ class mcp_server {
 		foreach ($data as $key => $value) {
 			$row[$key] = $value;
 		}
+		$this->enable_strict_field_length($ffm);
 		$ffm->update($row);
 		$row = $ffm->get($id);
 		return [
@@ -413,6 +431,14 @@ class mcp_server {
 			"message" => "Item deleted.",
 			"id" => $id,
 		];
+	}
+
+	private function build_tool_input_schema(Controller $ctl, array $tool): array {
+		if ((string) ($tool["tool_type"] ?? "") === "app_action") {
+			$schema = $this->load_app_action($ctl, $tool)->getInputSchema($ctl, $tool);
+			return $this->normalize_input_schema($schema);
+		}
+		return $this->build_input_schema($ctl, $tool);
 	}
 
 	private function build_input_schema(Controller $ctl, array $tool): array {
@@ -454,6 +480,22 @@ class mcp_server {
 		if ((int) ($tool["requires_confirmation"] ?? 0) === 1 && !isset($schema["properties"]["confirm"])) {
 			$schema["properties"]["confirm"] = ["type" => "boolean", "description" => "Must be true to execute this write operation."];
 			$schema["required"][] = "confirm";
+		}
+		return $schema;
+	}
+
+	private function normalize_input_schema(array $schema): array {
+		if (($schema["type"] ?? "") !== "object") {
+			$schema["type"] = "object";
+		}
+		if (!isset($schema["properties"]) || !is_array($schema["properties"])) {
+			$schema["properties"] = [];
+		}
+		if (!isset($schema["required"]) || !is_array($schema["required"])) {
+			$schema["required"] = [];
+		}
+		if (!array_key_exists("additionalProperties", $schema)) {
+			$schema["additionalProperties"] = false;
 		}
 		return $schema;
 	}
@@ -774,11 +816,15 @@ class mcp_server {
 		return null;
 	}
 
-	private function is_tool_ready(array $tool): bool {
+	private function is_tool_ready(array $tool, ?Controller $ctl = null): bool {
 		if ((int) ($tool["enabled"] ?? 0) !== 1) {
 			return false;
 		}
-		if ((string) ($tool["tool_type"] ?? "") !== "note_crud") {
+		$tool_type = (string) ($tool["tool_type"] ?? "");
+		if ($tool_type === "app_action") {
+			return $this->app_action_class_is_valid($tool, $ctl);
+		}
+		if ($tool_type !== "note_crud") {
 			return false;
 		}
 		$operation = (string) ($tool["operation"] ?? "");
@@ -789,6 +835,41 @@ class mcp_server {
 			return count($this->tool_fields((int) ($tool["id"] ?? 0), "input")) > 0;
 		}
 		return $operation === "delete";
+	}
+
+	private function app_action_class_is_valid(array $tool, ?Controller $ctl = null): bool {
+		try {
+			$this->load_app_action($ctl, $tool);
+			return true;
+		} catch (Throwable $e) {
+			return false;
+		}
+	}
+
+	private function load_app_action(?Controller $ctl, array $tool): McpActionInterface {
+		$class = trim((string) ($tool["action_class"] ?? ""));
+		if ($class === "" || !preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $class)) {
+			throw new Exception("App Action class is invalid.");
+		}
+		if (!class_exists($class, false)) {
+			$dir = new Dirs();
+			$class_file = $dir->get_class_dir($class) . "/" . $class . ".php";
+			include_once($class_file);
+		}
+		if (!class_exists($class, false)) {
+			throw new Exception("App Action class not found: " . $class);
+		}
+		$reflection = new ReflectionClass($class);
+		$constructor = $reflection->getConstructor();
+		if ($constructor && count($constructor->getParameters()) > 0 && $ctl !== null) {
+			$action = new $class($ctl);
+		} else {
+			$action = new $class();
+		}
+		if (!($action instanceof McpActionInterface)) {
+			throw new Exception("App Action class must implement McpActionInterface: " . $class);
+		}
+		return $action;
 	}
 
 	private function tool_fields(int $tool_id, string $role): array {

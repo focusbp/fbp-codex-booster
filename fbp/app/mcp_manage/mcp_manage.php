@@ -19,11 +19,11 @@ class mcp_manage {
 
 	function page(Controller $ctl) {
 		$server = $this->ensure_default_server($ctl);
-		$tools = $this->ffm_tools->select("server_id", $server["id"], true, "AND", "sort", SORT_ASC);
-		foreach ($tools as &$tool) {
-			$tool["ready_status"] = $this->tool_ready_status($tool);
-			$tool["field_summary"] = $this->field_summary((int) $tool["id"]);
-		}
+			$tools = $this->ffm_tools->select("server_id", $server["id"], true, "AND", "sort", SORT_ASC);
+			foreach ($tools as &$tool) {
+				$tool["ready_status"] = $this->tool_ready_status($ctl, $tool);
+				$tool["field_summary"] = $this->field_summary((int) $tool["id"]);
+			}
 		unset($tool);
 
 		$ctl->assign("server", $server);
@@ -74,14 +74,33 @@ class mcp_manage {
 
 	function add_tool(Controller $ctl) {
 		$server = $this->ensure_default_server($ctl);
-		$post = $ctl->POST();
-		$post["server_id"] = $server["id"];
-		$post["enabled"] = $post["enabled"] ?? 1;
-		$post["tool_type"] = "note_crud";
-		$post["operation"] = $post["operation"] ?? "list";
-		$post["required_scope"] = $post["required_scope"] ?? $this->scope_for_operation((string) $post["operation"]);
-		$post["description"] = $post["description"] ?? $this->description_for_operation((string) ($post["target_note"] ?? ""), (string) $post["operation"]);
-		$post["max_limit"] = $post["max_limit"] ?? 20;
+		$ctl->assign("server", $server);
+		$ctl->show_multi_dialog("mcp_tool_add", "tool_type_select.tpl", $ctl->t("mcp_manage.dialog.tool_add"), 620, true, true);
+	}
+
+	function add_tool_form(Controller $ctl) {
+		$server = $this->ensure_default_server($ctl);
+		$tool_type = $this->normalize_tool_type((string) ($ctl->POST("tool_type") ?? "note_crud"));
+		if ($tool_type === "") {
+			$ctl->show_notification_text($ctl->t("mcp_manage.validation.tool_type"));
+			return;
+		}
+		$post = [
+			"server_id" => $server["id"],
+			"enabled" => 1,
+			"tool_type" => $tool_type,
+		];
+		if ($tool_type === "note_crud") {
+			$post["operation"] = "list";
+			$post["required_scope"] = $this->scope_for_operation("list");
+			$post["description"] = $this->description_for_operation("", "list");
+			$post["max_limit"] = 20;
+		} else {
+			$post["operation"] = "action";
+			$post["required_scope"] = "mcp.read";
+			$post["read_only"] = 1;
+			$post["max_limit"] = 20;
+		}
 		$this->assign_tool_form($ctl, $post);
 		$ctl->show_multi_dialog("mcp_tool_add", "tool_edit.tpl", $ctl->t("mcp_manage.dialog.tool_add"), 980, true, true);
 	}
@@ -100,8 +119,10 @@ class mcp_manage {
 		$now = time();
 		$post["created_at"] = $now;
 		$post["updated_at"] = $now;
-		$id = (int) $this->ffm_tools->insert($post);
-		$this->save_tool_fields_from_post($ctl, $id, (string) $post["target_note"], $now);
+			$id = (int) $this->ffm_tools->insert($post);
+			if ((string) ($post["tool_type"] ?? "") === "note_crud") {
+				$this->save_tool_fields_from_post($ctl, $id, (string) $post["target_note"], $now);
+			}
 
 		$ctl->close_multi_dialog("mcp_tool_add");
 		$this->page($ctl);
@@ -115,7 +136,14 @@ class mcp_manage {
 	}
 
 	function edit_tool_exe(Controller $ctl) {
-		$post = $this->normalize_tool_post($ctl->POST(), false);
+		$raw_post = $ctl->POST();
+		$id = (int) ($raw_post["id"] ?? 0);
+		$data = $this->ffm_tools->get($id);
+		if (empty($data)) {
+			return;
+		}
+		$raw_post["tool_type"] = (string) ($data["tool_type"] ?? "note_crud");
+		$post = $this->normalize_tool_post($raw_post, false);
 		$id = (int) ($post["id"] ?? 0);
 		$errors = $this->validate_tool($ctl, $post, "edit");
 		if (count($errors) > 0) {
@@ -123,10 +151,6 @@ class mcp_manage {
 			return;
 		}
 
-		$data = $this->ffm_tools->get($id);
-		if (empty($data)) {
-			return;
-		}
 		foreach ([
 			"enabled",
 			"tool_name",
@@ -135,6 +159,7 @@ class mcp_manage {
 			"tool_type",
 			"operation",
 			"target_note",
+			"action_class",
 			"required_scope",
 			"requires_confirmation",
 			"read_only",
@@ -146,7 +171,9 @@ class mcp_manage {
 		$now = time();
 		$data["updated_at"] = $now;
 		$this->ffm_tools->update($data);
-		$this->save_tool_fields_from_post($ctl, $id, (string) $post["target_note"], $now);
+		if ((string) ($post["tool_type"] ?? "") === "note_crud") {
+			$this->save_tool_fields_from_post($ctl, $id, (string) $post["target_note"], $now);
+		}
 
 		$ctl->close_multi_dialog("mcp_tool_edit_" . $id);
 		$this->page($ctl);
@@ -272,10 +299,10 @@ class mcp_manage {
 			"oauth2" => "OAuth 2.0",
 			"noauth" => "No auth",
 		]);
-		$ctl->assign("tool_type_opt", [
-			"note_crud" => "Note CRUD",
-			"custom_action" => "Custom Action",
-		]);
+			$ctl->assign("tool_type_opt", [
+				"note_crud" => $ctl->t("mcp_manage.note_crud"),
+				"app_action" => $ctl->t("mcp_manage.app_action"),
+			]);
 		$ctl->assign("operation_opt", [
 			"list" => "list",
 			"get" => "get",
@@ -339,7 +366,20 @@ class mcp_manage {
 		return $errors;
 	}
 
+	private function normalize_tool_type(string $tool_type): string {
+		$tool_type = trim($tool_type);
+		if ($tool_type === "custom_action") {
+			$tool_type = "app_action";
+		}
+		return in_array($tool_type, ["note_crud", "app_action"], true) ? $tool_type : "";
+	}
+
 	private function normalize_tool_post(array $post, bool $auto_required_scope): array {
+		$tool_type = $this->normalize_tool_type((string) ($post["tool_type"] ?? "note_crud"));
+		if ($tool_type === "app_action") {
+			return $this->normalize_app_action_post($post);
+		}
+
 		$operation = trim((string) ($post["operation"] ?? "list"));
 		$read_only = in_array($operation, ["list", "get"], true) ? 1 : 0;
 		$destructive = $operation === "delete" ? 1 : (int) ($post["destructive"] ?? 0);
@@ -354,17 +394,43 @@ class mcp_manage {
 			"id" => (int) ($post["id"] ?? 0),
 			"server_id" => (int) ($post["server_id"] ?? 0),
 			"enabled" => isset($post["enabled"]) ? (int) $post["enabled"] : 0,
-			"tool_name" => $this->auto_tool_name($target_note, $operation),
-			"title" => $this->auto_tool_title($target_note, $operation),
-			"description" => $description,
-			"tool_type" => "note_crud",
-			"operation" => $operation,
-			"target_note" => $target_note,
-			"required_scope" => $required_scope,
-			"requires_confirmation" => $operation === "delete" ? 1 : (int) ($post["requires_confirmation"] ?? 0),
-			"read_only" => $read_only,
+				"tool_name" => $this->auto_tool_name($target_note, $operation),
+				"title" => $this->auto_tool_title($target_note, $operation),
+				"description" => $description,
+				"tool_type" => "note_crud",
+				"operation" => $operation,
+				"target_note" => $target_note,
+				"action_class" => "",
+				"required_scope" => $required_scope,
+				"requires_confirmation" => $operation === "delete" ? 1 : (int) ($post["requires_confirmation"] ?? 0),
+				"read_only" => $read_only,
 			"destructive" => $destructive,
 			"max_limit" => max(1, min(200, (int) ($post["max_limit"] ?? 20))),
+			];
+		}
+
+	private function normalize_app_action_post(array $post): array {
+		$tool_name = trim((string) ($post["tool_name"] ?? ""));
+		$title = trim((string) ($post["title"] ?? ""));
+		if ($title === "") {
+			$title = $tool_name;
+		}
+		return [
+			"id" => (int) ($post["id"] ?? 0),
+			"server_id" => (int) ($post["server_id"] ?? 0),
+			"enabled" => isset($post["enabled"]) ? (int) $post["enabled"] : 0,
+			"tool_name" => $tool_name,
+			"title" => $title,
+			"description" => trim((string) ($post["description"] ?? "")),
+			"tool_type" => "app_action",
+			"operation" => "action",
+			"target_note" => "",
+			"action_class" => trim((string) ($post["action_class"] ?? "")),
+			"required_scope" => trim((string) ($post["required_scope"] ?? "mcp.read")),
+			"requires_confirmation" => (int) ($post["requires_confirmation"] ?? 0),
+			"read_only" => (int) ($post["read_only"] ?? 1),
+			"destructive" => (int) ($post["destructive"] ?? 0),
+			"max_limit" => 20,
 		];
 	}
 
@@ -387,14 +453,20 @@ class mcp_manage {
 		if ($post["title"] === "") {
 			$errors["title"] = $ctl->t("mcp_manage.validation.title_required");
 		}
-		if ($post["tool_type"] !== "note_crud") {
+		if (!in_array($post["tool_type"], ["note_crud", "app_action"], true)) {
 			$errors["tool_type"] = $ctl->t("mcp_manage.validation.tool_type");
 		}
-		if (!in_array($post["operation"], ["list", "get", "create", "update", "delete"], true)) {
+		if ($post["tool_type"] === "note_crud" && !in_array($post["operation"], ["list", "get", "create", "update", "delete"], true)) {
 			$errors["operation"] = $ctl->t("mcp_manage.validation.operation");
 		}
 		if ($post["tool_type"] === "note_crud" && $post["target_note"] === "") {
 			$errors["target_note"] = $ctl->t("mcp_manage.validation.target_note_required");
+		}
+		if ($post["tool_type"] === "app_action") {
+			$action_error = $this->validate_action_class($ctl, (string) ($post["action_class"] ?? ""));
+			if ($action_error !== "") {
+				$errors["action_class"] = $action_error;
+			}
 		}
 		return $errors;
 	}
@@ -410,17 +482,33 @@ class mcp_manage {
 	private function assign_tool_form(Controller $ctl, array $data): void {
 		$id = (int) ($data["id"] ?? 0);
 		$form_key = $id > 0 ? (string) $id : "new";
-		$target_note = trim((string) ($data["target_note"] ?? ""));
-		$operation = trim((string) ($data["operation"] ?? "list"));
-		$data["tool_type"] = "note_crud";
-		$data["operation"] = $operation === "" ? "list" : $operation;
-		$data["tool_name"] = $this->auto_tool_name($target_note, (string) $data["operation"]);
-		$data["title"] = $this->auto_tool_title($target_note, (string) $data["operation"]);
-		if ($id <= 0 && trim((string) ($data["required_scope"] ?? "")) === "") {
-			$data["required_scope"] = $this->scope_for_operation((string) $data["operation"]);
+		$data["tool_type"] = $this->normalize_tool_type((string) ($data["tool_type"] ?? "note_crud"));
+		if ($data["tool_type"] === "") {
+			$data["tool_type"] = "note_crud";
 		}
-		if ($id <= 0 && trim((string) ($data["description"] ?? "")) === "") {
-			$data["description"] = $this->description_for_operation($target_note, (string) $data["operation"]);
+		$target_note = trim((string) ($data["target_note"] ?? ""));
+		if ($data["tool_type"] === "note_crud") {
+			$operation = trim((string) ($data["operation"] ?? "list"));
+			$data["operation"] = $operation === "" ? "list" : $operation;
+			$data["tool_name"] = $this->auto_tool_name($target_note, (string) $data["operation"]);
+			$data["title"] = $this->auto_tool_title($target_note, (string) $data["operation"]);
+			$data["action_class"] = "";
+			if ($id <= 0 && trim((string) ($data["required_scope"] ?? "")) === "") {
+				$data["required_scope"] = $this->scope_for_operation((string) $data["operation"]);
+			}
+			if ($id <= 0 && trim((string) ($data["description"] ?? "")) === "") {
+				$data["description"] = $this->description_for_operation($target_note, (string) $data["operation"]);
+			}
+		} else {
+			$data["operation"] = "action";
+			$data["target_note"] = "";
+			$data["max_limit"] = 20;
+			if (trim((string) ($data["required_scope"] ?? "")) === "") {
+				$data["required_scope"] = "mcp.read";
+			}
+			if (!isset($data["read_only"]) || $data["read_only"] === "") {
+				$data["read_only"] = 1;
+			}
 		}
 
 		$ctl->assign("data", $data);
@@ -428,8 +516,50 @@ class mcp_manage {
 		$ctl->assign("form_id", "mcp_tool_edit_form_" . $form_key);
 		$ctl->assign("field_area_id", "mcp_tool_fields_area_" . $form_key);
 		$ctl->assign("selected_target_note", $target_note);
-		$ctl->assign("field_rows", $this->field_rows_for_tool($ctl, $target_note, $id));
+		$ctl->assign("field_rows", $data["tool_type"] === "note_crud" ? $this->field_rows_for_tool($ctl, $target_note, $id) : []);
 		$this->assign_note_options($ctl);
+	}
+
+	private function validate_action_class(Controller $ctl, string $class): string {
+		$class = trim($class);
+		if ($class === "") {
+			return $ctl->t("mcp_manage.validation.action_class_required");
+		}
+		if (!preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $class)) {
+			return $ctl->t("mcp_manage.validation.action_class");
+		}
+		try {
+			$this->load_app_action($class, $ctl);
+		} catch (Throwable $e) {
+			return $e->getMessage();
+		}
+		return "";
+	}
+
+	private function load_app_action(string $class, Controller $ctl): McpActionInterface {
+		if (!class_exists($class, false)) {
+			try {
+				$dir = new Dirs();
+				$class_file = $dir->get_class_dir($class) . "/" . $class . ".php";
+				include_once($class_file);
+			} catch (Throwable $e) {
+				throw new Exception($ctl->t("mcp_manage.validation.action_class_not_found"));
+			}
+		}
+		if (!class_exists($class, false)) {
+			throw new Exception($ctl->t("mcp_manage.validation.action_class_not_found"));
+		}
+		$reflection = new ReflectionClass($class);
+		$constructor = $reflection->getConstructor();
+		if ($constructor && count($constructor->getParameters()) > 0) {
+			$action = new $class($ctl);
+		} else {
+			$action = new $class();
+		}
+		if (!($action instanceof McpActionInterface)) {
+			throw new Exception($ctl->t("mcp_manage.validation.action_class_interface"));
+		}
+		return $action;
 	}
 
 	private function auto_tool_name(string $target_note, string $operation): string {
@@ -627,6 +757,10 @@ class mcp_manage {
 	}
 
 	private function field_summary(int $tool_id): string {
+		$tool = $this->ffm_tools->get($tool_id);
+		if (is_array($tool) && (string) ($tool["tool_type"] ?? "") === "app_action") {
+			return "App Action";
+		}
 		$count = [
 			"input" => 0,
 			"output" => 0,
@@ -641,12 +775,25 @@ class mcp_manage {
 		return "input:" . $count["input"] . " / output:" . $count["output"] . " / search:" . $count["search"];
 	}
 
-	private function tool_ready_status(array $tool): string {
+	private function tool_ready_status(Controller $ctl, array $tool): string {
 		if ((int) ($tool["enabled"] ?? 0) !== 1) {
 			return "disabled";
 		}
-		if ((string) ($tool["tool_type"] ?? "") !== "note_crud") {
-			return "custom_not_supported";
+		$tool_type = (string) ($tool["tool_type"] ?? "");
+		if ($tool_type === "app_action") {
+			$action_class = trim((string) ($tool["action_class"] ?? ""));
+			if ($action_class === "") {
+				return "no_action_class";
+			}
+			try {
+				$this->load_app_action($action_class, $ctl);
+			} catch (Throwable $e) {
+				return "action_class_error";
+			}
+			return "ready";
+		}
+		if ($tool_type !== "note_crud") {
+			return "unsupported_tool_type";
 		}
 		$operation = (string) ($tool["operation"] ?? "");
 		$selected = $this->selected_fields_by_role((int) ($tool["id"] ?? 0));

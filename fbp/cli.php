@@ -58,6 +58,7 @@ include("interface/Controller.php");
 include("lib/Controller_class.php");
 include("lib/I18nSimple.php");
 include("interface/CodegenActionInterface.php");
+include("interface/McpActionInterface.php");
 include("interface/linebot/linebot.php");
 include("lib/linebot/Linebot_class.php");
 include("lib/fixed_file_manager/fixed_file_manager.php");
@@ -646,6 +647,573 @@ function cli_get_json_arg(array $argv): array {
 		return [false, "Invalid JSON", null];
 	}
 	return [true, "", $data];
+}
+
+function cli_mcp_db(Dirs $dir, string $table) {
+	$fmt_dir = $dir->appdir_fw . "/mcp_manage/fmt";
+	$data_dir = $dir->datadir . "/mcp_manage/";
+	return create_db($table, $data_dir, $fmt_dir);
+}
+
+function cli_mcp_bool01($value, int $default): int {
+	if ($value === null || $value === "") {
+		return $default;
+	}
+	if (is_bool($value)) {
+		return $value ? 1 : 0;
+	}
+	return (int) $value === 1 ? 1 : 0;
+}
+
+function cli_mcp_operation(string $operation): string {
+	$operation = trim($operation);
+	return in_array($operation, ["list", "get", "create", "update", "delete"], true) ? $operation : "";
+}
+
+function cli_mcp_scope_for_operation(string $operation): string {
+	return in_array($operation, ["list", "get"], true) ? "mcp.read" : "mcp.write";
+}
+
+function cli_mcp_auto_tool_name(string $target_note, string $operation): string {
+	$operation = cli_mcp_operation($operation);
+	if ($operation === "") {
+		$operation = "list";
+	}
+	$note = strtolower((string) preg_replace('/[^a-zA-Z0-9_]+/', '_', $target_note));
+	$note = trim($note, "_");
+	if ($note === "" || !preg_match('/^[a-zA-Z]/', $note)) {
+		$note = "note";
+	}
+	if ($operation === "list" && substr($note, -1) !== "s") {
+		$note .= "s";
+	}
+	return $operation . "_" . $note;
+}
+
+function cli_mcp_auto_tool_title(string $target_note, string $operation): string {
+	$labels = [
+		"list" => "List",
+		"get" => "Get",
+		"create" => "Create",
+		"update" => "Update",
+		"delete" => "Delete",
+	];
+	$operation = cli_mcp_operation($operation);
+	if ($operation === "") {
+		$operation = "list";
+	}
+	$note = trim((string) preg_replace('/[^a-zA-Z0-9_ -]+/', ' ', $target_note));
+	$note = preg_replace('/\s+/', ' ', $note);
+	if ($note === "") {
+		$note = "note";
+	}
+	if ($operation === "list" && substr($note, -1) !== "s") {
+		$note .= "s";
+	}
+	return ($labels[$operation] ?? ucfirst($operation)) . " " . $note;
+}
+
+function cli_mcp_description_for_operation(string $target_note, string $operation): string {
+	$note = trim(str_replace("_", " ", $target_note));
+	if ($note === "") {
+		$note = "the selected note";
+	}
+	$operation = cli_mcp_operation($operation);
+	if ($operation === "") {
+		$operation = "list";
+	}
+	$descriptions = [
+		"list" => "Use this to list or search records in " . $note . ".",
+		"get" => "Use this to retrieve one record from " . $note . ".",
+		"create" => "Use this to create a record in " . $note . ".",
+		"update" => "Use this to update a record in " . $note . ".",
+		"delete" => "Use this to delete a record from " . $note . ".",
+	];
+	return $descriptions[$operation];
+}
+
+function cli_mcp_normalize_tool_type(array $spec): string {
+	$tool_type = trim((string) ($spec["tool_type"] ?? ($spec["type"] ?? "")));
+	if ($tool_type === "custom_action") {
+		$tool_type = "app_action";
+	}
+	if ($tool_type === "" && trim((string) ($spec["action_class"] ?? "")) !== "") {
+		$tool_type = "app_action";
+	}
+	if ($tool_type === "") {
+		$tool_type = "note_crud";
+	}
+	return in_array($tool_type, ["note_crud", "app_action"], true) ? $tool_type : "";
+}
+
+function cli_mcp_auto_action_tool_name(string $action_class): string {
+	$name = preg_replace('/Action$/', '', $action_class);
+	$name = preg_replace('/Mcp$/', '', (string) $name);
+	$name = strtolower((string) preg_replace('/(?<!^)[A-Z]/', '_$0', (string) $name));
+	$name = strtolower((string) preg_replace('/[^a-zA-Z0-9_]+/', '_', $name));
+	$name = trim($name, "_");
+	if ($name === "" || !preg_match('/^[a-zA-Z]/', $name)) {
+		$name = "app_action";
+	}
+	return $name;
+}
+
+function cli_mcp_validate_action_class(Dirs $dir, string $action_class): string {
+	$action_class = trim($action_class);
+	if ($action_class === "") {
+		return "action_class is required.";
+	}
+	if (!preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $action_class)) {
+		return "action_class must be a class name using letters, numbers, and underscore.";
+	}
+	if (!class_exists($action_class, false)) {
+		try {
+			$class_file = $dir->get_class_dir($action_class) . "/" . $action_class . ".php";
+			include_once($class_file);
+		} catch (Throwable $e) {
+			return "action_class not found: " . $action_class;
+		}
+	}
+	if (!class_exists($action_class, false)) {
+		return "action_class not found: " . $action_class;
+	}
+	if (!in_array("McpActionInterface", class_implements($action_class), true)) {
+		return "action_class must implement McpActionInterface: " . $action_class;
+	}
+	return "";
+}
+
+function cli_mcp_normalize_list($value): array {
+	if ($value === null || $value === "") {
+		return [];
+	}
+	if (!is_array($value)) {
+		$value = [$value];
+	}
+	$result = [];
+	foreach ($value as $item) {
+		$item = trim((string) $item);
+		if ($item === "" || $item === "id" || in_array($item, $result, true)) {
+			continue;
+		}
+		$result[] = $item;
+	}
+	return $result;
+}
+
+function cli_mcp_next_tool_sort($ffm_tools, int $server_id): int {
+	$list = $ffm_tools->select("server_id", $server_id, true, "AND", "sort", SORT_DESC);
+	if (count($list) === 0) {
+		return 0;
+	}
+	return (int) ($list[0]["sort"] ?? 0) + 1;
+}
+
+function cli_mcp_ensure_default_server(Dirs $dir, $ffm_server, bool $dry_run, array &$warnings): array {
+	$list = $ffm_server->getall("sort", SORT_ASC);
+	if (count($list) > 0) {
+		return $list[0];
+	}
+
+	$setting = cli_get_setting($dir);
+	$title = trim((string) ($setting["system_name"] ?? ""));
+	if ($title === "") {
+		$title = "FBP MCP Server";
+	}
+	$now = time();
+	$row = [
+		"enabled" => 0,
+		"server_key" => "default",
+		"title" => $title,
+		"description" => "MCP server for this FBP app.",
+		"auth_mode" => "oauth2",
+		"default_scope" => "mcp.read mcp.write",
+		"sort" => 0,
+		"created_at" => $now,
+		"updated_at" => $now,
+	];
+	if ($dry_run) {
+		$row["id"] = 0;
+		$warnings[] = "Default MCP server will be created on apply.";
+		return $row;
+	}
+
+	$insert = $row;
+	$id = (int) $ffm_server->insert($insert);
+	return $ffm_server->get($id);
+}
+
+function cli_mcp_find_note($ffm_db_admin, string $target_note): array {
+	$list = $ffm_db_admin->select("tb_name", $target_note);
+	if (count($list) === 0) {
+		return [];
+	}
+	return $list[0];
+}
+
+function cli_mcp_note_field_map($ffm_db_fields_admin, int $db_id): array {
+	$map = [];
+	$rows = $ffm_db_fields_admin->select("db_id", $db_id, true, "AND", "sort", SORT_ASC);
+	foreach ($rows as $row) {
+		$name = trim((string) ($row["parameter_name"] ?? ""));
+		if ($name !== "") {
+			$map[$name] = $row;
+		}
+	}
+	return $map;
+}
+
+function cli_mcp_selected_fields_by_role($ffm_fields, int $tool_id): array {
+	$selected = [
+		"input" => [],
+		"output" => [],
+		"search" => [],
+		"required" => [],
+	];
+	if ($tool_id <= 0) {
+		return $selected;
+	}
+	$rows = $ffm_fields->select("tool_id", $tool_id, true, "AND", "sort", SORT_ASC);
+	foreach ($rows as $row) {
+		$name = trim((string) ($row["field_name"] ?? ""));
+		$role = trim((string) ($row["role"] ?? ""));
+		if ($name === "" || !isset($selected[$role])) {
+			continue;
+		}
+		$selected[$role][] = $name;
+		if ($role === "input" && (int) ($row["required"] ?? 0) === 1) {
+			$selected["required"][] = $name;
+		}
+	}
+	return $selected;
+}
+
+function cli_mcp_validate_field_list(array $fields, array $valid_fields, string $role, string $tool_name, array &$errors): void {
+	foreach ($fields as $field_name) {
+		if (!isset($valid_fields[$field_name])) {
+			$errors[] = $tool_name . ": unknown " . $role . " field: " . $field_name;
+		}
+	}
+}
+
+function cli_mcp_replace_tool_fields($ffm_fields, int $tool_id, array $fields_by_role, int $now): void {
+	foreach ($ffm_fields->select("tool_id", $tool_id) as $row) {
+		$ffm_fields->delete((int) $row["id"]);
+	}
+	$required_map = array_flip($fields_by_role["required"] ?? []);
+	foreach (["input", "output", "search"] as $role) {
+		$sort = 0;
+		foreach ($fields_by_role[$role] ?? [] as $field_name) {
+			$row = [
+				"tool_id" => $tool_id,
+				"field_name" => $field_name,
+				"role" => $role,
+				"required" => ($role === "input" && isset($required_map[$field_name])) ? 1 : 0,
+				"readonly" => 0,
+				"sort" => $sort,
+				"created_at" => $now,
+				"updated_at" => $now,
+			];
+			$ffm_fields->insert($row);
+			$sort++;
+		}
+	}
+}
+
+function cli_mcp_normalize_tool_specs(array $data): array {
+	if (isset($data["tools"]) && is_array($data["tools"])) {
+		return array_values($data["tools"]);
+	}
+	if (
+		isset($data["note"]) || isset($data["target_note"]) || isset($data["operation"]) ||
+		isset($data["operations"]) || isset($data["action_class"]) || isset($data["tool_type"])
+	) {
+		return [$data];
+	}
+	return [];
+}
+
+function cli_mcp_apply_tools(Dirs $dir, $ffm_db_admin, $ffm_db_fields_admin, array $data): array {
+	$warnings = [];
+	$errors = [];
+	$results = [];
+	$plans = [];
+	$seen_tool_names = [];
+	$dry_run = array_key_exists("dry_run", $data) ? (bool) $data["dry_run"] : true;
+
+	$ffm_server = cli_mcp_db($dir, "mcp_server_config");
+	$ffm_tools = cli_mcp_db($dir, "mcp_tools");
+	$ffm_fields = cli_mcp_db($dir, "mcp_tool_fields");
+	$server = cli_mcp_ensure_default_server($dir, $ffm_server, true, $warnings);
+	$server_id = (int) ($server["id"] ?? 0);
+	$tool_specs = cli_mcp_normalize_tool_specs($data);
+	if (count($tool_specs) === 0) {
+		$errors[] = "Missing tools in --json.";
+	}
+
+	foreach ($tool_specs as $spec_index => $spec) {
+		if (!is_array($spec)) {
+			$errors[] = "tools[" . $spec_index . "] must be an object.";
+			continue;
+		}
+		$tool_type = cli_mcp_normalize_tool_type($spec);
+		if ($tool_type === "") {
+			$errors[] = "tools[" . $spec_index . "]: invalid tool_type.";
+			continue;
+		}
+		if ($tool_type === "app_action") {
+			$action_class = trim((string) ($spec["action_class"] ?? ""));
+			$class_error = cli_mcp_validate_action_class($dir, $action_class);
+			if ($class_error !== "") {
+				$errors[] = "tools[" . $spec_index . "]: " . $class_error;
+			}
+			$tool_name = trim((string) ($spec["tool_name"] ?? ($spec["name"] ?? "")));
+			if ($tool_name === "") {
+				$tool_name = cli_mcp_auto_action_tool_name($action_class);
+			}
+			if ($tool_name === "" || !preg_match('/^[a-zA-Z][a-zA-Z0-9_.-]*$/', $tool_name)) {
+				$errors[] = "tools[" . $spec_index . "]: invalid tool_name: " . $tool_name;
+				continue;
+			}
+			if (isset($seen_tool_names[$tool_name])) {
+				$errors[] = "Duplicate tool in spec: " . $tool_name;
+				continue;
+			}
+			$seen_tool_names[$tool_name] = true;
+
+			$existing_list = $ffm_tools->select("tool_name", $tool_name);
+			$existing = count($existing_list) > 0 ? $existing_list[0] : [];
+			$existing_id = (int) ($existing["id"] ?? 0);
+			$title = trim((string) ($spec["title"] ?? ($existing["title"] ?? "")));
+			if ($title === "") {
+				$title = $tool_name;
+			}
+			$description = trim((string) ($spec["description"] ?? ($existing["description"] ?? "")));
+			$required_scope = trim((string) ($spec["required_scope"] ?? ($existing["required_scope"] ?? "")));
+			if ($required_scope === "") {
+				$required_scope = "mcp.read";
+			}
+			$enabled = cli_mcp_bool01($spec["enabled"] ?? ($existing["enabled"] ?? null), (int) ($existing["enabled"] ?? 1));
+			$read_only = cli_mcp_bool01($spec["read_only"] ?? ($existing["read_only"] ?? null), (int) ($existing["read_only"] ?? 1));
+			$destructive = cli_mcp_bool01($spec["destructive"] ?? ($existing["destructive"] ?? null), (int) ($existing["destructive"] ?? 0));
+			$requires_confirmation = cli_mcp_bool01($spec["requires_confirmation"] ?? ($existing["requires_confirmation"] ?? null), (int) ($existing["requires_confirmation"] ?? 0));
+			$now = time();
+			$row = $existing;
+			$row["server_id"] = $server_id;
+			$row["enabled"] = $enabled;
+			$row["tool_name"] = $tool_name;
+			$row["title"] = $title;
+			$row["description"] = $description;
+			$row["tool_type"] = "app_action";
+			$row["operation"] = "action";
+			$row["target_note"] = "";
+			$row["action_class"] = $action_class;
+			$row["required_scope"] = $required_scope;
+			$row["requires_confirmation"] = $requires_confirmation;
+			$row["read_only"] = $read_only;
+			$row["destructive"] = $destructive;
+			$row["max_limit"] = 20;
+			$row["updated_at"] = $now;
+			if ($existing_id <= 0) {
+				$row["sort"] = 0;
+				$row["created_at"] = $now;
+			}
+
+			$result_index = count($results);
+			$results[] = [
+				"tool_name" => $tool_name,
+				"tool_type" => "app_action",
+				"operation" => "action",
+				"action_class" => $action_class,
+				"action" => $existing_id > 0 ? "update" : "create",
+				"id" => $existing_id > 0 ? $existing_id : null,
+				"ready_status" => $enabled === 1 && $class_error === "" ? "ready" : ($enabled === 1 ? "action_class_error" : "disabled"),
+			];
+			$plans[] = [
+				"result_index" => $result_index,
+				"row" => $row,
+				"existing_id" => $existing_id,
+				"fields_provided" => false,
+				"fields_by_role" => ["input" => [], "output" => [], "search" => [], "required" => []],
+				"now" => $now,
+			];
+			continue;
+		}
+
+		$target_note = trim((string) ($spec["target_note"] ?? ($spec["note"] ?? "")));
+		if ($target_note === "") {
+			$errors[] = "tools[" . $spec_index . "]: missing note or target_note.";
+			continue;
+		}
+		$note = cli_mcp_find_note($ffm_db_admin, $target_note);
+		if (empty($note)) {
+			$errors[] = "tools[" . $spec_index . "]: note not found: " . $target_note;
+			continue;
+		}
+
+		$operations = $spec["operations"] ?? ($spec["operation"] ?? "list");
+		if (!is_array($operations)) {
+			$operations = [$operations];
+		}
+		$db_id = (int) ($note["id"] ?? 0);
+		$valid_fields = cli_mcp_note_field_map($ffm_db_fields_admin, $db_id);
+		foreach ($operations as $operation_value) {
+			$operation = cli_mcp_operation((string) $operation_value);
+			if ($operation === "") {
+				$errors[] = "tools[" . $spec_index . "]: invalid operation: " . (string) $operation_value;
+				continue;
+			}
+
+			$tool_name = cli_mcp_auto_tool_name($target_note, $operation);
+			if (isset($seen_tool_names[$tool_name])) {
+				$errors[] = "Duplicate tool in spec: " . $tool_name;
+				continue;
+			}
+			$seen_tool_names[$tool_name] = true;
+			$existing_list = $ffm_tools->select("tool_name", $tool_name);
+			$existing = count($existing_list) > 0 ? $existing_list[0] : [];
+			$existing_id = (int) ($existing["id"] ?? 0);
+			$fields_provided = isset($spec["fields"]) && is_array($spec["fields"]);
+			$fields = $fields_provided ? $spec["fields"] : cli_mcp_selected_fields_by_role($ffm_fields, $existing_id);
+			if (!is_array($fields)) {
+				$fields = [];
+			}
+
+			$fields_by_role = [
+				"input" => cli_mcp_normalize_list($fields["input"] ?? []),
+				"output" => cli_mcp_normalize_list($fields["output"] ?? []),
+				"search" => cli_mcp_normalize_list($fields["search"] ?? []),
+				"required" => cli_mcp_normalize_list($fields["required"] ?? []),
+			];
+			foreach ($fields_by_role["required"] as $field_name) {
+				if (!in_array($field_name, $fields_by_role["input"], true)) {
+					$fields_by_role["input"][] = $field_name;
+					$warnings[] = $tool_name . ": required field added to input: " . $field_name;
+				}
+			}
+			foreach (["input", "output", "search", "required"] as $role) {
+				cli_mcp_validate_field_list($fields_by_role[$role], $valid_fields, $role, $tool_name, $errors);
+			}
+			if (in_array($operation, ["list", "get"], true) && count($fields_by_role["output"]) === 0) {
+				$errors[] = $tool_name . ": output fields are required for " . $operation . ".";
+			}
+			if (in_array($operation, ["create", "update"], true) && count($fields_by_role["input"]) === 0) {
+				$errors[] = $tool_name . ": input fields are required for " . $operation . ".";
+			}
+
+			$read_only = in_array($operation, ["list", "get"], true) ? 1 : 0;
+			$destructive = $operation === "delete"
+				? 1
+				: cli_mcp_bool01($spec["destructive"] ?? ($existing["destructive"] ?? null), (int) ($existing["destructive"] ?? 0));
+			$requires_confirmation = $operation === "delete"
+				? 1
+				: cli_mcp_bool01($spec["requires_confirmation"] ?? ($existing["requires_confirmation"] ?? null), (int) ($existing["requires_confirmation"] ?? 0));
+			$enabled = cli_mcp_bool01($spec["enabled"] ?? ($existing["enabled"] ?? null), (int) ($existing["enabled"] ?? 1));
+			$max_limit = max(1, min(200, (int) ($spec["max_limit"] ?? ($existing["max_limit"] ?? 20))));
+			$required_scope = trim((string) ($spec["required_scope"] ?? ""));
+			if ($required_scope === "") {
+				$required_scope = cli_mcp_scope_for_operation($operation);
+			}
+			$description = trim((string) ($spec["description"] ?? ""));
+			if ($description === "") {
+				$description = cli_mcp_description_for_operation($target_note, $operation);
+			}
+
+			$now = time();
+			$row = $existing;
+			$row["server_id"] = $server_id;
+			$row["enabled"] = $enabled;
+			$row["tool_name"] = $tool_name;
+			$row["title"] = cli_mcp_auto_tool_title($target_note, $operation);
+			$row["description"] = $description;
+				$row["tool_type"] = "note_crud";
+				$row["operation"] = $operation;
+				$row["target_note"] = $target_note;
+				$row["action_class"] = "";
+				$row["required_scope"] = $required_scope;
+			$row["requires_confirmation"] = $requires_confirmation;
+			$row["read_only"] = $read_only;
+			$row["destructive"] = $destructive;
+			$row["max_limit"] = $max_limit;
+			$row["updated_at"] = $now;
+			if ($existing_id <= 0) {
+				$row["sort"] = 0;
+				$row["created_at"] = $now;
+			}
+
+			$result_index = count($results);
+				$result = [
+					"tool_name" => $tool_name,
+					"tool_type" => "note_crud",
+					"operation" => $operation,
+					"target_note" => $target_note,
+				"action" => $existing_id > 0 ? "update" : "create",
+				"id" => $existing_id > 0 ? $existing_id : null,
+				"fields" => $fields_by_role,
+			];
+			$result["ready_status"] = "ready";
+			if ((int) $enabled !== 1) {
+				$result["ready_status"] = "disabled";
+			} else if (in_array($operation, ["list", "get"], true) && count($fields_by_role["output"]) === 0) {
+				$result["ready_status"] = "no_output_fields";
+			} else if (in_array($operation, ["create", "update"], true) && count($fields_by_role["input"]) === 0) {
+				$result["ready_status"] = "no_input_fields";
+			}
+			$results[] = $result;
+			$plans[] = [
+				"result_index" => $result_index,
+				"row" => $row,
+				"existing_id" => $existing_id,
+				"fields_provided" => $fields_provided,
+				"fields_by_role" => $fields_by_role,
+				"now" => $now,
+			];
+		}
+	}
+
+	if (!$dry_run && count($errors) === 0) {
+		if ($server_id <= 0) {
+			$apply_warnings = [];
+			$server = cli_mcp_ensure_default_server($dir, $ffm_server, false, $apply_warnings);
+			$server_id = (int) ($server["id"] ?? 0);
+		}
+		$next_sort = cli_mcp_next_tool_sort($ffm_tools, $server_id);
+		foreach ($plans as $plan) {
+			$row = $plan["row"];
+			$existing_id = (int) $plan["existing_id"];
+			$row["server_id"] = $server_id;
+			if ($existing_id > 0) {
+				$row["id"] = $existing_id;
+				$ffm_tools->update($row);
+				$tool_id = $existing_id;
+			} else {
+				$row["sort"] = $next_sort;
+				$next_sort++;
+				$insert = $row;
+				$tool_id = (int) $ffm_tools->insert($insert);
+			}
+			if (!empty($plan["fields_provided"])) {
+				cli_mcp_replace_tool_fields($ffm_fields, $tool_id, $plan["fields_by_role"], (int) $plan["now"]);
+			}
+			$result_index = (int) $plan["result_index"];
+			if (isset($results[$result_index])) {
+				$results[$result_index]["id"] = $tool_id;
+			}
+		}
+	}
+
+	return [
+		"ok" => count($errors) === 0,
+		"dry_run" => $dry_run,
+		"server" => [
+			"id" => $server_id,
+			"title" => (string) ($server["title"] ?? ""),
+			"enabled" => (int) ($server["enabled"] ?? 0),
+		],
+		"results" => $results,
+		"warnings" => $warnings,
+		"errors" => $errors,
+	];
 }
 
 function cli_ensure_parent_id_field($ffm_db_admin, $ffm_db_fields_admin, int $db_id): bool {
@@ -1862,6 +2430,16 @@ if ($command === "email_format_validate") {
 	exit(0);
 }
 
+if ($command === "mcp_tool_apply") {
+	[$ok, $err, $data] = cli_get_json_arg($argv);
+	if (!$ok) {
+		fwrite(STDERR, $err . "\n");
+		exit(1);
+	}
+	$out = cli_mcp_apply_tools($dir, $ffm_db_admin, $ffm_db_fields_admin, $data);
+	cli_output_json($out, $out["ok"] ? 0 : 1);
+}
+
 if ($command === "constant_array_list") {
 	$list = $ffm_constant_array->getall("id", SORT_ASC);
 	$out = [
@@ -2686,6 +3264,6 @@ if ($command === "db_schema") {
 	exit(0);
 }
 
-fwrite(STDERR, "Usage: php cli.php db_schema | setting_get | setting_edit --json='{}' | app_call --json='{}' | app_check --json='{}' | db_additionals_list | db_additionals_add --json='{}' | db_additionals_edit --json='{}' | db_additionals_delete --json='{}' | db_additionals_generate --json='{\"id\":1}' | db_tables_list | db_tables_add --json='{}' | db_tables_edit --json='{}' | db_tables_delete --json='{}' | db_fields_list [--json='{\"db_id\":1}'] | db_fields_add --json='{}' | db_fields_edit --json='{}' | db_fields_delete --json='{}' | screen_fields_list --json='{\"tb_name\":\"xxx\",\"screen_name\":\"list\"}' | screen_fields_add --json='{}' | screen_fields_edit --json='{}' | screen_fields_delete --json='{}' | cron_list [--json='{\"id\":1}'] | cron_add --json='{}' | cron_edit --json='{}' | cron_delete --json='{}' | webhook_rule_list [--json='{\"id\":1}'] | webhook_rule_add --json='{}' | webhook_rule_edit --json='{}' | webhook_rule_delete --json='{\"id\":1}' | embed_app_list [--json='{\"id\":1}'] | embed_app_add --json='{}' | embed_app_edit --json='{}' | embed_app_delete --json='{\"id\":1}' | email_format_list [--json='{\"id\":1}'] | email_format_get --json='{\"id\":1}' | email_format_add --json='{}' | email_format_edit --json='{}' | email_format_delete --json='{\"id\":1}' | email_format_validate --json='{\"id\":1}'\n");
+fwrite(STDERR, "Usage: php cli.php db_schema | setting_get | setting_edit --json='{}' | app_call --json='{}' | app_check --json='{}' | db_additionals_list | db_additionals_add --json='{}' | db_additionals_edit --json='{}' | db_additionals_delete --json='{}' | db_additionals_generate --json='{\"id\":1}' | db_tables_list | db_tables_add --json='{}' | db_tables_edit --json='{}' | db_tables_delete --json='{}' | db_fields_list [--json='{\"db_id\":1}'] | db_fields_add --json='{}' | db_fields_edit --json='{}' | db_fields_delete --json='{}' | screen_fields_list --json='{\"tb_name\":\"xxx\",\"screen_name\":\"list\"}' | screen_fields_add --json='{}' | screen_fields_edit --json='{}' | screen_fields_delete --json='{}' | cron_list [--json='{\"id\":1}'] | cron_add --json='{}' | cron_edit --json='{}' | cron_delete --json='{}' | webhook_rule_list [--json='{\"id\":1}'] | webhook_rule_add --json='{}' | webhook_rule_edit --json='{}' | webhook_rule_delete --json='{\"id\":1}' | embed_app_list [--json='{\"id\":1}'] | embed_app_add --json='{}' | embed_app_edit --json='{}' | embed_app_delete --json='{\"id\":1}' | email_format_list [--json='{\"id\":1}'] | email_format_get --json='{\"id\":1}' | email_format_add --json='{}' | email_format_edit --json='{}' | email_format_delete --json='{\"id\":1}' | email_format_validate --json='{\"id\":1}' | mcp_tool_apply --json='{}'\n");
 fwrite(STDERR, "app_call/app_check: windowcodeを固定する場合、session_id未指定時はwindowcode由来の有効なsession_idを自動使用します。session_idに使える文字は英数字・'-'・','です。\n");
 exit(1);

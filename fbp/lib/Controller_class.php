@@ -2430,6 +2430,7 @@ class Controller_class implements Controller {
 		$this->smarty->assign("callback_class", $callback_class_name);
 		$this->smarty->assign("callback_function", $callback_function_name);
 		$this->smarty->assign("callback_parameter_array", base64_encode(json_encode($callback_parameter_array)));
+		$this->smarty->assign("square_button_label", (string) ($callback_parameter_array["square_button_label"] ?? ""));
 		if ($error_msg != "") {
 			$error_msg = "An error is occured. Please try again.<br>" . $error_msg;
 		}

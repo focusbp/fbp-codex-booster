@@ -7,6 +7,7 @@ description,2000,T
 tool_type,32,T
 operation,32,T
 target_note,255,T
+action_class,255,T
 required_scope,255,T
 requires_confirmation,1,N
 read_only,1,N

@@ -49,7 +49,8 @@
 			<tr class="table-head">
 				<th style="width:4%;"></th>
 				<th style="width:16%;">Tool</th>
-				<th style="width:11%;">{t key="mcp_manage.operation"}</th>
+				<th style="width:10%;">{t key="mcp_manage.tool_type"}</th>
+				<th style="width:10%;">{t key="mcp_manage.operation"}</th>
 				<th style="width:16%;">{t key="mcp_manage.target_note"}</th>
 				<th style="width:14%;">{t key="mcp_manage.fields"}</th>
 				<th style="width:12%;">{t key="common.status"}</th>
@@ -65,8 +66,9 @@
 						<div style="font-weight:600;">{$item.tool_name|escape}</div>
 						<div style="font-size:11px;color:#6b7280;">{$item.title|escape}</div>
 					</td>
+					<td>{if $item.tool_type == 'app_action'}{t key="mcp_manage.app_action"}{else}{t key="mcp_manage.note_crud"}{/if}</td>
 					<td>{$item.operation|escape}</td>
-					<td>{$item.target_note|escape}</td>
+					<td>{if $item.tool_type == 'app_action'}{$item.action_class|escape}{else}{$item.target_note|escape}{/if}</td>
 					<td>
 						<div style="font-size:11px;color:#6b7280;">{$item.field_summary|escape}</div>
 					</td>

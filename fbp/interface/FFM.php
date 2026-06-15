@@ -25,6 +25,22 @@ interface FFM {
 	function insert(&$dataset);
 
 	/**
+	 * Enables or disables strict fixed-length field validation before writes.
+	 *
+	 * @param bool $flg True to throw on field size overflow, false to keep legacy truncation behavior.
+	 * @return void
+	 */
+	function set_strict_field_length(bool $flg): void;
+
+	/**
+	 * Validates dataset values against fixed field sizes.
+	 *
+	 * @param array $dataset The data to validate.
+	 * @return array List of field size violations.
+	 */
+	function validate_field_lengths(array $dataset): array;
+
+	/**
 	 * Deletes the data corresponding to the provided ID.
 	 * 
 	 * @param int $id The ID of the data to delete.
