@@ -50,6 +50,7 @@ description: Build custom note management screens as the default FBP approach by
 - 表示する検索ボタンを置く場合は、`.search_right` を `display:flex; justify-content:flex-end; align-items:flex-end; margin-left:auto;` にし、ボタン側は `float:none !important;` で右寄せする。
 - ダイアログや詳細パネルでボタン行の直後に表・見出しを置く場合は、`.button_row` を `display:flex; justify-content:flex-end;` にし、ボタン側の `float` を解除したうえで下に 12px 程度の余白を入れる。
 - ダイアログ本文や詳細パネル内の入力フォームでは、textarea/input/select の横に保存・追加ボタンを置かない。入力部品の下に操作行を置き、ボタンは右寄せにする。検索フォームの検索ボタンだけは横配置を許可する。
+- 子ノート変更時に親ノートの集計情報を再計算するなど、Noteデータに対する共通副作用は Original Screen 専用処理に閉じ込めず、対象ノートの `post_action_class` に実装する。標準画面、Original Screen、MCP Server の Note CRUD で共通化できることが主なメリット。
 
 ## references
 - Standard からの移行手順: `references/migration-standard-to-original.md`

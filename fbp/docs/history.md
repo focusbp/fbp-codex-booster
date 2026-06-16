@@ -11,3 +11,6 @@
 - Added the first framework-level MCP foundation: `mcp_manage` in the development panel owns server/tool/field settings, and `mcp_server` exposes the public MCP/OAuth endpoints.
 - MCP OAuth tokens are linked to existing `user.id`; every tool call re-checks the user record so deleting or invalidating the user also invalidates the OAuth connection.
 - Added MCP server/tool/field setting data to project release packages while excluding MCP OAuth tokens, auth codes, and call logs.
+
+## 2026-06-16
+- MCP Note CRUD `create` and `update` now accept `file` / `image` fields as base64 upload objects, and `list` / `get` return file metadata plus public download/view URLs for saved media.

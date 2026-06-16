@@ -328,7 +328,7 @@ class mcp_server {
 			return $this->execute_update($ctl, $ffm, $tool, $args);
 		}
 		if ($operation === "delete") {
-			return $this->execute_delete($ffm, $tool, $args);
+			return $this->execute_delete($ctl, $ffm, $tool, $args);
 		}
 		throw new Exception("Unsupported operation.");
 	}
@@ -342,6 +342,8 @@ class mcp_server {
 	private function execute_list(Controller $ctl, FFM $ffm, array $tool, array $args): array {
 		$limit = max(1, min((int) ($tool["max_limit"] ?? 20), (int) ($args["limit"] ?? ($tool["max_limit"] ?? 20))));
 		$query = trim((string) ($args["query"] ?? ""));
+		$table = (string) ($tool["target_note"] ?? "");
+		$field_map = $this->note_field_map($ctl, $table);
 		$output_fields = $this->tool_fields((int) $tool["id"], "output");
 		$search_fields = $this->tool_fields((int) $tool["id"], "search");
 		if (count($search_fields) === 0) {
@@ -350,10 +352,10 @@ class mcp_server {
 		$rows = $ffm->getall("id", SORT_DESC);
 		$items = [];
 		foreach ($rows as $row) {
-			if ($query !== "" && !$this->row_matches_query($row, $search_fields, $query)) {
+			if ($query !== "" && !$this->row_matches_query($ctl, $row, $search_fields, $query, $field_map)) {
 				continue;
 			}
-			$items[] = $this->project_row($row, $output_fields);
+			$items[] = $this->project_row($ctl, $row, $output_fields, $field_map);
 			if (count($items) >= $limit) {
 				break;
 			}
@@ -371,7 +373,8 @@ class mcp_server {
 		if (empty($row)) {
 			throw new Exception("Item not found.");
 		}
-		$item = $this->project_row($row, $this->tool_fields((int) $tool["id"], "output"));
+		$table = (string) ($tool["target_note"] ?? "");
+		$item = $this->project_row($ctl, $row, $this->tool_fields((int) $tool["id"], "output"), $this->note_field_map($ctl, $table));
 		return [
 			"message" => "Item loaded.",
 			"item" => $item,
@@ -385,39 +388,72 @@ class mcp_server {
 	}
 
 	private function execute_create(Controller $ctl, FFM $ffm, array $tool, array $args): array {
+		$table = (string) ($tool["target_note"] ?? "");
 		$input_fields = $this->tool_field_rows((int) $tool["id"], "input");
-		$data = $this->build_input_data($input_fields, $args, true);
+		$uploads = [];
+		$data = $this->build_input_data($ctl, $table, $input_fields, $args, true, $uploads);
 		$this->enable_strict_field_length($ffm);
 		$id = $ffm->insert($data);
 		$row = $ffm->get((int) $id);
+		if (!is_array($row)) {
+			$row = ["id" => (int) $id];
+		}
+		if (count($uploads) > 0) {
+			try {
+				$row = $this->save_mcp_uploads($ctl, $ffm, $table, $row, $uploads);
+			} catch (Throwable $e) {
+				$ffm->delete((int) $id);
+				throw $e;
+			}
+		}
+		$post_action = $this->run_note_post_action_hook($ctl, $table, "add", is_array($row) ? $row : []);
+		$row_after_hook = $ffm->get((int) $id);
+		if (is_array($row_after_hook)) {
+			$row = $row_after_hook;
+		}
 		return [
 			"message" => "Item created.",
 			"id" => (int) $id,
-			"item" => $this->project_row($row, $this->tool_fields((int) $tool["id"], "output")),
+			"item" => $this->project_row($ctl, $row, $this->tool_fields((int) $tool["id"], "output"), $this->note_field_map($ctl, $table)),
+			"post_action_hook" => $post_action,
 		];
 	}
 
 	private function execute_update(Controller $ctl, FFM $ffm, array $tool, array $args): array {
+		$table = (string) ($tool["target_note"] ?? "");
 		$id = $this->required_id($args);
 		$row = $ffm->get($id);
 		if (empty($row)) {
 			throw new Exception("Item not found.");
 		}
-		$data = $this->build_input_data($this->tool_field_rows((int) $tool["id"], "input"), $args, false);
+		$before_row = $row;
+		$uploads = [];
+		$data = $this->build_input_data($ctl, $table, $this->tool_field_rows((int) $tool["id"], "input"), $args, false, $uploads);
 		foreach ($data as $key => $value) {
 			$row[$key] = $value;
 		}
 		$this->enable_strict_field_length($ffm);
-		$ffm->update($row);
-		$row = $ffm->get($id);
+		if (count($data) > 0) {
+			$ffm->update($row);
+			$row = $ffm->get($id);
+		}
+		if (is_array($row) && count($uploads) > 0) {
+			$row = $this->save_mcp_uploads($ctl, $ffm, $table, $row, $uploads);
+		}
+		$post_action = $this->run_note_post_action_hook($ctl, $table, "edit", is_array($row) ? $row : [], is_array($before_row) ? $before_row : null);
+		$row_after_hook = $ffm->get($id);
+		if (is_array($row_after_hook)) {
+			$row = $row_after_hook;
+		}
 		return [
 			"message" => "Item updated.",
 			"id" => $id,
-			"item" => $this->project_row($row, $this->tool_fields((int) $tool["id"], "output")),
+			"item" => $this->project_row($ctl, $row, $this->tool_fields((int) $tool["id"], "output"), $this->note_field_map($ctl, $table)),
+			"post_action_hook" => $post_action,
 		];
 	}
 
-	private function execute_delete(FFM $ffm, array $tool, array $args): array {
+	private function execute_delete(Controller $ctl, FFM $ffm, array $tool, array $args): array {
 		$id = $this->required_id($args);
 		if (empty($args["confirm"])) {
 			throw new Exception("Delete requires confirm=true.");
@@ -427,10 +463,87 @@ class mcp_server {
 			throw new Exception("Item not found.");
 		}
 		$ffm->delete($id);
+		$post_action = $this->run_note_post_action_hook($ctl, (string) ($tool["target_note"] ?? ""), "delete", is_array($row) ? $row : []);
 		return [
 			"message" => "Item deleted.",
 			"id" => $id,
+			"post_action_hook" => $post_action,
 		];
+	}
+
+	private function run_note_post_action_hook(Controller $ctl, string $table, string $from, array $data, ?array $before_data = null): array {
+		$db_setting = $this->note_db_setting($ctl, $table);
+		$class = trim((string) ($db_setting["post_action_class"] ?? ""));
+		if ($class === "") {
+			return [
+				"executed" => false,
+				"class" => "",
+			];
+		}
+		$hook = $this->load_post_action_hook($ctl, $class);
+		$post = [
+			"class" => $class,
+			"function" => "run",
+			"id" => $ctl->encrypt((string) ($data["id"] ?? 0)),
+			"_post_action_table" => $table,
+			"_post_action_from" => $from,
+		];
+		if (is_array($before_data)) {
+			$post["_post_action_before"] = json_encode($before_data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+		}
+		if (is_array($data)) {
+			$post["_post_action_after"] = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+		}
+
+		$previous_post = $_POST;
+		try {
+			$_POST = $post;
+			$hook->run($ctl);
+		} finally {
+			$_POST = $previous_post;
+		}
+		return [
+			"executed" => true,
+			"class" => $class,
+		];
+	}
+
+	private function note_db_setting(Controller $ctl, string $table): array {
+		$table = trim($table);
+		if ($table === "") {
+			return [];
+		}
+		$list = $ctl->db("db", "db")->select("tb_name", $table);
+		if (count($list) === 0) {
+			return [];
+		}
+		return is_array($list[0]) ? $list[0] : [];
+	}
+
+	private function load_post_action_hook(Controller $ctl, string $class): CodegenActionInterface {
+		$class = trim($class);
+		if ($class === "" || !preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $class)) {
+			throw new Exception("Post-Action Hook class is invalid.");
+		}
+		if (!class_exists($class, false)) {
+			$dir = new Dirs();
+			$class_file = $dir->get_class_dir($class) . "/" . $class . ".php";
+			include_once($class_file);
+		}
+		if (!class_exists($class, false)) {
+			throw new Exception("Post-Action Hook class not found: " . $class);
+		}
+		$reflection = new ReflectionClass($class);
+		$constructor = $reflection->getConstructor();
+		if ($constructor && count($constructor->getParameters()) > 0) {
+			$hook = new $class($ctl);
+		} else {
+			$hook = new $class();
+		}
+		if (!($hook instanceof CodegenActionInterface)) {
+			throw new Exception("Post-Action Hook class must implement CodegenActionInterface: " . $class);
+		}
+		return $hook;
 	}
 
 	private function build_tool_input_schema(Controller $ctl, array $tool): array {
@@ -512,6 +625,8 @@ class mcp_server {
 			$schema = ["type" => "number"];
 		} elseif ($type === "checkbox") {
 			$schema = ["type" => "array", "items" => ["type" => "string"]];
+		} elseif (in_array($type, ["file", "image"], true)) {
+			$schema = $this->json_schema_for_upload_field($type);
 		}
 		if ($title !== "") {
 			$schema["title"] = $title;
@@ -521,6 +636,24 @@ class mcp_server {
 		}
 		$schema = $this->apply_table_reference_schema($ctl, $field, $schema);
 		return $this->apply_constant_array_schema($ctl, $field, $schema);
+	}
+
+	private function json_schema_for_upload_field(string $type): array {
+		$kind = $type === "image" ? "image" : "file";
+		return [
+			"type" => "object",
+			"properties" => [
+				"filename" => ["type" => "string", "description" => "Original " . $kind . " filename."],
+				"mime_type" => ["type" => "string", "description" => "Optional MIME type."],
+				"content_base64" => ["type" => "string", "description" => "Base64-encoded " . $kind . " content without a data URL prefix."],
+				"data_url" => ["type" => "string", "description" => "Optional data URL such as data:image/png;base64,...."],
+			],
+			"anyOf" => [
+				["required" => ["content_base64"]],
+				["required" => ["data_url"]],
+			],
+			"additionalProperties" => false,
+		];
 	}
 
 	private function apply_table_reference_schema(Controller $ctl, array $field, array $schema): array {
@@ -903,44 +1036,306 @@ class mcp_server {
 		return $map;
 	}
 
-	private function build_input_data(array $field_rows, array $args, bool $require_required): array {
+	private function build_input_data(Controller $ctl, string $table, array $field_rows, array $args, bool $require_required, array &$uploads): array {
 		$data = [];
+		$field_map = $this->note_field_map($ctl, $table);
 		foreach ($field_rows as $field) {
 			$name = (string) ($field["field_name"] ?? "");
 			if ($name === "") {
 				continue;
 			}
+			$db_field = $field_map[$name] ?? [];
 			if (!array_key_exists($name, $args)) {
 				if ($require_required && (int) ($field["required"] ?? 0) === 1) {
 					throw new Exception("Required field missing: " . $name);
 				}
 				continue;
 			}
+			if ($this->is_upload_db_field($db_field)) {
+				$upload = $this->normalize_mcp_upload_argument($name, $args[$name], $db_field);
+				if ($upload === null) {
+					if ($require_required && (int) ($field["required"] ?? 0) === 1) {
+						throw new Exception("Required file missing: " . $name);
+					}
+					continue;
+				}
+				$uploads[$name] = $upload;
+				continue;
+			}
 			$data[$name] = $args[$name];
 		}
-		if (count($data) === 0) {
+		if (count($data) === 0 && count($uploads) === 0) {
 			throw new Exception("No writable fields were provided.");
 		}
 		return $data;
 	}
 
-	private function project_row(array $row, array $fields): array {
+	private function is_upload_db_field(array $field): bool {
+		return in_array((string) ($field["type"] ?? ""), ["file", "image"], true);
+	}
+
+	private function normalize_mcp_upload_argument(string $field_name, $value, array $db_field): ?array {
+		if ($value === null || $value === "") {
+			return null;
+		}
+
+		$filename = "";
+		$mime_type = "";
+		$encoded = "";
+		if (is_array($value)) {
+			$filename = (string) ($value["filename"] ?? ($value["name"] ?? ""));
+			$mime_type = (string) ($value["mime_type"] ?? ($value["content_type"] ?? ""));
+			$data_url = trim((string) ($value["data_url"] ?? ""));
+			if ($data_url !== "") {
+				$parsed = $this->parse_mcp_data_url($field_name, $data_url);
+				$mime_type = $mime_type !== "" ? $mime_type : $parsed["mime_type"];
+				$encoded = $parsed["content_base64"];
+			} else {
+				foreach (["content_base64", "base64", "data_base64", "content"] as $key) {
+					if (isset($value[$key]) && !is_array($value[$key]) && !is_object($value[$key])) {
+						$encoded = trim((string) $value[$key]);
+						break;
+					}
+				}
+			}
+		} elseif (!is_object($value)) {
+			$encoded = trim((string) $value);
+		}
+
+		if ($encoded !== "" && strpos($encoded, "data:") === 0) {
+			$parsed = $this->parse_mcp_data_url($field_name, $encoded);
+			$mime_type = $mime_type !== "" ? $mime_type : $parsed["mime_type"];
+			$encoded = $parsed["content_base64"];
+		}
+		if ($encoded === "") {
+			throw new Exception("File content is required for field: " . $field_name);
+		}
+		$content = base64_decode(preg_replace('/\s+/', '', $encoded), true);
+		if ($content === false || $content === "") {
+			throw new Exception("Invalid base64 file content for field: " . $field_name);
+		}
+		if ($mime_type === "") {
+			$mime_type = $this->detect_mime_from_buffer($content);
+		}
+		$filename = $this->sanitize_mcp_filename($filename);
+		if ($filename === "") {
+			$filename = $field_name . $this->extension_for_mime($mime_type, (string) ($db_field["type"] ?? ""));
+		} elseif (pathinfo($filename, PATHINFO_EXTENSION) === "") {
+			$filename .= $this->extension_for_mime($mime_type, (string) ($db_field["type"] ?? ""));
+		}
+		return [
+			"field" => $db_field,
+			"filename" => $filename,
+			"mime_type" => $mime_type,
+			"content" => $content,
+		];
+	}
+
+	private function parse_mcp_data_url(string $field_name, string $data_url): array {
+		if (!preg_match('#^data:([^;,]*)(;base64)?,(.*)$#s', $data_url, $matches)) {
+			throw new Exception("Invalid data URL for field: " . $field_name);
+		}
+		if (($matches[2] ?? "") !== ";base64") {
+			throw new Exception("Only base64 data URLs are supported for field: " . $field_name);
+		}
+		return [
+			"mime_type" => trim((string) ($matches[1] ?? "")),
+			"content_base64" => trim((string) ($matches[3] ?? "")),
+		];
+	}
+
+	private function sanitize_mcp_filename(string $filename): string {
+		$filename = str_replace("\0", "", $filename);
+		$filename = str_replace(["\r", "\n"], "", $filename);
+		$filename = str_replace("\\", "/", $filename);
+		$parts = explode("/", $filename);
+		$base = trim((string) end($parts));
+		if ($base === "." || $base === "..") {
+			return "";
+		}
+		return $base;
+	}
+
+	private function detect_mime_from_buffer(string $content): string {
+		if (class_exists("finfo")) {
+			$fi = new finfo(FILEINFO_MIME_TYPE);
+			$mime = $fi->buffer($content);
+			if (is_string($mime) && $mime !== "") {
+				return $mime;
+			}
+		}
+		return "application/octet-stream";
+	}
+
+	private function extension_for_mime(string $mime_type, string $field_type): string {
+		$mime_type = strtolower(trim($mime_type));
+		$map = [
+			"image/jpeg" => ".jpg",
+			"image/png" => ".png",
+			"image/gif" => ".gif",
+			"image/webp" => ".webp",
+			"image/svg+xml" => ".svg",
+			"application/pdf" => ".pdf",
+			"text/plain" => ".txt",
+			"text/csv" => ".csv",
+			"application/json" => ".json",
+		];
+		if (isset($map[$mime_type])) {
+			return $map[$mime_type];
+		}
+		return $field_type === "image" ? ".img" : ".bin";
+	}
+
+	private function save_mcp_uploads(Controller $ctl, FFM $ffm, string $table, array $row, array $uploads): array {
+		$new_file_ids = [];
+		$old_file_ids = [];
+		$updated_row = $row;
+		try {
+			foreach ($uploads as $name => $upload) {
+				$old_file_id = (int) ($row[$name] ?? 0);
+				$new_file_id = $this->store_mcp_upload($ctl, $table, (int) ($row["id"] ?? 0), $upload);
+				if ($old_file_id > 0) {
+					$old_file_ids[] = $old_file_id;
+				}
+				$new_file_ids[] = $new_file_id;
+				$updated_row[$name] = $new_file_id;
+			}
+			$ffm->update($updated_row);
+			foreach ($old_file_ids as $old_file_id) {
+				$ctl->delete_file($old_file_id);
+			}
+		} catch (Throwable $e) {
+			foreach ($new_file_ids as $new_file_id) {
+				$ctl->delete_file((int) $new_file_id);
+			}
+			throw $e;
+		}
+		$fresh = $ffm->get((int) ($updated_row["id"] ?? 0));
+		return is_array($fresh) ? $fresh : $updated_row;
+	}
+
+	private function store_mcp_upload(Controller $ctl, string $table, int $row_id, array $upload): int {
+		$field = is_array($upload["field"] ?? null) ? $upload["field"] : [];
+		$file = [
+			"filename" => (string) ($upload["filename"] ?? "upload.bin"),
+		];
+		$file_id = 0;
+		try {
+			$ffm_upload = $ctl->db("file", "upload");
+			$ffm_upload->insert($file);
+			$file_id = (int) ($file["id"] ?? 0);
+			$file["path"] = "upload_file_" . $file["id"];
+			$file["path_th"] = $file["path"] . "_th";
+			$file["table_identifer"] = $ctl->db($table)->get_identifier();
+			$file["row_id"] = $row_id;
+			$ffm_upload->update($file);
+
+			$ctl->save_file($file["path"], (string) ($upload["content"] ?? ""));
+			if ((string) ($field["type"] ?? "") === "image") {
+				$image_width = $field["image_width"] ?? null;
+				$image_width_thumbnail = $field["image_width_thumbnail"] ?? null;
+				if ($image_width !== null) {
+					$ctl->resize_saved_image($file["path"], $file["path"], $image_width);
+				}
+				if ($image_width_thumbnail !== null) {
+					$ctl->resize_saved_image($file["path"], $file["path_th"], $image_width_thumbnail);
+				}
+			}
+			return (int) $file["id"];
+		} catch (Throwable $e) {
+			if ($file_id > 0) {
+				$ctl->delete_file($file_id);
+			}
+			throw $e;
+		}
+	}
+
+	private function project_row(Controller $ctl, array $row, array $fields, array $field_map): array {
 		$item = ["id" => (int) ($row["id"] ?? 0)];
 		foreach ($fields as $field) {
-			$item[$field] = $row[$field] ?? "";
+			$db_field = $field_map[$field] ?? [];
+			if ($this->is_upload_db_field($db_field)) {
+				$item[$field] = $this->project_upload_value($ctl, $db_field, $row[$field] ?? "");
+			} else {
+				$item[$field] = $row[$field] ?? "";
+			}
 		}
 		return $item;
 	}
 
-	private function row_matches_query(array $row, array $fields, string $query): bool {
+	private function project_upload_value(Controller $ctl, array $field, $value) {
+		$file_id = (int) $value;
+		if ($file_id <= 0) {
+			return null;
+		}
+		$file = $ctl->db("file", "upload")->get($file_id);
+		if (!is_array($file) || empty($file["id"])) {
+			return [
+				"id" => $file_id,
+				"missing" => true,
+			];
+		}
+		$path = (string) ($file["path"] ?? "");
+		$filename = (string) ($file["filename"] ?? "");
+		$out = [
+			"id" => (int) ($file["id"] ?? 0),
+			"filename" => $filename,
+		];
+		$filepath = $path === "" ? "" : $ctl->get_saved_filepath($path);
+		if ($filepath !== "" && is_file($filepath)) {
+			$out["size"] = filesize($filepath);
+			$out["mime_type"] = $this->detect_mime_for_path($filepath);
+			$out["download_url"] = $ctl->get_public_media_url($path, $filename, "file");
+		} else {
+			$out["missing"] = true;
+		}
+		if ((string) ($field["type"] ?? "") === "image" && $path !== "") {
+			$out["view_url"] = $ctl->get_public_media_url($path, $filename, "image");
+			$path_th = (string) ($file["path_th"] ?? "");
+			if ($path_th !== "" && $ctl->is_saved_file($path_th)) {
+				$out["thumbnail_url"] = $ctl->get_public_media_url($path_th, $filename, "image");
+			}
+		}
+		return $out;
+	}
+
+	private function detect_mime_for_path(string $filepath): string {
+		if (class_exists("finfo")) {
+			$fi = new finfo(FILEINFO_MIME_TYPE);
+			$mime = $fi->file($filepath);
+			if (is_string($mime) && $mime !== "") {
+				return $mime;
+			}
+		}
+		$mime = function_exists("mime_content_type") ? mime_content_type($filepath) : "";
+		if (is_string($mime) && $mime !== "") {
+			return $mime;
+		}
+		return "application/octet-stream";
+	}
+
+	private function row_matches_query(Controller $ctl, array $row, array $fields, string $query, array $field_map): bool {
 		$query = mb_strtolower($query, "UTF-8");
 		foreach ($fields as $field) {
-			$value = mb_strtolower((string) ($row[$field] ?? ""), "UTF-8");
+			$value = mb_strtolower($this->searchable_field_value($ctl, $row, $field, $field_map[$field] ?? []), "UTF-8");
 			if ($value !== "" && mb_strpos($value, $query, 0, "UTF-8") !== false) {
 				return true;
 			}
 		}
 		return false;
+	}
+
+	private function searchable_field_value(Controller $ctl, array $row, string $field, array $db_field): string {
+		if (!$this->is_upload_db_field($db_field)) {
+			$value = $row[$field] ?? "";
+			return is_array($value) || is_object($value) ? "" : (string) $value;
+		}
+		$file_id = (int) ($row[$field] ?? 0);
+		if ($file_id <= 0) {
+			return "";
+		}
+		$file = $ctl->db("file", "upload")->get($file_id);
+		return is_array($file) ? (string) ($file["filename"] ?? "") : "";
 	}
 
 	private function required_id(array $args): int {
