@@ -1499,52 +1499,126 @@ class fixed_file_manager implements FFM {
 	private function changeFormat($newformat) {
 		$this->assert_writable("changeFormat");
 
-		$newf = $this->parseFormat($newformat);
-		$snapshot = $this->snapshot_dat_file("change_format");
-		$this->write_operation_log("change_format", null, null, [
-			"snapshot" => $snapshot,
-			"before_format_hash" => hash("sha256", (string) ($this->header["format_txt"] ?? "")),
-			"after_format_hash" => hash("sha256", $newformat),
-		]);
-
-		//tmpファイルをオープンする
-		if ($h_tmp = fopen($this->path_tmp, "wb")) {
-
-			// ヘッダを書き込む
-			flock($h_tmp, LOCK_EX);
-			$header_txt = $this->makeHeader($this->header["maxid"], $newformat, $newf);
-			fwrite($h_tmp, $header_txt);
-
-			//現データの先頭に移動
-			$this->seek(1);
-
-			//現データを読み取りながらTMPに書き込む
-			while (($d = $this->next()) != null) {
-				$this->writedata($d, $h_tmp, $newf);
+		$lock = $this->acquire_change_format_lock();
+		$tmp_path = "";
+		try {
+			// Another process may have been waiting on an old file handle while the
+			// first process renamed the dat file. Reopen the path after taking the
+			// format lock so stale handles cannot run a second conversion.
+			$this->closeDatFile();
+			$this->flg_prepared = false;
+			$this->openDatFile(false, false);
+			if ($newformat == $this->header["format_txt"]) {
+				return;
 			}
 
-			// tmpをクローズ
-			flock($h_tmp, LOCK_UN);
-			fclose($h_tmp);
+			$newf = $this->parseFormat($newformat);
+			$active_count_before = $this->count_active_records_in_current_dat();
+			$source_mode = file_exists($this->path_dat) ? (fileperms($this->path_dat) & 0777) : 0770;
+			$snapshot = $this->snapshot_dat_file("change_format");
+			$this->write_operation_log("change_format", null, null, [
+				"snapshot" => $snapshot,
+				"before_format_hash" => hash("sha256", (string) ($this->header["format_txt"] ?? "")),
+				"after_format_hash" => hash("sha256", $newformat),
+				"active_count_before" => $active_count_before,
+			]);
+
+			$tmp_path = $this->make_unique_tmp_path();
+			if (!$h_tmp = fopen($tmp_path, "xb")) {
+				throw new Exception("Can't open tmpfile:" . $tmp_path);
+			}
+
+			$converted_count = 0;
+			try {
+				// ヘッダを書き込む
+				flock($h_tmp, LOCK_EX);
+				$header_txt = $this->makeHeader($this->header["maxid"], $newformat, $newf);
+				fwrite($h_tmp, $header_txt);
+
+				//現データの先頭に移動
+				$this->seek(1);
+
+				//現データを読み取りながらTMPに書き込む
+				while (($d = $this->next()) != null) {
+					$this->writedata($d, $h_tmp, $newf);
+					$converted_count++;
+				}
+
+				fflush($h_tmp);
+				flock($h_tmp, LOCK_UN);
+			} finally {
+				fclose($h_tmp);
+			}
+
+			if ($converted_count !== $active_count_before) {
+				@unlink($tmp_path);
+				throw new Exception("changeFormat active record count mismatch: before={$active_count_before} converted={$converted_count} dat={$this->path_dat}");
+			}
 
 			// datファイルをバックアップする
 			flock($this->hf, LOCK_UN);
 			fclose($this->hf);
 			$backup_path = $this->make_unique_backup_path();
 			if (!rename($this->path_dat, $backup_path)) {
+				@unlink($tmp_path);
 				throw new Exception("Can't backup dat file:" . $this->path_dat);
 			}
 
 			// tmpからdatに変換する
-			rename($this->path_tmp, $this->path_dat);
+			if (!rename($tmp_path, $this->path_dat)) {
+				throw new Exception("Can't rename tmpfile to dat file:" . $tmp_path);
+			}
+			chmod($this->path_dat, $source_mode);
+			$tmp_path = "";
 
 			// datを一度閉じて、再度再度オープンする
 			$this->close();
 			$this->flg_prepared = false;
 			$this->openDatFile();
-		} else {
-			throw new Exception("Can't open tmpfile:" . $this->path_tmp);
+		} finally {
+			if ($tmp_path !== "" && is_file($tmp_path)) {
+				@unlink($tmp_path);
+			}
+			$this->release_change_format_lock($lock);
 		}
+	}
+
+	private function acquire_change_format_lock() {
+		$path = $this->datadir . $this->filename . ".change_format.lock";
+		$fh = fopen($path, "c");
+		if ($fh === false) {
+			throw new Exception("Can't open change format lock:" . $path);
+		}
+		if (!flock($fh, LOCK_EX)) {
+			fclose($fh);
+			throw new Exception("Can't lock change format lock:" . $path);
+		}
+		return $fh;
+	}
+
+	private function release_change_format_lock($fh): void {
+		if (is_resource($fh)) {
+			@flock($fh, LOCK_UN);
+			@fclose($fh);
+		}
+	}
+
+	private function count_active_records_in_current_dat(): int {
+		$p = ftell($this->hf);
+		$count = 0;
+		fseek($this->hf, $this->header["headersize"]);
+		while (ftell($this->hf) < $this->eof) {
+			$flg = fread($this->hf, 1);
+			if ($flg === " ") {
+				$count++;
+			}
+			$move = $this->header["recordsize"] - 1;
+			if ($move > 0) {
+				fseek($this->hf, $move, SEEK_CUR);
+			}
+		}
+		fseek($this->hf, $p);
+		return $count;
 	}
 
 	private function readFmtFile() {
@@ -1758,6 +1832,17 @@ class fixed_file_manager implements FFM {
 		$seq = 2;
 		while (is_file($path)) {
 			$path = $base . "_" . $seq . ".bak";
+			$seq++;
+		}
+		return $path;
+	}
+
+	private function make_unique_tmp_path(): string {
+		$base = $this->datadir . $this->filename . ".change_format." . getmypid() . "." . bin2hex(random_bytes(4));
+		$path = $base . ".tmp";
+		$seq = 2;
+		while (is_file($path)) {
+			$path = $base . "_" . $seq . ".tmp";
 			$seq++;
 		}
 		return $path;
