@@ -1,19 +1,19 @@
 ---
 name: fbp-original-screen
-description: Build custom note management screens as the default FBP approach by using `screen_build_type=Original Screen` and a `<tb_name>_original_management/run` class, with reusable CRUD, sort, and calendar samples plus CLI verification patterns.
+description: Build custom note management screens only when explicitly requested or when Standard Screen is insufficient, using `screen_build_type=Original Screen` and a `<tb_name>_original_management/run` class, with reusable CRUD, sort, and calendar samples plus CLI verification patterns.
 ---
 
 # fbp-original-screen
 
 ## trigger conditions
-- 新規のノート管理画面を作る
+- ユーザーが「Original Screen指定」と明示している
 - 既存の `Standard Screen` を `Original Screen` へ移行したい
 - 標準画面の `検索 / マニュアルソート / カレンダー` では足りず、自由度の高い管理画面を作りたい
 - ノートの `screen_build_type` を `Original Screen` にして、`<tb_name>_original_management/run` を呼びたい
 - 一覧 / 追加 / 編集 / 削除 / 部分更新の管理画面パターンを再利用したい
 
 ## workflow
-1. 新規画面は原則この Skill を第一候補にする。`Standard Screen` は既存保守や単純改修だけに限定する。
+1. まず `Standard Screen`、`screen_fields`、`db_additionals`、`post_action_class` で実現できない理由を確認する。ユーザーが「Original Screen指定」と明示している場合はその指定を優先する。
 2. 既存移行なら先に `references/migration-standard-to-original.md` で棚卸し対象を洗い出す。
 3. 対象ノートの `screen_build_type` を `Original Screen` にする。
 4. `list_type` は Original 画面の中で使う UI パターンに応じて通常一覧系を選ぶ。
@@ -32,7 +32,7 @@ description: Build custom note management screens as the default FBP approach by
 - 親一覧の `db_additionals` などから子サイドパネルを開く場合、POST の `db_id` は親ノートの可能性がある。`rows_child()` と `_side_panel` 保存前に必ず子ノートの `db_id` へ正規化する
 
 ## constraints
-- 新規制作の基本方針は Original Screen とする。特段の理由がない限り `screen_fields` 主体の新規画面へ戻さない。
+- 新規制作の基本方針は Standard Screen とする。Original Screen は明示指定、または標準画面では不足する部分に限定する。
 - `screen_build_type=Original Screen` にしたノートは、同じ作業内で `<tb_name>_original_management/run` を実装してテスト環境へ同期する。クラスを作らない単純CRUDノートは `Standard Screen` を選ぶ。
 - Original Screen の完了条件は、対象ノートの `db_exe/page` が成功し、`Original management class not found: <tb_name>_original_management` が出ないこと。
 - URL生成は必ず `$ctl->get_APP_URL()` を使う
@@ -50,7 +50,7 @@ description: Build custom note management screens as the default FBP approach by
 - 表示する検索ボタンを置く場合は、`.search_right` を `display:flex; justify-content:flex-end; align-items:flex-end; margin-left:auto;` にし、ボタン側は `float:none !important;` で右寄せする。
 - ダイアログや詳細パネルでボタン行の直後に表・見出しを置く場合は、`.button_row` を `display:flex; justify-content:flex-end;` にし、ボタン側の `float` を解除したうえで下に 12px 程度の余白を入れる。
 - ダイアログ本文や詳細パネル内の入力フォームでは、textarea/input/select の横に保存・追加ボタンを置かない。入力部品の下に操作行を置き、ボタンは右寄せにする。検索フォームの検索ボタンだけは横配置を許可する。
-- 子ノート変更時に親ノートの集計情報を再計算するなど、Noteデータに対する共通副作用は Original Screen 専用処理に閉じ込めず、対象ノートの `post_action_class` に実装する。標準画面、Original Screen、MCP Server の Note CRUD で共通化できることが主なメリット。
+- 子ノート変更時に親ノートの集計情報を再計算するなど、Noteデータに対する共通副作用は Original Screen 専用処理に閉じ込めず、対象ノートの `post_action_class` に実装する。Standard Screen、Original Screen、MCP Server の Note CRUD で共通化できることが主なメリット。
 
 ## references
 - Standard からの移行手順: `references/migration-standard-to-original.md`

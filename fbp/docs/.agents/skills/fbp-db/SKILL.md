@@ -15,7 +15,7 @@ description: Manage FBP DB schema using CLI (db tables/fields), relation setup, 
 2. `db_tables_*` / `db_fields_*` でスキーマ変更。新規ノートでは `screen_build_type` を先に決める。
    - DB管理テーブルの項目は `db_fields_*` / CLI を正本にし、`classes/data/_common/fmt/*.fmt` を直接編集しない。
    - `.fmt` の直接編集は、DB管理外の固定fmtを扱う場合だけに限定する。
-3. 単純な標準CRUDノートとして使うだけで、専用画面クラスを作らない場合は `screen_build_type=Standard Screen` にする。
+3. 新規ノート画面は、まず `screen_build_type=Standard Screen` にする。ユーザーが「Original Screen指定」と明示した場合、または標準画面で実現できない業務UIが必要な場合だけ `Original Screen` を選ぶ。
 4. `screen_build_type=Original Screen` なら `screen_fields` を前提にせず、同じ作業内で `<tb_name>_original_management` 実装へ進む。
 5. `screen_build_type=Standard Screen` のときだけ、`screen_fields` を `list/add/edit/delete/search`（必要なら `list_on_side`）へ反映。
 6. `data_*` で実データ確認。
@@ -38,8 +38,9 @@ description: Manage FBP DB schema using CLI (db tables/fields), relation setup, 
 - `9` などの1桁/異常に小さい値は入力・更新しない。既存値が異常な場合は `600` 以上へ補正してから作業を継続する。
 
 ## list type policy
-- 新規テーブル作成時は、原則 `screen_build_type=Original Screen` を選ぶ。`Standard Screen` は既存保守や特殊事情がある場合だけ使う。
-- ただし、今回の作業範囲で `classes/app/<tb_name>_original_management/<tb_name>_original_management.php` を作らない場合は `Original Screen` にしない。標準CRUDノート、取込確認用ノート、一時的なデータ管理ノートは `Standard Screen` を選び、`screen_fields` を `list/add/edit/delete/search/list_on_side` に反映する。
+- 新規テーブル作成時は、原則 `screen_build_type=Standard Screen` を選ぶ。
+- `Original Screen` は、ユーザーが「Original Screen指定」と明示した場合、または標準の `list/add/edit/delete/search/list_on_side`、`db_additionals`、`post_action_class` では足りない業務UIが必要な場合だけ選ぶ。
+- 標準CRUDノート、取込確認用ノート、一時的なデータ管理ノート、MCP Note CRUD と共通化したいノートは `Standard Screen` を選び、`screen_fields` を `list/add/edit/delete/search/list_on_side` に反映する。
 - `list_type` は `Standard Screen` の一覧パターン、または `Original Screen` 実装時の補助設定として扱う。画面構築方式そのものを `list_type` に混ぜない。
 - 新規テーブル作成時、`sort` 項目で手動並び替えを運用するテーブルは、`一覧タイプ` を `Manual Sort` に設定する。
 - CLI では `db_tables_add` / `db_tables_edit` の `list_type=1` を使う。

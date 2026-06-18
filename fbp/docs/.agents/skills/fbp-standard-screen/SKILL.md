@@ -1,22 +1,25 @@
 ---
 name: fbp-standard-screen
-description: Maintain or adjust legacy standard FBP screens using screen_fields, db_additionals, and helper-first patterns. Use mainly for existing screens; new development should usually prefer Original Screen.
+description: Build, maintain, or adjust FBP Standard Screen note management using screen_fields, db_additionals, post_action_class, and helper-first patterns. This is the default for new CRUD-style note screens unless Original Screen is explicitly requested or required.
 ---
 
 # fbp-standard-screen
 
 ## trigger conditions
+- 新規ノート管理画面を作る
 - 既存の Standard Screen を保守・微修正する
 - 標準画面（list/add/edit/delete/list_on_side）を構築・修正する
 - helper利用方針（fields_form_direct等）の判断が必要
 - 既存 Standard Screen だけでは足りず、`db_additionals` の add/edit/list 運用が必要
+- MCP Note CRUD と同じ保存・副作用経路に寄せたい
 
 ## workflow
-1. まず「この対応は Standard を維持すべき既存保守か」を確認する。新規制作なら `fbp-original-screen` を優先する。
+1. 新規ノート管理画面は、まず Standard Screen で作れるか確認する。ユーザーが「Original Screen指定」と明示した場合、または標準画面では足りない業務UIが必要な場合だけ `fbp-original-screen` へ切り替える。
 2. `screen_fields` で実現可能か判定する。
 3. 入力は `fields_form_direct`（非DBは `fields_form_original`）を優先。
 4. 表示は `fields_view_direct` を優先。
 5. 反映範囲を `list/add/edit/delete` で確認し、親ありなら `list_on_side` も確認。
+6. 保存時の共通副作用は、画面専用処理ではなく対象ノートの `post_action_class` に寄せ、Standard Screen、Original Screen、MCP Server の Note CRUD で同じ動きにする。
 
 ## db_additionals workflow
 1. `db_additionals` は Standard Screen 側の拡張として扱う。新規 Original Screen の代替として使わない。
@@ -38,7 +41,7 @@ description: Maintain or adjust legacy standard FBP screens using screen_fields,
 - `screen_fields`、`db_fields_*`、`parameter_name` など実装用語をそのままUIへ出さない。UI文言追加時は既存の `ノート` / `項目` 表記に合わせる。
 
 ## constraints
-- 新規画面をこの Skill 起点で増やさない。既存 Standard Screen の保守・部分改修を主用途とする。
+- 新規CRUD画面はこの Skill 起点を基本にする。Original Screen は明示指定または標準画面で不足する箇所だけに限定する。
 - 手書き `<input>/<select>/<textarea>` は例外時のみ。
 - 手書きの表示値展開（`{$row.xxx}` 直書き等）は例外時のみとし、原則 `fields_view_direct` を使う。
 - 例外時は理由を明示可能な状態にする。
