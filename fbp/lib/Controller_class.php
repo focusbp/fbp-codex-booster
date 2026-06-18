@@ -34,6 +34,7 @@ class Controller_class implements Controller {
 	private $dashbord_items = [];
 	private $dashbord_column_width = 1;
 	private $second_work_area_default_width = null;
+	private $last_ai_completion_response = [];
 
 	function __construct($class = null, $smarty = null) {
 
@@ -3244,6 +3245,7 @@ class Controller_class implements Controller {
 	private function ai_completion_request($api_name, $session_key, $prompt_or_smartytemplate, $role, $temperature, $tokens, $key, $url, $model) {
 
 		$prompt = $this->ai_render_prompt($prompt_or_smartytemplate);
+		$this->last_ai_completion_response = [];
 
 		if (empty($prompt)) {
 			$this->console_log("PROMPT IS EMPTY");
@@ -3301,6 +3303,7 @@ class Controller_class implements Controller {
 			$this->console_log($response1, "#D20000");
 			return $message;
 		}
+		$this->last_ai_completion_response = $response2;
 			$generated_text = $response2['choices'][0]['message']['content'] ?? null;
 
 		if ($generated_text == null) {
@@ -3328,6 +3331,10 @@ class Controller_class implements Controller {
 
 	function chatGPT_get_history(): array {
 		return $this->ai_get_history("chatgpt_history");
+	}
+
+	function chatGPT_get_last_response(): array {
+		return is_array($this->last_ai_completion_response) ? $this->last_ai_completion_response : [];
 	}
 
 	function chatGPT($prompt_or_smartytemplate, $role = "user", $temperature = 0, $tokens = 1000, $mode = "api") {

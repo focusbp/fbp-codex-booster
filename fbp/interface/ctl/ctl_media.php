@@ -189,6 +189,13 @@ interface ctl_media {
 	function chatGPT_get_history(): array;
 
 	/**
+	 * Returns the decoded response metadata from the latest ChatGPT API request.
+	 *
+	 * @return array The latest response payload, or an empty array when unavailable.
+	 */
+	function chatGPT_get_last_response(): array;
+
+	/**
 	 * Sends a prompt to ChatGPT and retrieves the response.
 	 *
 	 * @param string $prompt_or_smartytemplate The prompt text or a Smarty template to fetch the prompt from.
