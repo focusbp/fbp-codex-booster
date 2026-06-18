@@ -51,6 +51,9 @@ description: Build, maintain, or adjust FBP Standard Screen note management usin
 - 画面上のユーザー向け文言では、`テーブル` は `ノート` と表現する前提で扱う。
 - 画面上のユーザー向け文言では、`フィールド` は `項目` と表現する前提で扱う。
 - `screen_fields`、`db_fields_*`、`parameter_name` など実装用語をそのままUIへ出さない。UI文言追加時は既存の `ノート` / `項目` 表記に合わせる。
+- `一覧上部ボタン`: ノート一覧の上部に配置する全体操作ボタン。実装上は主に `db_additionals` の一覧上部向けボタンとして扱う。
+- `行ボタン`: ノート一覧の各行に配置する対象レコード単位の操作ボタン。実装上は主に `db_additionals` の行操作ボタンとして扱う。
+- ユーザーが「一覧にボタン」と言った場合は、全体操作なら `一覧上部ボタン`、対象行ごとの操作なら `行ボタン` と呼び分ける。
 
 ## constraints
 - 新規CRUD画面はこの Skill 起点を基本にする。Original Screen は明示指定または標準画面で不足する箇所だけに限定する。
