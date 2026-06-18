@@ -48,6 +48,13 @@ description: Manage FBP DB schema using CLI (db tables/fields), relation setup, 
 - `Manual Sort` を使うテーブルでは、`sort` 項目を `screen_fields` に入れない。
 - 並び替えは画面の `Manual Sort` 操作で行う前提とし、`list` / `add` / `edit` / `search` に `sort` を出さない。
 
+## menu and relation policy
+- 新規ノートでは、親ノートは `show_menu=1`（Show）、子ノートは `show_menu=0`（Hide）を基本にする。
+- 親子関係は `parent_tb_id` を正本にする。`parent_tb_id` を設定すると `parent_id` 項目が自動追加されるため、手動で重複追加しない。
+- 親一覧から開く明細、履歴、コメントなどの小テーブルは、`show_icon_on_parent_list=0` を設定して親一覧にアイコンを表示する。FBP内部値は `0 = Show`, `1 = Hide` なので値を取り違えない。
+- `parent_tb_id` / `parent_id` で親に従属する子ノートは、ユーザーから別指定がない限り `cascade_delete_flag=1`（Cascade delete）にする。
+- 子ノートでも単独メニューから直接扱う業務上の意味がある場合だけ、理由を確認して `show_menu=1` を許可する。
+
 ## date field policy
 - 日付項目（年月日を表す項目）は `db_fields.type = date` を必須とする。
 - `text + format_check=date_yyyy_mm_dd` での日付実装は新規作成で禁止する。

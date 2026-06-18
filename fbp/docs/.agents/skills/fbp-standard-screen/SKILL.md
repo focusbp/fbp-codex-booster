@@ -21,6 +21,18 @@ description: Build, maintain, or adjust FBP Standard Screen note management usin
 5. 反映範囲を `list/add/edit/delete` で確認し、親ありなら `list_on_side` も確認。
 6. 保存時の共通副作用は、画面専用処理ではなく対象ノートの `post_action_class` に寄せ、Standard Screen、Original Screen、MCP Server の Note CRUD で同じ動きにする。
 
+## default screen_fields policy
+- ユーザーから項目指定がない場合、Standard Screen の `screen_fields` は次の方針で設定する。
+- `add` / `edit`: 全業務項目を入れる。除外するのは `id`, `parent_id`, `sort`, `created_at`, `updated_at` など、システムまたはフレームワークが自動管理する項目。
+- `delete`: 削除確認に必要なメイン項目を1〜2項目だけ入れる。例: 名称、タイトル、日時、番号など、ユーザーが削除対象を判別できる項目。
+- `list`: 主要項目を5項目程度入れる。多すぎる一覧にせず、識別、状態、日時、担当、金額など業務上の確認頻度が高い項目を優先する。
+- `list_on_side`: 子ノートでは主要3〜5項目程度に絞る。親画面内で確認する前提なので、横幅を圧迫する長文項目は避ける。
+- `search`: 検索条件として自然な項目だけ入れる。名称、状態、担当、日付、カテゴリなどを優先し、長文本文や自動計算値は原則入れない。
+- `sort` は Manual Sort 用の内部項目として使い、`screen_fields` には入れない。
+- `status` や `type` はシステム項目扱いにしない。業務上見たい状態・分類なら `list` / `add` / `edit` / `search` の対象にする。
+- file/image 項目は業務上入力・確認が必要な場合だけ `add` / `edit` に入れる。`list` では原則避け、必要なら代表画像など最小限にする。
+- checkbox 項目は配列値として扱う。表示・保存の副作用は `post_action_class` へ寄せ、画面ごとの手書き処理に閉じ込めない。
+
 ## db_additionals workflow
 1. `db_additionals` は Standard Screen 側の拡張として扱う。新規 Original Screen の代替として使わない。
 2. まず `screen_fields` や標準機能で足りるか確認する。
