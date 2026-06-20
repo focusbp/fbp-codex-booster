@@ -8,6 +8,7 @@ description: Manage FBP DB schema using CLI (db tables/fields), relation setup, 
 ## trigger conditions
 - テーブル/フィールドの追加・編集・削除を行う
 - 親子relation、`screen_build_type`、`list_type`、manual sortの設定が必要
+- サイドパネル用の `list_width`、親子関係、`list_on_side` を設定する場合は `fbp-side-panel` も使う
 - DB変更時の画面反映漏れを防ぎたい
 
 ## workflow
@@ -17,7 +18,7 @@ description: Manage FBP DB schema using CLI (db tables/fields), relation setup, 
    - `.fmt` の直接編集は、DB管理外の固定fmtを扱う場合だけに限定する。
 3. 新規ノート画面は、まず `screen_build_type=Standard Screen` にする。ユーザーが「Original Screen指定」と明示した場合、または標準画面で実現できない業務UIが必要な場合だけ `Original Screen` を選ぶ。
 4. `screen_build_type=Original Screen` なら `screen_fields` を前提にせず、同じ作業内で `<tb_name>_original_management` 実装へ進む。
-5. `screen_build_type=Standard Screen` のときだけ、`screen_fields` を `list/add/edit/delete/search`（必要なら `list_on_side`）へ反映。
+5. `screen_build_type=Standard Screen` のときだけ、`screen_fields` を `list/add/edit/delete/search`（必要なら `list_on_side`）へ反映。サイドパネルの項目・幅・親子導線は `fbp-side-panel` に従う。
 6. `data_*` で実データ確認。
 
 ## terminology
@@ -29,7 +30,7 @@ description: Manage FBP DB schema using CLI (db tables/fields), relation setup, 
 - 仕様確認・文言追加・UI実装では、ユーザー向け文言に `テーブル` / `フィールド` を不用意に出さず、既存画面に合わせて `ノート` / `項目` を優先する。
 
 ## table width policy
-- `db_tables_add` / `db_tables_edit` では `list_width`（Side Panel Width）と `edit_width`（Dialog Width）を必ず明示設定する。
+- `db_tables_add` / `db_tables_edit` では `list_width`（Side Panel Width）と `edit_width`（Dialog Width）を必ず明示設定する。サイドパネル用途の幅判断は `fbp-side-panel` も参照する。
 - 幅は px の実数値として扱い、最小 `600`、最大 `1200`、`clamp(600, auto_calculated_width, 1200)` で決定する。
 - 自動決定の目安:
   - 項目数・情報量が少ない: `600`
@@ -44,9 +45,14 @@ description: Manage FBP DB schema using CLI (db tables/fields), relation setup, 
 - `list_type` は `Standard Screen` の一覧パターン、または `Original Screen` 実装時の補助設定として扱う。画面構築方式そのものを `list_type` に混ぜない。
 - 新規テーブル作成時、`sort` 項目で手動並び替えを運用するテーブルは、`一覧タイプ` を `Manual Sort` に設定する。
 - CLI では `db_tables_add` / `db_tables_edit` の `list_type=1` を使う。
-- `sort` 項目があっても手動並び替え用途でない場合だけ、通常の `Search and Table` を選ぶ。
+- 手動並び替えを行うテーブルでは、`sort` 項目を追加または維持し、`sortkey=sort` と `list_type=1` を揃える。
+- 手動並び替えを行わないテーブルでは、安易に `sort` 項目を追加しない。既存の `sort` がある場合だけ、通常の `Search and Table` を選んでよい。
 - `Manual Sort` を使うテーブルでは、`sort` 項目を `screen_fields` に入れない。
 - 並び替えは画面の `Manual Sort` 操作で行う前提とし、`list` / `add` / `edit` / `search` に `sort` を出さない。
+
+## state field policy
+- `enabled` / `is_active` / `active` / `有効` などの有効状態項目は、数値テキスト入力ではなく dropdown または checkbox として扱える型・定数にする。
+- 0/1 の dropdown にする場合は `constant_array` を用意し、検索・追加・編集で選択式になることを確認する。
 
 ## menu and relation policy
 - 新規ノートでは、親ノートは `show_menu=1`（Show）、子ノートは `show_menu=0`（Hide）を基本にする。
@@ -79,6 +85,7 @@ description: Manage FBP DB schema using CLI (db tables/fields), relation setup, 
 - `type=checkbox` は値を配列として扱う前提で実装する（単一値文字列前提で判定しない）。
 - checkbox の有無判定は `count($value ?? [])` ベースで行い、必要なら `is_array` ガードを入れる。
 - `db_tables_list` の結果で対象テーブルの `list_width` / `edit_width` が `600`〜`1200` に入っていることを確認する。
+- `sort` 項目があるテーブルでは、手動並び替えが必要かを明示的に確認する。必要なら `list_type=1` / `sortkey=sort` にし、不要なら通常画面の `screen_fields` に `sort` を出さない。
 - 日付項目を `text` 型で新規追加しない（必ず `type=date` を使う）。
 - `text` / `textarea` 項目の文字数指定を、そのまま DB length として設定しない。
 - メニューリンク追加で `/common/menu.tpl` は使わない。メニュー追加は DB追加 / Dashboard登録 / 設定の「ホームページを表示」で行う。

@@ -1,6 +1,6 @@
 ---
 name: fbp-original-screen
-description: Build custom note management screens only when explicitly requested or when Standard Screen is insufficient, using `screen_build_type=Original Screen` and a `<tb_name>_original_management/run` class, with reusable CRUD, sort, and calendar samples plus CLI verification patterns.
+description: Build custom note management screens only when explicitly requested or when Standard Screen is insufficient, using screen_build_type Original Screen and the table-specific original_management run class, with reusable CRUD, sort, calendar, and side-panel patterns plus CLI verification.
 ---
 
 # fbp-original-screen
@@ -11,6 +11,7 @@ description: Build custom note management screens only when explicitly requested
 - 標準画面の `検索 / マニュアルソート / カレンダー` では足りず、自由度の高い管理画面を作りたい
 - ノートの `screen_build_type` を `Original Screen` にして、`<tb_name>_original_management/run` を呼びたい
 - 一覧 / 追加 / 編集 / 削除 / 部分更新の管理画面パターンを再利用したい
+- Original Screenサイドパネルの詳細設計は `fbp-side-panel` も使う
 
 ## workflow
 1. まず `Standard Screen`、`screen_fields`、`db_additionals`、`post_action_class` で実現できない理由を確認する。ユーザーが「Original Screen指定」と明示している場合はその指定を優先する。
@@ -27,9 +28,7 @@ description: Build custom note management screens only when explicitly requested
 - クラス名は固定で `<tb_name>_original_management`
 - 呼び出し関数は固定で `run`
 - framework 側から `db_id` や検索条件は自動注入されない前提で作る
-- 親ノートから開く子サイドパネルを Original Screen 化する場合は、同じクラスに public `rows_child(Controller $ctl)` を実装する
-- `rows_child()` には標準サイドパネルと同じく `db_id` / `parent_id` が POST される。未実装の場合は標準サイドパネルへフォールバックする
-- 親一覧の `db_additionals` などから子サイドパネルを開く場合、POST の `db_id` は親ノートの可能性がある。`rows_child()` と `_side_panel` 保存前に必ず子ノートの `db_id` へ正規化する
+- 親ノートから開く子サイドパネルを Original Screen 化する場合は、同じクラスに public `rows_child(Controller $ctl)` を実装する。詳細は `fbp-side-panel` を使う
 
 ## constraints
 - 新規制作の基本方針は Standard Screen とする。Original Screen は明示指定、または標準画面では不足する部分に限定する。
@@ -50,13 +49,13 @@ description: Build custom note management screens only when explicitly requested
 - 表示する検索ボタンを置く場合は、`.search_right` を `display:flex; justify-content:flex-end; align-items:flex-end; margin-left:auto;` にし、ボタン側は `float:none !important;` で右寄せする。
 - ダイアログや詳細パネルでボタン行の直後に表・見出しを置く場合は、`.button_row` を `display:flex; justify-content:flex-end;` にし、ボタン側の `float` を解除したうえで下に 12px 程度の余白を入れる。
 - ダイアログ本文や詳細パネル内の入力フォームでは、textarea/input/select の横に保存・追加ボタンを置かない。入力部品の下に操作行を置き、ボタンは右寄せにする。検索フォームの検索ボタンだけは横配置を許可する。
-- 子ノート変更時に親ノートの集計情報を再計算するなど、Noteデータに対する共通副作用は Original Screen 専用処理に閉じ込めず、対象ノートの `post_action_class` に実装する。Standard Screen、Original Screen、MCP Server の Note CRUD で共通化できることが主なメリット。
+- 子ノート変更時に親ノートの集計情報を再計算するなど、Noteデータに対する共通副作用は Original Screen 専用処理に閉じ込めず、対象ノートの `post_action_class` に実装する。Standard Screen、Original Screen、MCP Server の Note CRUD で共通化できることが主なメリット。サイドパネル内操作の副作用判断は `fbp-side-panel` も確認する。
 
 ## references
 - Standard からの移行手順: `references/migration-standard-to-original.md`
 - 棚卸しチェックリスト: `references/migration-inventory-checklist.md`
 - `db_additionals` / `post_action_class` 移行: `references/migration-db_additionals-post_action_class.md`
-- 子サイドパネル Original Screen: `references/child-side-panel.md`
+- 子サイドパネル Original Screen: `references/child-side-panel.md`（新規作業では `fbp-side-panel` も参照）
 - CRUD ダッシュボード実装: `references/crud-dashboard.md`
 - 自動検索と5項目グリッド: `references/search-pattern.md`
 - マニュアルソート実装: `references/sort-pattern.md`

@@ -1,0 +1,4 @@
+interface:
+  display_name: "FBP Side Panel"
+  short_description: "Implement FBP standard and original side panels."
+  default_prompt: "Use fbp-side-panel to design or implement FBP side panels, list_on_side fields, child rows_child handlers, side panel buttons, widths, reload behavior, and post-action handling."

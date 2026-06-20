@@ -30,6 +30,9 @@ class webhook_line {
 
 		while ($event = $linebot->nextEvent()) {
 			$userid = (string)$linebot->getUserID();
+			if ($userid === "") {
+				continue;
+			}
 			$userprofile = $linebot->getUserProfile($userid);
 			if ($userprofile == null) {
 				continue;

@@ -1,0 +1,4 @@
+interface:
+  display_name: "FBP Menu"
+  short_description: "Implement FBP menus, menu screens, and visibility controls."
+  default_prompt: "Use fbp-menu to design or implement FBP side menu items, menu-only screens, external links, and permission-based menu visibility."

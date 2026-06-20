@@ -9,6 +9,7 @@ description: Build, maintain, or adjust FBP Standard Screen note management usin
 - 新規ノート管理画面を作る
 - 既存の Standard Screen を保守・微修正する
 - 標準画面（list/add/edit/delete/list_on_side）を構築・修正する
+- 標準画面サイドパネルの詳細設計は `fbp-side-panel` も使う
 - helper利用方針（fields_form_direct等）の判断が必要
 - 既存 Standard Screen だけでは足りず、`db_additionals` の add/edit/list 運用が必要
 - MCP Note CRUD と同じ保存・副作用経路に寄せたい
@@ -18,7 +19,7 @@ description: Build, maintain, or adjust FBP Standard Screen note management usin
 2. `screen_fields` で実現可能か判定する。
 3. 入力は `fields_form_direct`（非DBは `fields_form_original`）を優先。
 4. 表示は `fields_view_direct` を優先。
-5. 反映範囲を `list/add/edit/delete` で確認し、親ありなら `list_on_side` も確認。
+5. 反映範囲を `list/add/edit/delete` で確認し、親ありなら `list_on_side` も確認する。サイドパネル固有の設計・検証は `fbp-side-panel` に従う。
 6. 保存時の共通副作用は、画面専用処理ではなく対象ノートの `post_action_class` に寄せ、Standard Screen、Original Screen、MCP Server の Note CRUD で同じ動きにする。
 
 ## default screen_fields policy
@@ -26,10 +27,13 @@ description: Build, maintain, or adjust FBP Standard Screen note management usin
 - `add` / `edit`: 全業務項目を入れる。除外するのは `id`, `parent_id`, `sort`, `created_at`, `updated_at` など、システムまたはフレームワークが自動管理する項目。
 - `delete`: 削除確認に必要なメイン項目を1〜2項目だけ入れる。例: 名称、タイトル、日時、番号など、ユーザーが削除対象を判別できる項目。
 - `list`: 主要項目を5項目程度入れる。多すぎる一覧にせず、識別、状態、日時、担当、金額など業務上の確認頻度が高い項目を優先する。
-- `list_on_side`: 子ノートでは主要3〜5項目程度に絞る。親画面内で確認する前提なので、横幅を圧迫する長文項目は避ける。
+- `list_on_side`: 子ノートのサイドパネル一覧に表示する項目。主要3〜5項目程度に絞る。詳細は `fbp-side-panel` に従う。
 - `search`: 検索条件として自然な項目だけ入れる。名称、状態、担当、日付、カテゴリなどを優先し、長文本文や自動計算値は原則入れない。
 - `sort` は Manual Sort 用の内部項目として使い、`screen_fields` には入れない。
+- 並び順を画面で変更する仕様なら、`sort` は追加しても `screen_fields` には入れず、対象テーブルの `list_type` を `Manual Sort` にする。
+- 並び順を画面で変更しない仕様なら、安易に `sort` を追加しない。既存の `sort` がある場合も、業務項目として見せる明確な理由がない限り `screen_fields` から外す。
 - `status` や `type` はシステム項目扱いにしない。業務上見たい状態・分類なら `list` / `add` / `edit` / `search` の対象にする。
+- `enabled` / `is_active` / `active` / `有効` などの有効状態項目は、数値テキストボックスではなく dropdown または checkbox として表示する。検索条件に入れる場合も選択式にする。
 - file/image 項目は業務上入力・確認が必要な場合だけ `add` / `edit` に入れる。`list` では原則避け、必要なら代表画像など最小限にする。
 - checkbox 項目は配列値として扱う。表示・保存の副作用は `post_action_class` へ寄せ、画面ごとの手書き処理に閉じ込めない。
 
@@ -63,4 +67,5 @@ description: Build, maintain, or adjust FBP Standard Screen note management usin
 - `constant_array` にある選択肢ラベル（status/type等）はハードコードしない。`$ctl->get_constant_array()` または `fields_view_direct` でフレームワーク定義を参照する。
 - URL生成は `$ctl->get_APP_URL()` を必須とし、`app.php?class=...` や `$_SERVER` 連結での直書きURLを増やさない。
 - `screen_fields` 登録前に、日付項目のDB型が `date` になっていることを確認する。
+- `screen_fields` 登録後は、`db_exe/page` / `rows` やブラウザ確認で、有効状態項目が選択式になっていること、`sort` が通常の list/add/edit/search に出ていないこと、Manual Sort が必要なテーブルでは `list_type=Manual Sort` になっていることを確認する。
 - PDF生成を `db_additionals` ボタンから実行する場合は、いったんダイアログを表示し、ダイアログ内 `download-link` でダウンロードさせる（`ajax-link` でPDFダウンロードは不可）。

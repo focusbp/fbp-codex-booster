@@ -22,6 +22,7 @@ description: Manage constant_array and constant_values definitions used by dropd
 
 ## key and storage policy
 - 新規 `constant_array` の key は、特別な理由がなければ `0`, `1`, `2` のような整数キーにする。
+- `enabled` / `is_active` / `active` / `有効` などの 0/1 状態を dropdown にする場合は、整数キーの `0` / `1` を使い、ラベルは画面文脈に合わせて `無効` / `有効` などにする。
 - WEB/CLI の新規追加・編集では、`constant_values.key` は `0` または先頭ゼロなしの非負整数だけを許可する。
 - 整数キーのみを参照する dropdown フィールドは、先頭ゼロや外部コードとしての意味がない場合、fmt上は `N` 保存を優先する。
 - Text key の新規採用は原則避ける。やむを得ず必要な場合は、整数キーにできない理由、既存データ、検索コード、表示、release対象データへの影響を確認してから例外扱いする。

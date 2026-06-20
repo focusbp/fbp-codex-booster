@@ -67,7 +67,7 @@ await page.evaluate(() => {
 });
 ```
 
-For child side panels:
+For child side panels, also follow `fbp-side-panel` verification points:
 
 ```js
 await page.evaluate((parentId) => {

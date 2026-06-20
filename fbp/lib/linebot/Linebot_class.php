@@ -87,7 +87,7 @@ class Linebot_class implements linebot {
 		}
 		$event = $this->events[$this->eventIndex++];
 		$this->replyToken = $event['replyToken'] ?? null;
-		$this->userid = $event["source"]["userId"];
+		$this->userid = (string)($event["source"]["userId"] ?? "");
 		$this->replyQueue = [];
 		return $event;
 	}
