@@ -551,7 +551,6 @@ class user {
 		$data["password_reset_token_hash"] = hash("sha256", $token);
 		$data["password_reset_token_expires_at"] = $expires_at;
 		$data["password_reset_token_sent_at"] = time();
-		$data["flg_password_change_required"] = 1;
 		$this->ffm->update($data);
 
 		$mail_data = $data;
