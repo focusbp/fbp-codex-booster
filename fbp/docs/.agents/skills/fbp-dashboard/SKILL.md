@@ -45,6 +45,7 @@ description: Build dashboard widgets with class registration, 3-column width rul
 ## chart widget example
 - Chart.js は標準で読み込まれているため、ウィジェット側は `create_chart()` と `chart_draw()` を使う。
 - `canvas id` は重複を避けるため毎回一意にする（例: `random_alphabet()` を利用）。
+- 棒グラフでは、指定がない限り `backgroundColor` と `borderColor` を同じ色にする。輪郭だけ濃い色にすると意図せず古い印象になりやすい。
 
 ```php
 function dashboard(Controller $ctl) {
@@ -56,6 +57,8 @@ function dashboard(Controller $ctl) {
     $dataset = $chart->create_Dataset_Bar();
     $dataset->set_label("Orders");
     $dataset->set_data([12, 19, 9]);
+    $dataset->set_backgroundColor("rgba(20, 184, 166, 0.62)");
+    $dataset->set_borderColor("rgba(20, 184, 166, 0.62)");
     $chart->add_dataset($dataset);
 
     $ctl->chart_draw($canvas_id, $chart);

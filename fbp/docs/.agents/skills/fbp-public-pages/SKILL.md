@@ -24,6 +24,9 @@ description: Build and operate public_pages with login-free entry points, secure
 9. 公開検索や絞り込みで URL に出したくない値は、`GET` ではなく `POST -> session` で保持し、表示時に復元する。
 10. 公開側で `ajax-auto` によるスクロール追加を行う場合、初回表示関数と追加読込関数を分ける。初回は `show_public_pages()` で全体表示し、追加読込は一覧部分専用の関数から `reload_area()` で部分テンプレートだけを返す。
 
+## public charts
+- 公開ページで棒グラフを表示する場合、指定がない限り棒の `backgroundColor` と `borderColor` は同じ色にする。輪郭だけ濃い色にすると意図せず古い印象になりやすい。
+
 ## public downloads
 - 公開側でも、LINE Bot関係ではない通常導線のダウンロードは `download-link` を基本にしてよい。
 - LINE Botで送るURL、LINEメッセージから開く公開ページ、LINE内ブラウザでの利用が主目的のダウンロードは `<a href>` でGETのダウンロードURLを開く。XHR/blob経由ではなく、ブラウザに実URLの `Content-Type` / `Content-Disposition` を直接見せる。
