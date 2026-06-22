@@ -357,8 +357,8 @@ try{
 		echo $display_html;
 		exit;
 	}
-	if($class=="_DISPLAY" && $function="_ARR"){
-		$arr = $_SESSION["_DISPLAY_ARR"];
+	if($class=="_DISPLAY" && $function=="_ARR"){
+		$arr = $_SESSION["_DISPLAY_ARR"] ?? null;
 		if($arr != null){
 			echo json_encode($arr);
 			unset($_SESSION["_DISPLAY_ARR"]);

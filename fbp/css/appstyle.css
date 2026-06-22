@@ -684,33 +684,6 @@ section {
 	margin-top:3px;
 }
 
-.multi_dialog .multi_dialog_title_area .multi_dialog_copy_title{
-	display: inline-block;
-	float: none;
-	margin-left: 6px;
-	margin-right: 0;
-	height: 18px;
-	min-width: 18px;
-	text-align: center;
-	line-height: 18px;
-	border-radius: 5px;
-	font-size: 11px;
-	font-weight: bold;
-	cursor: pointer;
-	color: inherit;
-	vertical-align: middle;
-	padding: 0 4px;
-	user-select: none;
-}
-
-.multi_dialog .multi_dialog_title_area .multi_dialog_copy_title:hover {
-	background: var(--fbp-framework-primary-color, #4BA3FF);
-}
-
-.multi_dialog .multi_dialog_title_area .multi_dialog_copy_title.copied {
-	background: #2E7D32;
-}
-
 .multi_dialog .multi_dialog_title_area .screen_debug_icon {
 	display: inline-flex;
 	float: right;

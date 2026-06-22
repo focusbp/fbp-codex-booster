@@ -716,6 +716,7 @@ class CustomizedPDF extends tFPDF {
 	var $saved_pages; // undoするときの戻る地点
 	
 	function save($table_or_row){
+		$this->saved_pages[$table_or_row]["page"] = $this->page;
 		$this->saved_pages[$table_or_row]["pages"] = $this->pages;
 		$this->saved_pages[$table_or_row]["tablewidths"] = $this->tablewidths;
 		$this->saved_pages[$table_or_row]["page_max_height"] = $this->page_max_height;
@@ -724,6 +725,7 @@ class CustomizedPDF extends tFPDF {
 	}
 
 	function undo($table_or_row){
+		$this->page = $this->saved_pages[$table_or_row]["page"];
 		$this->pages = $this->saved_pages[$table_or_row]["pages"];
 		$this->tablewidths = $this->saved_pages[$table_or_row]["tablewidths"];
 		$this->page_max_height = $this->saved_pages[$table_or_row]["page_max_height"];

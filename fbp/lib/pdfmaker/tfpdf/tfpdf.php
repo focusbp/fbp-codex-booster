@@ -1877,6 +1877,9 @@ function _out($s)
 {
 	// Add a line to the document
 	if($this->state==2){
+		if(!isset($this->pages[$this->page])){
+			$this->pages[$this->page] = '';
+		}
 		$this->pages[$this->page] .= $s."\n";
 	}else{
 		//$this->buffer .= $s."\n";

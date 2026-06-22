@@ -3078,31 +3078,6 @@ function multi_dialog(dialog_name, contents, title, width, getclassname, testser
 
 	var title_display = '<span class="lang">' + title + '</span>';
 
-	function syncCopyButton($dlg, ts, forcopyValue) {
-		var tsFlg = (ts === true || ts === 1 || String(ts).toLowerCase() === "true");
-		var $titleArea = $dlg.find(".multi_dialog_title_area").first();
-		if ($titleArea.length === 0) {
-			return;
-		}
-		var value = String(forcopyValue || "").trim();
-		$titleArea.attr("data-forcopy", value);
-		var $copy = $titleArea.find(".multi_dialog_copy_title").first();
-		if (!tsFlg || value === "") {
-			$copy.remove();
-			return;
-		}
-		if ($copy.length === 0) {
-			$copy = $('<span class="multi_dialog_copy_title" title="Copy class/function">⧉</span>');
-			var $close = $titleArea.find(".multi_dialog_close").first();
-			if ($close.length > 0) {
-				$close.before($copy);
-			} else {
-				$titleArea.append($copy);
-			}
-		}
-		$copy.attr("data-copy-value", value);
-	}
-
 	function syncScreenDebugButton($dlg, screenKey) {
 		var $titleArea = $dlg.find(".multi_dialog_title_area").first();
 		if ($titleArea.length === 0) {
@@ -3154,9 +3129,8 @@ function multi_dialog(dialog_name, contents, title, width, getclassname, testser
 				var $titleArea = $(dialog_id + " .multi_dialog_title_area").first();
 				if ($titleArea.length > 0) {
 					var $closeButton = $titleArea.find(".multi_dialog_close").first();
-					var $copyButton = $titleArea.find(".multi_dialog_copy_title").first();
 					var $screenDebugButton = $titleArea.find(".screen_debug_icon").first();
-					$titleArea.contents().not($closeButton).not($copyButton).not($screenDebugButton).remove();
+					$titleArea.contents().not($closeButton).not($screenDebugButton).remove();
 					$titleArea.prepend(title_display);
 				}
 			}
@@ -3168,13 +3142,11 @@ function multi_dialog(dialog_name, contents, title, width, getclassname, testser
 				var $titleAreaHide = $(dialog_id + " .multi_dialog_title_area").first();
 				if ($titleAreaHide.length > 0) {
 					var $closeButtonHide = $titleAreaHide.find(".multi_dialog_close").first();
-					var $copyButtonHide = $titleAreaHide.find(".multi_dialog_copy_title").first();
 					var $screenDebugButtonHide = $titleAreaHide.find(".screen_debug_icon").first();
-					$titleAreaHide.contents().not($closeButtonHide).not($copyButtonHide).not($screenDebugButtonHide).remove();
+					$titleAreaHide.contents().not($closeButtonHide).not($screenDebugButtonHide).remove();
 				}
 			}
 		}
-		syncCopyButton($(dialog_id), testserver, forcopy);
 		syncScreenDebugButton($(dialog_id), screen_debug_key);
 
 		// z-indexの設定
@@ -3219,7 +3191,7 @@ function multi_dialog(dialog_name, contents, title, width, getclassname, testser
 		$(multi_dialog_tag).attr("data-modal_flg", is_modal ? "1" : "0");
 
 		// タイトル部分
-		var dialog_html = '<div class="multi_dialog_title_area lang_check_area" data-classname="' + exe_classname + '" data-forcopy="">' + title_display + '<div class="multi_dialog_close">X</div></div>';
+		var dialog_html = '<div class="multi_dialog_title_area lang_check_area" data-classname="' + exe_classname + '">' + title_display + '<div class="multi_dialog_close">X</div></div>';
 
 		// タブ
 		var tab_area = document.createElement('div');
@@ -3287,55 +3259,6 @@ function multi_dialog(dialog_name, contents, title, width, getclassname, testser
 			refresh_multi_dialog_modal_cover();
 		});
 
-		// class/function のコピー
-		$(multi_dialog_tag).on("click", ".multi_dialog_copy_title", function (e) {
-			e.preventDefault();
-			e.stopPropagation();
-			var value = String($(this).attr("data-copy-value") || "").trim();
-			if (value === "") {
-				return;
-			}
-			var done = function () {
-				$(this).addClass("copied");
-				setTimeout(() => {
-					$(this).removeClass("copied");
-				}, 700);
-			}.bind(this);
-			if (navigator.clipboard && navigator.clipboard.writeText) {
-				navigator.clipboard.writeText(value).then(done).catch(function () {
-					var ta = document.createElement("textarea");
-					ta.value = value;
-					ta.style.position = "fixed";
-					ta.style.left = "-9999px";
-					document.body.appendChild(ta);
-					ta.focus();
-					ta.select();
-					try {
-						document.execCommand("copy");
-						done();
-					} catch (err) {
-						// noop
-					}
-					document.body.removeChild(ta);
-				});
-				return;
-			}
-			var ta = document.createElement("textarea");
-			ta.value = value;
-			ta.style.position = "fixed";
-			ta.style.left = "-9999px";
-			document.body.appendChild(ta);
-			ta.focus();
-			ta.select();
-			try {
-				document.execCommand("copy");
-				done();
-			} catch (err2) {
-				// noop
-			}
-			document.body.removeChild(ta);
-		});
-
 		// ウィンドウのサイズ
 		var dialog_window_size = get_dialog_width(width);
 		$(multi_dialog_tag).css("width", dialog_window_size);
@@ -3365,7 +3288,6 @@ function multi_dialog(dialog_name, contents, title, width, getclassname, testser
 		multi_dialog_zindex++;
 
 			$(scroll_tag).ready(function () {
-				syncCopyButton($(dialog_id), testserver, forcopy);
 				// デフォルトのJSを動かす
 			multi_dialog_functions["__all__"](dialog_id + " ");
 
