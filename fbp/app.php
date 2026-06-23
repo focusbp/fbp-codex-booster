@@ -105,6 +105,35 @@ function fbp_detect_appcode_from_path(): string {
 	return "";
 }
 
+function fbp_store_pending_auto_load_main_area(Controller $ctl): void {
+	if ((string) ($_POST["_restore_after_login"] ?? "") !== "1") {
+		return;
+	}
+	$request_class = trim((string) ($_POST["class"] ?? ""));
+	$request_function = trim((string) ($_POST["function"] ?? "page"));
+	if ($request_class === "" || $request_class === "login" || $request_class === "lang") {
+		return;
+	}
+	if ($request_function === "") {
+		$request_function = "page";
+	}
+	if (!preg_match('/^[A-Za-z0-9_]+$/', $request_class) || !preg_match('/^[A-Za-z0-9_]+$/', $request_function)) {
+		return;
+	}
+	$parameters = [];
+	foreach ($_POST as $key => $val) {
+		if (in_array($key, ["class", "function", "cmd", "_call_from", "_dialog_id", "_chatid", "_restore_after_login", "multi_dialog_zindex"], true)) {
+			continue;
+		}
+		$parameters[$key] = $val;
+	}
+	$ctl->set_session("__AUTO_LOAD_MAIN_AREA", [
+		"class" => $request_class,
+		"function" => $request_function,
+		"parameters" => $parameters,
+	]);
+}
+
 header("Cache-Control:no-cache,no-store,must-revalidate,max-age=0");
 header("Cache-Control: post-check=0, pre-check=0", false);
 header("Pragma:no-cache");
@@ -434,6 +463,7 @@ try{
 					$arr = array();
 					echo json_encode($arr);
 				}else{
+					fbp_store_pending_auto_load_main_area($ctl);
 					$arr = ["location"=>"app.php?class=login"];
 					echo json_encode($arr);
 				}

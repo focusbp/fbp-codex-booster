@@ -1383,6 +1383,9 @@ $("body").on("click", ".ajax-link", function (event) {
 		for (key in datalist) {
 			fd.append(key, datalist[key]);
 		}
+		if ($(this).closest("#left_menu, #sidemenu").length > 0) {
+			fd.append("_restore_after_login", "1");
+		}
 
 		// data-_chatid を取得
 		let chattag = $(this).parents(".chat-html");
