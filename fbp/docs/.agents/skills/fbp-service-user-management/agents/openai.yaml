@@ -1,0 +1,4 @@
+interface:
+  display_name: "FBP Service User Management"
+  short_description: "Build FBP service-account auth and Square subscription patterns."
+  default_prompt: "Create a service-account user management flow for an FBP app with public registration, login, password reset, Square payment, and minimal admin screens."

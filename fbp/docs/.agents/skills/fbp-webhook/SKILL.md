@@ -39,7 +39,7 @@ description: Implement and operate webhook-driven integrations in FBP, including
 - `error_項目名` の表示先タグをテンプレートに必ず置く。
 - 公開側で保存成功後にページ全体を切り替えたい場合は、まず `show_public_pages()` を使う。`$ctl->display()` はその内部実装として扱われる前提でよく、`reload_area()` で完了画面を差し替える前提にしない。
 - 公開側でも `show_multi_dialog()` は使用できる。確認ダイアログ、補助入力、途中確認などは公開ページ上の dialog で実装してよい。
-- ただし、入力導線の主画面そのものを dialog に閉じ込める必要はなく、主導線は `show_public_pages()`、補助操作だけ dialog に分ける構成を優先する。
+- ただし、入力導線の主画面そのものを dialog に閉じ込める必要はなく、主導線は `show_public_pages()`、補助操作だけ dialog に分ける構成を優先する。公開側の一覧・ポータル内CRUDでは、追加・編集・削除を補助操作として扱い、ダイアログを基本にする。
 - 公開検索や絞り込みで URL に出したくない値は、`GET` ではなく `POST -> session` で保持し、表示時に復元する。
 - 公開側の通常 `form` / 通常リンクは `appcon()` を通らない。会員文脈が必要な内部導線は、原則 `ajax-link` / `invoke-function` / `appcon()` 経由を優先する。
 - 公開側の通常 `<a href>` に状態維持用パラメータを付けて引き回す運用は原則禁止。検索エンジンのクロールや重複URL増殖の原因になる。
@@ -53,6 +53,7 @@ description: Implement and operate webhook-driven integrations in FBP, including
 - 管理ダイアログと異なり、公開側では「保存成功後に全体ページを遷移したい」ケースが多いため、その場合は `ajax-link` 成功後に `show_public_pages()` / `$ctl->display()` を使う実装を優先する。
 - DB保存は `public_pages` 側で行い、`webhook_rule action_class` 側で保存処理まで抱え込まない。
 - 公開側でも dialog ベースの補助導線は許容する。`show_multi_dialog()` を開き、その中で `<form onsubmit="return false;"> + ajax-link + data-form` を使う。
+- LINE webhook 起点の公開側でも、一覧・ポータル内CRUDはダイアログを基本にする。追加は入力ダイアログ、編集は編集ダイアログ、削除は確認ダイアログにし、保存・削除後は一覧へ戻す。
 - 公開側 dialog でもバリデーションは `res_error_message()` を返して即 `return` し、エラー時に `show_multi_dialog()` を再実行しない。
 - 公開側 dialog の保存成功後に主画面へ戻すだけなら `close_multi_dialog()` を使う。完了ページへ全体遷移したい場合は `show_public_pages()` / `$ctl->display()` を使う。
 - 公開側の共通CSSは `classes/app/public_pages/style.css` に置いてよい。通常の管理画面では自動読込されない。

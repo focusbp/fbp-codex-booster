@@ -13,7 +13,7 @@ description: Build and operate public_pages with login-free entry points, secure
 ## workflow
 1. `__construct` で `set_check_login(false)` を設定し、公開入口関数を決める。
 2. 入口関数で公開パラメータ（例: `id`）を受け、`decrypt` して session に公開ユーザー文脈をセットする。
-3. 公開ページ全体表示は `show_public_pages("<contents.tpl>", "<head.tpl>", "<contents_header.tpl>", "<contents_footer.tpl>")` を優先する。不要な差し込みは `null` で省略してよい。操作系は `show_multi_dialog()` + `ajax-link` + `invoke-function` で遷移を組む。
+3. 公開ページ全体表示は `show_public_pages()` を優先する。新規の公開アプリ型UIでは必ず `show_public_pages("<contents.tpl>", "<head.tpl>", null, null, ["css_mode" => "minimal"])` を使い、管理画面向け `appstyle.css` を読み込まない。既存互換が必要な公開ページだけ、従来どおり `show_public_pages("<contents.tpl>", "<head.tpl>", "<contents_header.tpl>", "<contents_footer.tpl>")` を使う。不要な差し込みは `null` で省略してよい。操作系は `show_multi_dialog()` + `ajax-link` + `invoke-function` で遷移を組む。
 4. 表示テンプレートは `fields_view_direct` を第一候補とし、手書き値展開はリンク化・複合レイアウトなど必要最小限に限定する。
    画像を一覧で軽量表示したい場合は `fields_view_direct ... use_thumbnail=true` を使い、タグ単位でサムネイル表示を指定する。
 5. 保存・決済前に必須チェックを行い、異常時は `show_notification_text()` または `res_error_message()` で即 `return`。
@@ -34,12 +34,21 @@ description: Build and operate public_pages with login-free entry points, secure
 - ダウンロードURLは文字列連結せず、`$ctl->get_APP_URL("<class>", "file_download", ["code" => $code, "download" => "1"])` のように生成する。LINE側の古い判定を避けたい場合は `download=1` などの明示パラメータを付ける。
 - サンプルコードは `fbp-csv-media` の `download links` を参照する。
 
+## minimal public pages
+- `minimal` は、公開側アプリの独自デザインに管理画面CSSを影響させず、同時に FBP Ajax / dialog / Screen Log などフレームワーク連携をスムーズに使うための公開側標準モードとして扱う。
+- 新規の公開アプリ型UI、ログイン後ポータル、公開側CRUD画面では `show_public_pages(..., ["css_mode" => "minimal"])` を標準にする。通常の `show_public_pages()` は既存互換ページ向けとして扱う。
+- `minimal` は FBP Ajax / dialog / Screen Log アイコンに必要な共通assetsを維持しつつ、管理画面向け `appstyle.css` を読み込まない。ボタン、フォーム、カード、ページレイアウトなどの見た目は各公開アプリ側CSSで明示する。
+- `publicsite_minimal.css` は、公開側Ajaxで使う共通部品だけを持つ。対象は Screen Log、`multi_dialog`、エラー表示、通知、ダウンロード進捗、文字数カウンタ、datepicker周辺、`fbp-original-select`、`year_month_picker_panel` とし、管理画面向けの広い `button` / `form` / `table` / 見出しCSSは入れない。
+- フレームワークの `appstyle.css` で Ajax 共通部品、dialog、Screen Log、datepicker、original select、download、notification、wordcounter などを変更する場合は、同じ変更が `publicsite_minimal.css` にも必要か必ず確認する。公開側 minimal で使う部品なら、広い管理画面CSSをコピーせず、対象コンポーネントの最小CSSだけを `publicsite_minimal.css` に反映する。
+- 既存互換の通常 `show_public_pages()` では `appstyle.css` が読み込まれる。管理画面向けの広い `button` / icon / `.listbutton` 系CSSが公開側UIに干渉する場合があるため、新規UIは `minimal` へ寄せ、公開アプリ側のCSSで色・余白・角丸・アイコンサイズを明示して設計する。
+
 ## public action buttons
 - 公開フォーム/公開一覧の操作ボタンは、ボタンを直接横並びにせず、共通のアクションバーで包む。戻るボタンだけ左寄せ、送信/次へ/予約/保存などの主操作と補助操作は右寄せを基本にする。
 - 基本構造は `<div class="public-actions">` の中に、戻る用の `.public-actions-back` と主操作用の `.public-actions-main` を置く。戻るがない画面では `.public-actions-back` は省略してよい。
 - 下にテーブル、一覧、カード、詳細表示などが続く場合は、アクションバー下に `margin-bottom: 10px` 以上を確保する。フォーム末尾でも `margin-top` は同じ基準にして画面ごとのばらつきを避ける。
 - すべての操作ボタン/ボタン風リンクに同じ `button_link` 系クラスを付け、`min-height`、`padding`、`line-height`、`display: inline-flex`、`align-items: center` を共通CSSで揃える。個別ボタンの inline style、`float`、個別 `margin` で位置調整しない。
 - 主操作/戻る/補助で色や枠線を変えるのはよいが、高さ・左右余白・行内余白・ボタン間 `gap` は統一する。
+- 公開側ダイアログ内の保存・追加・削除実行などのアクションボタンは右寄せにする。`publicsite_minimal.css` では `.public-actions` / `.form-actions` / `*-form-actions` / `.multi_dialog_fixed_bar` を右寄せするため、個別UIでも同系統のアクション行クラスを使う。
 - `appstyle.css` 側の汎用 `button` 上マージンが公開側UIに干渉するため、公開ページのルートスコープ内で `button { margin-top: 0; }` または `button { margin: 0; }` を明示して打ち消す。
 - Smarty tpl 内の `<style>` では、CSS の `{}` が Smarty 構文として解釈されないように、必ず `{literal}` ... `{/literal}` で CSS 本文を囲む。
 - `classes/app/public_pages/style.css` またはページ固有CSSに、次の形をベースとして置く。
@@ -92,6 +101,14 @@ description: Build and operate public_pages with login-free entry points, secure
 	margin-top: 0;
 }
 ```
+
+## public CRUD dialogs
+- 公開側の一覧・ポータル・アプリ型UIで、追加・編集・削除のCRUD操作を置く場合は、ページ遷移ではなくダイアログを基本にする。
+- 追加は一覧上部ボタンから入力ダイアログ、編集は行ボタンから編集ダイアログ、削除は行ボタンから確認ダイアログを開く。保存・削除後は一覧へ戻し、一覧部分を再表示する。
+- 初回公開URL、外部サイト、認証/決済、ファイルダウンロード、完了ページなどブラウザ遷移が必要な導線だけ、通常のページ遷移を使ってよい。
+- `show_public_pages()` などで FBP の `function.js` / `appcon()` / `ajax-link` が使える公開ページでは、`show_multi_dialog()` + `ajax-link` + `data-form` を優先する。
+- 独自の公開クラスや単体テンプレートで FBP Ajax が載っていない場合は、`show_multi_dialog()` 前提にしない。HTML `<dialog>` と小さなページ内JSで開閉し、保存は通常POST後に `res_redirect()` で一覧へ戻すなど、公開ページ単体で確実に動く形にする。
+- 実装後は `app_call` だけでなく、Playwright で実際にCRUDボタンをクリックし、ダイアログが開くこと、保存・削除後に一覧へ反映されることを確認する。
 
 ## public wizard forms
 - 公開側の初回登録・申込みなどをウィザード形式にする場合、ステップ切替をページ内JSだけに依存しない。公開画面ではJSイベントの初期化順や差し替え後の再bindでボタンが動かないことがある。
@@ -310,7 +327,7 @@ private function assign_news_list(Controller $ctl) {
 - 公開側エントリクラス名は必ず `public_pages` を使用する（別クラス名で公開導線を作らない）。
 - 公開側の通常 `form` / 通常リンクは `appcon()` を通らない。会員文脈が必要な内部導線は、原則 `ajax-link` / `invoke-function` / `appcon()` 経由を優先する。
 - 公開側の通常 `<a href>` に状態維持用パラメータを付けて引き回す運用は原則禁止。検索エンジンのクロールや重複URL増殖の原因になる。
-- 公開側ポータル内の通常操作に `<a href>` 遷移や通常 `form submit` を使わない。URLを変える必要があるのは、初回公開URL、外部サイト、ファイルダウンロード、決済/認証などブラウザ遷移が必要な導線に限定する。
+- 公開側ポータル内の通常操作に `<a href>` 遷移や通常 `form submit` を使わない。URLを変える必要があるのは、初回公開URL、外部サイト、ファイルダウンロード、決済/認証などブラウザ遷移が必要な導線に限定する。ただし FBP Ajax が載っていない独自公開ページでは、HTML `<dialog>` + 通常POST + `res_redirect()` で一覧へ戻す実装を許容する。
 - 公開側で画面切替する際に、`$this->other_function($ctl)` のように別 public_pages 関数を直接呼んで遷移しない。内部状態・共通ヘッダ・Square callback 復帰・class 解決が崩れやすい。
 - 公開側の画面遷移は用途に応じて `invoke()` / `show_public_pages()` / `reload_area()` / `res_redirect()` を使う。特に callback 後や保存成功後に別ページへ進める場合は、直接関数呼び出しではなく `res_redirect()` または `invoke()` を優先する。
 

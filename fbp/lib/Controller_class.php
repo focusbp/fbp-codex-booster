@@ -488,7 +488,12 @@ class Controller_class implements Controller {
 		}
 	}
 
-	function show_public_pages($contents_template, $header_template = null, $contents_header_template = null, $contents_footer_template = null) {
+	function show_public_pages($contents_template, $header_template = null, $contents_header_template = null, $contents_footer_template = null, $options = array()) {
+		$options = is_array($options) ? $options : array();
+		$css_mode = trim((string) ($options["css_mode"] ?? $options["asset_mode"] ?? $options["header_mode"] ?? ""));
+		$publicsite_header_template = $css_mode === "minimal" ? "publicsite_header_minimal.tpl" : "publicsite_header.tpl";
+		$this->assign("publicsite_header_template", $publicsite_header_template);
+
 		$current_class = trim((string) $this->get_classname());
 		if ($current_class !== "") {
 			$this->assign("class", $current_class);
@@ -554,8 +559,8 @@ class Controller_class implements Controller {
 		return $items;
 	}
 
-	function show_pubic_pages($contents_template, $header_template = null, $contents_header_template = null, $contents_footer_template = null) {
-		$this->show_public_pages($contents_template, $header_template, $contents_header_template, $contents_footer_template);
+	function show_pubic_pages($contents_template, $header_template = null, $contents_header_template = null, $contents_footer_template = null, $options = array()) {
+		$this->show_public_pages($contents_template, $header_template, $contents_header_template, $contents_footer_template, $options);
 	}
 
 	function fetch($template) {

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-{include file="{$base_template_dir}/publicsite_header.tpl"}
+{include file="{$base_template_dir}/{$publicsite_header_template|default:'publicsite_header.tpl'}"}
 {$html_header nofilter}
 </head>
 

@@ -2163,6 +2163,11 @@ input[type="time"] {
 	color: var(--fbp-framework-primary-text-color, #FFF) !important;
 }
 
+.class_style_db_exe .db_edit_button_area button.ajax-link:not(.listbutton):not(.index-icon):hover .material-symbols-outlined,
+.class_style_db_exe .db_edit_button_area button:not(.listbutton):not(.index-icon):hover .material-symbols-outlined {
+	color: #666 !important;
+}
+
 .class_style_db_exe button.lang:hover .material-symbols-outlined {
 	color: #FFF !important;
 }

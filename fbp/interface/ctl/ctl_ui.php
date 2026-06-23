@@ -80,9 +80,10 @@ interface ctl_ui {
 	 * @param string|null $header_template Optional template for extra header tags.
 	 * @param string|null $contents_header_template Optional template rendered before body contents.
 	 * @param string|null $contents_footer_template Optional template rendered after body contents.
+	 * @param array $options Optional rendering options. Use ["css_mode" => "minimal"] for new public apps that do not need admin appstyle.css.
 	 * @return void
 	 */
-	function show_public_pages($contents_template, $header_template = null, $contents_header_template = null, $contents_footer_template = null);
+	function show_public_pages($contents_template, $header_template = null, $contents_header_template = null, $contents_footer_template = null, $options = array());
 
 	/**
 	 * Backward-compatible alias for typo usage.
@@ -91,9 +92,10 @@ interface ctl_ui {
 	 * @param string|null $header_template
 	 * @param string|null $contents_header_template
 	 * @param string|null $contents_footer_template
+	 * @param array $options
 	 * @return void
 	 */
-	function show_pubic_pages($contents_template, $header_template = null, $contents_header_template = null, $contents_footer_template = null);
+	function show_pubic_pages($contents_template, $header_template = null, $contents_header_template = null, $contents_footer_template = null, $options = array());
 
 	/**
 	 * Reloads the content of a specific HTML element.

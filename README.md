@@ -138,6 +138,20 @@ Do not add LINE entry, email verification, multi-store behavior, shop-scoped Squ
 Verify the public shop page, member login/register pages, DB schema, seed data, installer output, manifest JSON, and PHP syntax with the FBP CLI. Live Square payment requires Square credentials in app settings.
 ```
 
+### Service User Management
+
+Copy the whole block below and paste it into Codex:
+
+```text
+Read README.md, fbp/docs/.agents/skills/fbp-service-user-management/SKILL.md, fbp/docs/.agents/skills/fbp-app-samples/SKILL.md, fbp/docs/.agents/skills/fbp-app-samples/references/service-user-management.md, fbp/docs/.agents/skills/fbp-app-samples/references/service-user-management-db.md, and fbp/docs/.agents/skills/fbp-square-payment/SKILL.md.
+Create the Service User Management sample.
+Run the bundled installer: php fbp/docs/.agents/skills/fbp-app-samples/scripts/install_service_user_management.php.
+Install the service_member, service_plan, service_subscription, service_payment, and service_password_reset DBs; public service registration; login/logout; password reset token flow; plan selection; Square card payment; subscription activation; payment history; and Service Members public link dialog.
+Keep all sample-owned DB tables prefixed with service_.
+Do not add ecommerce cart, product catalog, shipping, inventory, order items, LINE entry, team accounts, SSO, tenant isolation, recurring billing automation, Square OAuth, email delivery, credentials, domains, or production data.
+Verify the public plans/register/login/password reset/account pages, DB schema, seed data, installer output, manifest JSON, and PHP syntax with the FBP CLI. Live Square payment requires Square credentials in app settings.
+```
+
 ## Generated Customer Demo
 
 After the customer prompt above, Codex creates a customer management demo with

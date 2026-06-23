@@ -33,6 +33,11 @@ When creating a new reusable sample from an existing app or feature, read `refer
   - Read `references/web-commerce-basic-db.md` for note/table structure.
   - Use `assets/web-commerce-basic/` for starter code.
   - Prefer `scripts/install_web_commerce_basic.php` when creating the default sample in a clean Codex Booster app.
+- **Service User Management**: A generic serviceization base with public service accounts separate from FBP admin users, public registration/login/password reset, minimal service plan/subscription/payment tables, Square card payment, and Standard Screen admin management. All sample-owned tables use the `service_` prefix.
+  - Read `references/service-user-management.md` for flow and implementation scope.
+  - Read `references/service-user-management-db.md` for DB and screen field structure.
+  - Use `assets/service-user-management/` for starter code.
+  - Prefer `scripts/install_service_user_management.php` when creating the default sample in a clean Codex Booster app.
 - **LINE-entry mall**: A LINE-only public mall with member registration, multiple shops, single-shop cart, shop-level shipping fee, Square payment, orders, order items, inquiries, and Original Screen admin pages.
   - Read `references/line-entry-mall.md` for flow and implementation scope.
   - Read `references/line-entry-mall-db.md` for note/table structure.
@@ -45,6 +50,7 @@ When creating a new reusable sample from an existing app or feature, read `refer
 - Keep project-specific integrations out of reusable samples unless explicitly requested.
 - For the LINE-entry mall sample, exclude project-specific member classifications, external-app SSO, and project-specific post-order workflows.
 - For the Web Commerce Basic sample, keep the public entry as normal web login and keep all sample-owned tables prefixed with `shop_`.
+- For the Service User Management sample, keep the public service accounts separate from FBP admin users, avoid ecommerce cart/shipping/product tables, and keep all sample-owned tables prefixed with `service_`.
 - For the LINE Bot basic sample, keep `line_member / userid / line_name / name / member_type` as the fixed base and do not create a custom `getting_member` rule unless the target app explicitly needs compatibility behavior.
 - Use normal FBP skills with this sample as needed:
   - `fbp-public-pages` for public LINE-entry pages.
@@ -52,6 +58,7 @@ When creating a new reusable sample from an existing app or feature, read `refer
   - `fbp-db` for note/table construction.
   - `fbp-webhook` for LINE Bot webhook rule design.
   - `fbp-square-payment` or `fbp-square-oauth` for Square payment design.
+  - `fbp-service-user-management` for serviceized public account and subscription patterns.
 
 ## Workflow
 
