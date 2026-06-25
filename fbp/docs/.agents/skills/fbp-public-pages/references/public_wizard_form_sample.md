@@ -134,7 +134,7 @@ private function assign_register_form(Controller $ctl, array $row, string $curre
 
 ```smarty
 {* _register_wizard_form.tpl *}
-<form id="register_wizard_form" onsubmit="return false;">
+<form id="register_wizard_form" class="public-form" onsubmit="return false;">
 	<input type="hidden" name="userid" value="{$row.userid|escape}">
 	<input type="hidden" name="current_step" value="{$current_step|escape}">
 
@@ -200,4 +200,5 @@ Confirm that:
 - the first response contains `response_json.reloadarea`
 - the BNI response stays on the `bni` step when required fields are blank
 - required field messages are included in the partial HTML
+- the form uses `.public-form`; hand-written input/select/textarea fields, if added, are wrapped in `.public-field`
 - the final step uses `.public-actions`: 戻る is left-aligned and the primary action is right-aligned

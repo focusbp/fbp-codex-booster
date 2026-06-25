@@ -809,9 +809,83 @@ function cli_mcp_next_tool_sort($ffm_tools, int $server_id): int {
 	return (int) ($list[0]["sort"] ?? 0) + 1;
 }
 
+function cli_mcp_server_key_from_spec(array $data): string {
+	$server_key = trim((string) ($data["server_key"] ?? ""));
+	if ($server_key === "" && isset($data["server"]) && !is_array($data["server"])) {
+		$server_key = trim((string) $data["server"]);
+	}
+	return preg_match('/^[A-Za-z0-9_-]+$/', $server_key) ? $server_key : "default";
+}
+
+function cli_mcp_server_config_from_spec(Dirs $dir, array $data, string $server_key): array {
+	$config = [];
+	if (isset($data["server_config"]) && is_array($data["server_config"])) {
+		$config = $data["server_config"];
+	} else if (isset($data["server"]) && is_array($data["server"])) {
+		$config = $data["server"];
+	}
+
+	$setting = cli_get_setting($dir);
+	$title = trim((string) ($config["title"] ?? ($data["server_title"] ?? "")));
+	if ($title === "") {
+		$title = $server_key === "default" ? trim((string) ($setting["system_name"] ?? "")) : $server_key;
+	}
+	if ($title === "") {
+		$title = "FBP MCP Server";
+	}
+
+	return [
+		"enabled" => cli_mcp_bool01($config["enabled"] ?? 0, 0),
+		"server_key" => $server_key,
+		"title" => $title,
+		"description" => trim((string) ($config["description"] ?? "MCP server for this FBP app.")),
+		"auth_mode" => in_array((string) ($config["auth_mode"] ?? "oauth2"), ["oauth2", "noauth"], true)
+			? (string) ($config["auth_mode"] ?? "oauth2")
+			: "oauth2",
+		"default_scope" => trim((string) ($config["default_scope"] ?? "mcp.read mcp.write")),
+	];
+}
+
+function cli_mcp_find_server_by_key($ffm_server, string $server_key): array {
+	foreach ($ffm_server->select("server_key", $server_key) as $server) {
+		return $server;
+	}
+	return [];
+}
+
+function cli_mcp_ensure_server(Dirs $dir, $ffm_server, string $server_key, array $data, bool $dry_run, array &$warnings): array {
+	$server = cli_mcp_find_server_by_key($ffm_server, $server_key);
+	if (!empty($server)) {
+		return $server;
+	}
+
+	$config = cli_mcp_server_config_from_spec($dir, $data, $server_key);
+	$now = time();
+	$list = $ffm_server->getall("sort", SORT_DESC);
+	$row = $config + [
+		"sort" => count($list) > 0 ? (int) ($list[0]["sort"] ?? 0) + 1 : 0,
+		"created_at" => $now,
+		"updated_at" => $now,
+	];
+	if ($dry_run) {
+		$row["id"] = 0;
+		$warnings[] = "MCP server will be created on apply: " . $server_key;
+		return $row;
+	}
+
+	$insert = $row;
+	$id = (int) $ffm_server->insert($insert);
+	return $ffm_server->get($id);
+}
+
 function cli_mcp_ensure_default_server(Dirs $dir, $ffm_server, bool $dry_run, array &$warnings): array {
 	$list = $ffm_server->getall("sort", SORT_ASC);
 	if (count($list) > 0) {
+		foreach ($list as $server) {
+			if ((string) ($server["server_key"] ?? "") === "default") {
+				return $server;
+			}
+		}
 		return $list[0];
 	}
 
@@ -841,6 +915,15 @@ function cli_mcp_ensure_default_server(Dirs $dir, $ffm_server, bool $dry_run, ar
 	$insert = $row;
 	$id = (int) $ffm_server->insert($insert);
 	return $ffm_server->get($id);
+}
+
+function cli_mcp_find_tool($ffm_tools, int $server_id, string $tool_name): array {
+	foreach ($ffm_tools->select("server_id", $server_id) as $tool) {
+		if ((string) ($tool["tool_name"] ?? "") === $tool_name) {
+			return $tool;
+		}
+	}
+	return [];
 }
 
 function cli_mcp_find_note($ffm_db_admin, string $target_note): array {
@@ -944,7 +1027,8 @@ function cli_mcp_apply_tools(Dirs $dir, $ffm_db_admin, $ffm_db_fields_admin, arr
 	$ffm_server = cli_mcp_db($dir, "mcp_server_config");
 	$ffm_tools = cli_mcp_db($dir, "mcp_tools");
 	$ffm_fields = cli_mcp_db($dir, "mcp_tool_fields");
-	$server = cli_mcp_ensure_default_server($dir, $ffm_server, true, $warnings);
+	$server_key = cli_mcp_server_key_from_spec($data);
+	$server = cli_mcp_ensure_server($dir, $ffm_server, $server_key, $data, true, $warnings);
 	$server_id = (int) ($server["id"] ?? 0);
 	$tool_specs = cli_mcp_normalize_tool_specs($data);
 	if (count($tool_specs) === 0) {
@@ -981,8 +1065,7 @@ function cli_mcp_apply_tools(Dirs $dir, $ffm_db_admin, $ffm_db_fields_admin, arr
 			}
 			$seen_tool_names[$tool_name] = true;
 
-			$existing_list = $ffm_tools->select("tool_name", $tool_name);
-			$existing = count($existing_list) > 0 ? $existing_list[0] : [];
+			$existing = $server_id > 0 ? cli_mcp_find_tool($ffm_tools, $server_id, $tool_name) : [];
 			$existing_id = (int) ($existing["id"] ?? 0);
 			$title = trim((string) ($spec["title"] ?? ($existing["title"] ?? "")));
 			if ($title === "") {
@@ -1070,8 +1153,7 @@ function cli_mcp_apply_tools(Dirs $dir, $ffm_db_admin, $ffm_db_fields_admin, arr
 				continue;
 			}
 			$seen_tool_names[$tool_name] = true;
-			$existing_list = $ffm_tools->select("tool_name", $tool_name);
-			$existing = count($existing_list) > 0 ? $existing_list[0] : [];
+			$existing = $server_id > 0 ? cli_mcp_find_tool($ffm_tools, $server_id, $tool_name) : [];
 			$existing_id = (int) ($existing["id"] ?? 0);
 			$fields_provided = isset($spec["fields"]) && is_array($spec["fields"]);
 			$fields = $fields_provided ? $spec["fields"] : cli_mcp_selected_fields_by_role($ffm_fields, $existing_id);
@@ -1174,7 +1256,7 @@ function cli_mcp_apply_tools(Dirs $dir, $ffm_db_admin, $ffm_db_fields_admin, arr
 	if (!$dry_run && count($errors) === 0) {
 		if ($server_id <= 0) {
 			$apply_warnings = [];
-			$server = cli_mcp_ensure_default_server($dir, $ffm_server, false, $apply_warnings);
+			$server = cli_mcp_ensure_server($dir, $ffm_server, $server_key, $data, false, $apply_warnings);
 			$server_id = (int) ($server["id"] ?? 0);
 		}
 		$next_sort = cli_mcp_next_tool_sort($ffm_tools, $server_id);
@@ -1207,8 +1289,10 @@ function cli_mcp_apply_tools(Dirs $dir, $ffm_db_admin, $ffm_db_fields_admin, arr
 		"dry_run" => $dry_run,
 		"server" => [
 			"id" => $server_id,
+			"server_key" => (string) ($server["server_key"] ?? $server_key),
 			"title" => (string) ($server["title"] ?? ""),
 			"enabled" => (int) ($server["enabled"] ?? 0),
+			"auth_mode" => (string) ($server["auth_mode"] ?? "oauth2"),
 		],
 		"results" => $results,
 		"warnings" => $warnings,

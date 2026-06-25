@@ -60,14 +60,18 @@ Use `show_public_pages("page.tpl", "_site_head.tpl", "_site_header.tpl", "_site_
 ```smarty
 <main class="mall-page">
 	<h1>モール</h1>
-	<form id="mall_search_form" class="mall-search" onsubmit="return false;">
-		<input type="text" name="keyword" value="{$keyword|escape}" placeholder="キーワード">
-		<select name="category_id">
-			<option value="0">すべて</option>
-			{foreach $categories as $category}
-				<option value="{$category.id|escape}" {if $category_id == $category.id}selected{/if}>{$category.name|escape}</option>
-			{/foreach}
-		</select>
+	<form id="mall_search_form" class="public-form mall-search" onsubmit="return false;">
+		<div class="public-field mall-search-field">
+			<input type="text" name="keyword" value="{$keyword|escape}" placeholder="キーワード" aria-label="キーワード">
+		</div>
+		<div class="public-field mall-search-field">
+			<select name="category_id" aria-label="カテゴリ">
+				<option value="0">すべて</option>
+				{foreach $categories as $category}
+					<option value="{$category.id|escape}" {if $category_id == $category.id}selected{/if}>{$category.name|escape}</option>
+				{/foreach}
+			</select>
+		</div>
 		<button type="button" class="ajax-link button_link" data-class="public_pages" data-function="submit_shop_search" data-form="mall_search_form">検索</button>
 	</form>
 	<div id="mall_product_list_area">

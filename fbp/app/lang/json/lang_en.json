@@ -250,6 +250,7 @@
   "embed_app.validation.class_name_format": "Use letters, numbers, and underscore. Start with a letter.",
   "mcp_manage.description": "Manage the MCP Server and Tools exposed to ChatGPT and other MCP clients. Exposure is controlled only by this screen.",
   "mcp_manage.server_settings": "Server Settings",
+  "mcp_manage.add_server": "Add Server",
   "mcp_manage.add_tool": "Add Tool",
   "mcp_manage.logs": "Logs",
   "mcp_manage.oauth_tokens": "OAuth Links",

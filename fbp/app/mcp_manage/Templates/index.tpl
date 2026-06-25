@@ -5,16 +5,29 @@
 			<p style="margin:0;color:#4b5563;font-size:12px;line-height:1.6;">{t key="mcp_manage.description"}</p>
 		</div>
 		<div style="display:flex;gap:8px;align-items:center;">
-			<button class="ajax-link" data-class="{$class}" data-function="logs">{t key="mcp_manage.logs"}</button>
-			<button class="ajax-link" data-class="{$class}" data-function="oauth_tokens">{t key="mcp_manage.oauth_tokens"}</button>
-			<button class="ajax-link" data-class="{$class}" data-function="edit_server">{t key="mcp_manage.server_settings"}</button>
+			<button class="ajax-link" data-class="{$class}" data-function="logs" data-form="mcp_server_context_form">{t key="mcp_manage.logs"}</button>
+			<button class="ajax-link" data-class="{$class}" data-function="oauth_tokens" data-form="mcp_server_context_form">{t key="mcp_manage.oauth_tokens"}</button>
+			<button class="ajax-link" data-class="{$class}" data-function="edit_server" data-form="mcp_server_context_form">{t key="mcp_manage.server_settings"}</button>
+			<button class="ajax-link" data-class="{$class}" data-function="add_server">{t key="mcp_manage.add_server"}</button>
 		</div>
 	</div>
+
+	<form id="mcp_server_context_form" onsubmit="return false;" style="margin:0 0 12px;">
+		<div style="display:flex;align-items:center;gap:8px;">
+			<span style="font-size:12px;color:#4b5563;">{t key="mcp_manage.server_key"}</span>
+			{html_options name="server_id" options=$servers selected=$server.id}
+			<button class="ajax-link" data-class="{$class}" data-function="page" data-form="mcp_server_context_form">{t key="common.show"}</button>
+		</div>
+	</form>
 
 	<table class="custom_events_table" style="margin-bottom:12px;">
 		<tbody>
 			<tr>
-				<td style="width:180px;">{t key="common.status"}</td>
+				<td style="width:180px;">{t key="mcp_manage.server_key"}</td>
+				<td>{$server.server_key|escape}</td>
+			</tr>
+			<tr>
+				<td>{t key="common.status"}</td>
 				<td>{if $server.enabled == 1}{$enabled_opt[1]}{else}{$enabled_opt[0]}{/if}</td>
 			</tr>
 			<tr>
@@ -41,7 +54,7 @@
 	</table>
 
 	<div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
-		<button class="ajax-link" data-class="{$class}" data-function="add_tool">{t key="mcp_manage.add_tool"}</button>
+		<button class="ajax-link" data-class="{$class}" data-function="add_tool" data-form="mcp_server_context_form">{t key="mcp_manage.add_tool"}</button>
 	</div>
 
 	<table class="moredata" style="width:100%;margin-top:10px;">

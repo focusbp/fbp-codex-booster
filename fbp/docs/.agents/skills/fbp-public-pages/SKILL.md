@@ -38,9 +38,35 @@ description: Build and operate public_pages with login-free entry points, secure
 - `minimal` は、公開側アプリの独自デザインに管理画面CSSを影響させず、同時に FBP Ajax / dialog / Screen Log などフレームワーク連携をスムーズに使うための公開側標準モードとして扱う。
 - 新規の公開アプリ型UI、ログイン後ポータル、公開側CRUD画面では `show_public_pages(..., ["css_mode" => "minimal"])` を標準にする。通常の `show_public_pages()` は既存互換ページ向けとして扱う。
 - `minimal` は FBP Ajax / dialog / Screen Log アイコンに必要な共通assetsを維持しつつ、管理画面向け `appstyle.css` を読み込まない。ボタン、フォーム、カード、ページレイアウトなどの見た目は各公開アプリ側CSSで明示する。
-- `publicsite_minimal.css` は、公開側Ajaxで使う共通部品だけを持つ。対象は Screen Log、`multi_dialog`、エラー表示、通知、ダウンロード進捗、文字数カウンタ、datepicker周辺、`fbp-original-select`、`year_month_picker_panel` とし、管理画面向けの広い `button` / `form` / `table` / 見出しCSSは入れない。
+- `publicsite_minimal.css` は、公開側Ajaxで使う共通部品だけを持つ。対象は Screen Log、`multi_dialog`、エラー表示、通知、公開側フォームの明示クラス、ダウンロード進捗、文字数カウンタ、datepicker周辺、`fbp-original-select`、`year_month_picker_panel` とし、管理画面向けの広い `button` / `form` / `table` / 見出しCSSは入れない。
 - フレームワークの `appstyle.css` で Ajax 共通部品、dialog、Screen Log、datepicker、original select、download、notification、wordcounter などを変更する場合は、同じ変更が `publicsite_minimal.css` にも必要か必ず確認する。公開側 minimal で使う部品なら、広い管理画面CSSをコピーせず、対象コンポーネントの最小CSSだけを `publicsite_minimal.css` に反映する。
 - 既存互換の通常 `show_public_pages()` では `appstyle.css` が読み込まれる。管理画面向けの広い `button` / icon / `.listbutton` 系CSSが公開側UIに干渉する場合があるため、新規UIは `minimal` へ寄せ、公開アプリ側のCSSで色・余白・角丸・アイコンサイズを明示して設計する。
+
+## public minimal forms
+- `css_mode=minimal` の公開側手書きフォームでは、フォームに `.public-form`、各入力項目の wrapper に `.public-field`、checkbox/radio 系の行に `.public-check`、送信ボタン行に `.public-form-actions` または `.public-actions` を付ける。
+- アプリ固有のクラスは共通クラスと併用する。例: `<form class="public-form motioncards-form">`、`<div class="public-field motioncards-field">`。アプリ固有CSSは色や余白の上書きに使い、入力欄が共通セレクタ対象から外れないようにする。
+- 手書き input / select / textarea を置く場合は、`.public-field` 配下に置く。`publicsite_minimal.css` の共通フォームCSSは `.public-field` 配下だけに効くため、独自の `*-form-row` などを使うと入力欄のデザインが外れる。
+- `fields_form_direct` / `fields_form_original` を使う場合は、生成HTMLの都合で `.public-field` を直接付けられないことがある。必要なら公開ページ固有CSSで helper 出力の `.field_edit` / `.fbp-original-select-button` を、その画面スコープ内だけで調整する。
+- `error_*` 要素は該当入力項目の直下に置き、`res_error_message(field, ...)` の field 名と一致させる。
+- ダイアログに表示する部分テンプレートも同じルールに従う。`show_multi_dialog()` で表示されるフォームは、全体ページの見た目ではなく読み込まれている共通/アプリCSSのセレクタに一致しているか確認する。
+
+```smarty
+<form id="public_contact_form" class="public-form app-contact-form" onsubmit="return false;">
+	<div class="public-field app-contact-field">
+		<label for="public_contact_name">氏名</label>
+		<input id="public_contact_name" type="text" name="name" value="{$row.name|default:''|escape}" required>
+		<p class="error_message error_name">{$errors.name|default:''|escape}</p>
+	</div>
+	<div class="public-field app-contact-field">
+		<label for="public_contact_body">お問い合わせ内容</label>
+		<textarea id="public_contact_body" name="body" rows="5">{$row.body|default:''|escape}</textarea>
+		<p class="error_message error_body">{$errors.body|default:''|escape}</p>
+	</div>
+	<div class="public-form-actions">
+		<button type="button" class="ajax-link button_link" data-class="public_pages" data-function="contact_save" data-form="public_contact_form">送信</button>
+	</div>
+</form>
+```
 
 ## public action buttons
 - 公開フォーム/公開一覧の操作ボタンは、ボタンを直接横並びにせず、共通のアクションバーで包む。戻るボタンだけ左寄せ、送信/次へ/予約/保存などの主操作と補助操作は右寄せを基本にする。
@@ -105,6 +131,7 @@ description: Build and operate public_pages with login-free entry points, secure
 ## public CRUD dialogs
 - 公開側の一覧・ポータル・アプリ型UIで、追加・編集・削除のCRUD操作を置く場合は、ページ遷移ではなくダイアログを基本にする。
 - 追加は一覧上部ボタンから入力ダイアログ、編集は行ボタンから編集ダイアログ、削除は行ボタンから確認ダイアログを開く。保存・削除後は一覧へ戻し、一覧部分を再表示する。
+- 公開側の確認操作にブラウザ標準の `confirm()` / `window.confirm()` は使わない。削除・送信前確認・重要操作の確認は、FBP標準の `show_multi_dialog()` + `ajax-link` + `data-form` で確認ダイアログとして実装する。
 - 初回公開URL、外部サイト、認証/決済、ファイルダウンロード、完了ページなどブラウザ遷移が必要な導線だけ、通常のページ遷移を使ってよい。
 - `show_public_pages()` などで FBP の `function.js` / `appcon()` / `ajax-link` が使える公開ページでは、`show_multi_dialog()` + `ajax-link` + `data-form` を優先する。
 - 独自の公開クラスや単体テンプレートで FBP Ajax が載っていない場合は、`show_multi_dialog()` 前提にしない。HTML `<dialog>` と小さなページ内JSで開閉し、保存は通常POST後に `res_redirect()` で一覧へ戻すなど、公開ページ単体で確実に動く形にする。

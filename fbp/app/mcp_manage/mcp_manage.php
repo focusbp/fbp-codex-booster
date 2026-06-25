@@ -18,7 +18,7 @@ class mcp_manage {
 	}
 
 	function page(Controller $ctl) {
-		$server = $this->ensure_default_server($ctl);
+		$server = $this->selected_server($ctl);
 			$tools = $this->ffm_tools->select("server_id", $server["id"], true, "AND", "sort", SORT_ASC);
 			foreach ($tools as &$tool) {
 				$tool["ready_status"] = $this->tool_ready_status($ctl, $tool);
@@ -26,39 +26,57 @@ class mcp_manage {
 			}
 		unset($tool);
 
+		$ctl->assign("servers", $this->server_options($ctl));
 		$ctl->assign("server", $server);
 		$ctl->assign("items", $tools);
-		$ctl->assign("mcp_endpoint_url", $ctl->get_APP_URL("mcp_server", "rpc"));
-		$ctl->assign("mcp_authorize_url", $ctl->get_APP_URL("mcp_server", "authorize"));
+		$ctl->assign("mcp_endpoint_url", $this->mcp_url($ctl, "rpc", $server));
+		$ctl->assign("mcp_authorize_url", $this->mcp_url($ctl, "authorize", $server));
 		$ctl->assign("mcp_token_url", $ctl->get_APP_URL("mcp_server", "token"));
-		$ctl->assign("mcp_resource_metadata_url", $this->mcp_base_url($ctl) . "/.well-known/oauth-protected-resource");
+		$ctl->assign("mcp_resource_metadata_url", $this->mcp_url($ctl, "oauth_protected_resource", $server));
 		$ctl->reload_area("#tabs-mcp-server", "index.tpl");
 	}
 
-	private function mcp_base_url(Controller $ctl): string {
-		$resource = $ctl->get_APP_URL("mcp_server", "rpc");
-		$suffix = "/mcp_server*rpc";
-		if (substr($resource, -strlen($suffix)) === $suffix) {
-			return substr($resource, 0, -strlen($suffix));
+	private function mcp_url(Controller $ctl, string $function, array $server): string {
+		$params = [];
+		$server_key = (string) ($server["server_key"] ?? "default");
+		if ($server_key !== "" && $server_key !== "default") {
+			$params["server"] = $server_key;
 		}
-		return rtrim(preg_replace('#/mcp_server\*rpc(?:[?&].*)?$#', "", $resource), "/");
+		return $ctl->get_APP_URL("mcp_server", $function, $params);
 	}
 
 	function edit_server(Controller $ctl) {
-		$server = $this->ensure_default_server($ctl);
+		$server = $this->selected_server($ctl);
 		$ctl->assign("server", $server);
 		$ctl->show_multi_dialog("mcp_server_edit", "server_edit.tpl", $ctl->t("mcp_manage.dialog.server_edit"), 820, true, true);
 	}
 
+	function add_server(Controller $ctl) {
+		$ctl->assign("server", [
+			"id" => 0,
+			"enabled" => 0,
+			"server_key" => "",
+			"title" => "",
+			"description" => "MCP server for this FBP app.",
+			"auth_mode" => "oauth2",
+			"default_scope" => "mcp.read mcp.write",
+		]);
+		$ctl->show_multi_dialog("mcp_server_add", "server_edit.tpl", $ctl->t("mcp_manage.dialog.server_edit"), 820, true, true);
+	}
+
 	function edit_server_exe(Controller $ctl) {
-		$server = $this->ensure_default_server($ctl);
 		$post = $this->normalize_server_post($ctl->POST());
-		$errors = $this->validate_server($ctl, $post);
+		$id = (int) ($post["id"] ?? 0);
+		$server = $id > 0 ? $this->ffm_server->get($id) : [];
+		$errors = $this->validate_server($ctl, $post, $id);
 		if (count($errors) > 0) {
 			$this->respond_errors($ctl, $errors);
 			return;
 		}
 
+		if (!is_array($server)) {
+			$server = [];
+		}
 		$server["enabled"] = $post["enabled"];
 		$server["server_key"] = $post["server_key"];
 		$server["title"] = $post["title"];
@@ -66,20 +84,28 @@ class mcp_manage {
 		$server["auth_mode"] = $post["auth_mode"];
 		$server["default_scope"] = $post["default_scope"];
 		$server["updated_at"] = time();
-		$this->ffm_server->update($server);
+		if ($id > 0) {
+			$this->ffm_server->update($server);
+		} else {
+			$server["sort"] = $this->next_server_sort();
+			$server["created_at"] = time();
+			$id = (int) $this->ffm_server->insert($server);
+		}
 
 		$ctl->close_multi_dialog("mcp_server_edit");
+		$ctl->close_multi_dialog("mcp_server_add");
+		$_POST["server_id"] = $id;
 		$this->page($ctl);
 	}
 
 	function add_tool(Controller $ctl) {
-		$server = $this->ensure_default_server($ctl);
+		$server = $this->selected_server($ctl);
 		$ctl->assign("server", $server);
 		$ctl->show_multi_dialog("mcp_tool_add", "tool_type_select.tpl", $ctl->t("mcp_manage.dialog.tool_add"), 620, true, true);
 	}
 
 	function add_tool_form(Controller $ctl) {
-		$server = $this->ensure_default_server($ctl);
+		$server = $this->selected_server($ctl);
 		$tool_type = $this->normalize_tool_type((string) ($ctl->POST("tool_type") ?? "note_crud"));
 		if ($tool_type === "") {
 			$ctl->show_notification_text($ctl->t("mcp_manage.validation.tool_type"));
@@ -106,7 +132,7 @@ class mcp_manage {
 	}
 
 	function add_tool_exe(Controller $ctl) {
-		$server = $this->ensure_default_server($ctl);
+		$server = $this->selected_server($ctl);
 		$post = $this->normalize_tool_post($ctl->POST(), true);
 		$post["server_id"] = (int) $server["id"];
 		$errors = $this->validate_tool($ctl, $post, "add");
@@ -125,6 +151,7 @@ class mcp_manage {
 			}
 
 		$ctl->close_multi_dialog("mcp_tool_add");
+		$_POST["server_id"] = (int) $server["id"];
 		$this->page($ctl);
 	}
 
@@ -143,6 +170,7 @@ class mcp_manage {
 			return;
 		}
 		$raw_post["tool_type"] = (string) ($data["tool_type"] ?? "note_crud");
+		$raw_post["server_id"] = (int) ($data["server_id"] ?? 0);
 		$post = $this->normalize_tool_post($raw_post, false);
 		$id = (int) ($post["id"] ?? 0);
 		$errors = $this->validate_tool($ctl, $post, "edit");
@@ -176,6 +204,7 @@ class mcp_manage {
 		}
 
 		$ctl->close_multi_dialog("mcp_tool_edit_" . $id);
+		$_POST["server_id"] = (int) ($data["server_id"] ?? 0);
 		$this->page($ctl);
 	}
 
@@ -188,11 +217,14 @@ class mcp_manage {
 
 	function delete_tool_exe(Controller $ctl) {
 		$id = (int) $ctl->POST("id");
+		$data = $this->ffm_tools->get($id);
+		$server_id = is_array($data) ? (int) ($data["server_id"] ?? 0) : 0;
 		foreach ($this->ffm_fields->select("tool_id", $id) as $field) {
 			$this->ffm_fields->delete((int) $field["id"]);
 		}
 		$this->ffm_tools->delete($id);
 		$ctl->close_multi_dialog("mcp_tool_delete_" . $id);
+		$_POST["server_id"] = $server_id;
 		$this->page($ctl);
 	}
 
@@ -222,6 +254,7 @@ class mcp_manage {
 		$tool["updated_at"] = $now;
 		$this->ffm_tools->update($tool);
 		$ctl->close_multi_dialog("mcp_tool_fields_" . $id);
+		$_POST["server_id"] = (int) ($tool["server_id"] ?? 0);
 		$this->page($ctl);
 	}
 
@@ -240,14 +273,14 @@ class mcp_manage {
 	}
 
 	function logs(Controller $ctl) {
-		$server = $this->ensure_default_server($ctl);
+		$server = $this->selected_server($ctl);
 		$logs = $this->ffm_logs->select("server_id", $server["id"], true, "AND", "id", SORT_DESC, 100);
 		$ctl->assign("logs", $logs);
 		$ctl->show_multi_dialog("mcp_call_logs", "logs.tpl", $ctl->t("mcp_manage.dialog.logs"), 1100, true, true);
 	}
 
 	function oauth_tokens(Controller $ctl) {
-		$server = $this->ensure_default_server($ctl);
+		$server = $this->selected_server($ctl);
 		$tokens = $this->ffm_tokens->select("server_id", $server["id"], true, "AND", "id", SORT_DESC, 100);
 		$user_ffm = $ctl->db("user", "user");
 		foreach ($tokens as &$token) {
@@ -267,6 +300,7 @@ class mcp_manage {
 			$token["revoked"] = 1;
 			$token["updated_at"] = time();
 			$this->ffm_tokens->update($token);
+			$_POST["server_id"] = (int) ($token["server_id"] ?? 0);
 		}
 		$this->oauth_tokens($ctl);
 	}
@@ -319,6 +353,11 @@ class mcp_manage {
 	private function ensure_default_server(Controller $ctl): array {
 		$list = $this->ffm_server->getall("sort", SORT_ASC);
 		if (count($list) > 0) {
+			foreach ($list as $server) {
+				if ((string) ($server["server_key"] ?? "") === "default") {
+					return $server;
+				}
+			}
 			return $list[0];
 		}
 		$setting = $ctl->get_setting();
@@ -341,8 +380,52 @@ class mcp_manage {
 		return $this->ffm_server->get((int) $id);
 	}
 
+	private function selected_server(Controller $ctl): array {
+		$id = (int) ($ctl->POST("server_id") ?? ($ctl->GET("server_id") ?? 0));
+		if ($id > 0) {
+			$server = $this->ffm_server->get($id);
+			if (is_array($server) && !empty($server["id"])) {
+				return $server;
+			}
+		}
+		$server_key = trim((string) ($ctl->POST("server") ?? ($ctl->POST("server_key") ?? ($ctl->GET("server") ?? ($ctl->GET("server_key") ?? "")))));
+		if ($server_key !== "") {
+			foreach ($this->ffm_server->select("server_key", $server_key) as $server) {
+				return $server;
+			}
+		}
+		return $this->ensure_default_server($ctl);
+	}
+
+	private function server_options(Controller $ctl): array {
+		$options = [];
+		foreach ($this->ffm_server->getall("sort", SORT_ASC) as $server) {
+			$id = (int) ($server["id"] ?? 0);
+			if ($id <= 0) {
+				continue;
+			}
+			$key = (string) ($server["server_key"] ?? "");
+			$title = (string) ($server["title"] ?? "");
+			$options[$id] = ($key !== "" ? $key : "server-" . $id) . ($title !== "" ? " / " . $title : "");
+		}
+		if (count($options) === 0) {
+			$server = $this->ensure_default_server($ctl);
+			$options[(int) $server["id"]] = (string) ($server["server_key"] ?? "default") . " / " . (string) ($server["title"] ?? "");
+		}
+		return $options;
+	}
+
+	private function next_server_sort(): int {
+		$list = $this->ffm_server->getall("sort", SORT_DESC);
+		if (count($list) === 0) {
+			return 0;
+		}
+		return (int) ($list[0]["sort"] ?? 0) + 1;
+	}
+
 	private function normalize_server_post(array $post): array {
 		return [
+			"id" => (int) ($post["id"] ?? 0),
 			"enabled" => isset($post["enabled"]) ? (int) $post["enabled"] : 0,
 			"server_key" => trim((string) ($post["server_key"] ?? "default")),
 			"title" => trim((string) ($post["title"] ?? "")),
@@ -352,10 +435,16 @@ class mcp_manage {
 		];
 	}
 
-	private function validate_server(Controller $ctl, array $post): array {
+	private function validate_server(Controller $ctl, array $post, int $current_id = 0): array {
 		$errors = [];
 		if ($post["server_key"] === "" || !preg_match('/^[a-zA-Z0-9_-]+$/', $post["server_key"])) {
 			$errors["server_key"] = $ctl->t("mcp_manage.validation.server_key");
+		}
+		foreach ($this->ffm_server->select("server_key", $post["server_key"]) as $server) {
+			if ((int) ($server["id"] ?? 0) !== $current_id) {
+				$errors["server_key"] = $ctl->t("mcp_manage.validation.server_key");
+				break;
+			}
 		}
 		if ($post["title"] === "") {
 			$errors["title"] = $ctl->t("mcp_manage.validation.title_required");
@@ -440,15 +529,14 @@ class mcp_manage {
 		if ($post["tool_name"] === "" || !preg_match('/^[a-zA-Z][a-zA-Z0-9_.-]*$/', $post["tool_name"])) {
 			$errors["tool_name"] = $ctl->t("mcp_manage.validation.tool_name");
 		}
-		$is_unique = $ctl->validate_duplicate(
-			"mcp_tools",
-			["tool_name"],
-			[$post["tool_name"]],
-			$mode === "edit" ? $id : 0,
-			"mcp_manage"
-		);
-		if (!$is_unique) {
-			$errors["tool_name"] = $ctl->t("mcp_manage.validation.tool_name_exists");
+		foreach ($this->ffm_tools->select("server_id", (int) ($post["server_id"] ?? 0)) as $tool) {
+			if ((int) ($tool["id"] ?? 0) === ($mode === "edit" ? $id : 0)) {
+				continue;
+			}
+			if ((string) ($tool["tool_name"] ?? "") === (string) $post["tool_name"]) {
+				$errors["tool_name"] = $ctl->t("mcp_manage.validation.tool_name_exists");
+				break;
+			}
 		}
 		if ($post["title"] === "") {
 			$errors["title"] = $ctl->t("mcp_manage.validation.title_required");

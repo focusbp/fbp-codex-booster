@@ -1,4 +1,5 @@
 <form id="mcp_server_edit_form" onsubmit="return false;">
+	<input type="hidden" name="id" value="{$server.id|escape}">
 	<table class="custom_events_table">
 		<tbody>
 			<tr><td style="width:30%;">{t key="common.status"}</td><td>{html_options name="enabled" options=$enabled_opt selected=$server.enabled}</td></tr>

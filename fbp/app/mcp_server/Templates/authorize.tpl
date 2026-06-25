@@ -26,6 +26,7 @@
 			Scope: {$scope|escape}
 		</div>
 		<form method="post" action="{$ctl->get_APP_URL('mcp_server','authorize_confirm')|escape}">
+			<input type="hidden" name="server" value="{$oauth_params.server|default:'default'|escape}">
 			<input type="hidden" name="response_type" value="{$oauth_params.response_type|escape}">
 			<input type="hidden" name="client_id" value="{$oauth_params.client_id|escape}">
 			<input type="hidden" name="redirect_uri" value="{$oauth_params.redirect_uri|escape}">

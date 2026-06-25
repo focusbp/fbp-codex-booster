@@ -60,6 +60,117 @@
 	white-space: pre;
 }
 
+.public-form {
+	display: grid;
+	gap: 14px;
+}
+
+.public-field {
+	display: grid;
+	gap: 6px;
+	min-width: 0;
+}
+
+.public-field label,
+.public-check {
+	color: var(--public-form-muted, #475569);
+	font-size: 13px;
+	font-weight: 700;
+	line-height: 1.4;
+}
+
+.public-field input[type="email"],
+.public-field input[type="number"],
+.public-field input[type="password"],
+.public-field input[type="search"],
+.public-field input[type="tel"],
+.public-field input[type="text"],
+.public-field input[type="url"],
+.public-field select,
+.public-field textarea {
+	box-sizing: border-box;
+	width: 100%;
+	min-height: 42px;
+	margin: 0;
+	padding: 8px 10px;
+	border: 1px solid var(--public-form-line, #cbd5e1);
+	border-radius: 6px;
+	background: var(--public-form-surface, #fff);
+	color: var(--public-form-ink, #0f172a);
+	font: inherit;
+	line-height: 1.4;
+}
+
+.public-field textarea {
+	min-height: 112px;
+	line-height: 1.6;
+	resize: vertical;
+}
+
+.public-field input:focus,
+.public-field select:focus,
+.public-field textarea:focus {
+	outline: 2px solid var(--public-form-focus-ring, rgba(25, 116, 210, 0.18));
+	border-color: var(--public-form-focus, #1974D2);
+}
+
+.public-check {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.public-check input {
+	width: 18px;
+	height: 18px;
+	margin: 0;
+}
+
+.public-field .error_message,
+.public-field [class^="error_"],
+.public-field [class*=" error_"] {
+	min-height: 1em;
+	color: #e20000;
+	font-size: 12px;
+	line-height: 1.4;
+}
+
+.public-actions,
+.public-form-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-top: 16px;
+	margin-bottom: 10px;
+}
+
+.public-actions-back,
+.public-actions-main {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.public-actions-main,
+.public-form-actions {
+	margin-left: auto;
+	justify-content: flex-end;
+}
+
+.public-actions .button_link,
+.public-form-actions .button_link {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	min-height: 40px;
+	margin: 0;
+	padding: 0 16px;
+	line-height: 1.2;
+}
+
 .download_error_message {
 	min-height: 100px;
 	overflow-x: hidden;
@@ -208,30 +319,43 @@
 	height: auto;
 	padding-bottom: 10px;
 	overflow: hidden;
-	border: 1px solid #ccc;
-	border-radius: 5px;
+	border: 1px solid var(--fbp-dialog-border-color, #DDE3EA);
+	border-radius: 8px;
 	background: #fff;
-	box-shadow: 3px 3px 3px #dfdfdf;
+	box-shadow: 0 18px 48px rgba(15, 23, 42, 0.16), 0 4px 14px rgba(15, 23, 42, 0.08);
 	transform-origin: left top;
 	transition: opacity 0.2s, transform 0.2s ease;
 	z-index: 100;
 }
 
 .multi_dialog .multi_dialog_title_area {
-	display: block;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 14px;
 	float: left;
 	width: 100%;
-	height: 30px;
-	padding-top: 3px;
-	padding-left: 10px;
-	background: var(--fbp-framework-primary-color, #4BA3FF);
-	color: var(--fbp-framework-primary-text-color, #fff);
+	min-height: 52px;
+	padding: 10px 12px 10px 18px;
+	border-bottom: 1px solid var(--fbp-dialog-border-color, #DDE3EA);
+	background: var(--fbp-dialog-header-bg, #F8FAFC);
+	color: var(--fbp-dialog-title-color, #111827);
+	box-sizing: border-box;
 	cursor: move;
 }
 
 .multi_dialog .multi_dialog_title {
-	float: left;
-	width: calc(100% - 30px);
+	display: block;
+	flex: 1 1 auto;
+	min-width: 0;
+	width: auto;
+	overflow: hidden;
+	color: inherit;
+	font-size: 16px;
+	font-weight: 600;
+	line-height: 1.4;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .multi_dialog .multi_dialog_title_area .dialog_name {
@@ -239,38 +363,43 @@
 }
 
 .multi_dialog .multi_dialog_title_area .multi_dialog_close {
-	float: right;
-	width: 20px;
-	height: 20px;
-	margin-top: 3px;
-	margin-right: 5px;
-	border-radius: 5px;
-	color: inherit;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	width: 34px;
+	height: 34px;
+	margin: 0;
+	border-radius: 8px;
+	color: var(--fbp-dialog-muted-color, #6B7280);
 	cursor: pointer;
-	font-size: 9px;
-	font-weight: bold;
-	line-height: 21px;
+	font-size: 22px;
+	font-weight: 400;
+	line-height: 34px;
 	text-align: center;
+	transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .multi_dialog .multi_dialog_title_area .multi_dialog_close:hover {
-	background: var(--fbp-framework-primary-color, #4BA3FF);
+	background: var(--fbp-dialog-action-hover-bg, #F3F4F6);
+	color: var(--fbp-dialog-title-color, #111827);
 }
 
 .multi_dialog .multi_dialog_title_area .screen_debug_icon {
 	display: inline-flex;
-	float: right;
+	flex: 0 1 auto;
 	align-items: center;
 	justify-content: center;
-	width: 20px;
-	height: 20px;
-	margin: 3px 5px 0 0;
+	width: 34px;
+	height: 34px;
+	margin: 0;
 	padding: 0;
-	border-radius: 5px;
-	color: inherit;
+	border-radius: 8px;
+	color: var(--fbp-dialog-muted-color, #6B7280);
 	cursor: pointer;
 	line-height: 1;
 	user-select: none;
+	transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .multi_dialog .multi_dialog_title_area .screen_debug_icon .material-symbols-outlined {
@@ -283,14 +412,17 @@
 }
 
 .multi_dialog .multi_dialog_title_area .screen_debug_icon:hover {
-	background: var(--fbp-framework-primary-color, #4BA3FF);
+	background: var(--fbp-dialog-action-hover-bg, #F3F4F6);
+	color: var(--fbp-dialog-title-color, #111827);
 }
 
 .multi_dialog .multi_dialog_title_area .screen_debug_icon.screen_debug_captured {
 	width: auto;
-	max-width: 420px;
+	max-width: min(420px, 45vw);
 	gap: 4px;
-	padding: 0 5px;
+	padding: 0 8px;
+	border: 1px solid var(--fbp-dialog-border-color, #DDE3EA);
+	background: var(--fbp-dialog-meta-bg, #F1F5F9);
 	font-size: 12px;
 }
 
@@ -312,6 +444,26 @@
 .multi_dialog .multi_dialog_title_area .screen_debug_copy_icon:hover,
 .multi_dialog .multi_dialog_title_area .screen_debug_copy_icon.copied {
 	background: #2E7D32;
+}
+
+.multi_dialog .multi_dialog_header_actions {
+	display: inline-flex;
+	flex: 0 1 auto;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 6px;
+	min-width: 0;
+}
+
+@media (max-width: 600px) {
+	.multi_dialog .multi_dialog_title_area .multi_dialog_close {
+		width: 66px;
+		height: 38px;
+		border-radius: 10px;
+		font-size: 65px;
+		line-height: 52px;
+		margin-top: 6px;
+	}
 }
 
 .multi_dialog .multi_dialog_contents {

@@ -1,4 +1,5 @@
 <form id="mcp_tool_type_select_form" onsubmit="return false;">
+	<input type="hidden" name="server_id" value="{$server.id|escape}">
 	<table class="custom_events_table">
 		<tbody>
 			<tr>

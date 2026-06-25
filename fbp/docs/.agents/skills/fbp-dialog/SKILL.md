@@ -61,6 +61,7 @@ private function normalize_datetime_to_timestamp($value): int
 - ダイアログメニュー（タブ）は `add_tab()` を使って `.multi_dialog_tab_area` に追加する。
 - 配置指針: 全体操作=固定バー、画面名=title、内容切替=タブ、フォーム本文=contents。
 - ダイアログ本文のフォームでは、入力部品の横に実行ボタンを置かない。フォーム項目の下に `.button_row` などの操作行を置き、ボタンは右寄せにする。検索ツールバーの検索ボタンだけは例外として横配置を許可する。
+- 公開側 `css_mode=minimal` の手書きダイアログフォームでは、フォームに `.public-form`、入力項目 wrapper に `.public-field`、操作行に `.public-form-actions` または `.public-actions` を使う。アプリ固有クラスは併用し、独自の `*-form-row` だけで input を包まない。
 
 ## constraints
 - エラー時の再描画（`show_multi_dialog` 再実行、`reload_area`）を禁止。
@@ -70,6 +71,7 @@ private function normalize_datetime_to_timestamp($value): int
 - `fields_form_direct` 使用時は項目ごとに `error_項目名` を用意する。
 - `fields_form_original` / 手書きinput / checkbox / textarea を含む、POST対象の全入力項目にも `error_項目名` を必ず配置する。
 - 実装完了前に「`res_error_message(field, ...)` の `field` 名」と「テンプレート上の `error_field` クラス」が1対1で存在することを確認する（不足がある状態で完了扱いにしない）。
+- 公開側 minimal の手書きフォームでは、主要な input / select / textarea が `.public-field` など公開側フォームCSSの対象セレクタに入っていることも確認する。保存動作と `error_*` だけで完了扱いにしない。
 - `res_error_message()` を使う場合、表示先タグ（`error_項目名`）が存在することを必ず事前確認する。表示タグを設置できない導線（フォーム未描画前・一覧ボタン直叩き等）では `show_notification_text()` を使う。
 - Smarty tpl 内の `<style>` では、CSS の `{}` が Smarty 構文として解釈されないように、必ず `{literal}` ... `{/literal}` で CSS 本文を囲む。
 - 確認表示・詳細表示の値描画は `fields_view_direct` を優先し、手書き展開は必要最小限にする。

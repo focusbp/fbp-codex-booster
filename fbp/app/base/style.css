@@ -404,7 +404,7 @@ footer {
 }
 
 .work_area_title_text {
-	flex: 0 1 auto;
+	flex: 1 1 auto;
 	min-width: 0;
 }
 
@@ -412,7 +412,7 @@ footer {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	margin: 0;
+	margin: 0 0 0 auto;
 	padding: 0;
 	height: auto;
 	width: auto;

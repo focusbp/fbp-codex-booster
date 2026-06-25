@@ -3079,7 +3079,7 @@ function multi_dialog(dialog_name, contents, title, width, getclassname, testser
 
 	var multi_dialog_tag = null;
 
-	var title_display = '<span class="lang">' + title + '</span>';
+	var title_display = '<span class="multi_dialog_title lang">' + title + '</span>';
 
 	function syncScreenDebugButton($dlg, screenKey) {
 		var $titleArea = $dlg.find(".multi_dialog_title_area").first();
@@ -3096,7 +3096,7 @@ function multi_dialog(dialog_name, contents, title, width, getclassname, testser
 			$icon = $('<p class="ajax-link screen_debug_icon" data-class="screen_debug_log" data-function="capture" title="お問い合わせ用の画面IDを取得"><span class="material-symbols-outlined">screenshot_monitor</span></p>');
 			var $close = $titleArea.find(".multi_dialog_close").first();
 			if ($close.length > 0) {
-				$close.after($icon);
+				$close.before($icon);
 			} else {
 				$titleArea.append($icon);
 			}
@@ -3131,10 +3131,12 @@ function multi_dialog(dialog_name, contents, title, width, getclassname, testser
 			} else {
 				var $titleArea = $(dialog_id + " .multi_dialog_title_area").first();
 				if ($titleArea.length > 0) {
-					var $closeButton = $titleArea.find(".multi_dialog_close").first();
-					var $screenDebugButton = $titleArea.find(".screen_debug_icon").first();
-					$titleArea.contents().not($closeButton).not($screenDebugButton).remove();
-					$titleArea.prepend(title_display);
+					var $title = $titleArea.find(".multi_dialog_title").first();
+					if ($title.length > 0) {
+						$title.replaceWith(title_display);
+					} else {
+						$titleArea.prepend(title_display);
+					}
 				}
 			}
 		} else {
@@ -3144,9 +3146,7 @@ function multi_dialog(dialog_name, contents, title, width, getclassname, testser
 			} else {
 				var $titleAreaHide = $(dialog_id + " .multi_dialog_title_area").first();
 				if ($titleAreaHide.length > 0) {
-					var $closeButtonHide = $titleAreaHide.find(".multi_dialog_close").first();
-					var $screenDebugButtonHide = $titleAreaHide.find(".screen_debug_icon").first();
-					$titleAreaHide.contents().not($closeButtonHide).not($screenDebugButtonHide).remove();
+					$titleAreaHide.find(".multi_dialog_title").first().remove();
 				}
 			}
 		}
@@ -3194,7 +3194,7 @@ function multi_dialog(dialog_name, contents, title, width, getclassname, testser
 		$(multi_dialog_tag).attr("data-modal_flg", is_modal ? "1" : "0");
 
 		// タイトル部分
-		var dialog_html = '<div class="multi_dialog_title_area lang_check_area" data-classname="' + exe_classname + '">' + title_display + '<div class="multi_dialog_close">X</div></div>';
+		var dialog_html = '<div class="multi_dialog_title_area lang_check_area" data-classname="' + exe_classname + '">' + title_display + '<div class="multi_dialog_header_actions"><div class="multi_dialog_close" role="button" aria-label="Close">&times;</div></div></div>';
 
 		// タブ
 		var tab_area = document.createElement('div');
@@ -4572,6 +4572,7 @@ function summarize_multi_dialog_state(dialog_id, dialog_name, classname) {
 		classname: classname || "",
 		title: String(
 			$dlg.find(".multi_dialog_innder_title").first().text()
+			|| $dlg.find(".multi_dialog_title").first().text()
 			|| $dlg.find(".multi_dialog_title_area").first().clone().find(".multi_dialog_close").remove().end().text()
 			|| ""
 		).trim().slice(0, 120),

@@ -21,9 +21,9 @@ class mcp_server {
 
 	function rpc(Controller $ctl) {
 		if ((string) ($_SERVER["REQUEST_METHOD"] ?? "") !== "POST") {
-			$server = $this->get_server();
+			$server = $this->current_server($ctl);
 			if ((string) ($server["auth_mode"] ?? "oauth2") !== "noauth") {
-				$this->respond_oauth_http_challenge($ctl, "missing_access_token");
+				$this->respond_oauth_http_challenge($ctl, $server, "missing_access_token");
 			}
 			http_response_code(405);
 			header("Allow: POST");
@@ -38,54 +38,58 @@ class mcp_server {
 	}
 
 	function sse(Controller $ctl) {
+		$server = $this->current_server($ctl);
 		if ($_SERVER["REQUEST_METHOD"] === "GET") {
 			header("Content-Type: text/event-stream; charset=UTF-8");
 			header("Cache-Control: no-cache");
 			echo "event: endpoint\n";
-			echo "data: " . $ctl->get_APP_URL("mcp_server", "rpc") . "\n\n";
+			echo "data: " . $this->mcp_url($ctl, "rpc", $server) . "\n\n";
 			exit;
 		}
 		$this->rpc($ctl);
 	}
 
 	function health(Controller $ctl) {
-		$server = $this->get_server();
+		$server = $this->current_server($ctl);
 		$this->respond_json([
 			"ok" => true,
 			"enabled" => (int) ($server["enabled"] ?? 0) === 1,
+			"server_key" => (string) ($server["server_key"] ?? "default"),
 			"title" => (string) ($server["title"] ?? "FBP MCP Server"),
 			"auth_mode" => (string) ($server["auth_mode"] ?? "oauth2"),
 		]);
 	}
 
 	function oauth_protected_resource(Controller $ctl) {
-		$resource = $ctl->get_APP_URL("mcp_server", "rpc");
+		$server = $this->current_server($ctl);
+		$resource = $this->resource_url($ctl, $server);
 		$this->respond_json([
 			"resource" => $resource,
 			"authorization_servers" => [
 				$this->oauth_issuer($ctl),
 			],
-			"scopes_supported" => $this->supported_scopes(),
+			"scopes_supported" => $this->supported_scopes($server),
 			"bearer_methods_supported" => ["header"],
 		]);
 	}
 
 	function oauth_authorization_server(Controller $ctl) {
+		$server = $this->current_server($ctl);
 		$this->respond_json([
 			"issuer" => $this->oauth_issuer($ctl),
-			"authorization_endpoint" => $ctl->get_APP_URL("mcp_server", "authorize"),
+			"authorization_endpoint" => $this->mcp_url($ctl, "authorize", $server),
 			"token_endpoint" => $ctl->get_APP_URL("mcp_server", "token"),
 			"response_types_supported" => ["code"],
 			"grant_types_supported" => ["authorization_code", "refresh_token"],
 			"code_challenge_methods_supported" => ["S256", "plain"],
-			"scopes_supported" => $this->supported_scopes(),
+			"scopes_supported" => $this->supported_scopes($server),
 			"client_id_metadata_document_supported" => true,
 			"token_endpoint_auth_methods_supported" => ["none"],
 		]);
 	}
 
 	function authorize(Controller $ctl) {
-		$server = $this->get_server();
+		$server = $this->current_server($ctl);
 		if ((int) ($server["enabled"] ?? 0) !== 1) {
 			http_response_code(503);
 			$ctl->assign("message", "MCP server is disabled.");
@@ -118,7 +122,7 @@ class mcp_server {
 	}
 
 	function authorize_confirm(Controller $ctl) {
-		$server = $this->get_server();
+		$server = $this->current_server($ctl);
 		if ((int) ($server["enabled"] ?? 0) !== 1) {
 			http_response_code(503);
 			$this->respond_json(["ok" => false, "error" => "mcp_server_disabled"]);
@@ -198,7 +202,7 @@ class mcp_server {
 		$id = $request["id"] ?? null;
 		$method = (string) ($request["method"] ?? "");
 		$params = is_array($request["params"] ?? null) ? $request["params"] : [];
-		$server = $this->get_server();
+		$server = $this->current_server($ctl);
 
 		if ($method === "") {
 			return $this->json_error($id, -32600, "Invalid Request");
@@ -278,7 +282,7 @@ class mcp_server {
 		}
 		$auth = $this->authorize_tool_call($ctl, $server, $tool);
 		if (!$auth["ok"]) {
-			return $this->tool_auth_error($ctl, $auth["error"]);
+			return $this->tool_auth_error($ctl, $server, $auth["error"]);
 		}
 
 		$user_id = (int) ($auth["user_id"] ?? 0);
@@ -791,6 +795,8 @@ class mcp_server {
 		$hash = hash("sha256", $token);
 		$list = $this->ffm_tokens->select("access_token_hash", $hash);
 		$user_ffm = $ctl->db("user", "user");
+		$server = $this->get_server_by_id($server_id);
+		$expected_resource = empty($server) ? "" : $this->resource_url($ctl, $server);
 		foreach ($list as $row) {
 			if ((int) ($row["server_id"] ?? 0) !== $server_id) {
 				continue;
@@ -799,7 +805,7 @@ class mcp_server {
 				continue;
 			}
 			$resource = (string) ($row["resource"] ?? "");
-			if ($resource !== "" && $resource !== $ctl->get_APP_URL("mcp_server", "rpc")) {
+			if ($resource !== "" && $expected_resource !== "" && $resource !== $expected_resource) {
 				continue;
 			}
 			$user = $user_ffm->get((int) ($row["user_id"] ?? 0));
@@ -827,7 +833,6 @@ class mcp_server {
 	}
 
 	private function token_from_authorization_code(Controller $ctl, array $params): void {
-		$server = $this->get_server();
 		$code = (string) ($params["code"] ?? "");
 		$redirect_uri = (string) ($params["redirect_uri"] ?? "");
 		$client_id = (string) ($params["client_id"] ?? "");
@@ -837,9 +842,6 @@ class mcp_server {
 		}
 		$list = $this->ffm_auth_codes->select("code_hash", hash("sha256", $code));
 		foreach ($list as $auth_code) {
-			if ((int) ($auth_code["server_id"] ?? 0) !== (int) ($server["id"] ?? 0)) {
-				continue;
-			}
 			if ((int) ($auth_code["consumed"] ?? 0) === 1 || (int) ($auth_code["expires_at"] ?? 0) <= time()) {
 				continue;
 			}
@@ -867,14 +869,13 @@ class mcp_server {
 			$auth_code["consumed"] = 1;
 			$auth_code["updated_at"] = time();
 			$this->ffm_auth_codes->update($auth_code);
-			$this->issue_token_response((int) $server["id"], (int) $user["id"], (string) ($auth_code["client_id"] ?? ""), (string) ($auth_code["scope"] ?? ""), (string) ($auth_code["resource"] ?? ""));
+			$this->issue_token_response((int) ($auth_code["server_id"] ?? 0), (int) $user["id"], (string) ($auth_code["client_id"] ?? ""), (string) ($auth_code["scope"] ?? ""), (string) ($auth_code["resource"] ?? ""));
 		}
 		http_response_code(400);
 		$this->respond_json(["error" => "invalid_grant"]);
 	}
 
 	private function token_from_refresh_token(Controller $ctl, array $params): void {
-		$server = $this->get_server();
 		$refresh_token = (string) ($params["refresh_token"] ?? "");
 		if ($refresh_token === "") {
 			http_response_code(400);
@@ -882,9 +883,6 @@ class mcp_server {
 		}
 		$list = $this->ffm_tokens->select("refresh_token_hash", hash("sha256", $refresh_token));
 		foreach ($list as $token_row) {
-			if ((int) ($token_row["server_id"] ?? 0) !== (int) ($server["id"] ?? 0)) {
-				continue;
-			}
 			if ((int) ($token_row["revoked"] ?? 0) === 1) {
 				continue;
 			}
@@ -895,7 +893,7 @@ class mcp_server {
 			$token_row["revoked"] = 1;
 			$token_row["updated_at"] = time();
 			$this->ffm_tokens->update($token_row);
-			$this->issue_token_response((int) $server["id"], (int) $user["id"], (string) ($token_row["client_id"] ?? ""), (string) ($token_row["scope"] ?? ""), (string) ($token_row["resource"] ?? ""));
+			$this->issue_token_response((int) ($token_row["server_id"] ?? 0), (int) $user["id"], (string) ($token_row["client_id"] ?? ""), (string) ($token_row["scope"] ?? ""), (string) ($token_row["resource"] ?? ""));
 		}
 		http_response_code(400);
 		$this->respond_json(["error" => "invalid_grant"]);
@@ -927,19 +925,62 @@ class mcp_server {
 		]);
 	}
 
-	private function get_server(): array {
-		$list = $this->ffm_server->getall("sort", SORT_ASC);
-		if (count($list) === 0) {
-			return [
-				"id" => 0,
-				"enabled" => 0,
-				"title" => "FBP MCP Server",
-				"description" => "",
-				"auth_mode" => "oauth2",
-				"default_scope" => "mcp.read mcp.write",
-			];
+	private function current_server(Controller $ctl): array {
+		return $this->get_server($this->request_server_key($ctl));
+	}
+
+	private function request_server_key(Controller $ctl): string {
+		foreach (["server", "server_key"] as $key) {
+			$value = $ctl->GET($key);
+			if ($value === null || $value === "") {
+				$value = $ctl->POST($key);
+			}
+			if (!is_array($value)) {
+				$value = $this->normalize_server_key((string) $value);
+				if ($value !== "") {
+					return $value;
+				}
+			}
 		}
-		return $list[0];
+		return "default";
+	}
+
+	private function normalize_server_key(string $server_key): string {
+		$server_key = trim($server_key);
+		return preg_match('/^[A-Za-z0-9_-]+$/', $server_key) ? $server_key : "";
+	}
+
+	private function get_server(string $server_key = "default"): array {
+		$server_key = $this->normalize_server_key($server_key);
+		if ($server_key === "") {
+			$server_key = "default";
+		}
+		foreach ($this->ffm_server->select("server_key", $server_key) as $server) {
+			return $server;
+		}
+		if ($server_key === "default") {
+			$list = $this->ffm_server->getall("sort", SORT_ASC);
+			if (count($list) > 0) {
+				return $list[0];
+			}
+		}
+		return [
+			"id" => 0,
+			"enabled" => 0,
+			"server_key" => $server_key,
+			"title" => "FBP MCP Server",
+			"description" => "",
+			"auth_mode" => "oauth2",
+			"default_scope" => "mcp.read mcp.write",
+		];
+	}
+
+	private function get_server_by_id(int $server_id): array {
+		if ($server_id <= 0) {
+			return [];
+		}
+		$server = $this->ffm_server->get($server_id);
+		return is_array($server) ? $server : [];
 	}
 
 	private function find_tool_by_name(int $server_id, string $name): ?array {
@@ -1354,13 +1395,15 @@ class mcp_server {
 		return trim((string) ($server["default_scope"] ?? ""));
 	}
 
-	private function supported_scopes(): array {
+	private function supported_scopes(?array $server = null): array {
 		$scopes = [];
-		$server = $this->get_server();
+		$server = $server ?? $this->get_server();
+		$server_id = (int) ($server["id"] ?? 0);
 		foreach ($this->split_scopes((string) ($server["default_scope"] ?? "")) as $scope) {
 			$scopes[$scope] = true;
 		}
-		foreach ($this->ffm_tools->getall() as $tool) {
+		$tools = $server_id > 0 ? $this->ffm_tools->select("server_id", $server_id) : [];
+		foreach ($tools as $tool) {
 			foreach ($this->split_scopes((string) ($tool["required_scope"] ?? "")) as $scope) {
 				$scopes[$scope] = true;
 			}
@@ -1394,6 +1437,7 @@ class mcp_server {
 
 	private function oauth_authorize_params(Controller $ctl): array {
 		$params = [
+			"server" => $this->request_server_key($ctl),
 			"response_type" => $this->oauth_request_param($ctl, "response_type"),
 			"client_id" => $this->oauth_request_param($ctl, "client_id"),
 			"redirect_uri" => $this->oauth_request_param($ctl, "redirect_uri"),
@@ -1456,7 +1500,7 @@ class mcp_server {
 		if ($params["code_challenge_method"] !== "" && !in_array($params["code_challenge_method"], ["S256", "plain"], true)) {
 			return "Unsupported code_challenge_method.";
 		}
-		if ($ctl !== null && ($params["resource"] ?? "") !== "" && $params["resource"] !== $ctl->get_APP_URL("mcp_server", "rpc")) {
+		if ($ctl !== null && ($params["resource"] ?? "") !== "" && $params["resource"] !== $this->resource_url($ctl, $this->current_server($ctl))) {
 			return "resource is invalid.";
 		}
 		return "";
@@ -1578,7 +1622,7 @@ class mcp_server {
 		];
 	}
 
-	private function tool_auth_error(Controller $ctl, string $error): array {
+	private function tool_auth_error(Controller $ctl, array $server, string $error): array {
 		return [
 			"isError" => true,
 			"content" => [[
@@ -1591,7 +1635,7 @@ class mcp_server {
 			],
 			"_meta" => [
 				"mcp/www_authenticate" => [
-					$this->www_authenticate_value($ctl, $error),
+					$this->www_authenticate_value($ctl, $server, $error),
 				],
 			],
 		];
@@ -1601,16 +1645,29 @@ class mcp_server {
 		return $this->app_base_url($ctl);
 	}
 
-	private function oauth_protected_resource_url(Controller $ctl): string {
-		return $this->app_base_url($ctl) . "/.well-known/oauth-protected-resource";
+	private function oauth_protected_resource_url(Controller $ctl, ?array $server = null): string {
+		return $this->mcp_url($ctl, "oauth_protected_resource", $server ?? $this->current_server($ctl));
 	}
 
 	private function normalize_oauth_resource(Controller $ctl, string $resource): string {
 		$resource = trim($resource);
 		if ($resource === "") {
-			return $ctl->get_APP_URL("mcp_server", "rpc");
+			return $this->resource_url($ctl, $this->current_server($ctl));
 		}
 		return $resource;
+	}
+
+	private function resource_url(Controller $ctl, array $server): string {
+		return $this->mcp_url($ctl, "rpc", $server);
+	}
+
+	private function mcp_url(Controller $ctl, string $function, array $server): string {
+		$params = [];
+		$server_key = (string) ($server["server_key"] ?? "default");
+		if ($server_key !== "" && $server_key !== "default") {
+			$params["server"] = $server_key;
+		}
+		return $ctl->get_APP_URL("mcp_server", $function, $params);
 	}
 
 	private function app_base_url(Controller $ctl): string {
@@ -1629,18 +1686,18 @@ class mcp_server {
 		return $scheme . "://" . $host . $uri;
 	}
 
-	private function respond_oauth_http_challenge(Controller $ctl, string $error): void {
+	private function respond_oauth_http_challenge(Controller $ctl, array $server, string $error): void {
 		http_response_code(401);
-		header('WWW-Authenticate: ' . $this->www_authenticate_value($ctl, $error));
+		header('WWW-Authenticate: ' . $this->www_authenticate_value($ctl, $server, $error));
 		$this->respond_json([
 			"ok" => false,
 			"error" => $error,
-			"resource_metadata" => $this->oauth_protected_resource_url($ctl),
+			"resource_metadata" => $this->oauth_protected_resource_url($ctl, $server),
 		]);
 	}
 
-	private function www_authenticate_value(Controller $ctl, string $error): string {
-		return 'Bearer resource_metadata="' . $this->oauth_protected_resource_url($ctl) . '", error="' . $error . '", error_description="OAuth authorization is required."';
+	private function www_authenticate_value(Controller $ctl, array $server, string $error): string {
+		return 'Bearer resource_metadata="' . $this->oauth_protected_resource_url($ctl, $server) . '", error="' . $error . '", error_description="OAuth authorization is required."';
 	}
 
 	private function json_result($id, $result): array {

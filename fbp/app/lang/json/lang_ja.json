@@ -250,6 +250,7 @@
   "embed_app.validation.class_name_format": "英字で始め、英数字とアンダースコアのみ使用できます。",
   "mcp_manage.description": "ChatGPTなどのMCPクライアントへ公開するServerとToolを管理します。公開範囲はこの画面の設定だけで決まります。",
   "mcp_manage.server_settings": "Server設定",
+  "mcp_manage.add_server": "Serverを追加",
   "mcp_manage.add_tool": "Toolを追加",
   "mcp_manage.logs": "ログ",
   "mcp_manage.oauth_tokens": "OAuth連携",
