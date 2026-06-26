@@ -66,7 +66,7 @@ class mcp_server {
 		$this->respond_json([
 			"resource" => $resource,
 			"authorization_servers" => [
-				$this->oauth_issuer($ctl),
+				$this->oauth_issuer($ctl, $server),
 			],
 			"scopes_supported" => $this->supported_scopes($server),
 			"bearer_methods_supported" => ["header"],
@@ -76,7 +76,7 @@ class mcp_server {
 	function oauth_authorization_server(Controller $ctl) {
 		$server = $this->current_server($ctl);
 		$this->respond_json([
-			"issuer" => $this->oauth_issuer($ctl),
+			"issuer" => $this->oauth_issuer($ctl, $server),
 			"authorization_endpoint" => $this->mcp_url($ctl, "authorize", $server),
 			"token_endpoint" => $ctl->get_APP_URL("mcp_server", "token"),
 			"response_types_supported" => ["code"],
@@ -959,7 +959,39 @@ class mcp_server {
 				}
 			}
 		}
+		$resource = $ctl->GET("resource");
+		if ($resource === null || $resource === "") {
+			$resource = $ctl->POST("resource");
+		}
+		if (!is_array($resource)) {
+			$value = $this->server_key_from_resource((string) $resource);
+			if ($value !== "") {
+				return $value;
+			}
+		}
 		return "default";
+	}
+
+	private function server_key_from_resource(string $resource): string {
+		$resource = trim($resource);
+		if ($resource === "") {
+			return "";
+		}
+		$query = (string) parse_url($resource, PHP_URL_QUERY);
+		if ($query === "") {
+			return "";
+		}
+		parse_str($query, $params);
+		foreach (["server", "server_key"] as $key) {
+			$value = $params[$key] ?? "";
+			if (!is_array($value)) {
+				$value = $this->normalize_server_key((string) $value);
+				if ($value !== "") {
+					return $value;
+				}
+			}
+		}
+		return "";
 	}
 
 	private function normalize_server_key(string $server_key): string {
@@ -1741,7 +1773,12 @@ class mcp_server {
 		];
 	}
 
-	private function oauth_issuer(Controller $ctl): string {
+	private function oauth_issuer(Controller $ctl, ?array $server = null): string {
+		$server = $server ?? $this->current_server($ctl);
+		$server_key = (string) ($server["server_key"] ?? "default");
+		if ($server_key !== "" && $server_key !== "default") {
+			return $this->mcp_url($ctl, "oauth_authorization_server", $server);
+		}
 		return $this->app_base_url($ctl);
 	}
 
