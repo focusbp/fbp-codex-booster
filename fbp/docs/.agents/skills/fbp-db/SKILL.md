@@ -66,6 +66,13 @@ description: Manage FBP DB schema using CLI (db tables/fields), relation setup, 
 - `text + format_check=date_yyyy_mm_dd` での日付実装は新規作成で禁止する。
 - 既存が `text` の場合は、改修時に `date` へ移行可否を確認し、不可の場合のみ理由を作業ログに明記して暫定維持する。
 
+## field length policy
+- 固定長DBの `db_fields.length` は 0 以下にしない。
+- CLI、DB管理画面、管理APIでは、型ごとの既定長を使って `length <= 0` を補正する。
+- 時刻項目は `type=time`、`length=8` を使う。`HH:MM` を基本にし、秒付き互換も考慮して8バイトを確保する。
+- `db_fields` を変更したら `.fmt` 再生成後に `describe` でフィールドサイズを確認し、実データがあるテーブルでは `data_list` / `getall` で `changeFormat()` が通ることも確認する。
+- 旧 `.dat` ヘッダに `length=0` が残る場合、通常読込で握りつぶさず、`changeFormat()` の旧フォーマット変換中だけ空欄として読み込む。
+
 ## text field length policy
 - ノートの `text` / `textarea` 項目で「500文字」など文字数で長さを指定された場合は、日本語3バイト想定で DB の length を `指定文字数 * 3` にする。
 - 例: `500文字` 指定なら `length=1500`、`1000文字` 指定なら `length=3000`。

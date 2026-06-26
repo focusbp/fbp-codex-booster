@@ -1450,6 +1450,7 @@ function cli_normalize_db_field_payload(array $data): array {
 		"radio" => 3,
 		"date" => 15,
 		"datetime" => 15,
+		"time" => 8,
 		"year_month" => 15,
 		"color" => 15,
 		"file" => 24,

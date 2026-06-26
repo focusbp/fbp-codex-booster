@@ -18,6 +18,7 @@ class db {
 	    , "radio" => "Radio"
 	    , "date" => "Date"
 	    , "datetime" => "Date & Time"
+	    , "time" => "Time"
 	    , "year_month" => "Year/Month"
 	    , "color" => "Color"
 	    , "file" => "File"
@@ -37,6 +38,7 @@ class db {
 	    , "radio" => 3
 	    , "date" => 15
 	    , "datetime" => 15
+	    , "time" => 8
 	    , "year_month" => 15
 	    , "color" => 15
 	    , "file" => 24
@@ -235,10 +237,22 @@ class db {
 	function get_default_length(Controller $ctl) {
 		$type = $ctl->POST("type");
 		$arr = [
-		    "length" => $this->type_length[$type]
+		    "length" => $this->default_field_length((string) $type)
 		];
 		$ctl->res_json($arr);
 		exit;
+	}
+
+	private function default_field_length(string $type): int {
+		return (int) ($this->type_length[$type] ?? 255);
+	}
+
+	private function normalize_field_length(array &$data): void {
+		$type = (string) ($data["type"] ?? "");
+		$length = (int) ($data["length"] ?? 0);
+		if ($length <= 0) {
+			$data["length"] = $this->default_field_length($type);
+		}
 	}
 
 	//index page
@@ -302,7 +316,7 @@ class db {
 		if (!empty($post['parent_tb_id'])) {
 			$data['db_id'] = $id;
 			$data['type'] = 'number';
-			$data["length"] = $this->type_length[$data["type"]];
+			$data["length"] = $this->default_field_length((string) $data["type"]);
 			$data['parameter_name'] = 'parent_id';
 			$data['parameter_title'] = 'Parent ID';
 			$this->fmt_db_fields->insert($data);
@@ -554,7 +568,7 @@ class db {
 				$f = [];
 				$f['db_id'] = $id;
 				$f['type'] = 'number';
-				$f["length"] = $this->type_length[$f["type"]];
+				$f["length"] = $this->default_field_length((string) $f["type"]);
 				$f['parameter_name'] = 'parent_id';
 				$f['parameter_title'] = 'Parent ID';
 				$this->fmt_db_fields->insert($f);
@@ -570,7 +584,7 @@ class db {
 				$f = [];
 				$f['db_id'] = $id;
 				$f['type'] = 'number';
-				$f["length"] = $this->type_length[$f["type"]];
+				$f["length"] = $this->default_field_length((string) $f["type"]);
 				$f['parameter_name'] = 'sort';
 				$f['parameter_title'] = 'Sort';
 				$this->fmt_db_fields->insert($f);
@@ -903,7 +917,7 @@ class db {
 
 
 		// Set default length
-		$post["length"] = $this->type_length[$type];
+		$post["length"] = $this->default_field_length((string) $type);
 		$post["display_format"] = $this->normalize_display_format((string) $type, $post["display_format"] ?? 0);
 
 		// sortを調べる
@@ -1081,11 +1095,6 @@ class db {
 		}
 		$this->validate_parent_relation_field($ctl, $post, $is_table_only);
 
-		// length
-		if (empty($post["length"])) {
-			$ctl->res_error_message("length", $ctl->t("db.validation.parameter_length_required"));
-		}
-
 		if ($ctl->count_res_error_message() > 0) {
 			return;
 		}
@@ -1094,6 +1103,7 @@ class db {
 		foreach ($_POST as $key => $value) {
 			$data[$key] = $value;
 		}
+		$this->normalize_field_length($data);
 		$data["display_format"] = $this->normalize_display_format((string) ($data["type"] ?? ""), $post["display_format"] ?? 0);
 
 		if (!in_array($type, ["dropdown", "checkbox", "radio"])) {
@@ -1568,7 +1578,7 @@ class db {
 			$f = [];
 			$f['db_id'] = $db_id;
 			$f['type'] = $def["type"];
-			$f["length"] = $this->type_length[$f["type"]];
+			$f["length"] = $this->default_field_length((string) $f["type"]);
 			$f['parameter_name'] = $def["parameter_name"];
 			$f['parameter_title'] = $def["parameter_title"];
 			$f['validation'] = 0;

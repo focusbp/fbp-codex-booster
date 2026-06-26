@@ -204,6 +204,7 @@ class db_api {
 			$this->respond_error(400, "invalid_arguments", "data must be an object");
 		}
 		unset($data["id"]);
+		$data = $this->normalize_db_field_data_for_write($table, $resolved["resolved_class"], $data);
 
 		$ffm = $ctl->db($table, $resolved["resolved_class"]);
 		$id = $ffm->insert($data);
@@ -240,6 +241,7 @@ class db_api {
 		}
 
 		$data["id"] = (int) $data["id"];
+		$data = $this->normalize_db_field_data_for_write($table, $resolved["resolved_class"], $data);
 		$ffm = $ctl->db($table, $resolved["resolved_class"]);
 		$before = $ffm->get($data["id"]);
 		if ($before === null) {
@@ -259,6 +261,39 @@ class db_api {
 			"id" => $data["id"],
 			"item" => $item,
 		]);
+	}
+
+	private function normalize_db_field_data_for_write(string $table, string $resolved_class, array $data): array {
+		if ($table !== "db_fields" || $resolved_class !== "db") {
+			return $data;
+		}
+		$type = (string) ($data["type"] ?? "");
+		$default_lengths = [
+			"text" => 255,
+			"number" => 24,
+			"float" => 24,
+			"textarea" => 1000,
+			"textarea_links" => 1000,
+			"markdown" => 1000,
+			"dropdown" => 24,
+			"checkbox" => 255,
+			"radio" => 3,
+			"date" => 15,
+			"datetime" => 15,
+			"time" => 8,
+			"year_month" => 15,
+			"color" => 15,
+			"file" => 24,
+			"image" => 24,
+			"vimeo" => 255,
+		];
+		if ($type !== "" && isset($default_lengths[$type])) {
+			$length = (int) ($data["length"] ?? 0);
+			if ($length <= 0) {
+				$data["length"] = $default_lengths[$type];
+			}
+		}
+		return $data;
 	}
 
 	function delete(Controller $ctl) {
