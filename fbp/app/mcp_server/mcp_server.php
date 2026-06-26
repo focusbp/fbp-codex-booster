@@ -303,16 +303,38 @@ class mcp_server {
 			$result = $this->execute_note_tool($ctl, $tool, $args, $subject);
 			$this->log_call($server, $tool, $subject, "tools/call", $args, "ok", "");
 			return [
-				"content" => [[
-					"type" => "text",
-					"text" => (string) ($result["message"] ?? "Done."),
-				]],
+				"content" => $this->tool_content_from_result($result),
 				"structuredContent" => $result,
 			];
 		} catch (Throwable $e) {
 			$this->log_call($server, $tool, $subject, "tools/call", $args, "error", $e->getMessage());
 			return $this->tool_error($e->getMessage());
 		}
+	}
+
+	private function tool_content_from_result(array $result): array {
+		$content = [[
+			"type" => "text",
+			"text" => (string) ($result["message"] ?? "Done."),
+		]];
+		$data = is_array($result["data"] ?? null) ? $result["data"] : [];
+		$images = is_array($data["mcp_content_images"] ?? null) ? $data["mcp_content_images"] : [];
+		foreach ($images as $image) {
+			if (!is_array($image)) {
+				continue;
+			}
+			$base64 = trim((string) ($image["data_base64"] ?? ($image["data"] ?? "")));
+			$mimeType = trim((string) ($image["mime_type"] ?? ($image["mimeType"] ?? "")));
+			if ($base64 === "" || $mimeType === "") {
+				continue;
+			}
+			$content[] = [
+				"type" => "image",
+				"data" => $base64,
+				"mimeType" => $mimeType,
+			];
+		}
+		return $content;
 	}
 
 	private function execute_note_tool(Controller $ctl, array $tool, array $args, ?McpSubject $subject = null): array {

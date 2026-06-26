@@ -59,6 +59,7 @@ class fixed_file_manager implements FFM {
 	private $format_source = "fmt";
 	private $operation_log_dir;
 	private $strict_field_length = false;
+	private $allow_zero_length_read_for_change_format = false;
 
 	private function is_empty_filter_itemname($iname): bool {
 		if (is_array($iname)) {
@@ -1350,7 +1351,11 @@ class fixed_file_manager implements FFM {
 		foreach ($this->format as $f) {
 			//データを読み込む
 			if ($f["name"] != "id") {
-				$arr[$f["name"]] = fread($this->hf, $f["size"]);
+				if ((int) $f["size"] === 0 && $this->allow_zero_length_read_for_change_format) {
+					$arr[$f["name"]] = "";
+				} else {
+					$arr[$f["name"]] = fread($this->hf, $f["size"]);
+				}
 				//形式を変換
 				if ($f["type"] == "N") {
 					$arr[$f["name"]] = (int) $arr[$f["name"]];
@@ -1539,9 +1544,15 @@ class fixed_file_manager implements FFM {
 				$this->seek(1);
 
 				//現データを読み取りながらTMPに書き込む
-				while (($d = $this->next()) != null) {
-					$this->writedata($d, $h_tmp, $newf);
-					$converted_count++;
+				$previous_allow_zero_length_read = $this->allow_zero_length_read_for_change_format;
+				$this->allow_zero_length_read_for_change_format = true;
+				try {
+					while (($d = $this->next()) != null) {
+						$this->writedata($d, $h_tmp, $newf);
+						$converted_count++;
+					}
+				} finally {
+					$this->allow_zero_length_read_for_change_format = $previous_allow_zero_length_read;
 				}
 
 				fflush($h_tmp);
