@@ -842,6 +842,9 @@ class Controller_class implements Controller {
 		$ffm_upload = $this->db("file", "upload");
 
 		$data = $this->db($table_name)->get($id);
+		if (!is_array($data) || empty($data)) {
+			return 0;
+		}
 
 		// 複製
 		$new_id = $this->db($table_name)->insert($data);

@@ -1012,6 +1012,10 @@ class db_exe {
 		$id = $ctl->decrypt_post("id");
 		
 		$new_id = $ctl->duplicate_rows($this->table_name, $id);
+		if (!$new_id) {
+			$ctl->show_notification_text($ctl->t("db_exe.validation.target_data_not_found"), 4, "#B42318", "#FFF", 18, 620);
+			return;
+		}
 		$data = $ctl->db($this->table_name)->get($new_id);
 		
 		// Update the table

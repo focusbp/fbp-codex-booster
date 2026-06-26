@@ -523,6 +523,7 @@
   "restore.success": "恢复成功。",
   "db_exe.validation.parent_id_missing": "缺少 Parent ID。",
   "db_exe.validation.child_table_required": "此笔记不能作为子列表打开。请从父笔记重新打开。",
+  "db_exe.validation.target_data_not_found": "未找到目标数据。",
   "user.page_title": "用户",
   "user.dialog.add": "添加用户",
   "user.dialog.edit": "编辑用户",

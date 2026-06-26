@@ -33,6 +33,7 @@
   "db.notification.parameter_exists": "{parameter_name} はもうあるで。",
   "db.notification.api_user_id_edit_forbidden": "api_user_id は編集でけへんで。",
   "db.notification.api_user_id_delete_forbidden": "API scope が user やから api_user_id は消されへんで。",
+  "db_exe.validation.target_data_not_found": "対象データが見つからへんで。",
   "db_additionals.validation.class_name_format": "class_name は英字始まりで、英数字・ハイフン・アンダースコアだけやで。",
   "db_additionals.validation.function_name_format": "function_name は英字始まりで、英数字とアンダースコアだけやで。",
   "db_additionals.validation.class_name_exists": "その class_name、もうあるで。",
