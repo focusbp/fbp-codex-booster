@@ -64,5 +64,7 @@ php fbp/docs/.agents/skills/fbp-app-samples/scripts/install_mcp_service_app.php
 - Keep public login and MCP login sessions separate even when both use `service_member`.
 - Do not expose Note CRUD directly for member-owned data unless the server/tool layer enforces member ownership. This sample uses App Action for explicit filtering.
 - Do not trust client-supplied member IDs. Use `McpActionRequest::subjectId()` and verify row ownership before update/delete.
+- Define MCP input patterns in both JSON Schema and runtime validation. Use `McpInputValidator::*Schema()` in `getInputSchema()` and `McpInputValidator::*()` in `execute()` or operation handlers.
+- For time, date, year-month, integer, decimal, and enum values, return a clear `ToolError` instead of accepting memo text, units, or mixed formats. This lets MCP clients retry with the correct argument.
 - Keep the portal small. For most MCP-first services, endpoint URL display is enough.
 - Add external API enrichment, images, or `chart_widget_spec` only in domain-specific samples.

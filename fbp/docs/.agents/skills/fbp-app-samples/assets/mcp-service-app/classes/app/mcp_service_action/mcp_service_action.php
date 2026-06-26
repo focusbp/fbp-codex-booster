@@ -9,11 +9,11 @@ class mcp_service_action implements McpActionInterface {
 					"type" => "string",
 					"enum" => ["list", "create_item", "update_item", "delete_item"],
 				],
-				"item_id" => ["type" => "integer"],
-				"title" => ["type" => "string"],
+				"item_id" => McpInputValidator::integerSchema("Target item id."),
+				"title" => McpInputValidator::stringSchema("Item title.", ["maxLength" => 200]),
 				"body" => ["type" => "string"],
-				"status" => ["type" => "string", "enum" => ["active", "archived"]],
-				"limit" => ["type" => "integer", "minimum" => 1, "maximum" => 100],
+				"status" => McpInputValidator::enumSchema("Item status.", ["values" => ["active", "archived"]]),
+				"limit" => McpInputValidator::integerSchema("Maximum rows to return.", ["minimum" => 1, "maximum" => 100]),
 			],
 			"required" => ["operation"],
 			"additionalProperties" => false,
@@ -27,9 +27,16 @@ class mcp_service_action implements McpActionInterface {
 			throw new Exception("Service member could not be resolved.");
 		}
 
-		$operation = $request->string("operation", "list");
+		$operation = McpInputValidator::enum($request, "operation", [
+			"required" => true,
+			"values" => ["list", "create_item", "update_item", "delete_item"],
+		]);
 		if ($operation === "list") {
-			return $this->listItems($ctl, $memberId, $request->int("limit", 20));
+			return $this->listItems($ctl, $memberId, McpInputValidator::integer($request, "limit", [
+				"default" => 20,
+				"minimum" => 1,
+				"maximum" => 100,
+			]));
 		}
 		if ($operation === "create_item") {
 			return $this->createItem($ctl, $memberId, $request);
@@ -38,7 +45,7 @@ class mcp_service_action implements McpActionInterface {
 			return $this->updateItem($ctl, $memberId, $request);
 		}
 		if ($operation === "delete_item") {
-			return $this->deleteItem($ctl, $memberId, $request->int("item_id", 0));
+			return $this->deleteItem($ctl, $memberId, McpInputValidator::integer($request, "item_id", ["required" => true, "minimum" => 1]));
 		}
 		throw new Exception("Unknown operation: " . $operation);
 	}
@@ -95,15 +102,15 @@ class mcp_service_action implements McpActionInterface {
 	}
 
 	private function createItem(Controller $ctl, int $memberId, McpActionRequest $request): McpActionResult {
-		$title = $request->string("title");
-		if ($title === "") {
-			throw new Exception("title is required.");
-		}
+		$title = McpInputValidator::string($request, "title", ["required" => true, "maxLength" => 200]);
 		$insert = [
 			"parent_id" => $memberId,
 			"title" => $title,
 			"body" => $request->string("body"),
-			"status" => $this->normalizeStatus($request->string("status", "active")),
+			"status" => $this->normalizeStatus(McpInputValidator::enum($request, "status", [
+				"default" => "active",
+				"values" => ["active", "archived"],
+			])),
 			"created_at" => date("Y-m-d H:i:s"),
 			"updated_at" => date("Y-m-d H:i:s"),
 		];
@@ -112,17 +119,22 @@ class mcp_service_action implements McpActionInterface {
 	}
 
 	private function updateItem(Controller $ctl, int $memberId, McpActionRequest $request): McpActionResult {
-		$id = $this->ownedItemId($ctl, $memberId, $request->int("item_id", 0));
+		$id = $this->ownedItemId($ctl, $memberId, McpInputValidator::integer($request, "item_id", ["required" => true, "minimum" => 1]));
 		if ($id <= 0) {
 			throw new Exception("Item was not found or is not owned by this member.");
 		}
 		$row = $ctl->db("service_item")->get($id);
-		foreach (["title", "body", "status"] as $field) {
-			if ($request->has($field)) {
-				$row[$field] = $field === "status"
-					? $this->normalizeStatus($request->string($field))
-					: $request->string($field);
-			}
+		if ($request->has("title")) {
+			$row["title"] = McpInputValidator::string($request, "title", ["required" => true, "maxLength" => 200]);
+		}
+		if ($request->has("body")) {
+			$row["body"] = $request->string("body");
+		}
+		if ($request->has("status")) {
+			$row["status"] = $this->normalizeStatus(McpInputValidator::enum($request, "status", [
+				"required" => true,
+				"values" => ["active", "archived"],
+			]));
 		}
 		$row["updated_at"] = date("Y-m-d H:i:s");
 		$ctl->db("service_item")->update($row);

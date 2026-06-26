@@ -21,6 +21,7 @@ description: Build, maintain, or adjust FBP Standard Screen note management usin
 4. 表示は `fields_view_direct` を優先。
 5. 反映範囲を `list/add/edit/delete` で確認し、親ありなら `list_on_side` も確認する。サイドパネル固有の設計・検証は `fbp-side-panel` に従う。
 6. 保存時の共通副作用は、画面専用処理ではなく対象ノートの `post_action_class` に寄せ、Standard Screen、Original Screen、MCP Server の Note CRUD で同じ動きにする。
+7. `screen_fields` 登録・変更後は必ず `standard_screen_check` を実行し、フラグの選択式化、内部項目/ raw ID の露出、空の画面定義を確認する。
 
 ## default screen_fields policy
 - ユーザーから項目指定がない場合、Standard Screen の `screen_fields` は次の方針で設定する。
@@ -67,5 +68,6 @@ description: Build, maintain, or adjust FBP Standard Screen note management usin
 - `constant_array` にある選択肢ラベル（status/type等）はハードコードしない。`$ctl->get_constant_array()` または `fields_view_direct` でフレームワーク定義を参照する。
 - URL生成は `$ctl->get_APP_URL()` を必須とし、`app.php?class=...` や `$_SERVER` 連結での直書きURLを増やさない。
 - `screen_fields` 登録前に、日付項目のDB型が `date` になっていることを確認する。
-- `screen_fields` 登録後は、`db_exe/page` / `rows` やブラウザ確認で、有効状態項目が選択式になっていること、`sort` が通常の list/add/edit/search に出ていないこと、Manual Sort が必要なテーブルでは `list_type=Manual Sort` になっていることを確認する。
+- `screen_fields` 登録後は、`standard_screen_check --json='{"tb_name":"<tb_name>"}'` を実行し、必要に応じて `db_exe/page` / `rows` やブラウザ確認も行う。有効状態項目が選択式になっていること、`sort` が通常の list/add/edit/search に出ていないこと、Manual Sort が必要なテーブルでは `list_type=Manual Sort` になっていることを確認する。
+- `standard_screen_check` の `empty_screen_fields` は警告扱い。意図的に空にしている画面なら無視してよいが、必要な `screen_fields` の登録漏れがないか確認する。
 - PDF生成を `db_additionals` ボタンから実行する場合は、いったんダイアログを表示し、ダイアログ内 `download-link` でダウンロードさせる（`ajax-link` でPDFダウンロードは不可）。

@@ -51,6 +51,9 @@ description: Execute and verify FBP features through cli.php commands including 
   `php <app-root>/fbp/cli.php app_check --json='{"class":"<class>","function":"<function>","get":{"key":"abc"}}'`
 - screen_fields の確認:
   `php <app-root>/fbp/cli.php screen_fields_list --json='{"tb_name":"<tb_name>","screen_name":"<screen_name>"}'`
+- 標準画面チェッカー:
+  `php <app-root>/fbp/cli.php standard_screen_check --json='{"tb_name":"<tb_name>"}'`
+  `screen_fields` 登録・変更後に実行し、`ERROR` は修正、`WARN` は意図確認する。
 - 生の CLI でしか表せない場合:
   `php <app-root>/fbp/cli.php <command> --json='{}'`
 

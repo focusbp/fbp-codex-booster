@@ -248,8 +248,7 @@ function cli_field_format_type(array $field, $ffm_constant_array = null, $ffm_va
 	if ($field["type"] == "number"
 		|| $field["type"] == "radio"
 		|| $field["type"] == "datetime"
-		|| $field["type"] == "date"
-		|| $field["type"] == "time") {
+		|| $field["type"] == "date") {
 		return "N";
 	}
 	if ($field["type"] == "dropdown") {
@@ -1812,6 +1811,247 @@ function cli_get_table_field_map($ffm_db_admin, $ffm_db_fields_admin) {
 	return $map;
 }
 
+function cli_standard_screen_check_add_issue(array &$issues, string $severity, array $table, array $screen_field, array $field, string $rule, string $message, string $recommendation): void {
+	$issues[] = [
+		"severity" => $severity,
+		"rule" => $rule,
+		"table" => (string) ($table["tb_name"] ?? ""),
+		"db_id" => (int) ($table["id"] ?? 0),
+		"screen_name" => (string) ($screen_field["screen_name"] ?? ""),
+		"parameter_name" => (string) ($field["parameter_name"] ?? ($screen_field["parameter_name"] ?? "")),
+		"field_type" => (string) ($field["type"] ?? ""),
+		"constant_array_name" => (string) ($field["constant_array_name"] ?? ""),
+		"message" => $message,
+		"recommendation" => $recommendation,
+	];
+}
+
+function cli_standard_screen_check_is_standard_table(array $table): bool {
+	$value = (string) ($table["screen_build_type"] ?? "0");
+	return ($value === "" || $value === "0" || strtolower($value) === "standard screen" || strtolower($value) === "standard");
+}
+
+function cli_standard_screen_check_is_flag_field(array $field): bool {
+	$name = strtolower((string) ($field["parameter_name"] ?? ""));
+	$title = (string) ($field["parameter_title"] ?? "");
+	if (in_array($name, ["enabled", "is_active", "active", "public_enabled", "visible", "published"], true)) {
+		return true;
+	}
+	if (preg_match('/(^|_)(flag|flg)$/', $name) === 1) {
+		return true;
+	}
+	if (mb_strpos($title, "有効") !== false || mb_strpos($title, "公開") !== false) {
+		return in_array((string) ($field["type"] ?? ""), ["number", "text"], true);
+	}
+	return false;
+}
+
+function cli_standard_screen_check_is_internal_field_name(string $name): bool {
+	return in_array($name, ["id", "parent_id", "sort", "created_at", "updated_at", "created_by", "updated_by"], true);
+}
+
+function cli_standard_screen_check_is_relation_dropdown(array $field): bool {
+	return (string) ($field["type"] ?? "") === "dropdown"
+		&& strpos((string) ($field["constant_array_name"] ?? ""), "table/") === 0;
+}
+
+function cli_standard_screen_check_is_raw_id_field(array $field): bool {
+	$name = (string) ($field["parameter_name"] ?? "");
+	if (!preg_match('/(^id$|_id$)/', $name)) {
+		return false;
+	}
+	if (in_array($name, ["id", "parent_id"], true)) {
+		return true;
+	}
+	if (cli_standard_screen_check_is_relation_dropdown($field)) {
+		return false;
+	}
+	return in_array((string) ($field["type"] ?? ""), ["number", "text"], true);
+}
+
+function cli_standard_screen_check_screen_names(array $data): array {
+	$default = ["list", "add", "edit", "delete", "search", "list_on_side"];
+	if (isset($data["screen_name"]) && trim((string) $data["screen_name"]) !== "") {
+		return [trim((string) $data["screen_name"])];
+	}
+	if (isset($data["screen_names"]) && is_array($data["screen_names"])) {
+		$out = [];
+		foreach ($data["screen_names"] as $name) {
+			$name = trim((string) $name);
+			if ($name !== "") {
+				$out[] = $name;
+			}
+		}
+		return empty($out) ? $default : array_values(array_unique($out));
+	}
+	return $default;
+}
+
+function cli_standard_screen_check($ffm_db_admin, $ffm_db_fields_admin, $ffm_screen_fields_admin, array $data): array {
+	$tables = $ffm_db_admin->getall("sort", SORT_ASC);
+	$fields = $ffm_db_fields_admin->getall("sort", SORT_ASC);
+	$screen_fields = $ffm_screen_fields_admin->getall("sort", SORT_ASC);
+	$screen_names = cli_standard_screen_check_screen_names($data);
+	$standard_only = !array_key_exists("standard_only", $data) || (int) $data["standard_only"] === 1;
+
+	$table_by_id = [];
+	$field_by_id = [];
+	$fields_by_db = [];
+	foreach ($tables as $table) {
+		$table_by_id[(int) ($table["id"] ?? 0)] = $table;
+	}
+	foreach ($fields as $field) {
+		$id = (int) ($field["id"] ?? 0);
+		$db_id = (int) ($field["db_id"] ?? 0);
+		$field_by_id[$id] = $field;
+		if (!isset($fields_by_db[$db_id])) {
+			$fields_by_db[$db_id] = [];
+		}
+		$fields_by_db[$db_id][(string) ($field["parameter_name"] ?? "")] = $field;
+	}
+
+	$screen_by_table = [];
+	foreach ($screen_fields as $screen_field) {
+		$tb = (string) ($screen_field["tb_name"] ?? "");
+		$sn = (string) ($screen_field["screen_name"] ?? "");
+		if ($tb === "" || !in_array($sn, $screen_names, true)) {
+			continue;
+		}
+		if (!isset($screen_by_table[$tb])) {
+			$screen_by_table[$tb] = [];
+		}
+		$screen_by_table[$tb][] = $screen_field;
+	}
+
+	$issues = [];
+	$checked_tables = 0;
+	$checked_screen_fields = 0;
+	$target_tb_name = trim((string) ($data["tb_name"] ?? ""));
+	$target_db_id = isset($data["db_id"]) ? (int) $data["db_id"] : 0;
+
+	foreach ($tables as $table) {
+		$db_id = (int) ($table["id"] ?? 0);
+		$tb_name = (string) ($table["tb_name"] ?? "");
+		if ($target_db_id > 0 && $db_id !== $target_db_id) {
+			continue;
+		}
+		if ($target_tb_name !== "" && $tb_name !== $target_tb_name) {
+			continue;
+		}
+		if ($standard_only && !cli_standard_screen_check_is_standard_table($table)) {
+			continue;
+		}
+		$checked_tables++;
+		$table_screen_fields = $screen_by_table[$tb_name] ?? [];
+		$count_by_screen = [];
+		foreach ($table_screen_fields as $screen_field_for_count) {
+			$count_screen_name = (string) ($screen_field_for_count["screen_name"] ?? "");
+			if (!isset($count_by_screen[$count_screen_name])) {
+				$count_by_screen[$count_screen_name] = 0;
+			}
+			$count_by_screen[$count_screen_name]++;
+		}
+		foreach ($screen_names as $screen_name_for_count) {
+			if (($count_by_screen[$screen_name_for_count] ?? 0) > 0) {
+				continue;
+			}
+			cli_standard_screen_check_add_issue(
+				$issues,
+				"WARN",
+				$table,
+				["screen_name" => $screen_name_for_count],
+				["parameter_name" => "", "type" => ""],
+				"empty_screen_fields",
+				"No fields are configured for " . $screen_name_for_count . " screen.",
+				"Add necessary screen_fields, or ignore this warning if the empty screen is intentional."
+			);
+		}
+		foreach ($table_screen_fields as $screen_field) {
+			$checked_screen_fields++;
+			$parameter_name = (string) ($screen_field["parameter_name"] ?? "");
+			$field_id = (int) ($screen_field["db_fields_id"] ?? 0);
+			$field = $field_id > 0 && isset($field_by_id[$field_id])
+				? $field_by_id[$field_id]
+				: ($fields_by_db[$db_id][$parameter_name] ?? ["parameter_name" => $parameter_name]);
+			$screen_name = (string) ($screen_field["screen_name"] ?? "");
+			$field_name = (string) ($field["parameter_name"] ?? $parameter_name);
+			$field_type = (string) ($field["type"] ?? "");
+
+			if (in_array($screen_name, ["add", "edit"], true)) {
+				if (cli_standard_screen_check_is_internal_field_name($field_name)) {
+					cli_standard_screen_check_add_issue(
+						$issues,
+						"ERROR",
+						$table,
+						$screen_field,
+						$field,
+						"internal_field_on_form",
+						$field_name . " is shown on " . $screen_name . " screen.",
+						"Remove " . $field_name . " from screen_fields for add/edit."
+					);
+				}
+				if (cli_standard_screen_check_is_raw_id_field($field)) {
+					cli_standard_screen_check_add_issue(
+						$issues,
+						"ERROR",
+						$table,
+						$screen_field,
+						$field,
+						"raw_id_on_form",
+						$field_name . " is shown as a raw ID on " . $screen_name . " screen.",
+						"Remove raw ID fields from add/edit, or use a table dropdown if users must select the related note."
+					);
+				}
+			}
+
+			if ($field_name === "sort" && in_array($screen_name, ["list", "add", "edit", "search", "list_on_side"], true)) {
+				cli_standard_screen_check_add_issue(
+					$issues,
+					in_array($screen_name, ["add", "edit"], true) ? "ERROR" : "WARN",
+					$table,
+					$screen_field,
+					$field,
+					"sort_visible",
+					"sort is included in " . $screen_name . " screen.",
+					"Use sort only as an internal Manual Sort field and remove it from normal screen_fields."
+				);
+			}
+
+			if (cli_standard_screen_check_is_flag_field($field) && !in_array($field_type, ["dropdown", "checkbox"], true)) {
+				cli_standard_screen_check_add_issue(
+					$issues,
+					"WARN",
+					$table,
+					$screen_field,
+					$field,
+					"flag_not_selectable",
+					$field_name . " looks like a flag but field type is " . $field_type . ".",
+					"Use dropdown with 0/1 labels, or checkbox when the UI intentionally uses a checkbox."
+				);
+			}
+		}
+	}
+
+	$summary = ["ERROR" => 0, "WARN" => 0, "INFO" => 0];
+	foreach ($issues as $issue) {
+		$severity = (string) ($issue["severity"] ?? "INFO");
+		if (!isset($summary[$severity])) {
+			$summary[$severity] = 0;
+		}
+		$summary[$severity]++;
+	}
+
+	return [
+		"ok" => true,
+		"passed" => ($summary["ERROR"] === 0),
+		"checked_tables" => $checked_tables,
+		"checked_screen_fields" => $checked_screen_fields,
+		"screen_names" => $screen_names,
+		"summary" => $summary,
+		"issues" => $issues,
+	];
+}
+
 if ($command === "db_additionals_list") {
 	$list = $ffm_additionals->getall("id", SORT_DESC);
 	$out = [
@@ -2967,6 +3207,17 @@ if ($command === "screen_fields_list") {
 	exit(0);
 }
 
+if ($command === "standard_screen_check") {
+	[$ok, $err, $data] = cli_get_json_arg($argv);
+	if (!$ok) {
+		fwrite(STDERR, $err . "\n");
+		exit(1);
+	}
+	$out = cli_standard_screen_check($ffm_db_admin, $ffm_db_fields_admin, $ffm_screen_fields_admin, $data);
+	echo json_encode($out, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+	exit($out["passed"] ? 0 : 2);
+}
+
 if ($command === "screen_fields_add") {
 	[$ok, $err, $data] = cli_get_json_arg($argv);
 	if (!$ok) {
@@ -3358,6 +3609,6 @@ if ($command === "db_schema") {
 	exit(0);
 }
 
-fwrite(STDERR, "Usage: php cli.php db_schema | setting_get | setting_edit --json='{}' | app_call --json='{}' | app_check --json='{}' | db_additionals_list | db_additionals_add --json='{}' | db_additionals_edit --json='{}' | db_additionals_delete --json='{}' | db_additionals_generate --json='{\"id\":1}' | db_tables_list | db_tables_add --json='{}' | db_tables_edit --json='{}' | db_tables_delete --json='{}' | db_fields_list [--json='{\"db_id\":1}'] | db_fields_add --json='{}' | db_fields_edit --json='{}' | db_fields_delete --json='{}' | screen_fields_list --json='{\"tb_name\":\"xxx\",\"screen_name\":\"list\"}' | screen_fields_add --json='{}' | screen_fields_edit --json='{}' | screen_fields_delete --json='{}' | cron_list [--json='{\"id\":1}'] | cron_add --json='{}' | cron_edit --json='{}' | cron_delete --json='{}' | webhook_rule_list [--json='{\"id\":1}'] | webhook_rule_add --json='{}' | webhook_rule_edit --json='{}' | webhook_rule_delete --json='{\"id\":1}' | embed_app_list [--json='{\"id\":1}'] | embed_app_add --json='{}' | embed_app_edit --json='{}' | embed_app_delete --json='{\"id\":1}' | email_format_list [--json='{\"id\":1}'] | email_format_get --json='{\"id\":1}' | email_format_add --json='{}' | email_format_edit --json='{}' | email_format_delete --json='{\"id\":1}' | email_format_validate --json='{\"id\":1}' | mcp_tool_apply --json='{}'\n");
+fwrite(STDERR, "Usage: php cli.php db_schema | setting_get | setting_edit --json='{}' | app_call --json='{}' | app_check --json='{}' | db_additionals_list | db_additionals_add --json='{}' | db_additionals_edit --json='{}' | db_additionals_delete --json='{}' | db_additionals_generate --json='{\"id\":1}' | db_tables_list | db_tables_add --json='{}' | db_tables_edit --json='{}' | db_tables_delete --json='{}' | db_fields_list [--json='{\"db_id\":1}'] | db_fields_add --json='{}' | db_fields_edit --json='{}' | db_fields_delete --json='{}' | screen_fields_list --json='{\"tb_name\":\"xxx\",\"screen_name\":\"list\"}' | standard_screen_check --json='{\"tb_name\":\"xxx\"}' | screen_fields_add --json='{}' | screen_fields_edit --json='{}' | screen_fields_delete --json='{}' | cron_list [--json='{\"id\":1}'] | cron_add --json='{}' | cron_edit --json='{}' | cron_delete --json='{}' | webhook_rule_list [--json='{\"id\":1}'] | webhook_rule_add --json='{}' | webhook_rule_edit --json='{}' | webhook_rule_delete --json='{\"id\":1}' | embed_app_list [--json='{\"id\":1}'] | embed_app_add --json='{}' | embed_app_edit --json='{}' | embed_app_delete --json='{\"id\":1}' | email_format_list [--json='{\"id\":1}'] | email_format_get --json='{\"id\":1}' | email_format_add --json='{}' | email_format_edit --json='{}' | email_format_delete --json='{\"id\":1}' | email_format_validate --json='{\"id\":1}' | mcp_tool_apply --json='{}'\n");
 fwrite(STDERR, "app_call/app_check: windowcodeを固定する場合、session_id未指定時はwindowcode由来の有効なsession_idを自動使用します。session_idに使える文字は英数字・'-'・','です。\n");
 exit(1);

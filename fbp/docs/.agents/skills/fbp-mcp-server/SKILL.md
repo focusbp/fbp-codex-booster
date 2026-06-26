@@ -108,6 +108,36 @@ For custom-member services, every App Action must filter data by `subjectId()` o
 
 When a Note CRUD tool is too broad for per-member access control, prefer an App Action tool that applies explicit member filtering.
 
+## Input Validation
+
+For App Action tools, define JSON Schema hints and runtime validation together. JSON Schema helps MCP clients choose the right shape, but runtime validation is still required because clients can send ambiguous strings, memo text, units, or mixed date/time values.
+
+Use `McpInputValidator` from `McpActionInterface.php` for common MCP argument patterns:
+
+```php
+"started_at" => McpInputValidator::timeSchema("Start time."),
+"trip_date" => McpInputValidator::dateSchema("Trip date."),
+"count" => McpInputValidator::integerSchema("Count.", ["minimum" => 0]),
+```
+
+```php
+$started_at = McpInputValidator::time($request, "started_at");
+$trip_date = McpInputValidator::date($request, "trip_date");
+$count = McpInputValidator::integer($request, "count", ["default" => 1, "minimum" => 0]);
+```
+
+Supported validators:
+
+- `time`: accepts and normalizes `HH:MM`; rejects dates, ranges, and memo text.
+- `date`: accepts and normalizes `YYYY-MM-DD`; rejects datetime and relative words.
+- `yearMonth`: accepts and normalizes `YYYY-MM`; rejects day values.
+- `integer`: accepts integer values or numeric strings without units; supports `minimum`, `maximum`, `default`, and `required`.
+- `decimal`: accepts decimal values or numeric strings without units; supports `minimum`, `maximum`, `default`, and `required`.
+- `enum`: restricts values and can normalize aliases.
+- `string`: handles required strings and optional `maxLength`.
+
+Validation failures throw `ToolError: ...` messages through the normal MCP tool error path. Prefer clear messages that tell the client the exact field and format. Do not silently move invalid values into memo fields; fail fast so the MCP client can retry with corrected arguments.
+
 ## CLI Registration
 
 MCP tool registration JSON may include subject server settings:
