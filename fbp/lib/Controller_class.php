@@ -1573,7 +1573,7 @@ class Controller_class implements Controller {
 		} catch (Throwable $e) {
 			$screen_key = "SK-" . strtoupper(substr(md5(uniqid("", true)), 0, 8));
 		}
-		$this->set_session("screen_debug_context", [
+		$context = [
 			"screen_key" => $screen_key,
 			"appcode" => (string) ($this->get_appcode() ?? ""),
 			"app_class" => (string) $this->class,
@@ -1588,7 +1588,20 @@ class Controller_class implements Controller {
 			"user_name" => (string) ($this->get_login_name() ?? $this->get_login_id() ?? ""),
 			"user_agent" => (string) ($_SERVER["HTTP_USER_AGENT"] ?? ""),
 			"created_at" => time(),
-		]);
+		];
+		$this->set_session("screen_debug_context", $context);
+		$contexts = $this->get_session("screen_debug_contexts");
+		if (!is_array($contexts)) {
+			$contexts = [];
+		}
+		$contexts[$screen_key] = $context;
+		if (count($contexts) > 20) {
+			uasort($contexts, function ($a, $b) {
+				return (int) ($b["created_at"] ?? 0) <=> (int) ($a["created_at"] ?? 0);
+			});
+			$contexts = array_slice($contexts, 0, 20, true);
+		}
+		$this->set_session("screen_debug_contexts", $contexts);
 		return $screen_key;
 	}
 

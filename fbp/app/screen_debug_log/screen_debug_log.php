@@ -9,6 +9,10 @@ class screen_debug_log {
 	function capture(Controller $ctl) {
 		$screen_key = trim((string) ($ctl->POST("screen_key") ?? $ctl->GET("screen_key") ?? ""));
 		$context = $ctl->get_session("screen_debug_context");
+		$contexts = $ctl->get_session("screen_debug_contexts");
+		if (is_array($contexts) && $screen_key !== "" && isset($contexts[$screen_key]) && is_array($contexts[$screen_key])) {
+			$context = $contexts[$screen_key];
+		}
 		if (!is_array($context)
 			|| $screen_key === ""
 			|| (string) ($context["screen_key"] ?? "") !== $screen_key) {

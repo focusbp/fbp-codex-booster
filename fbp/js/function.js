@@ -2061,7 +2061,7 @@ function appcon(url, fd, nextfunction) {
 	}
 
 	// debug_window
-	var debugarr = [];
+	var debugarr = {};
 	const priorityKeys = ["class", "function"];
 	priorityKeys.forEach(k => {
 		if (fd.has(k)) {

@@ -38,6 +38,11 @@ When creating a new reusable sample from an existing app or feature, read `refer
   - Read `references/service-user-management-db.md` for DB and screen field structure.
   - Use `assets/service-user-management/` for starter code.
   - Prefer `scripts/install_service_user_management.php` when creating the default sample in a clean Codex Booster app.
+- **MCP Service App**: A minimal MCP-first public service sample with public account creation, MCP-specific login, custom MCP subject provider, and owner-scoped App Action CRUD. All sample-owned tables use the `service_` prefix.
+  - Read `references/mcp-service-app.md` for flow and implementation scope.
+  - Read `references/mcp-service-app-db.md` for DB, MCP server, and tool structure.
+  - Use `assets/mcp-service-app/` for starter code.
+  - Prefer `scripts/install_mcp_service_app.php` when creating the default sample in a clean Codex Booster app.
 - **LINE-entry mall**: A LINE-only public mall with member registration, multiple shops, single-shop cart, shop-level shipping fee, Square payment, orders, order items, inquiries, and Original Screen admin pages.
   - Read `references/line-entry-mall.md` for flow and implementation scope.
   - Read `references/line-entry-mall-db.md` for note/table structure.

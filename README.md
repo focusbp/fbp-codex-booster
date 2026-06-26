@@ -152,6 +152,20 @@ Do not add ecommerce cart, product catalog, shipping, inventory, order items, LI
 Verify the public plans/register/login/password reset/account pages, DB schema, seed data, installer output, manifest JSON, and PHP syntax with the FBP CLI. Live Square payment requires Square credentials in app settings.
 ```
 
+### MCP Service App
+
+Copy the whole block below and paste it into Codex:
+
+```text
+Read README.md, fbp/docs/.agents/skills/fbp-mcp-server/SKILL.md, fbp/docs/.agents/skills/fbp-app-samples/SKILL.md, fbp/docs/.agents/skills/fbp-app-samples/references/mcp-service-app.md, and fbp/docs/.agents/skills/fbp-app-samples/references/mcp-service-app-db.md.
+Create the MCP Service App sample.
+Run the bundled installer: php fbp/docs/.agents/skills/fbp-app-samples/scripts/install_mcp_service_app.php.
+Install the service_member and service_item DBs; public account creation; minimal portal that only shows the MCP endpoint URL; MCP-specific login separated from public login; custom MCP subject provider; service_items App Action tool; and owner-scoped list/create/update/delete item operations.
+Keep all sample-owned DB tables prefixed with service_.
+Do not add dashboards, aggregate counters, payment, ecommerce, Square, email delivery, password reset, public item management UI, team accounts, SSO, external API integration, credentials, domains, or production data.
+Verify the public register/portal pages, MCP login page, DB schema, seed data, installer output, manifest JSON, and PHP syntax with the FBP CLI.
+```
+
 ## Generated Customer Demo
 
 After the customer prompt above, Codex creates a customer management demo with

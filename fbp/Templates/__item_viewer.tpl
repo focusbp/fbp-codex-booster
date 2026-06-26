@@ -47,6 +47,9 @@ $row : array of the values.
 {else if $type == "datetime"}
 	<p class="world_datetime">{$row.$name}</p>
 	
+{else if $type == "time"}
+	<p style="white-space: nowrap;">{$row.$name}</p>
+	
 {else if $type == "year_month"}
 	<p style="white-space: nowrap">{html_year_month value=$row.$name}</p>
 	

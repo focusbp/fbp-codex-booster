@@ -77,6 +77,10 @@ $row : array of the values.
 	
 	<input type="text" name="{$name}" value="{$row.$name}" class="world_datetime">
 	
+{else if $type == "time"}
+	
+	<input type="text" name="{$name}" value="{$row.$name}" class="timepicker">
+	
 {else if $type == "year_month"}
 	
 	<input type="text" name="{$name}" value="{html_year_month value=$row.$name}" class="year_month_picker">

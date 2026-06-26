@@ -96,6 +96,20 @@ $row : array of the values.
 		</div>
 	</div>
 	
+{else if $type == "time"}
+	{assign var="from_name" value=$name|cat:"_from"}
+	{assign var="to_name" value=$name|cat:"_to"}
+	<div class="search_time_range" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:nowrap;">
+		<div style="display:flex;align-items:center;gap:6px;flex:1 1 0;min-width:0;">
+			<p style="margin:0;font-size:11px;color:#64748b;white-space:nowrap;">From</p>
+			<input type="text" name="{$from_name}" value="{$row[$from_name]|default:''}" class="timepicker" data-search-name="{$from_name|escape}" data-search-title="{$title|escape} From" data-search-type="{$type|escape}">
+		</div>
+		<div style="display:flex;align-items:center;gap:6px;flex:1 1 0;min-width:0;">
+			<p style="margin:0;font-size:11px;color:#64748b;white-space:nowrap;">To</p>
+			<input type="text" name="{$to_name}" value="{$row[$to_name]|default:''}" class="timepicker" data-search-name="{$to_name|escape}" data-search-title="{$title|escape} To" data-search-type="{$type|escape}">
+		</div>
+	</div>
+	
 {else if $type == "year_month"}
 	
 	<input type="text" name="{$name}" value="{html_year_month value=$row.$name}" class="year_month_picker" data-search-name="{$name|escape}" data-search-title="{$title|escape}" data-search-type="{$type|escape}">	

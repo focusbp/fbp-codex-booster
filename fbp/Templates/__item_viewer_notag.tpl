@@ -49,6 +49,9 @@ $row : array of the values.
 {else if $type == "datetime"}
 	<span class="world_datetime">{$row.$name}</span>
 	
+{else if $type == "time"}
+	{$row.$name}
+	
 {else if $type == "year_month"}
 	{html_year_month value=$row.$name}
 	
