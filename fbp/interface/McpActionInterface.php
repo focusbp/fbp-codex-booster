@@ -3,10 +3,12 @@
 class McpActionRequest {
 	private $tool;
 	private $arguments;
+	private $subject;
 
-	function __construct(array $tool, array $arguments) {
+	function __construct(array $tool, array $arguments, ?McpSubject $subject = null) {
 		$this->tool = $tool;
 		$this->arguments = $arguments;
+		$this->subject = $subject;
 	}
 
 	function tool(): array {
@@ -15,6 +17,22 @@ class McpActionRequest {
 
 	function arguments(): array {
 		return $this->arguments;
+	}
+
+	function subject(): ?McpSubject {
+		return $this->subject;
+	}
+
+	function subjectType(): string {
+		return $this->subject instanceof McpSubject ? $this->subject->type() : "";
+	}
+
+	function subjectId(): int {
+		return $this->subject instanceof McpSubject ? $this->subject->id() : 0;
+	}
+
+	function subjectLabel(): string {
+		return $this->subject instanceof McpSubject ? $this->subject->label() : "";
 	}
 
 	function get(string $key, $default = null) {

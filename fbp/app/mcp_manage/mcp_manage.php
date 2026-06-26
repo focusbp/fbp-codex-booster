@@ -7,6 +7,7 @@ class mcp_manage {
 	private $ffm_fields;
 	private $ffm_logs;
 	private $ffm_tokens;
+	private $ffm_auth_codes;
 
 	function __construct(Controller $ctl) {
 		$this->ffm_server = $ctl->db("mcp_server_config", "mcp_manage");
@@ -14,26 +15,31 @@ class mcp_manage {
 		$this->ffm_fields = $ctl->db("mcp_tool_fields", "mcp_manage");
 		$this->ffm_logs = $ctl->db("mcp_call_logs", "mcp_manage");
 		$this->ffm_tokens = $ctl->db("mcp_oauth_tokens", "mcp_manage");
+		$this->ffm_auth_codes = $ctl->db("mcp_oauth_auth_codes", "mcp_manage");
 		$this->assign_options($ctl);
 	}
 
 	function page(Controller $ctl) {
+		$ctl->assign("servers", $this->server_rows($ctl));
+		$ctl->reload_area("#tabs-mcp-server", "index.tpl");
+	}
+
+	function tools(Controller $ctl) {
 		$server = $this->selected_server($ctl);
-			$tools = $this->ffm_tools->select("server_id", $server["id"], true, "AND", "sort", SORT_ASC);
-			foreach ($tools as &$tool) {
-				$tool["ready_status"] = $this->tool_ready_status($ctl, $tool);
-				$tool["field_summary"] = $this->field_summary((int) $tool["id"]);
-			}
+		$tools = $this->ffm_tools->select("server_id", $server["id"], true, "AND", "sort", SORT_ASC);
+		foreach ($tools as &$tool) {
+			$tool["ready_status"] = $this->tool_ready_status($ctl, $tool);
+			$tool["field_summary"] = $this->field_summary((int) $tool["id"]);
+		}
 		unset($tool);
 
-		$ctl->assign("servers", $this->server_options($ctl));
 		$ctl->assign("server", $server);
 		$ctl->assign("items", $tools);
 		$ctl->assign("mcp_endpoint_url", $this->mcp_url($ctl, "rpc", $server));
 		$ctl->assign("mcp_authorize_url", $this->mcp_url($ctl, "authorize", $server));
 		$ctl->assign("mcp_token_url", $ctl->get_APP_URL("mcp_server", "token"));
 		$ctl->assign("mcp_resource_metadata_url", $this->mcp_url($ctl, "oauth_protected_resource", $server));
-		$ctl->reload_area("#tabs-mcp-server", "index.tpl");
+		$ctl->show_multi_dialog("mcp_server_tools_" . (int) $server["id"], "server_tools.tpl", $ctl->t("mcp_manage.dialog.tools"), 1200, true, true);
 	}
 
 	private function mcp_url(Controller $ctl, string $function, array $server): string {
@@ -46,7 +52,11 @@ class mcp_manage {
 	}
 
 	function edit_server(Controller $ctl) {
-		$server = $this->selected_server($ctl);
+		$id = (int) ($ctl->POST("id") ?? $ctl->POST("server_id") ?? 0);
+		$server = $id > 0 ? $this->ffm_server->get($id) : [];
+		if (!is_array($server) || empty($server["id"])) {
+			$server = $this->selected_server($ctl);
+		}
 		$ctl->assign("server", $server);
 		$ctl->show_multi_dialog("mcp_server_edit", "server_edit.tpl", $ctl->t("mcp_manage.dialog.server_edit"), 820, true, true);
 	}
@@ -59,6 +69,8 @@ class mcp_manage {
 			"title" => "",
 			"description" => "MCP server for this FBP app.",
 			"auth_mode" => "oauth2",
+			"subject_type" => "fbp_user",
+			"subject_provider_class" => "",
 			"default_scope" => "mcp.read mcp.write",
 		]);
 		$ctl->show_multi_dialog("mcp_server_add", "server_edit.tpl", $ctl->t("mcp_manage.dialog.server_edit"), 820, true, true);
@@ -82,6 +94,8 @@ class mcp_manage {
 		$server["title"] = $post["title"];
 		$server["description"] = $post["description"];
 		$server["auth_mode"] = $post["auth_mode"];
+		$server["subject_type"] = $post["subject_type"];
+		$server["subject_provider_class"] = $post["subject_provider_class"];
 		$server["default_scope"] = $post["default_scope"];
 		$server["updated_at"] = time();
 		if ($id > 0) {
@@ -94,7 +108,46 @@ class mcp_manage {
 
 		$ctl->close_multi_dialog("mcp_server_edit");
 		$ctl->close_multi_dialog("mcp_server_add");
-		$_POST["server_id"] = $id;
+		$this->page($ctl);
+	}
+
+	function delete_server(Controller $ctl) {
+		$id = (int) ($ctl->POST("id") ?? $ctl->POST("server_id") ?? 0);
+		$server = $id > 0 ? $this->ffm_server->get($id) : [];
+		if (!is_array($server) || empty($server["id"])) {
+			return;
+		}
+		$server["tool_count"] = count($this->ffm_tools->select("server_id", $id));
+		$server["token_count"] = count($this->ffm_tokens->select("server_id", $id));
+		$server["log_count"] = count($this->ffm_logs->select("server_id", $id));
+		$ctl->assign("server", $server);
+		$ctl->show_multi_dialog("mcp_server_delete_" . $id, "server_delete.tpl", $ctl->t("mcp_manage.dialog.server_delete"), 560, true, true);
+	}
+
+	function delete_server_exe(Controller $ctl) {
+		$id = (int) ($ctl->POST("id") ?? $ctl->POST("server_id") ?? 0);
+		$server = $id > 0 ? $this->ffm_server->get($id) : [];
+		if (!is_array($server) || empty($server["id"])) {
+			return;
+		}
+		foreach ($this->ffm_tools->select("server_id", $id) as $tool) {
+			$tool_id = (int) ($tool["id"] ?? 0);
+			foreach ($this->ffm_fields->select("tool_id", $tool_id) as $field) {
+				$this->ffm_fields->delete((int) $field["id"]);
+			}
+			$this->ffm_tools->delete($tool_id);
+		}
+		foreach ($this->ffm_tokens->select("server_id", $id) as $token) {
+			$this->ffm_tokens->delete((int) $token["id"]);
+		}
+		foreach ($this->ffm_logs->select("server_id", $id) as $log) {
+			$this->ffm_logs->delete((int) $log["id"]);
+		}
+		foreach ($this->ffm_auth_codes->select("server_id", $id) as $code) {
+			$this->ffm_auth_codes->delete((int) $code["id"]);
+		}
+		$this->ffm_server->delete($id);
+		$ctl->close_multi_dialog("mcp_server_delete_" . $id);
 		$this->page($ctl);
 	}
 
@@ -152,6 +205,7 @@ class mcp_manage {
 
 		$ctl->close_multi_dialog("mcp_tool_add");
 		$_POST["server_id"] = (int) $server["id"];
+		$this->tools($ctl);
 		$this->page($ctl);
 	}
 
@@ -205,6 +259,7 @@ class mcp_manage {
 
 		$ctl->close_multi_dialog("mcp_tool_edit_" . $id);
 		$_POST["server_id"] = (int) ($data["server_id"] ?? 0);
+		$this->tools($ctl);
 		$this->page($ctl);
 	}
 
@@ -225,6 +280,7 @@ class mcp_manage {
 		$this->ffm_tools->delete($id);
 		$ctl->close_multi_dialog("mcp_tool_delete_" . $id);
 		$_POST["server_id"] = $server_id;
+		$this->tools($ctl);
 		$this->page($ctl);
 	}
 
@@ -255,6 +311,7 @@ class mcp_manage {
 		$this->ffm_tools->update($tool);
 		$ctl->close_multi_dialog("mcp_tool_fields_" . $id);
 		$_POST["server_id"] = (int) ($tool["server_id"] ?? 0);
+		$this->tools($ctl);
 		$this->page($ctl);
 	}
 
@@ -284,9 +341,19 @@ class mcp_manage {
 		$tokens = $this->ffm_tokens->select("server_id", $server["id"], true, "AND", "id", SORT_DESC, 100);
 		$user_ffm = $ctl->db("user", "user");
 		foreach ($tokens as &$token) {
-			$user = $user_ffm->get((int) ($token["user_id"] ?? 0));
-			$token["user_name"] = is_array($user) ? (string) ($user["name"] ?? $user["login_id"] ?? "") : "";
-			$token["user_status_valid"] = is_array($user) && (int) ($user["status"] ?? 1) === 0;
+			$subject_type = trim((string) ($token["subject_type"] ?? ""));
+			if ($subject_type === "" && (int) ($token["user_id"] ?? 0) > 0) {
+				$subject_type = "fbp_user";
+			}
+			$token["subject_type"] = $subject_type;
+			$token["subject_id"] = (int) ($token["subject_id"] ?? 0) > 0 ? (int) $token["subject_id"] : (int) ($token["user_id"] ?? 0);
+			$token["subject_display"] = (string) ($token["subject_label"] ?? "");
+			$token["user_status_valid"] = true;
+			if ($subject_type === "fbp_user") {
+				$user = $user_ffm->get((int) ($token["user_id"] ?? $token["subject_id"] ?? 0));
+				$token["subject_display"] = is_array($user) ? (string) ($user["name"] ?? $user["login_id"] ?? "") : "";
+				$token["user_status_valid"] = is_array($user) && (int) ($user["status"] ?? 1) === 0;
+			}
 		}
 		unset($token);
 		$ctl->assign("tokens", $tokens);
@@ -300,9 +367,38 @@ class mcp_manage {
 			$token["revoked"] = 1;
 			$token["updated_at"] = time();
 			$this->ffm_tokens->update($token);
+			$this->notify_token_revoked($ctl, $token);
 			$_POST["server_id"] = (int) ($token["server_id"] ?? 0);
 		}
 		$this->oauth_tokens($ctl);
+	}
+
+	private function notify_token_revoked(Controller $ctl, array $token): void {
+		$server = $this->ffm_server->get((int) ($token["server_id"] ?? 0));
+		if (!is_array($server)) {
+			return;
+		}
+		$subject_type = trim((string) ($token["subject_type"] ?? ""));
+		if ($subject_type === "" && (int) ($token["user_id"] ?? 0) > 0) {
+			$subject_type = "fbp_user";
+		}
+		$subject_id = (int) ($token["subject_id"] ?? 0);
+		if ($subject_id <= 0 && $subject_type === "fbp_user") {
+			$subject_id = (int) ($token["user_id"] ?? 0);
+		}
+		if ($subject_type === "" || $subject_id <= 0) {
+			return;
+		}
+		$subject = new McpSubject($subject_type, $subject_id, (string) ($token["subject_label"] ?? ""), (int) ($token["user_id"] ?? 0));
+		try {
+			if ($subject_type === "fbp_user") {
+				$provider = new McpFbpUserSubjectProvider();
+			} else {
+				$provider = $this->load_subject_provider((string) ($server["subject_provider_class"] ?? ""), $ctl);
+			}
+			$provider->onTokenRevoked($ctl, $server, $subject, $token);
+		} catch (Throwable $e) {
+		}
 	}
 
 	function sort(Controller $ctl) {
@@ -332,6 +428,10 @@ class mcp_manage {
 		$ctl->assign("auth_mode_opt", [
 			"oauth2" => "OAuth 2.0",
 			"noauth" => "No auth",
+		]);
+		$ctl->assign("subject_type_opt", [
+			"fbp_user" => $ctl->t("mcp_manage.subject_type.fbp_user"),
+			"custom" => $ctl->t("mcp_manage.subject_type.custom"),
 		]);
 			$ctl->assign("tool_type_opt", [
 				"note_crud" => $ctl->t("mcp_manage.note_crud"),
@@ -371,6 +471,8 @@ class mcp_manage {
 			"title" => $title,
 			"description" => "MCP server for this FBP app.",
 			"auth_mode" => "oauth2",
+			"subject_type" => "fbp_user",
+			"subject_provider_class" => "",
 			"default_scope" => "mcp.read mcp.write",
 			"sort" => 0,
 			"created_at" => time(),
@@ -415,6 +517,17 @@ class mcp_manage {
 		return $options;
 	}
 
+	private function server_rows(Controller $ctl): array {
+		$this->ensure_default_server($ctl);
+		$rows = $this->ffm_server->getall("sort", SORT_ASC);
+		foreach ($rows as &$server) {
+			$id = (int) ($server["id"] ?? 0);
+			$server["tool_count"] = count($this->ffm_tools->select("server_id", $id));
+		}
+		unset($server);
+		return $rows;
+	}
+
 	private function next_server_sort(): int {
 		$list = $this->ffm_server->getall("sort", SORT_DESC);
 		if (count($list) === 0) {
@@ -424,6 +537,11 @@ class mcp_manage {
 	}
 
 	private function normalize_server_post(array $post): array {
+		$subject_type = trim((string) ($post["subject_type"] ?? "fbp_user"));
+		$subject_provider_class = trim((string) ($post["subject_provider_class"] ?? ""));
+		if ($subject_type === "fbp_user") {
+			$subject_provider_class = "";
+		}
 		return [
 			"id" => (int) ($post["id"] ?? 0),
 			"enabled" => isset($post["enabled"]) ? (int) $post["enabled"] : 0,
@@ -431,6 +549,8 @@ class mcp_manage {
 			"title" => trim((string) ($post["title"] ?? "")),
 			"description" => trim((string) ($post["description"] ?? "")),
 			"auth_mode" => trim((string) ($post["auth_mode"] ?? "oauth2")),
+			"subject_type" => $subject_type,
+			"subject_provider_class" => $subject_provider_class,
 			"default_scope" => trim((string) ($post["default_scope"] ?? "")),
 		];
 	}
@@ -452,7 +572,61 @@ class mcp_manage {
 		if (!in_array($post["auth_mode"], ["oauth2", "noauth"], true)) {
 			$errors["auth_mode"] = $ctl->t("mcp_manage.validation.auth_mode");
 		}
+		if (!in_array($post["subject_type"], ["fbp_user", "custom"], true)) {
+			$errors["subject_type"] = $ctl->t("mcp_manage.validation.subject_type");
+		}
+		if ($post["subject_type"] === "fbp_user") {
+			$post["subject_provider_class"] = "";
+		}
+		if ($post["subject_type"] === "custom") {
+			$provider_error = $this->validate_subject_provider_class($ctl, (string) ($post["subject_provider_class"] ?? ""));
+			if ($provider_error !== "") {
+				$errors["subject_provider_class"] = $provider_error;
+			}
+		}
 		return $errors;
+	}
+
+	private function validate_subject_provider_class(Controller $ctl, string $class): string {
+		$class = trim($class);
+		if ($class === "") {
+			return $ctl->t("mcp_manage.validation.subject_provider_class_required");
+		}
+		if (!preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $class)) {
+			return $ctl->t("mcp_manage.validation.subject_provider_class");
+		}
+		try {
+			$this->load_subject_provider($class, $ctl);
+		} catch (Throwable $e) {
+			return $e->getMessage();
+		}
+		return "";
+	}
+
+	private function load_subject_provider(string $class, Controller $ctl): McpSubjectProviderInterface {
+		if (!class_exists($class, false)) {
+			try {
+				$dir = new Dirs();
+				$class_file = $dir->get_class_dir($class) . "/" . $class . ".php";
+				include_once($class_file);
+			} catch (Throwable $e) {
+				throw new Exception($ctl->t("mcp_manage.validation.subject_provider_class_not_found"));
+			}
+		}
+		if (!class_exists($class, false)) {
+			throw new Exception($ctl->t("mcp_manage.validation.subject_provider_class_not_found"));
+		}
+		$reflection = new ReflectionClass($class);
+		$constructor = $reflection->getConstructor();
+		if ($constructor && count($constructor->getParameters()) > 0) {
+			$provider = new $class($ctl);
+		} else {
+			$provider = new $class();
+		}
+		if (!($provider instanceof McpSubjectProviderInterface)) {
+			throw new Exception($ctl->t("mcp_manage.validation.subject_provider_class_interface"));
+		}
+		return $provider;
 	}
 
 	private function normalize_tool_type(string $tool_type): string {

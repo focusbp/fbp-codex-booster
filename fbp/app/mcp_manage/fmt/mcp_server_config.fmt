@@ -4,6 +4,8 @@ server_key,128,T
 title,255,T
 description,2000,T
 auth_mode,32,T
+subject_type,64,T
+subject_provider_class,255,T
 default_scope,255,T
 sort,24,N
 created_at,24,N

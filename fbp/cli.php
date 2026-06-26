@@ -58,6 +58,7 @@ include("interface/Controller.php");
 include("lib/Controller_class.php");
 include("lib/I18nSimple.php");
 include("interface/CodegenActionInterface.php");
+include("interface/McpSubjectInterface.php");
 include("interface/McpActionInterface.php");
 include("interface/linebot/linebot.php");
 include("lib/linebot/Linebot_class.php");
@@ -842,6 +843,10 @@ function cli_mcp_server_config_from_spec(Dirs $dir, array $data, string $server_
 		"auth_mode" => in_array((string) ($config["auth_mode"] ?? "oauth2"), ["oauth2", "noauth"], true)
 			? (string) ($config["auth_mode"] ?? "oauth2")
 			: "oauth2",
+		"subject_type" => in_array((string) ($config["subject_type"] ?? "fbp_user"), ["fbp_user", "custom"], true)
+			? (string) ($config["subject_type"] ?? "fbp_user")
+			: "fbp_user",
+		"subject_provider_class" => trim((string) ($config["subject_provider_class"] ?? "")),
 		"default_scope" => trim((string) ($config["default_scope"] ?? "mcp.read mcp.write")),
 	];
 }
@@ -901,6 +906,8 @@ function cli_mcp_ensure_default_server(Dirs $dir, $ffm_server, bool $dry_run, ar
 		"title" => $title,
 		"description" => "MCP server for this FBP app.",
 		"auth_mode" => "oauth2",
+		"subject_type" => "fbp_user",
+		"subject_provider_class" => "",
 		"default_scope" => "mcp.read mcp.write",
 		"sort" => 0,
 		"created_at" => $now,
@@ -1293,6 +1300,8 @@ function cli_mcp_apply_tools(Dirs $dir, $ffm_db_admin, $ffm_db_fields_admin, arr
 			"title" => (string) ($server["title"] ?? ""),
 			"enabled" => (int) ($server["enabled"] ?? 0),
 			"auth_mode" => (string) ($server["auth_mode"] ?? "oauth2"),
+			"subject_type" => (string) ($server["subject_type"] ?? "fbp_user"),
+			"subject_provider_class" => (string) ($server["subject_provider_class"] ?? ""),
 		],
 		"results" => $results,
 		"warnings" => $warnings,

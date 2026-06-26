@@ -7,6 +7,8 @@
 			<tr><td>{t key="common.title"}</td><td><input type="text" name="title" value="{$server.title|escape}"><p class="error_message error_title"></p></td></tr>
 			<tr><td>{t key="common.description"}</td><td><textarea name="description" style="height:80px;">{$server.description|escape}</textarea></td></tr>
 			<tr><td>{t key="mcp_manage.auth_mode"}</td><td>{html_options name="auth_mode" options=$auth_mode_opt selected=$server.auth_mode}<p class="error_message error_auth_mode"></p></td></tr>
+			<tr><td>{t key="mcp_manage.subject_type"}</td><td>{html_options name="subject_type" options=$subject_type_opt selected=$server.subject_type|default:'fbp_user'}<p class="error_message error_subject_type"></p></td></tr>
+			<tr><td>{t key="mcp_manage.subject_provider_class"}</td><td><input type="text" name="subject_provider_class" value="{$server.subject_provider_class|escape}"><p class="error_message error_subject_provider_class"></p></td></tr>
 			<tr><td>{t key="mcp_manage.default_scope"}</td><td><input type="text" name="default_scope" value="{$server.default_scope|escape}"></td></tr>
 		</tbody>
 	</table>

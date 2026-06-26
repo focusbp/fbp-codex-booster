@@ -97,10 +97,10 @@ class mcp_server {
 			return;
 		}
 
-		$user = $this->current_login_user($ctl);
-		if ($user === null) {
-			$_SESSION["mcp_oauth_authorize_return"] = $this->current_request_url();
-			header("Location: " . $ctl->get_APP_URL("login", "page"), true, 302);
+		$provider = $this->subject_provider($ctl, $server);
+		$subject = $provider->currentSubject($ctl, $server);
+		if ($subject === null) {
+			header("Location: " . $provider->loginUrl($ctl, $server, $this->current_request_url()), true, 302);
 			exit;
 		}
 
@@ -115,7 +115,8 @@ class mcp_server {
 
 		$scope = $params["scope"] !== "" ? $params["scope"] : (string) ($server["default_scope"] ?? "");
 		$ctl->assign("server", $server);
-		$ctl->assign("user", $user);
+		$ctl->assign("subject", $subject->toArray());
+		$ctl->assign("subject_label", $provider->subjectLabel($ctl, $subject));
 		$ctl->assign("oauth_params", $params);
 		$ctl->assign("scope", $scope);
 		$ctl->display("authorize.tpl");
@@ -127,8 +128,9 @@ class mcp_server {
 			http_response_code(503);
 			$this->respond_json(["ok" => false, "error" => "mcp_server_disabled"]);
 		}
-		$user = $this->current_login_user($ctl);
-		if ($user === null) {
+		$provider = $this->subject_provider($ctl, $server);
+		$subject = $provider->currentSubject($ctl, $server);
+		if ($subject === null) {
 			http_response_code(401);
 			$this->respond_json(["ok" => false, "error" => "login_required"]);
 		}
@@ -141,9 +143,13 @@ class mcp_server {
 		}
 		$scope = $params["scope"] !== "" ? $params["scope"] : (string) ($server["default_scope"] ?? "");
 		$code = $this->random_token();
+		$subject_label = $provider->subjectLabel($ctl, $subject);
 		$row = [
 			"server_id" => (int) $server["id"],
-			"user_id" => (int) $user["id"],
+			"user_id" => $subject->userId(),
+			"subject_type" => $subject->type(),
+			"subject_id" => $subject->id(),
+			"subject_label" => $subject_label,
 			"client_id" => $params["client_id"],
 			"redirect_uri" => $params["redirect_uri"],
 			"scope" => $scope,
@@ -157,6 +163,7 @@ class mcp_server {
 			"updated_at" => time(),
 		];
 		$this->ffm_auth_codes->insert($row);
+		$provider->onAuthorizeConfirmed($ctl, $server, $subject, $params, $scope);
 
 		$redirect = $this->append_query($params["redirect_uri"], [
 			"code" => $code,
@@ -188,11 +195,13 @@ class mcp_server {
 				$row["revoked"] = 1;
 				$row["updated_at"] = time();
 				$this->ffm_tokens->update($row);
+				$this->notify_token_revoked($ctl, $row);
 			}
 			foreach ($this->ffm_tokens->select("refresh_token_hash", $hash) as $row) {
 				$row["revoked"] = 1;
 				$row["updated_at"] = time();
 				$this->ffm_tokens->update($row);
+				$this->notify_token_revoked($ctl, $row);
 			}
 		}
 		$this->respond_json(["ok" => true]);
@@ -285,13 +294,14 @@ class mcp_server {
 			return $this->tool_auth_error($ctl, $server, $auth["error"]);
 		}
 
-		$user_id = (int) ($auth["user_id"] ?? 0);
+		$subject = $this->subject_from_row($auth);
+		$user_id = $subject instanceof McpSubject ? $subject->userId() : 0;
 		try {
 			if ((int) ($tool["requires_confirmation"] ?? 0) === 1 && empty($args["confirm"])) {
 				throw new Exception("This tool requires confirm=true.");
 			}
-			$result = $this->execute_note_tool($ctl, $tool, $args);
-			$this->log_call($server, $tool, $user_id, "tools/call", $args, "ok", "");
+			$result = $this->execute_note_tool($ctl, $tool, $args, $subject);
+			$this->log_call($server, $tool, $subject, "tools/call", $args, "ok", "");
 			return [
 				"content" => [[
 					"type" => "text",
@@ -300,15 +310,15 @@ class mcp_server {
 				"structuredContent" => $result,
 			];
 		} catch (Throwable $e) {
-			$this->log_call($server, $tool, $user_id, "tools/call", $args, "error", $e->getMessage());
+			$this->log_call($server, $tool, $subject, "tools/call", $args, "error", $e->getMessage());
 			return $this->tool_error($e->getMessage());
 		}
 	}
 
-	private function execute_note_tool(Controller $ctl, array $tool, array $args): array {
+	private function execute_note_tool(Controller $ctl, array $tool, array $args, ?McpSubject $subject = null): array {
 		$tool_type = (string) ($tool["tool_type"] ?? "");
 		if ($tool_type === "app_action") {
-			return $this->execute_app_action_tool($ctl, $tool, $args);
+			return $this->execute_app_action_tool($ctl, $tool, $args, $subject);
 		}
 		if ($tool_type !== "note_crud") {
 			throw new Exception("Unsupported tool type.");
@@ -337,9 +347,9 @@ class mcp_server {
 		throw new Exception("Unsupported operation.");
 	}
 
-	private function execute_app_action_tool(Controller $ctl, array $tool, array $args): array {
+	private function execute_app_action_tool(Controller $ctl, array $tool, array $args, ?McpSubject $subject = null): array {
 		$action = $this->load_app_action($ctl, $tool);
-		$result = $action->execute($ctl, new McpActionRequest($tool, $args));
+		$result = $action->execute($ctl, new McpActionRequest($tool, $args, $subject));
 		return $result->toStructuredContent();
 	}
 
@@ -774,7 +784,7 @@ class mcp_server {
 
 	private function authorize_tool_call(Controller $ctl, array $server, array $tool): array {
 		if ((string) ($server["auth_mode"] ?? "oauth2") === "noauth") {
-			return ["ok" => true, "user_id" => 0, "scope" => ""];
+			return ["ok" => true, "user_id" => 0, "subject_type" => "anonymous", "subject_id" => 0, "subject_label" => "", "scope" => ""];
 		}
 		$token = $this->bearer_token();
 		if ($token === "") {
@@ -788,15 +798,22 @@ class mcp_server {
 		if (!$this->scope_allows((string) ($token_row["scope"] ?? ""), $required_scope)) {
 			return ["ok" => false, "error" => "insufficient_scope"];
 		}
-		return ["ok" => true, "user_id" => (int) ($token_row["user_id"] ?? 0), "scope" => (string) ($token_row["scope"] ?? "")];
+		return [
+			"ok" => true,
+			"user_id" => (int) ($token_row["user_id"] ?? 0),
+			"subject_type" => $this->row_subject_type($token_row),
+			"subject_id" => $this->row_subject_id($token_row),
+			"subject_label" => (string) ($token_row["subject_label"] ?? ""),
+			"scope" => (string) ($token_row["scope"] ?? ""),
+		];
 	}
 
 	private function find_valid_token(Controller $ctl, int $server_id, string $token): ?array {
 		$hash = hash("sha256", $token);
 		$list = $this->ffm_tokens->select("access_token_hash", $hash);
-		$user_ffm = $ctl->db("user", "user");
 		$server = $this->get_server_by_id($server_id);
 		$expected_resource = empty($server) ? "" : $this->resource_url($ctl, $server);
+		$provider = empty($server) ? new McpFbpUserSubjectProvider() : $this->subject_provider($ctl, $server);
 		foreach ($list as $row) {
 			if ((int) ($row["server_id"] ?? 0) !== $server_id) {
 				continue;
@@ -808,28 +825,13 @@ class mcp_server {
 			if ($resource !== "" && $expected_resource !== "" && $resource !== $expected_resource) {
 				continue;
 			}
-			$user = $user_ffm->get((int) ($row["user_id"] ?? 0));
-			if (!is_array($user) || empty($user["id"]) || (int) ($user["status"] ?? 1) !== 0) {
+			$subject = $this->subject_from_row($row);
+			if (!($subject instanceof McpSubject) || !$provider->validateSubject($ctl, $server, $subject)) {
 				continue;
 			}
 			return $row;
 		}
 		return null;
-	}
-
-	private function current_login_user(Controller $ctl): ?array {
-		if (!$ctl->get_session("login")) {
-			return null;
-		}
-		$user_id = (int) ($ctl->get_session("user_id") ?? 0);
-		if ($user_id <= 0) {
-			return null;
-		}
-		$user = $ctl->db("user", "user")->get($user_id);
-		if (!is_array($user) || empty($user["id"]) || (int) ($user["status"] ?? 1) !== 0) {
-			return null;
-		}
-		return $user;
 	}
 
 	private function token_from_authorization_code(Controller $ctl, array $params): void {
@@ -861,15 +863,17 @@ class mcp_server {
 				http_response_code(400);
 				$this->respond_json(["error" => "invalid_grant"]);
 			}
-			$user = $ctl->db("user", "user")->get((int) ($auth_code["user_id"] ?? 0));
-			if (!is_array($user) || empty($user["id"]) || (int) ($user["status"] ?? 1) !== 0) {
+			$server = $this->get_server_by_id((int) ($auth_code["server_id"] ?? 0));
+			$provider = $this->subject_provider($ctl, $server);
+			$subject = $this->subject_from_row($auth_code);
+			if (!($subject instanceof McpSubject) || !$provider->validateSubject($ctl, $server, $subject)) {
 				http_response_code(400);
 				$this->respond_json(["error" => "invalid_grant"]);
 			}
 			$auth_code["consumed"] = 1;
 			$auth_code["updated_at"] = time();
 			$this->ffm_auth_codes->update($auth_code);
-			$this->issue_token_response((int) ($auth_code["server_id"] ?? 0), (int) $user["id"], (string) ($auth_code["client_id"] ?? ""), (string) ($auth_code["scope"] ?? ""), (string) ($auth_code["resource"] ?? ""));
+			$this->issue_token_response((int) ($auth_code["server_id"] ?? 0), $subject, (string) ($auth_code["client_id"] ?? ""), (string) ($auth_code["scope"] ?? ""), (string) ($auth_code["resource"] ?? ""));
 		}
 		http_response_code(400);
 		$this->respond_json(["error" => "invalid_grant"]);
@@ -886,25 +890,31 @@ class mcp_server {
 			if ((int) ($token_row["revoked"] ?? 0) === 1) {
 				continue;
 			}
-			$user = $ctl->db("user", "user")->get((int) ($token_row["user_id"] ?? 0));
-			if (!is_array($user) || empty($user["id"]) || (int) ($user["status"] ?? 1) !== 0) {
+			$server = $this->get_server_by_id((int) ($token_row["server_id"] ?? 0));
+			$provider = $this->subject_provider($ctl, $server);
+			$subject = $this->subject_from_row($token_row);
+			if (!($subject instanceof McpSubject) || !$provider->validateSubject($ctl, $server, $subject)) {
 				continue;
 			}
 			$token_row["revoked"] = 1;
 			$token_row["updated_at"] = time();
 			$this->ffm_tokens->update($token_row);
-			$this->issue_token_response((int) ($token_row["server_id"] ?? 0), (int) $user["id"], (string) ($token_row["client_id"] ?? ""), (string) ($token_row["scope"] ?? ""), (string) ($token_row["resource"] ?? ""));
+			$provider->onTokenRevoked($ctl, $server, $subject, $token_row);
+			$this->issue_token_response((int) ($token_row["server_id"] ?? 0), $subject, (string) ($token_row["client_id"] ?? ""), (string) ($token_row["scope"] ?? ""), (string) ($token_row["resource"] ?? ""));
 		}
 		http_response_code(400);
 		$this->respond_json(["error" => "invalid_grant"]);
 	}
 
-	private function issue_token_response(int $server_id, int $user_id, string $client_id, string $scope, string $resource): void {
+	private function issue_token_response(int $server_id, McpSubject $subject, string $client_id, string $scope, string $resource): void {
 		$access_token = $this->random_token();
 		$refresh_token = $this->random_token();
 		$row = [
 			"server_id" => $server_id,
-			"user_id" => $user_id,
+			"user_id" => $subject->userId(),
+			"subject_type" => $subject->type(),
+			"subject_id" => $subject->id(),
+			"subject_label" => $subject->label(),
 			"client_id" => $client_id,
 			"scope" => $scope,
 			"resource" => $resource,
@@ -930,10 +940,17 @@ class mcp_server {
 	}
 
 	private function request_server_key(Controller $ctl): string {
+		$uri_params = null;
 		foreach (["server", "server_key"] as $key) {
 			$value = $ctl->GET($key);
 			if ($value === null || $value === "") {
 				$value = $ctl->POST($key);
+			}
+			if (($value === null || $value === "") && $uri_params === null) {
+				$uri_params = $this->oauth_request_uri_params();
+			}
+			if (($value === null || $value === "") && is_array($uri_params)) {
+				$value = $uri_params[$key] ?? "";
 			}
 			if (!is_array($value)) {
 				$value = $this->normalize_server_key((string) $value);
@@ -971,6 +988,8 @@ class mcp_server {
 			"title" => "FBP MCP Server",
 			"description" => "",
 			"auth_mode" => "oauth2",
+			"subject_type" => "fbp_user",
+			"subject_provider_class" => "",
 			"default_scope" => "mcp.read mcp.write",
 		];
 	}
@@ -981,6 +1000,84 @@ class mcp_server {
 		}
 		$server = $this->ffm_server->get($server_id);
 		return is_array($server) ? $server : [];
+	}
+
+	private function subject_provider(Controller $ctl, array $server): McpSubjectProviderInterface {
+		$subject_type = trim((string) ($server["subject_type"] ?? ""));
+		$class = trim((string) ($server["subject_provider_class"] ?? ""));
+		if ($subject_type === "" || $subject_type === "fbp_user") {
+			return new McpFbpUserSubjectProvider();
+		}
+		if ($class === "" || !preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $class)) {
+			throw new Exception("MCP subject provider class is invalid.");
+		}
+		if (!class_exists($class, false)) {
+			$dir = new Dirs();
+			$class_file = $dir->get_class_dir($class) . "/" . $class . ".php";
+			include_once($class_file);
+		}
+		if (!class_exists($class, false)) {
+			throw new Exception("MCP subject provider class not found: " . $class);
+		}
+		$reflection = new ReflectionClass($class);
+		$constructor = $reflection->getConstructor();
+		if ($constructor && count($constructor->getParameters()) > 0) {
+			$provider = new $class($ctl);
+		} else {
+			$provider = new $class();
+		}
+		if (!($provider instanceof McpSubjectProviderInterface)) {
+			throw new Exception("MCP subject provider must implement McpSubjectProviderInterface: " . $class);
+		}
+		return $provider;
+	}
+
+	private function row_subject_type(array $row): string {
+		$type = trim((string) ($row["subject_type"] ?? ""));
+		if ($type !== "") {
+			return $type;
+		}
+		return (int) ($row["user_id"] ?? 0) > 0 ? "fbp_user" : "anonymous";
+	}
+
+	private function row_subject_id(array $row): int {
+		$id = (int) ($row["subject_id"] ?? 0);
+		if ($id > 0) {
+			return $id;
+		}
+		if ($this->row_subject_type($row) === "fbp_user") {
+			return (int) ($row["user_id"] ?? 0);
+		}
+		return 0;
+	}
+
+	private function subject_from_row(array $row): ?McpSubject {
+		$type = $this->row_subject_type($row);
+		$id = $this->row_subject_id($row);
+		if ($type === "" || ($type !== "anonymous" && $id <= 0)) {
+			return null;
+		}
+		$user_id = (int) ($row["user_id"] ?? 0);
+		if ($type === "fbp_user" && $user_id <= 0) {
+			$user_id = $id;
+		}
+		return new McpSubject($type, $id, (string) ($row["subject_label"] ?? ""), $user_id);
+	}
+
+	private function notify_token_revoked(Controller $ctl, array $token_row): void {
+		$server = $this->get_server_by_id((int) ($token_row["server_id"] ?? 0));
+		if (empty($server)) {
+			return;
+		}
+		$subject = $this->subject_from_row($token_row);
+		if (!($subject instanceof McpSubject)) {
+			return;
+		}
+		try {
+			$this->subject_provider($ctl, $server)->onTokenRevoked($ctl, $server, $subject, $token_row);
+		} catch (Throwable $e) {
+			// Revocation itself must not fail because of an optional provider hook.
+		}
 	}
 
 	private function find_tool_by_name(int $server_id, string $name): ?array {
@@ -1478,7 +1575,7 @@ class mcp_server {
 			}
 		}
 		$path = (string) parse_url((string) ($_SERVER["REQUEST_URI"] ?? ""), PHP_URL_PATH);
-		if (preg_match('#\*authorize&(.*)$#', $path, $matches)) {
+		if (preg_match('#\*[A-Za-z0-9_]+&(.*)$#', $path, $matches)) {
 			parse_str($matches[1], $path_params);
 			if (is_array($path_params)) {
 				$params = array_merge($params, $path_params);
@@ -1586,7 +1683,7 @@ class mcp_server {
 		return $url . (strpos($url, "?") === false ? "?" : "&") . http_build_query($query);
 	}
 
-	private function log_call(array $server, array $tool, int $user_id, string $method, array $request, string $status, string $error): void {
+	private function log_call(array $server, array $tool, ?McpSubject $subject, string $method, array $request, string $status, string $error): void {
 		$request_json = json_encode($request, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
 		if ($request_json === false) {
 			$request_json = "";
@@ -1597,7 +1694,10 @@ class mcp_server {
 		$row = [
 			"server_id" => (int) ($server["id"] ?? 0),
 			"tool_id" => (int) ($tool["id"] ?? 0),
-			"user_id" => $user_id,
+			"user_id" => $subject instanceof McpSubject ? $subject->userId() : 0,
+			"subject_type" => $subject instanceof McpSubject ? $subject->type() : "",
+			"subject_id" => $subject instanceof McpSubject ? $subject->id() : 0,
+			"subject_label" => $subject instanceof McpSubject ? $subject->label() : "",
 			"method" => $method,
 			"tool_name" => (string) ($tool["tool_name"] ?? ""),
 			"request_json" => $request_json,

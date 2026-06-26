@@ -1,6 +1,9 @@
 id,24,N
 server_id,24,N
 user_id,24,N
+subject_type,64,T
+subject_id,24,N
+subject_label,255,T
 client_id,255,T
 redirect_uri,1000,T
 scope,255,T

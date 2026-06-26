@@ -2,6 +2,9 @@ id,24,N
 server_id,24,N
 tool_id,24,N
 user_id,24,N
+subject_type,64,T
+subject_id,24,N
+subject_label,255,T
 method,128,T
 tool_name,128,T
 request_json,4000,T

@@ -41,6 +41,7 @@ include("interface/Controller.php");
 include("lib/Controller_class.php");
 include("lib/I18nSimple.php");
 include("interface/CodegenActionInterface.php");
+include("interface/McpSubjectInterface.php");
 include("interface/McpActionInterface.php");
 if (version_compare(PHP_VERSION, '8.0.0', '<')) {
 	include('lib_ext/stream_filter/Stream_Filter_Mbstring7.php');

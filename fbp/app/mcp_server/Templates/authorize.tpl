@@ -21,7 +21,8 @@
 		<h1>{$server.title|escape}</h1>
 		<p>{t key="mcp_server.authorize_message"}</p>
 		<div class="meta">
-			User: {$user.name|default:$user.login_id|escape}<br>
+			Subject: {$subject_label|default:$subject.subject_label|escape}<br>
+			Type: {$subject.subject_type|escape}<br>
 			Client: {$oauth_params.client_id|escape}<br>
 			Scope: {$scope|escape}
 		</div>
