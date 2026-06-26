@@ -999,11 +999,21 @@ class mcp_server {
 		if ($resource === "") {
 			return "";
 		}
+		$params = [];
 		$query = (string) parse_url($resource, PHP_URL_QUERY);
-		if ($query === "") {
-			return "";
+		if ($query !== "") {
+			parse_str($query, $query_params);
+			if (is_array($query_params)) {
+				$params = array_merge($params, $query_params);
+			}
 		}
-		parse_str($query, $params);
+		$path = (string) parse_url($resource, PHP_URL_PATH);
+		if (preg_match('#\*[A-Za-z0-9_]+&(.*)$#', $path, $matches)) {
+			parse_str($matches[1], $path_params);
+			if (is_array($path_params)) {
+				$params = array_merge($params, $path_params);
+			}
+		}
 		foreach (["server", "server_key"] as $key) {
 			$value = $params[$key] ?? "";
 			if (!is_array($value)) {
