@@ -108,6 +108,74 @@ For custom-member services, every App Action must filter data by `subjectId()` o
 
 When a Note CRUD tool is too broad for per-member access control, prefer an App Action tool that applies explicit member filtering.
 
+## App Action CRUD Pattern
+
+For member-owned service data, prefer a single App Action tool with explicit CRUD operations and owner checks.
+
+- `list`: accepts optional filters such as `limit` and `query`; always filters by the authenticated owner; returns `items` and `count`.
+- `create_item`: validates required fields; sets owner fields from `McpActionRequest::subjectId()` or the resolved service member; returns `id` and the created `item`.
+- `update_item`: requires `item_id`; verifies ownership before updating; updates only arguments that are present; returns `id` and the updated `item`.
+- `delete_item`: requires `item_id` and `confirm=true`; verifies ownership before deleting; returns `id` and a delete summary such as `deleted=true`.
+
+Do not accept ownership fields such as `member_id`, `user_id`, or `parent_id` from MCP clients. Resolve them server-side from the MCP subject.
+
+If a delete affects related data, handle that explicitly in the operation. Either delete child rows, clear references, or reject the delete with a clear `ToolError`; do not leave accidental orphan rows.
+
+## Optional External Enrichment
+
+When an App Action uses an external API to enrich a create or update operation, keep the primary operation separate from the enrichment step.
+
+- If enrichment is optional, do not fail the primary create/update just because the external API failed. Save the primary record and return the enrichment failure in the result.
+- If enrichment is required for the operation to be meaningful, validate that requirement up front and fail with a clear `ToolError`.
+- Store only normalized fields needed by the app. Do not store raw API responses by default.
+- Store enough source metadata to explain or reproduce the enrichment, such as `external_source`, `external_code`, `external_name`, latitude/longitude, or retrieved timestamp.
+- Never hard-code API keys, trial keys, endpoint secrets, or production endpoints in Skills, samples, or project docs. Load credentials from app settings, environment variables, or another approved configuration source.
+
+Return enrichment status in a machine-readable shape so MCP clients can decide whether to retry, ask the user, or proceed:
+
+```php
+[
+	"item" => $item,
+	"enrichment" => [
+		"status" => "success", // success, skipped, failed
+		"source" => "external_service_name",
+		"message" => "External data applied.",
+		"external_code" => $external_code,
+	],
+]
+```
+
+Use `status=skipped` when required inputs for enrichment were not supplied. Use `status=failed` when inputs were supplied but the external API could not be used. Keep the message concise and safe to show to an MCP client.
+
+## Image and Chart Results
+
+For App Action tools that return generated images, put MCP-displayable images in `data.mcp_content_images`. The MCP server converts each item into a formal MCP image content block:
+
+```php
+"mcp_content_images" => [[
+	"mime_type" => "image/png",
+	"data_base64" => $png_base64,
+]],
+```
+
+The converted tool result content uses:
+
+```json
+{"type":"image","data":"<base64>","mimeType":"image/png"}
+```
+
+Use base64 image data without a `data:image/...;base64,` prefix for `data_base64`. Prefer PNG for broad client compatibility. Keep `svg`, `svg_data_uri`, or `png_data_uri` only as structured supplemental data for compatibility, debugging, or reuse; do not rely on data URIs as the primary MCP image display path.
+
+When the same result includes chartable structured data, also return normalized arrays and chart metadata in structured content. A useful pattern is:
+
+- `hourly_heights`: normalized data rows, such as `time` and `height_cm`.
+- `chart`: simple app-neutral chart metadata and data.
+- `chart_widget_spec`: a widget-ready chart spec when the client supports it.
+
+Do not remove existing SVG/PNG fields when adding structured chart data; add new keys for compatibility.
+
+MCP image content handling and ChatGPT rendering behavior may change. If images or charts stop rendering, verify the current official MCP specification and OpenAI/ChatGPT Apps SDK documentation before adding app-specific workarounds.
+
 ## Input Validation
 
 For App Action tools, define JSON Schema hints and runtime validation together. JSON Schema helps MCP clients choose the right shape, but runtime validation is still required because clients can send ambiguous strings, memo text, units, or mixed date/time values.
@@ -124,6 +192,16 @@ Use `McpInputValidator` from `McpActionInterface.php` for common MCP argument pa
 $started_at = McpInputValidator::time($request, "started_at");
 $trip_date = McpInputValidator::date($request, "trip_date");
 $count = McpInputValidator::integer($request, "count", ["default" => 1, "minimum" => 0]);
+```
+
+FBP `date` fields are stored as numeric timestamps in fixed-file data. When an MCP App Action writes to an FBP `date` field, do not store the validated `YYYY-MM-DD` string directly. Convert it to a timestamp for storage, and convert it back to `YYYY-MM-DD` in MCP responses. If `YYYY-MM-DD` is written directly to an `N` field, only the leading year may be retained.
+
+```php
+$trip_date = McpInputValidator::date($request, "trip_date");
+$row["trip_date"] = strtotime($trip_date . " 00:00:00");
+
+// In MCP response:
+$item["trip_date"] = !empty($row["trip_date"]) ? date("Y-m-d", (int) $row["trip_date"]) : "";
 ```
 
 Supported validators:

@@ -14,6 +14,7 @@ class mcp_service_action implements McpActionInterface {
 				"body" => ["type" => "string"],
 				"status" => McpInputValidator::enumSchema("Item status.", ["values" => ["active", "archived"]]),
 				"limit" => McpInputValidator::integerSchema("Maximum rows to return.", ["minimum" => 1, "maximum" => 100]),
+				"confirm" => ["type" => "boolean", "description" => "Required true for delete_item."],
 			],
 			"required" => ["operation"],
 			"additionalProperties" => false,
@@ -45,6 +46,9 @@ class mcp_service_action implements McpActionInterface {
 			return $this->updateItem($ctl, $memberId, $request);
 		}
 		if ($operation === "delete_item") {
+			if (!$request->bool("confirm", false)) {
+				throw new Exception("ToolError: delete_item requires confirm=true.");
+			}
 			return $this->deleteItem($ctl, $memberId, McpInputValidator::integer($request, "item_id", ["required" => true, "minimum" => 1]));
 		}
 		throw new Exception("Unknown operation: " . $operation);
@@ -98,7 +102,8 @@ class mcp_service_action implements McpActionInterface {
 
 	private function listItems(Controller $ctl, int $memberId, int $limit): McpActionResult {
 		$rows = $ctl->db("service_item")->select("parent_id", $memberId, true, "AND", "id", SORT_DESC, $limit);
-		return McpActionResult::success("Items loaded.", ["items" => array_values($rows)]);
+		$items = array_values($rows);
+		return McpActionResult::success("Items loaded.", ["items" => $items, "count" => count($items)]);
 	}
 
 	private function createItem(Controller $ctl, int $memberId, McpActionRequest $request): McpActionResult {
@@ -115,7 +120,8 @@ class mcp_service_action implements McpActionInterface {
 			"updated_at" => date("Y-m-d H:i:s"),
 		];
 		$id = $ctl->db("service_item")->insert($insert);
-		return McpActionResult::success("Item created.", ["id" => (int) $id]);
+		$item = $ctl->db("service_item")->get((int) $id);
+		return McpActionResult::success("Item created.", ["id" => (int) $id, "item" => $item]);
 	}
 
 	private function updateItem(Controller $ctl, int $memberId, McpActionRequest $request): McpActionResult {
@@ -138,7 +144,8 @@ class mcp_service_action implements McpActionInterface {
 		}
 		$row["updated_at"] = date("Y-m-d H:i:s");
 		$ctl->db("service_item")->update($row);
-		return McpActionResult::success("Item updated.", ["id" => $id]);
+		$item = $ctl->db("service_item")->get($id);
+		return McpActionResult::success("Item updated.", ["id" => $id, "item" => $item]);
 	}
 
 	private function deleteItem(Controller $ctl, int $memberId, int $id): McpActionResult {
@@ -147,7 +154,7 @@ class mcp_service_action implements McpActionInterface {
 			throw new Exception("Item was not found or is not owned by this member.");
 		}
 		$ctl->db("service_item")->delete($id);
-		return McpActionResult::success("Item deleted.", ["id" => $id]);
+		return McpActionResult::success("Item deleted.", ["id" => $id, "deleted" => true]);
 	}
 
 	private function ownedItemId(Controller $ctl, int $memberId, int $id): int {

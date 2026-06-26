@@ -286,8 +286,20 @@ class setting {
 		$ctl->assign("masked_setting", $this->mask_sensitive_setting($setting));
 		$ctl->assign("line_webhook_url", $ctl->get_APP_URL("webhook_line", "receive"));
 		$ctl->assign("mcp_server_info", $this->get_mcp_server_info($ctl));
+		$ctl->assign("mcp_servers_info", $this->get_mcp_servers_info($ctl));
 
 		$ctl->show_main_area("index.tpl", $ctl->t("setting.dialog.index"));
+	}
+
+	function mcp_server_detail(Controller $ctl) {
+		$id = (int) ($ctl->POST("server_id") ?? ($ctl->GET("server_id") ?? 0));
+		$server = $this->find_mcp_server_info($ctl, $id);
+		if (empty($server)) {
+			$ctl->show_notification_text("MCP Server not found.");
+			return;
+		}
+		$ctl->assign("mcp_server", $server);
+		$ctl->show_multi_dialog("setting_mcp_server_detail_" . (int) $server["id"], "mcp_server_detail.tpl", "MCP Server", 760, true, true);
 	}
 
 	private function get_mcp_server_info(Controller $ctl): array {
@@ -301,6 +313,62 @@ class setting {
 			"token_url" => $ctl->get_APP_URL("mcp_server", "token"),
 			"resource_metadata_url" => $base_url . "/.well-known/oauth-protected-resource",
 		];
+	}
+
+	private function get_mcp_servers_info(Controller $ctl): array {
+		$ffm_servers = $ctl->db("mcp_server_config", "mcp_manage");
+		$ffm_tools = $ctl->db("mcp_tools", "mcp_manage");
+		$rows = $ffm_servers->getall("sort", SORT_ASC);
+		if (count($rows) === 0) {
+			$default = $this->get_mcp_server_info($ctl);
+			$default["id"] = 0;
+			$default["server_key"] = "default";
+			$default["subject_type"] = "fbp_user";
+			$default["subject_provider_class"] = "";
+			$default["enabled"] = 1;
+			$default["tool_count"] = 0;
+			return [$default];
+		}
+
+		$list = [];
+		foreach ($rows as $server) {
+			$id = (int) ($server["id"] ?? 0);
+			$server_key = (string) ($server["server_key"] ?? "default");
+			$list[] = [
+				"id" => $id,
+				"enabled" => (int) ($server["enabled"] ?? 0),
+				"status" => (int) ($server["enabled"] ?? 0) === 1 ? $ctl->t("setting.mcp_status_enabled") : $ctl->t("common.disabled"),
+				"server_key" => $server_key !== "" ? $server_key : "default",
+				"title" => (string) ($server["title"] ?? ""),
+				"description" => (string) ($server["description"] ?? ""),
+				"auth_mode" => (string) ($server["auth_mode"] ?? "oauth2"),
+				"subject_type" => (string) ($server["subject_type"] ?? "fbp_user"),
+				"subject_provider_class" => (string) ($server["subject_provider_class"] ?? ""),
+				"endpoint_url" => $this->mcp_url($ctl, "rpc", $server_key),
+				"authorization_url" => $this->mcp_url($ctl, "authorize", $server_key),
+				"token_url" => $ctl->get_APP_URL("mcp_server", "token"),
+				"resource_metadata_url" => $this->mcp_url($ctl, "oauth_protected_resource", $server_key),
+				"tool_count" => $id > 0 ? count($ffm_tools->select("server_id", $id)) : 0,
+			];
+		}
+		return $list;
+	}
+
+	private function find_mcp_server_info(Controller $ctl, int $id): array {
+		foreach ($this->get_mcp_servers_info($ctl) as $server) {
+			if ((int) ($server["id"] ?? 0) === $id) {
+				return $server;
+			}
+		}
+		return [];
+	}
+
+	private function mcp_url(Controller $ctl, string $function, string $server_key): string {
+		$params = [];
+		if ($server_key !== "" && $server_key !== "default") {
+			$params["server"] = $server_key;
+		}
+		return $ctl->get_APP_URL("mcp_server", $function, $params);
 	}
 
 	private function get_mcp_base_url(Controller $ctl): string {

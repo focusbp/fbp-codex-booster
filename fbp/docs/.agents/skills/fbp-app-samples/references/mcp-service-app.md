@@ -64,7 +64,14 @@ php fbp/docs/.agents/skills/fbp-app-samples/scripts/install_mcp_service_app.php
 - Keep public login and MCP login sessions separate even when both use `service_member`.
 - Do not expose Note CRUD directly for member-owned data unless the server/tool layer enforces member ownership. This sample uses App Action for explicit filtering.
 - Do not trust client-supplied member IDs. Use `McpActionRequest::subjectId()` and verify row ownership before update/delete.
+- Keep App Action CRUD operations predictable:
+  - `list` returns `items` and `count`.
+  - `create_item` returns `id` and created `item`.
+  - `update_item` returns `id` and updated `item`.
+  - `delete_item` requires `confirm=true` and returns `id` plus delete status.
+- If a delete operation affects related records, delete child rows, clear references, or reject the request with a clear `ToolError`.
 - Define MCP input patterns in both JSON Schema and runtime validation. Use `McpInputValidator::*Schema()` in `getInputSchema()` and `McpInputValidator::*()` in `execute()` or operation handlers.
 - For time, date, year-month, integer, decimal, and enum values, return a clear `ToolError` instead of accepting memo text, units, or mixed formats. This lets MCP clients retry with the correct argument.
+- When an App Action writes to an FBP `date` field, expose `YYYY-MM-DD` to MCP clients but store a timestamp in the FBP row. Convert timestamps back to `YYYY-MM-DD` before returning MCP response data. Writing `YYYY-MM-DD` directly to an FBP numeric date field can leave only the year.
 - Keep the portal small. For most MCP-first services, endpoint URL display is enough.
 - Add external API enrichment, images, or `chart_widget_spec` only in domain-specific samples.

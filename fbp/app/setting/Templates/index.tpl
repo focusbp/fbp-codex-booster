@@ -383,33 +383,42 @@
 			<div id="setting-tab-mcp-server" class="setting_tab_panel">
 				<div class="setting_tab_inner">
 					<table class="setting_detail_table setting_readonly_table">
-						<tr>
-							<th rowspan="5">MCP Server</th>
-							<td>{t key="setting.mcp_status"}</td>
-							<td><div class="setting_readonly_value">{$mcp_server_info.status|escape}</div></td>
-						</tr>
-						<tr>
-							<td>{t key="setting.mcp_title"}</td>
-							<td><div class="setting_readonly_value">{$mcp_server_info.title|escape}</div></td>
-						</tr>
-						<tr>
-							<td>{t key="setting.mcp_auth_mode"}</td>
-							<td><div class="setting_readonly_value">{$mcp_server_info.auth_mode|escape}</div></td>
-						</tr>
-						<tr>
-							<td>{t key="setting.mcp_endpoint_url"}</td>
-							<td><div class="setting_readonly_value setting_url_value">{$mcp_server_info.endpoint_url|escape}</div></td>
-						</tr>
-						<tr>
-							<td>{t key="setting.mcp_oauth_urls"}</td>
-							<td>
-								<div class="setting_readonly_value setting_url_value">
-									authorization: {$mcp_server_info.authorization_url|escape}<br>
-									token: {$mcp_server_info.token_url|escape}<br>
-									resource metadata: {$mcp_server_info.resource_metadata_url|escape}
-								</div>
-							</td>
-						</tr>
+						<thead>
+							<tr>
+								<th style="width:18%;">{t key="mcp_manage.server_key"}</th>
+								<th>{t key="common.title"}</th>
+								<th style="width:12%;">{t key="common.status"}</th>
+								<th style="width:12%;">{t key="mcp_manage.auth_mode"}</th>
+								<th style="width:18%;">{t key="mcp_manage.subject_type"}</th>
+								<th style="width:8%;">Tool</th>
+								<th style="width:14%;"></th>
+							</tr>
+						</thead>
+						<tbody>
+							{foreach $mcp_servers_info as $server}
+								<tr>
+									<td>
+										<div class="setting_readonly_value">{$server.server_key|escape}</div>
+										{if $server.description|default:'' != ''}
+											<div style="font-size:11px;color:#6b7280;line-height:1.4;">{$server.description|escape|nl2br nofilter}</div>
+										{/if}
+									</td>
+									<td><div class="setting_readonly_value">{$server.title|escape}</div></td>
+									<td><div class="setting_readonly_value">{$server.status|escape}</div></td>
+									<td><div class="setting_readonly_value">{$server.auth_mode|escape}</div></td>
+									<td>
+										<div class="setting_readonly_value">{$server.subject_type|default:'fbp_user'|escape}</div>
+										{if $server.subject_provider_class|default:'' != ''}
+											<div style="font-size:11px;color:#6b7280;">{$server.subject_provider_class|escape}</div>
+										{/if}
+									</td>
+									<td><div class="setting_readonly_value">{$server.tool_count|default:0|escape}</div></td>
+									<td>
+										<button class="ajax-link" data-class="setting" data-function="mcp_server_detail" data-server_id="{$server.id|escape}">URL</button>
+									</td>
+								</tr>
+							{/foreach}
+						</tbody>
 					</table>
 				</div>
 			</div>
