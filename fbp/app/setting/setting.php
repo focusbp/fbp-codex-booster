@@ -368,7 +368,11 @@ class setting {
 		if ($server_key !== "" && $server_key !== "default") {
 			$params["server"] = $server_key;
 		}
-		return $ctl->get_APP_URL("mcp_server", $function, $params);
+		$url = $ctl->get_APP_URL("mcp_server", $function);
+		if (count($params) === 0) {
+			return $url;
+		}
+		return $url . (strpos($url, "?") === false ? "?" : "&") . http_build_query($params);
 	}
 
 	private function get_mcp_base_url(Controller $ctl): string {
