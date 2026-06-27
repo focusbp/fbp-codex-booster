@@ -114,6 +114,98 @@
 	border-color: var(--public-form-focus, #1974D2);
 }
 
+.public-form .row_value,
+.public-form .field_edit {
+	display: block;
+	min-width: 0;
+}
+
+.public-form .field_edit {
+	margin: 0;
+	padding: 0;
+}
+
+.public-form .field_edit h6 {
+	margin: 0 0 6px;
+	color: var(--public-form-muted, #475569);
+	font-size: 13px;
+	font-weight: 700;
+	line-height: 1.4;
+}
+
+.public-form .field_edit h6 span {
+	line-height: inherit;
+}
+
+.public-form .field_edit .style_parameter_description {
+	margin: 0 0 6px;
+	color: var(--public-form-muted, #64748b);
+	font-size: 12px;
+	line-height: 1.5;
+}
+
+.public-form .field_edit input[type="date"],
+.public-form .field_edit input[type="datetime-local"],
+.public-form .field_edit input[type="email"],
+.public-form .field_edit input[type="number"],
+.public-form .field_edit input[type="password"],
+.public-form .field_edit input[type="search"],
+.public-form .field_edit input[type="tel"],
+.public-form .field_edit input[type="text"],
+.public-form .field_edit input[type="time"],
+.public-form .field_edit input[type="url"],
+.public-form .field_edit select,
+.public-form .field_edit textarea {
+	box-sizing: border-box;
+	width: 100%;
+	min-height: 42px;
+	max-width: 100%;
+	margin: 0;
+	padding: 8px 10px;
+	border: 1px solid var(--public-form-line, #cbd5e1);
+	border-radius: 6px;
+	background: var(--public-form-surface, #fff);
+	color: var(--public-form-ink, #0f172a);
+	font: inherit;
+	line-height: 1.4;
+}
+
+.public-form .field_edit textarea {
+	min-height: 112px;
+	line-height: 1.6;
+	resize: vertical;
+}
+
+.public-form .field_edit input:focus,
+.public-form .field_edit select:focus,
+.public-form .field_edit textarea:focus {
+	outline: 2px solid var(--public-form-focus-ring, rgba(25, 116, 210, 0.18));
+	border-color: var(--public-form-focus, #1974D2);
+}
+
+.public-form .field_edit input[type="checkbox"],
+.public-form .field_edit input[type="radio"] {
+	width: 18px;
+	height: 18px;
+	margin: 0 6px 0 0;
+	vertical-align: middle;
+}
+
+.public-form .field_edit label {
+	color: var(--public-form-ink, #0f172a);
+	font-size: 14px;
+	line-height: 1.5;
+	vertical-align: middle;
+}
+
+.public-form > .error_message {
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	font-size: 12px;
+	line-height: 1.4;
+}
+
 .public-check {
 	display: flex;
 	align-items: center;
@@ -133,6 +225,10 @@
 	color: #e20000;
 	font-size: 12px;
 	line-height: 1.4;
+}
+
+.public-form .error_message:empty {
+	display: none;
 }
 
 .public-actions,
@@ -622,24 +718,26 @@
 .fbp-original-select-button {
 	position: relative;
 	width: 100%;
-	min-height: 37px;
+	min-height: 42px;
 	box-sizing: border-box;
 	margin-top: 0;
 	margin-left: 0;
-	padding: 5px 36px 5px 8px;
-	border: 3px solid #dfdfdf;
-	background: #fff;
-	color: #000;
-	font-size: 18px;
+	padding: 8px 36px 8px 10px;
+	border: 1px solid var(--public-form-line, #cbd5e1);
+	border-radius: 6px;
+	background: var(--public-form-surface, #fff);
+	color: var(--public-form-ink, #0f172a);
+	font: inherit;
+	line-height: 1.4;
 	text-align: left;
 }
 
 .fbp-original-select-button:hover,
 button.fbp-original-select-button:hover,
 .ui-button.fbp-original-select-button:hover {
-	border-color: #dfdfdf;
-	background: #fff;
-	color: #000;
+	border-color: var(--public-form-focus, #1974D2);
+	background: var(--public-form-surface, #fff);
+	color: var(--public-form-ink, #0f172a);
 }
 
 .fbp-original-select-button:disabled {

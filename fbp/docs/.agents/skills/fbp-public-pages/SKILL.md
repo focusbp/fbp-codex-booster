@@ -37,18 +37,22 @@ description: Build and operate public_pages with login-free entry points, secure
 ## minimal public pages
 - `minimal` は、公開側アプリの独自デザインに管理画面CSSを影響させず、同時に FBP Ajax / dialog / Screen Log などフレームワーク連携をスムーズに使うための公開側標準モードとして扱う。
 - 新規の公開アプリ型UI、ログイン後ポータル、公開側CRUD画面では `show_public_pages(..., ["css_mode" => "minimal"])` を標準にする。通常の `show_public_pages()` は既存互換ページ向けとして扱う。
-- `minimal` は FBP Ajax / dialog / Screen Log アイコンに必要な共通assetsを維持しつつ、管理画面向け `appstyle.css` を読み込まない。ボタン、フォーム、カード、ページレイアウトなどの見た目は各公開アプリ側CSSで明示する。
-- `publicsite_minimal.css` は、公開側Ajaxで使う共通部品だけを持つ。対象は Screen Log、`multi_dialog`、エラー表示、通知、公開側フォームの明示クラス、ダウンロード進捗、文字数カウンタ、datepicker周辺、`fbp-original-select`、`year_month_picker_panel` とし、管理画面向けの広い `button` / `form` / `table` / 見出しCSSは入れない。
+- `minimal` は FBP Ajax / dialog / Screen Log アイコンに必要な共通assetsを維持しつつ、管理画面向け `appstyle.css` を読み込まない。フォーム部品は裸に見えない最低限を `publicsite_minimal.css` が保証し、ボタン、カード、ページ幅、背景、ブランド色、業務画面ごとの密度などは各公開アプリ側CSSで明示する。
+- `publicsite_minimal.css` は、公開側Ajaxで使う共通部品とフォームの薄い土台だけを持つ。対象は Screen Log、`multi_dialog`、エラー表示、通知、公開側フォームの明示クラス、helper 出力の `.field_edit`、ダウンロード進捗、文字数カウンタ、datepicker周辺、`fbp-original-select`、`year_month_picker_panel` とし、管理画面向けの広い `button` / `form` / `table` / 見出しCSSは入れない。
 - フレームワークの `appstyle.css` で Ajax 共通部品、dialog、Screen Log、datepicker、original select、download、notification、wordcounter などを変更する場合は、同じ変更が `publicsite_minimal.css` にも必要か必ず確認する。公開側 minimal で使う部品なら、広い管理画面CSSをコピーせず、対象コンポーネントの最小CSSだけを `publicsite_minimal.css` に反映する。
 - 既存互換の通常 `show_public_pages()` では `appstyle.css` が読み込まれる。管理画面向けの広い `button` / icon / `.listbutton` 系CSSが公開側UIに干渉する場合があるため、新規UIは `minimal` へ寄せ、公開アプリ側のCSSで色・余白・角丸・アイコンサイズを明示して設計する。
 
 ## public minimal forms
+- DB項目や既存フィールド定義に紐づく公開フォームでは、データ安定性・将来の項目変更追従を優先し、まず `fields_form_direct` / `fields_form_original` を使う。helper 出力の余白や高さは、画面スコープ内の `.field_edit` / `.fbp-original-select-button` などをCSSで調整する。
+- 手書きフォームは、helper の値処理・項目定義・選択肢描画が不要な静的/単純フォームに限定する。
+- `publicsite_minimal.css` は `.public-form` 配下の `.field_edit` / `.row_value` / input / select / textarea / `.fbp-original-select-button` に最低限の表示を持つ。画面固有の textarea 高さ、section 余白、grid/flex配置、ブランド色は project 側 `classes/app/public_pages/style.css` またはページスコープCSSで上書きする。
 - `css_mode=minimal` の公開側手書きフォームでは、フォームに `.public-form`、各入力項目の wrapper に `.public-field`、checkbox/radio 系の行に `.public-check`、送信ボタン行に `.public-form-actions` または `.public-actions` を付ける。
 - アプリ固有のクラスは共通クラスと併用する。例: `<form class="public-form motioncards-form">`、`<div class="public-field motioncards-field">`。アプリ固有CSSは色や余白の上書きに使い、入力欄が共通セレクタ対象から外れないようにする。
 - 手書き input / select / textarea を置く場合は、`.public-field` 配下に置く。`publicsite_minimal.css` の共通フォームCSSは `.public-field` 配下だけに効くため、独自の `*-form-row` などを使うと入力欄のデザインが外れる。
-- `fields_form_direct` / `fields_form_original` を使う場合は、生成HTMLの都合で `.public-field` を直接付けられないことがある。必要なら公開ページ固有CSSで helper 出力の `.field_edit` / `.fbp-original-select-button` を、その画面スコープ内だけで調整する。
+- `fields_form_direct` / `fields_form_original` を使う場合は、生成HTMLの都合で `.public-field` を直接付けられないことがある。公開ページ固有CSSで helper 出力の `.field_edit` / `.fbp-original-select-button` を、その画面スコープ内だけで調整する。
 - `error_*` 要素は該当入力項目の直下に置き、`res_error_message(field, ...)` の field 名と一致させる。
 - ダイアログに表示する部分テンプレートも同じルールに従う。`show_multi_dialog()` で表示されるフォームは、全体ページの見た目ではなく読み込まれている共通/アプリCSSのセレクタに一致しているか確認する。
+- 公開ページ本文へフォームを埋め込み、縦余白・grid・helper出力のレイアウト問題を避けたい場合は `references/public_embedded_form_layout_sample.md` を読む。
 
 ```smarty
 <form id="public_contact_form" class="public-form app-contact-form" onsubmit="return false;">

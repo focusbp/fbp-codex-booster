@@ -1,0 +1,4 @@
+interface:
+  display_name: "FBP Email Confirm"
+  short_description: "Build safe email confirmation dialogs."
+  default_prompt: "Create an FBP email confirmation dialog flow."
