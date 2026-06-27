@@ -842,6 +842,12 @@ section {
 	padding:10px;
 }
 
+.multi_dialog .multi_dialog_contents::after {
+	content: "";
+	display: block;
+	height: 60px;
+}
+
 .multi_dialog_scroll {
 	overflow-y: scroll;
 	overflow-x: hidden;
