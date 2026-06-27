@@ -3331,9 +3331,13 @@ function set_multidialog_height(dialog_id) {
 		const windowHeight = window.innerHeight;
 		const dialogTop = parseInt($dlg.css("top"), 10) || 0;
 		const maxHeight = (windowHeight - dialogTop) * 0.9;
+		const scrollOuterHeight = $sc.length ? $sc.outerHeight(true) : 0;
+		const fixedOuterHeight = $sc.length ? Math.max(0, height_dialog - scrollOuterHeight) : 0;
+		const scrollBottomAllowance = 60;
+		const maxScrollHeight = Math.max(120, maxHeight - fixedOuterHeight - scrollBottomAllowance);
 
 		$dlg.css("max-height", maxHeight);
-		$sc.css("max-height", maxHeight - 30);
+		$sc.css("max-height", maxScrollHeight);
 
 		if (height_dialog > maxHeight) {
 			$dlg.height(maxHeight);

@@ -27,6 +27,23 @@ Use `fbp/interface/McpSubjectInterface.php`.
 
 Keep public-page login and MCP login separate even when they use the same member table. Use separate session keys and separate return URL handling so ChatGPT or another MCP client does not accidentally inherit an ordinary browser login.
 
+## External MCP Endpoint URLs
+
+When exposing a non-default MCP Server to external MCP clients, publish the endpoint with a normal query string:
+
+```text
+https://example.com/mcp_server*rpc?server=<server_key>
+```
+
+Do not publish `mcp_server*rpc&server=<server_key>` as the primary external URL. FBP internal links commonly use `/<class>*<function>&key=value`, but OAuth MCP clients such as ChatGPT may treat the endpoint as a resource URL and later pass it through the OAuth `resource` parameter. In that flow, the `&server=...` part can be interpreted as an OAuth query parameter and dropped from the resource, causing authorization to fall back to the default MCP Server and `fbp_user` subject.
+
+MCP Server routing should continue to accept both forms for backward compatibility, but OAuth metadata and user-facing MCP endpoint displays should prefer `?server=...` for non-default servers. Verify the full external flow after changes:
+
+- unauthenticated `mcp_server*rpc?server=<server_key>` returns `WWW-Authenticate` with `resource_metadata=...oauth_protected_resource?server=<server_key>`;
+- protected-resource metadata returns `resource=...mcp_server*rpc?server=<server_key>`;
+- authorization-server metadata returns `authorization_endpoint=...mcp_server*authorize?server=<server_key>`;
+- an authorize request with `resource=...mcp_server*rpc?server=<server_key>` resolves the custom subject provider instead of the default `fbp_user` provider.
+
 ## Server Configuration
 
 `mcp_server_config` supports these subject fields:
