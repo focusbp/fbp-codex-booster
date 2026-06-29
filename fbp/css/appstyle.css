@@ -1625,6 +1625,51 @@ form p {
 	line-height: 1em;
 }
 
+.db_exe_selectable_row.db_exe_row_selected > td {
+	background: #e8f3ff;
+}
+
+#main_table.main_table_horizontal_scroll {
+	overflow-x: auto;
+	overflow-y: visible;
+	max-width: calc(100vw - 360px);
+	padding-bottom: 8px;
+	scrollbar-width: none;
+}
+
+#main_table.main_table_horizontal_scroll::-webkit-scrollbar {
+	display: none;
+}
+
+#main_table.main_table_horizontal_scroll .db_exe_main_table {
+	width: max-content;
+	min-width: 100%;
+}
+
+.main_table_horizontal_scroll_fixed {
+	position: fixed;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 18px;
+	overflow-x: auto;
+	overflow-y: hidden;
+	background: rgba(255, 255, 255, 0.96);
+	border-top: 1px solid #d7deea;
+	z-index: 1100;
+	display: none;
+}
+
+.main_table_horizontal_scroll_fixed_inner {
+	height: 1px;
+}
+
+@media (max-width: 1460px) {
+	#main_table.main_table_horizontal_scroll {
+		max-width: calc(100vw - 40px);
+	}
+}
+
 .search_box {
     background: #e4f1ff;
     padding: 10px;

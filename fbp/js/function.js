@@ -1610,6 +1610,105 @@ var myChart = new Array(); //チャート用オブジェクト
 var waitTimer;
 var flg_reloadarea_fade = true;
 
+function setup_main_table_horizontal_scroll() {
+	var main = document.querySelector("#main_table.main_table_horizontal_scroll");
+	var bar = document.querySelector(".main_table_horizontal_scroll_fixed");
+	if (!bar) {
+		return;
+	}
+	var inner = bar.querySelector(".main_table_horizontal_scroll_fixed_inner");
+	if (!main || !inner) {
+		bar.style.display = "none";
+		return;
+	}
+	var syncStateKey = "horizontalScrollSyncInitialized";
+	if (!bar.dataset[syncStateKey]) {
+		bar.dataset[syncStateKey] = "1";
+		bar.addEventListener("scroll", function () {
+			var target = document.querySelector("#main_table.main_table_horizontal_scroll");
+			if (target && target.scrollLeft !== bar.scrollLeft) {
+				target.scrollLeft = bar.scrollLeft;
+			}
+		});
+		main.addEventListener("scroll", function () {
+			if (bar.scrollLeft !== main.scrollLeft) {
+				bar.scrollLeft = main.scrollLeft;
+			}
+		});
+		window.addEventListener("resize", setup_main_table_horizontal_scroll);
+	}
+	var width = main.scrollWidth;
+	var hasOverflow = width > main.clientWidth;
+	bar.style.display = hasOverflow ? "block" : "none";
+	if (!hasOverflow) {
+		return;
+	}
+	var adjustedWidth = width + Math.max(0, bar.clientWidth - main.clientWidth);
+	inner.style.width = adjustedWidth + "px";
+	if (bar.scrollLeft !== main.scrollLeft) {
+		bar.scrollLeft = main.scrollLeft;
+	}
+}
+
+function get_standard_screen_row_selection_key(dbId) {
+	return "fbp:db_exe:selected_row:" + window.location.pathname + ":" + dbId;
+}
+
+function setup_standard_screen_row_selection() {
+	var main = document.querySelector("#main_table");
+	if (!main) {
+		return;
+	}
+	if (!main.dataset.rowSelectionInitialized) {
+		main.dataset.rowSelectionInitialized = "1";
+		main.addEventListener("click", function (event) {
+			if (event.target.closest("button, a, input, select, textarea, label, .ajax-link, .handle, [contenteditable='true']")) {
+				return;
+			}
+			var row = event.target.closest(".db_exe_selectable_row");
+			if (!row || !main.contains(row)) {
+				return;
+			}
+			var dbId = row.dataset.dbId || "";
+			var rowId = row.dataset.rowId || "";
+			if (dbId === "" || rowId === "") {
+				return;
+			}
+			main.querySelectorAll(".db_exe_selectable_row.db_exe_row_selected").forEach(function (selectedRow) {
+				selectedRow.classList.remove("db_exe_row_selected");
+			});
+			row.classList.add("db_exe_row_selected");
+			try {
+				localStorage.setItem(get_standard_screen_row_selection_key(dbId), rowId);
+			} catch (e) {
+				// Ignore localStorage failures such as private mode restrictions.
+			}
+		});
+	}
+	var rows = main.querySelectorAll(".db_exe_selectable_row[data-db-id][data-row-id]");
+	if (rows.length === 0) {
+		return;
+	}
+	var dbId = rows[0].dataset.dbId || "";
+	var selectedRowId = "";
+	try {
+		selectedRowId = localStorage.getItem(get_standard_screen_row_selection_key(dbId)) || "";
+	} catch (e) {
+		selectedRowId = "";
+	}
+	main.querySelectorAll(".db_exe_selectable_row.db_exe_row_selected").forEach(function (row) {
+		row.classList.remove("db_exe_row_selected");
+	});
+	if (selectedRowId !== "") {
+		for (var i = 0; i < rows.length; i++) {
+			if ((rows[i].dataset.rowId || "") === selectedRowId) {
+				rows[i].classList.add("db_exe_row_selected");
+				break;
+			}
+		}
+	}
+}
+
 function show_download_view() {
 	var state = arguments.length > 0 ? arguments[0] : "";
 	$("#download_view").appendTo("body").css("z-index", 2147483647).show();
@@ -2286,6 +2385,12 @@ function appcon(url, fd, nextfunction) {
 				if (func) {
 					func(dialog_id + " ");
 				}
+				setup_standard_screen_row_selection();
+				setup_main_table_horizontal_scroll();
+				setTimeout(function () {
+					setup_standard_screen_row_selection();
+					setup_main_table_horizontal_scroll();
+				}, 0);
 			}
 
 			var appendarea = res['appendarea'];
@@ -2708,6 +2813,12 @@ function appcon(url, fd, nextfunction) {
 							});
 						}
 						ajax_auto_exe(dialog_id);
+						setup_standard_screen_row_selection();
+						setup_main_table_horizontal_scroll();
+						setTimeout(function () {
+							setup_standard_screen_row_selection();
+							setup_main_table_horizontal_scroll();
+						}, 0);
 					});
 				}
 

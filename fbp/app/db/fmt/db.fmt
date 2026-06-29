@@ -11,6 +11,7 @@ sort_order,1,N
 screen_build_type,1,N
 list_type,1,N
 side_list_type,1,N
+horizontal_scroll,1,N
 dropdown_item,255,T
 dropdown_item_display_type,20,T
 dropdown_item_template,255,T

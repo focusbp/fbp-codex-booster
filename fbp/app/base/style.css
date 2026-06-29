@@ -1,12 +1,4 @@
 
-footer {
-	background-color: #2d2d2d;
-	width:100%;
-	color:#FFF;
-	z-index: 3;
-}
-
-
 button {
 	float:right;
 }
@@ -95,12 +87,7 @@ body {
 
 article {
 	min-height:calc(100vh - 110px);
-    margin-bottom: 70px;
-}
-
-footer {
-	position: fixed;
-	bottom:0px;
+	margin-bottom: 0;
 }
 
 
@@ -229,13 +216,6 @@ footer {
 	font-size: 12px;
 	margin: 2px;
 	border-radius: 2px;
-}
-
-.copyright {
-	background-color: #000;
-	text-align: center;
-	font-size:14px;
-	padding:5px;
 }
 
 #accordion_menu .menu_contents .generated_menu {

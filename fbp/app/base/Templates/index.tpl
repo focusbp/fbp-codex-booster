@@ -29,13 +29,7 @@
 
 		</article>
 
-		<footer>
-			<div id="appcode" style="display: none;">{$appcode}</div>
-			{if $testserver}
-				<button id="show_debug">{$base_i18n.debug}</button>
-			{/if}
-			<div class="copyright">{$base_i18n.app_name}</div>
-		</footer>
+		<div id="appcode" style="display: none;">{$appcode}</div>
 
 
 		{include file="{$base_template_dir}/footer.tpl"}

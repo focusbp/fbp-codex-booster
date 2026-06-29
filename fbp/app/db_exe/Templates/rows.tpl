@@ -1,7 +1,7 @@
-<table style="margin-top:10px;">
+<table class="db_exe_main_table" style="margin-top:10px;">
 <tbody>
 {foreach $rows as $row}
-	<tr class="active_indicator">
+	<tr class="active_indicator db_exe_selectable_row" data-db-id="{$db_id}" data-row-id="{$row.id}">
 		{if $show_id}
 		<td class="row_style">
 			<span class="row_title">ID</span>

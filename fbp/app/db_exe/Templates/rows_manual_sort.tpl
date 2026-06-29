@@ -1,8 +1,8 @@
 
-<table style="margin-top:10px;">
+<table class="db_exe_main_table" style="margin-top:10px;">
 <tbody id="manual_sort{$db_id}">
 {foreach $rows as $row}
-	<tr id="{$row["id"]}" class="active_indicator">
+	<tr id="{$row["id"]}" class="active_indicator db_exe_selectable_row" data-db-id="{$db_id}" data-row-id="{$row.id}">
 		<td>
 			{if $manual_sort_search_active != true}
 			<span><span class="material-symbols-outlined handle">swap_vert</span></span>

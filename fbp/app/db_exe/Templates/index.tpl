@@ -75,5 +75,8 @@
 {/if}
 
 
-<div id="main_table">
+{if $horizontal_scroll_main}
+	<div class="main_table_horizontal_scroll_fixed"><div class="main_table_horizontal_scroll_fixed_inner"></div></div>
+{/if}
+<div id="main_table" class="{if $horizontal_scroll_main}main_table_horizontal_scroll{/if}">
 </div>

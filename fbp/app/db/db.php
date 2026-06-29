@@ -100,6 +100,12 @@ class db {
 	    1 => "Search and Table",
 	    2 => "Manual Sort"
 	];
+	private function get_horizontal_scroll_options(Controller $ctl): array {
+		return [
+			0 => $ctl->t("common.off") ?: "Off",
+			1 => $ctl->t("common.on") ?: "On",
+		];
+	}
 	private $default_screen_list = [
 	    "add",
 	    "edit",
@@ -207,6 +213,7 @@ class db {
 		$ctl->assign("screen_build_type_opt", $this->screen_build_type_opt);
 		$ctl->assign("list_type_opt", $this->list_type_opt);
 		$ctl->assign("side_list_type_opt", $this->side_list_type_opt);
+		$ctl->assign("horizontal_scroll_opt", $this->get_horizontal_scroll_options($ctl));
 		$ctl->assign("duplicate_check_opt", $this->duplicate_check_opt);
 		$ctl->assign("display_format_opt", $this->get_display_format_options($ctl));
 		$ctl->assign("format_check_title_opt", $this->format_check_title_opt);
@@ -306,9 +313,11 @@ class db {
 		$post["sort_order"] = 3;
 		$post["screen_build_type"] = isset($post["screen_build_type"]) ? (int)$post["screen_build_type"] : 0;
 		$post["side_list_type"] = isset($post["side_list_type"]) ? (int)$post["side_list_type"] : 0;
+		$post["horizontal_scroll"] = isset($post["horizontal_scroll"]) ? (int)$post["horizontal_scroll"] : 0;
 		if ((int) ($post["screen_build_type"] ?? 0) === 1) {
 			$post["list_type"] = 0;
 			$post["side_list_type"] = 0;
+			$post["horizontal_scroll"] = 0;
 		}
 
 		$id = $this->fmt_db->insert($post);
@@ -396,6 +405,9 @@ class db {
 
 		if ($data["side_list_type"] === "" || $data["side_list_type"] === null) {
 			$data["side_list_type"] = 0;
+		}
+		if ($data["horizontal_scroll"] === "" || $data["horizontal_scroll"] === null) {
+			$data["horizontal_scroll"] = 0;
 		}
 		if ($data["screen_build_type"] === "" || $data["screen_build_type"] === null) {
 			$data["screen_build_type"] = 0;
@@ -543,9 +555,11 @@ class db {
 		}
 		$data["screen_build_type"] = isset($data["screen_build_type"]) ? (int) $data["screen_build_type"] : 0;
 		$data["side_list_type"] = isset($data["side_list_type"]) ? (int) $data["side_list_type"] : 0;
+		$data["horizontal_scroll"] = isset($data["horizontal_scroll"]) ? (int) $data["horizontal_scroll"] : 0;
 		if ((int) ($data["screen_build_type"] ?? 0) === 1) {
 			$data["list_type"] = 0;
 			$data["side_list_type"] = 0;
+			$data["horizontal_scroll"] = 0;
 		}
 			if (empty($data["dropdown_item_display_type"])) {
 				$data["dropdown_item_display_type"] = "field";

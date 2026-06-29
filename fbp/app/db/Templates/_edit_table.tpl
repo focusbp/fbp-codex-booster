@@ -58,6 +58,8 @@
 			{html_options id="list_type" name="list_type" options=$list_type_opt selected=$data["list_type"]}
 			<p class="lang">{t key="db.side_panel_list_type"}</p>
 			{html_options id="side_list_type" name="side_list_type" options=$side_list_type_opt selected=$data["side_list_type"]}
+			<p class="lang">{t key="db.horizontal_scroll"}</p>
+			{html_options id="horizontal_scroll" name="horizontal_scroll" options=$horizontal_scroll_opt selected=$data["horizontal_scroll"]}
 			<p class="lang">{t key="db.show_id_on_list"}</p>
 			{html_options id="show_id" name="show_id" options=$show_id_opt selected=$data["show_id"]}
 			<p class="lang">{t key="db.show_id_on_search"}</p>

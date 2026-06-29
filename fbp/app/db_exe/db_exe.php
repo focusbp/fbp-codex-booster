@@ -683,6 +683,7 @@ class db_exe {
 		$this->add_show_button_class($ctl,$additional_list);
 		$ctl->assign("additionals",$additional_list);
 		$this->assign_properties_management_summary($ctl);
+		$ctl->assign("horizontal_scroll_main", ((int) ($this->db_setting["horizontal_scroll"] ?? 0)) === 1);
 		
 		// Show HTML
 		$ctl->show_main_area("index.tpl", $this->title);
