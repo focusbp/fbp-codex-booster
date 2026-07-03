@@ -338,7 +338,7 @@
 						</tr>
 					</table>
 					<div class="setting_tab_actions">
-						<button type="button" class="ajax-link lang" data-class="setting" data-function="square">{t key="setting.square_test"}</button>
+						<button type="button" class="ajax-link lang" data-class="setting" data-function="square" data-form="setting_form">{t key="setting.square_test"}</button>
 					</div>
 				</div>
 			</div>

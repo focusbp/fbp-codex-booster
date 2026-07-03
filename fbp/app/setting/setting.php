@@ -93,6 +93,63 @@ class setting {
 	}
 
 	function update(Controller $ctl) {
+		$setting = $this->save_posted_setting($ctl);
+
+		// Replace .htaccess
+		$scriptName = (string) ($_SERVER["SCRIPT_NAME"] ?? "");
+		$directoryPath = pathinfo($scriptName, PATHINFO_DIRNAME);
+		if (endsWith($directoryPath, "/fbp")) {
+			$directoryPath = substr($directoryPath, 0, strlen($directoryPath) - 4);
+		}
+		if ($directoryPath === "/" || $directoryPath === ".") {
+			$directoryPath = "";
+		}
+		$template = file_get_contents(dirname(__FILE__) . "/Templates/htaccess.tpl");
+		$template = str_replace('{$class}', $setting["rewrite_rule_root"], $template);
+		$template = str_replace('{$function}', $setting["rewrite_rule_function"], $template);
+		$template = str_replace('{$subpath}',$directoryPath,$template);
+		$template = str_replace('{$default_class_name}',$setting["default_class_name"],$template);
+		if($setting["ssl"] == 1){
+			$template = str_replace('{$ssl}','RewriteCond %{HTTPS} off' . "\n" . 'RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R]',$template);
+		}else{
+			$template = str_replace('{$ssl}',"",$template);	
+		}
+		file_put_contents(dirname(__FILE__) . "/../../../.htaccess", $template);
+
+		// Replace robots.txt
+		file_put_contents(dirname(__FILE__) . "/../../../robots.txt", $setting["robots"]);
+
+		// Login Logo
+		if ($ctl->is_posted_file("login_logo")) {
+			$ctl->save_posted_file("login_logo", "login_logo");
+		}
+
+		// 
+		// favicon
+		if ($ctl->is_posted_file("favicon")) {
+			$ctl->save_posted_file("favicon", "favicon");
+		}
+		
+		// Test Mail
+		if ($ctl->POST("send_test_mail") == 1) {
+			$setting = $this->ffm->get(1);
+			$ctl->set_session("setting", $setting);
+			$to = $setting["smtp_email_test"];
+			try {
+				$ctl->send_mail_string($setting["smtp_from"], $to, "TEST", "This is test mail from setting.\n" . $_SERVER["HTTP_HOST"], null, true);
+				$ctl->show_notification_text("Success!");
+				return;
+			} catch (Throwable $e) {
+				$ctl->show_notification_text($e->getMessage(), 8, "#D14343", "#FFF", 16, 920);
+				return;
+			}
+		}
+
+		$ctl->show_notification_text($ctl->t("setting.notification.saved"));
+		$ctl->res_reload();
+	}
+
+	private function save_posted_setting(Controller $ctl): array {
 		$setting = $this->ffm->get(1);
 		if ($setting == null) {
 			$setting = array();
@@ -162,59 +219,40 @@ class setting {
 		
 		$this->ffm->update($setting);
 		$ctl->set_session("setting", $setting);
+		return $setting;
+	}
 
-		// Replace .htaccess
-		$scriptName = (string) ($_SERVER["SCRIPT_NAME"] ?? "");
-		$directoryPath = pathinfo($scriptName, PATHINFO_DIRNAME);
-		if (endsWith($directoryPath, "/fbp")) {
-			$directoryPath = substr($directoryPath, 0, strlen($directoryPath) - 4);
-		}
-		if ($directoryPath === "/" || $directoryPath === ".") {
-			$directoryPath = "";
-		}
-		$template = file_get_contents(dirname(__FILE__) . "/Templates/htaccess.tpl");
-		$template = str_replace('{$class}', $setting["rewrite_rule_root"], $template);
-		$template = str_replace('{$function}', $setting["rewrite_rule_function"], $template);
-		$template = str_replace('{$subpath}',$directoryPath,$template);
-		$template = str_replace('{$default_class_name}',$setting["default_class_name"],$template);
-		if($setting["ssl"] == 1){
-			$template = str_replace('{$ssl}','RewriteCond %{HTTPS} off' . "\n" . 'RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R]',$template);
-		}else{
-			$template = str_replace('{$ssl}',"",$template);	
-		}
-		file_put_contents(dirname(__FILE__) . "/../../../.htaccess", $template);
-
-		// Replace robots.txt
-		file_put_contents(dirname(__FILE__) . "/../../../robots.txt", $setting["robots"]);
-
-		// Login Logo
-		if ($ctl->is_posted_file("login_logo")) {
-			$ctl->save_posted_file("login_logo", "login_logo");
+	private function save_posted_square_setting(Controller $ctl): array {
+		$setting = $this->ffm->get(1);
+		if ($setting == null) {
+			$setting = array();
+			$this->ffm->insert($setting);
 		}
 
-		// 
-		// favicon
-		if ($ctl->is_posted_file("favicon")) {
-			$ctl->save_posted_file("favicon", "favicon");
-		}
-		
-		// Test Mail
-		if ($ctl->POST("send_test_mail") == 1) {
-			$setting = $this->ffm->get(1);
-			$ctl->set_session("setting", $setting);
-			$to = $setting["smtp_email_test"];
-			try {
-				$ctl->send_mail_string($setting["smtp_from"], $to, "TEST", "This is test mail from setting.\n" . $_SERVER["HTTP_HOST"], null, true);
-				$ctl->show_notification_text("Success!");
-				return;
-			} catch (Throwable $e) {
-				$ctl->show_notification_text($e->getMessage(), 8, "#D14343", "#FFF", 16, 920);
-				return;
+		$square_keys = [
+			"square_application_id",
+			"square_application_secret",
+			"square_access_token",
+			"square_location_id",
+			"currency",
+		];
+		foreach ($square_keys as $key) {
+			$val = $ctl->POST($key);
+			if ($val === null) {
+				continue;
 			}
+			if (in_array($key, $this->sensitive_keys, true) && trim((string) $val) === "") {
+				continue;
+			}
+			$setting[$key] = $val;
+		}
+		if (empty($setting["currency"])) {
+			$setting["currency"] = "JPY";
 		}
 
-		$ctl->show_notification_text($ctl->t("setting.notification.saved"));
-		$ctl->res_reload();
+		$this->ffm->update($setting);
+		$ctl->set_session("setting", $setting);
+		return $setting;
 	}
 
 	function page(Controller $ctl) {
@@ -407,6 +445,12 @@ class setting {
 	}
 
 	function square(Controller $ctl) {
+		$setting = $this->save_posted_square_setting($ctl);
+		$ctl->set_square(
+			$setting["square_application_id"] ?? "",
+			$setting["square_access_token"] ?? "",
+			$setting["square_location_id"] ?? ""
+		);
 
 		// Get customer informations before input credit card.
 		$name = "Test";
