@@ -315,26 +315,26 @@
 			<div id="setting-tab-payment" class="setting_tab_panel">
 				<div class="setting_tab_inner">
 					<table class="setting_detail_table">
-							<tr>
-								<th rowspan="5">{t key="setting.square_setting"}</th>
-								<td>{t key="setting.application_id"}</td>
-								<td><input type="text" name="square_application_id" value="{$setting.square_application_id}"></td>
-							</tr>
-							<tr>
-								<td>Application Secret</td>
-								<td><input type="password" name="square_application_secret" value="" placeholder="{$masked_setting.square_application_secret|escape}"></td>
-							</tr>
-							<tr>
-								<td>{t key="setting.access_token"}</td>
-								<td><input type="password" name="square_access_token" value="" placeholder="{$masked_setting.square_access_token|escape}"></td>
-							</tr>
+						<tr>
+							<th rowspan="5">{t key="setting.square_setting"}</th>
+							<td>{t key="setting.application_id"}</td>
+							<td><input type="text" name="square_application_id" value="{$setting.square_application_id}"></td>
+						</tr>
+						<tr>
+							<td>Access Token</td>
+							<td><input type="password" name="square_access_token" value="" placeholder="{$masked_setting.square_access_token|escape}"></td>
+						</tr>
 						<tr>
 							<td>{t key="setting.location_id"}</td>
 							<td><input type="text" name="square_location_id" value="{$setting.square_location_id}"></td>
 						</tr>
 						<tr>
-							<td>{t key="setting.currency"}</td>
+							<td>Currency</td>
 							<td>{html_options name="currency" options=$currency_list selected=$setting.currency}</td>
+						</tr>
+						<tr>
+							<td>Application Secret</td>
+							<td><input type="password" name="square_application_secret" value="" placeholder="{$masked_setting.square_application_secret|escape}"></td>
 						</tr>
 					</table>
 					<div class="setting_tab_actions">
