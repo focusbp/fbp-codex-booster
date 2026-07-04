@@ -2499,7 +2499,7 @@ class Controller_class implements Controller {
 
 			$mysquare = new mysquare($this->square_access_token, $this->get_session("testserver"));
 			return $mysquare->regist_customer($name, $email, $address, $locality, $country);
-		} catch (Exception $e) {
+		} catch (Throwable $e) {
 			$this->square_error = $e->getMessage();
 			return null;
 		}
@@ -2508,6 +2508,14 @@ class Controller_class implements Controller {
 	function square_regist_card($square_customer_id): ?string {
 		try {
 			$nonce = $_POST["nonce"] ?? null;
+			if (empty($square_customer_id)) {
+				$this->square_error = "Square顧客登録に失敗しました";
+				return null;
+			}
+			if (empty($nonce)) {
+				$this->square_error = "Squareカード情報の取得に失敗しました";
+				return null;
+			}
 			if (!class_exists("mysquare")) {
 				$this->set_square();
 			}
@@ -2540,7 +2548,7 @@ class Controller_class implements Controller {
 			} else {
 				return true;
 			}
-		} catch (Exception $e) {
+		} catch (Throwable $e) {
 			$this->square_error = $e->getMessage();
 			return false;
 		}

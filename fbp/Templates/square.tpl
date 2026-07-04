@@ -54,7 +54,7 @@
 			  fd.append("callback_parameter_array", callback_parameter_array);
 			  fd.append("nonce", token);
 			  fd.append("public",flg_public);
-			  appcon("app.php", fd, function (e) {
+			  return appcon("app.php", fd, function (e) {
 			  });
 		  }
 
@@ -129,9 +129,11 @@
 					  cardButton.disabled = true;
 					  const token = await tokenize(paymentMethod);
 					  const paymentResults = await createPayment(token);
-					  displayPaymentResults('SUCCESS');
+					  if (document.body.contains(cardButton)) {
+						  cardButton.disabled = false;
+					  }
 
-					  console.debug('Payment Success', paymentResults);
+					  console.debug('Payment request completed', paymentResults);
 				  } catch (e) {
 					  cardButton.disabled = false;
 					  displayPaymentResults('FAILURE');

@@ -39,9 +39,28 @@ class mysquare {
 			]);
 		}
 	}
-	
-	function regist_customer($name,$email){
+
+	private function get_error_text($result_body, $fallback) {
+		$txt = "";
+		if (isset($result_body["errors"]) && is_array($result_body["errors"])) {
+			foreach ($result_body["errors"] as $error) {
+				if (isset($error["detail"]) && trim((string) $error["detail"]) !== "") {
+					$txt .= $error["detail"] . " ";
+				} else if (isset($error["code"])) {
+					$txt .= $error["code"] . " ";
+				}
+			}
+		}
+		$txt = trim($txt);
+		if ($txt === "") {
+			$txt = $fallback;
+		}
+		$this->error = $txt;
+		return $txt;
+	}
 		
+	function regist_customer($name,$email){
+			
 		$customers_api = $this->client->getCustomersApi();
 		
 		$customer = new CreateCustomerRequest();
@@ -57,30 +76,36 @@ class mysquare {
 
 		$result = $customers_api->createCustomer($customer);
 		$result_body = json_decode($result->getBody(),true);
-		$customer_id = $result_body["customer"]["id"];
 		if ($result->isError()) {
-			$txt = "";
-			foreach($result_body["errors"] as $error){
-				$txt .= $error["code"] . " ";
-			}
-			throw new Exception($txt);
-		}else{
-			return $customer_id;
+			throw new Exception($this->get_error_text($result_body, "Square顧客登録に失敗しました"));
 		}
+
+		$customer_id = (string) ($result_body["customer"]["id"] ?? "");
+		if ($customer_id === "") {
+			throw new Exception($this->get_error_text($result_body, "Square顧客登録に失敗しました"));
+		}
+		return $customer_id;
 	}
-	
+		
 	function regist_card($customer_id,$nonce){
+		if (empty($customer_id)) {
+			throw new Exception("Square顧客登録に失敗しました");
+		}
+		if (empty($nonce)) {
+			throw new Exception("Squareカード情報の取得に失敗しました");
+		}
+
 		$customers_api = $this->client->getCustomersApi();
 		$card = new Square\Models\CreateCustomerCardRequest($nonce);
 		$result = $customers_api->createCustomerCard($customer_id,$card);
 		$result_body = json_decode($result->getBody(),true);
-		$card_id = $result_body["card"]["id"];
-		if($card_id == null){
-			$txt = "";
-			foreach($result_body["errors"] as $error){
-				$txt .= $error["code"] . " ";
-			}
-			throw new Exception($txt);
+		if ($result->isError()) {
+			throw new Exception($this->get_error_text($result_body, "Squareカード登録に失敗しました"));
+		}
+
+		$card_id = (string) ($result_body["card"]["id"] ?? "");
+		if($card_id === ""){
+			throw new Exception($this->get_error_text($result_body, "Squareカード登録に失敗しました"));
 		}
 		return $card_id;
 	}
