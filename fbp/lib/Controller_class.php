@@ -854,8 +854,16 @@ class Controller_class implements Controller {
 			if ($f["type"] == "file" || $f["type"] == "image") {
 				$parameter_name = $f["parameter_name"];
 
-				$row_id = $data[$parameter_name];
+				$row_id = $data[$parameter_name] ?? "";
+				if (empty($row_id)) {
+					continue;
+				}
 				$file = $ffm_upload->get($row_id);
+				if (!is_array($file) || empty($file)) {
+					$data[$parameter_name] = "";
+					$this->db($table_name)->update($data);
+					continue;
+				}
 
 				$src_path = $file["path"];
 				$src_path_th = $file["path_th"];
