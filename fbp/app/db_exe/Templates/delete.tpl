@@ -2,6 +2,12 @@
 <form id="form_{$timestamp}">
 	<input type="hidden" name="id" value="{$row.id}">
 </form>
+
+{if $delete_prompt_only}
+	<div class="row_style" style="margin-top:10px;">
+		<p style="margin:0;line-height:1.7;">{$project_delete_codex_prompt|escape}</p>
+	</div>
+{/if}
 	
 	{foreach $group1 as $field}
 		<div class="row_style" style="margin-top:10px;">
@@ -11,4 +17,3 @@
 		</div>
 	{/foreach}
 	
-

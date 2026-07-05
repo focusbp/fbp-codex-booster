@@ -1062,6 +1062,23 @@ class db_exe {
 
 		$ctl->assign_field_settings("group1",$this->table_name, "delete", false,false);
 		$ctl->assign("row",$row);
+		$ctl->assign("delete_prompt_only", false);
+		if ($this->table_name === "sftp") {
+			$appcode = trim((string)($row["appcode"] ?? ""));
+			if ($appcode === "") {
+				$appcode = trim((string)($row["code_dir"] ?? ""));
+			}
+			if ($appcode === "") {
+				$appcode = trim((string)($row["name"] ?? ""));
+			}
+			if ($appcode !== "" && strpos($appcode, "app-") !== 0) {
+				$appcode = "app-" . $appcode;
+			}
+			if ($appcode !== "") {
+				$ctl->assign("delete_prompt_only", true);
+				$ctl->assign("project_delete_codex_prompt", 'sv002のcodexから、「' . $appcode . 'のプロジェクトを削除してください」と指示してください。');
+			}
+		}
 		
 		$ctl->show_multi_dialog($this->window_name, "delete.tpl", $ctl->t("common.delete"),600,"_delete_button.tpl");
 	}
