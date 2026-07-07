@@ -254,6 +254,9 @@ class ReleaseManager {
 	private function addRootFilesToZip(ZipArchive $zip): void {
 		foreach ($this->root_file_copy_list as $fileName) {
 			$fileName = basename((string) $fileName);
+			if ($fileName === ".htaccess" && !empty($this->releaseInfo["skip_htaccess"])) {
+				continue;
+			}
 			if ($fileName === ".htaccess" && array_key_exists("htaccess_subpath", $this->releaseInfo)) {
 				$zip->addFromString("project_root/.htaccess", $this->renderHtaccessForRelease());
 				continue;
