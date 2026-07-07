@@ -338,6 +338,9 @@ class db_api {
 		if (!preg_match('/^[a-z0-9_]+$/', $table)) {
 			$this->respond_error(400, "invalid_table", "table must match ^[a-z0-9_]+$");
 		}
+		if ($table === "setting") {
+			$this->respond_error(409, "setting_api_required", "setting must be accessed through setting_api get/update because it regenerates related files");
+		}
 
 		$dbclass = $this->normalize_optional_string($dbclass);
 		$resolved_class = $dbclass;

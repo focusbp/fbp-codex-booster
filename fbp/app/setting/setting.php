@@ -94,30 +94,7 @@ class setting {
 
 	function update(Controller $ctl) {
 		$setting = $this->save_posted_setting($ctl);
-
-		// Replace .htaccess
-		$scriptName = (string) ($_SERVER["SCRIPT_NAME"] ?? "");
-		$directoryPath = pathinfo($scriptName, PATHINFO_DIRNAME);
-		if (endsWith($directoryPath, "/fbp")) {
-			$directoryPath = substr($directoryPath, 0, strlen($directoryPath) - 4);
-		}
-		if ($directoryPath === "/" || $directoryPath === ".") {
-			$directoryPath = "";
-		}
-		$template = file_get_contents(dirname(__FILE__) . "/Templates/htaccess.tpl");
-		$template = str_replace('{$class}', $setting["rewrite_rule_root"], $template);
-		$template = str_replace('{$function}', $setting["rewrite_rule_function"], $template);
-		$template = str_replace('{$subpath}',$directoryPath,$template);
-		$template = str_replace('{$default_class_name}',$setting["default_class_name"],$template);
-		if($setting["ssl"] == 1){
-			$template = str_replace('{$ssl}','RewriteCond %{HTTPS} off' . "\n" . 'RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R]',$template);
-		}else{
-			$template = str_replace('{$ssl}',"",$template);	
-		}
-		file_put_contents(dirname(__FILE__) . "/../../../.htaccess", $template);
-
-		// Replace robots.txt
-		file_put_contents(dirname(__FILE__) . "/../../../robots.txt", $setting["robots"]);
+		$this->regenerate_setting_files($ctl, $setting);
 
 		// Login Logo
 		if ($ctl->is_posted_file("login_logo")) {
@@ -149,15 +126,41 @@ class setting {
 		$ctl->res_reload();
 	}
 
+	function api_get_setting(Controller $ctl): array {
+		$setting = $this->ffm->get(1);
+		if (!is_array($setting)) {
+			$setting = [];
+		}
+		return $setting;
+	}
+
+	function api_update_setting(Controller $ctl, array $data): array {
+		$setting = $this->save_setting_values($ctl, $data, true);
+		$files = $this->regenerate_setting_files($ctl, $setting);
+		return [
+			"setting" => $setting,
+			"files" => $files,
+		];
+	}
+
 	private function save_posted_setting(Controller $ctl): array {
+		return $this->save_setting_values($ctl, $ctl->POST(), false);
+	}
+
+	private function save_setting_values(Controller $ctl, array $values, bool $filter_known_fields): array {
 		$setting = $this->ffm->get(1);
 		if ($setting == null) {
 			$setting = array();
 			$this->ffm->insert($setting);
 		}
-		foreach ($ctl->POST() as $key => $val) {
+		$known_fields = $filter_known_fields ? $this->get_setting_field_names() : null;
+		foreach ($values as $key => $val) {
+			$key = (string) $key;
 			if ($key === "smtp_password_web") {
 				$key = "smtp_password";
+			}
+			if ($known_fields !== null && !isset($known_fields[$key])) {
+				continue;
 			}
 			if (in_array($key, $this->sensitive_keys, true) && trim((string) $val) === "") {
 				continue;
@@ -220,6 +223,53 @@ class setting {
 		$this->ffm->update($setting);
 		$ctl->set_session("setting", $setting);
 		return $setting;
+	}
+
+	function regenerate_setting_files(Controller $ctl, array $setting): array {
+		$scriptName = (string) ($_SERVER["SCRIPT_NAME"] ?? "");
+		$directoryPath = pathinfo($scriptName, PATHINFO_DIRNAME);
+		if (endsWith($directoryPath, "/fbp")) {
+			$directoryPath = substr($directoryPath, 0, strlen($directoryPath) - 4);
+		}
+		if ($directoryPath === "/" || $directoryPath === ".") {
+			$directoryPath = "";
+		}
+
+		$template = file_get_contents(dirname(__FILE__) . "/Templates/htaccess.tpl");
+		$template = str_replace('{$class}', $setting["rewrite_rule_root"], $template);
+		$template = str_replace('{$function}', $setting["rewrite_rule_function"], $template);
+		$template = str_replace('{$subpath}', $directoryPath, $template);
+		$template = str_replace('{$default_class_name}', $setting["default_class_name"] ?? "", $template);
+		if ((int) ($setting["ssl"] ?? 0) === 1) {
+			$template = str_replace('{$ssl}', 'RewriteCond %{HTTPS} off' . "\n" . 'RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R]', $template);
+		} else {
+			$template = str_replace('{$ssl}', "", $template);
+		}
+		$htaccess_path = dirname(__FILE__) . "/../../../.htaccess";
+		file_put_contents($htaccess_path, $template);
+
+		$robots_path = dirname(__FILE__) . "/../../../robots.txt";
+		file_put_contents($robots_path, $setting["robots"] ?? "User-Agent: *\nAllow: /\n");
+
+		return [
+			"htaccess" => is_file($htaccess_path),
+			"robots" => is_file($robots_path),
+		];
+	}
+
+	private function get_setting_field_names(): array {
+		$fields = [];
+		$fmt_path = __DIR__ . "/fmt/setting.fmt";
+		if (!is_file($fmt_path)) {
+			return $fields;
+		}
+		foreach (file($fmt_path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+			$parts = explode(",", trim($line));
+			if (!empty($parts[0])) {
+				$fields[$parts[0]] = true;
+			}
+		}
+		return $fields;
 	}
 
 	private function save_posted_square_setting(Controller $ctl): array {
