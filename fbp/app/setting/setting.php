@@ -43,7 +43,7 @@ class setting {
 
 	function __construct(Controller $ctl) {
 		$this->ctl = $ctl;
-		$this->ffm = $ctl->db("setting");
+		$this->ffm = $ctl->db("setting", "setting");
 		$ctl->assign("arr_customize", [0 => "Default", 1 => "Customize"]);
 		$ctl->assign("arr_onoff", [0 => "On", 1 => "Off"]);
 		$ctl->assign("arr_display_errors", $this->arr_display_errors);
