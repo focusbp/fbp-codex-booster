@@ -41,3 +41,4 @@ $pdf->addTable($table, [
 - PDFダウンロードの `download-link` は `data-open_new_tab="true"` を基本とする。例外時は理由を実装コメントかPR説明に残す。
 - `addTable` の `columnsize` は合計 `100` にする（%指定として扱うため）。
 - `addText()` などで安易に `bold => true` を使わない。既定フォントでは `Undefined font` になることがあるため、太字が必要な場合は `migmix-1p-bold` など登録済みの太字フォントを `fontname` で明示する。
+- PDF生成や `pdfunite` / `zip` など外部コマンド連携で一時ファイルを作る場合、`sys_get_temp_dir()` を前提にしない。本番アプリユーザーで `tempnam(sys_get_temp_dir(), ...)` が失敗することがあるため、一時ファイルもアプリユーザーが書き込み可能なアップロードディレクトリ配下に作成する。

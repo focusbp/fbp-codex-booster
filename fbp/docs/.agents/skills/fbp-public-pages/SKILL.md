@@ -43,6 +43,8 @@ description: Build and operate public_pages with login-free entry points, secure
 - 既存互換の通常 `show_public_pages()` では `appstyle.css` が読み込まれる。管理画面向けの広い `button` / icon / `.listbutton` 系CSSが公開側UIに干渉する場合があるため、新規UIは `minimal` へ寄せ、公開アプリ側のCSSで色・余白・角丸・アイコンサイズを明示して設計する。
 
 ## public minimal forms
+- 公開側でも入力コンポーネント（フォーム部品）は FBP 標準を優先する。DB項目ではない一時フィルターや検索条件でも、`year_month` は `{html_year_month ...}` + `year_month_picker`、日付は datepicker、選択肢は `fields_form_original` / FBP original select など、既存の値変換・表示形式・Ajax送信と揃う部品を使う。
+- ブラウザ標準の `input type="month"` / `input type="date"` / 素の `<select>` は、FBP標準部品が使えない明確な理由がある場合だけ使う。その場合も PHP 側で FBP 標準の送信形式と同じ正規化を行い、表示差異が運用上問題にならないか確認する。
 - DB項目や既存フィールド定義に紐づく公開フォームでは、データ安定性・将来の項目変更追従を優先し、まず `fields_form_direct` / `fields_form_original` を使う。helper 出力の余白や高さは、画面スコープ内の `.field_edit` / `.fbp-original-select-button` などをCSSで調整する。
 - 手書きフォームは、helper の値処理・項目定義・選択肢描画が不要な静的/単純フォームに限定する。
 - `publicsite_minimal.css` は `.public-form` 配下の `.field_edit` / `.row_value` / input / select / textarea / `.fbp-original-select-button` に最低限の表示を持つ。画面固有の textarea 高さ、section 余白、grid/flex配置、ブランド色は project 側 `classes/app/public_pages/style.css` またはページスコープCSSで上書きする。

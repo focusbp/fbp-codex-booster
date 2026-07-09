@@ -33,12 +33,6 @@ a {
 	transition: .3s;
 }
 
-a:hover, a:focus {
-	color: #004a97;
-	text-decoration: none;
-	outline: none;
-}
-
 img {
 	display: inline-block;
 	width: 100%;

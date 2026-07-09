@@ -12,6 +12,7 @@ description: Build, maintain, or adjust FBP Standard Screen note management usin
 - 標準画面サイドパネルの詳細設計は `fbp-side-panel` も使う
 - helper利用方針（fields_form_direct等）の判断が必要
 - 既存 Standard Screen だけでは足りず、`db_additionals` の add/edit/list 運用が必要
+- 標準画面の編集・削除アイコンや確認画面をプロジェクト固有にカスタマイズしたい
 - MCP Note CRUD と同じ保存・副作用経路に寄せたい
 
 ## workflow
@@ -21,7 +22,8 @@ description: Build, maintain, or adjust FBP Standard Screen note management usin
 4. 表示は `fields_view_direct` を優先。
 5. 反映範囲を `list/add/edit/delete` で確認し、親ありなら `list_on_side` も確認する。サイドパネル固有の設計・検証は `fbp-side-panel` に従う。
 6. 保存時の共通副作用は、画面専用処理ではなく対象ノートの `post_action_class` に寄せ、Standard Screen、Original Screen、MCP Server の Note CRUD で同じ動きにする。
-7. `screen_fields` 登録・変更後は必ず `standard_screen_check` を実行し、フラグの選択式化、内部項目/ raw ID の露出、空の画面定義を確認する。
+7. 標準の編集・削除導線を独自化する場合は、対象 screen の `screen_fields` を空にして標準アイコンを非表示にし、`db_additionals` の行ボタンで専用クラス・専用ダイアログを実装する。
+8. `screen_fields` 登録・変更後は必ず `standard_screen_check` を実行し、フラグの選択式化、内部項目/ raw ID の露出、空の画面定義を確認する。
 
 ## default screen_fields policy
 - ユーザーから項目指定がない場合、Standard Screen の `screen_fields` は次の方針で設定する。
@@ -41,9 +43,11 @@ description: Build, maintain, or adjust FBP Standard Screen note management usin
 ## db_additionals workflow
 1. `db_additionals` は Standard Screen 側の拡張として扱う。新規 Original Screen の代替として使わない。
 2. まず `screen_fields` や標準機能で足りるか確認する。
-3. `db_additionals_list` で既存重複と `dialog_width` を確認する。
-4. 追加機能を実装し、`db_additionals_add` または `db_additionals_edit` で登録する。
-5. `app_call` / `app_check` と必要な `data_*` 確認で動作を検証する。
+3. 標準の編集・削除をカスタマイズする場合は、該当 screen（例: `edit` / `delete`）の `screen_fields` を全削除して標準アイコンを消す。
+4. `db_additionals_list` で既存重複と `dialog_width` を確認する。
+5. 行ボタンは `place=1`、サイドパネル行ボタンは `place=3` を基本に、専用 app クラスでダイアログ表示・保存・削除・プロンプト表示などを実装する。編集・削除の最小コード例や、ダイアログ内の `section` / `h4` レイアウト注意点が必要な場合は `references/db-additionals-edit-delete-sample.md` を読む。
+6. 追加機能を実装し、`db_additionals_add` または `db_additionals_edit` で登録する。
+7. `app_call` / `app_check` と必要な `data_*` 確認で、標準アイコンが消えていること、追加した行ボタンだけが出ること、専用ダイアログが動くことを検証する。
 
 ## dialog width policy
 - `db_additionals_add` / `db_additionals_edit` では `dialog_width` を必ず明示設定する。
@@ -62,6 +66,7 @@ description: Build, maintain, or adjust FBP Standard Screen note management usin
 
 ## constraints
 - 新規CRUD画面はこの Skill 起点を基本にする。Original Screen は明示指定または標準画面で不足する箇所だけに限定する。
+- プロジェクト固有の編集・削除・確認・プロンプト表示のために、framework の `db_exe` など標準機能へ app 固有分岐を入れることは強く禁止する。必ず app 側クラス + `db_additionals` + 必要な `screen_fields` 調整で閉じる。
 - 手書き `<input>/<select>/<textarea>` は例外時のみ。
 - 手書きの表示値展開（`{$row.xxx}` 直書き等）は例外時のみとし、原則 `fields_view_direct` を使う。
 - 例外時は理由を明示可能な状態にする。
