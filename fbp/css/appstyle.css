@@ -1023,11 +1023,33 @@ section {
 	padding: 10px 15px;
 	margin: 0px;
 	margin-bottom:20px;
+	color: var(--fbp-framework-primary-text-color, #FFF);
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 20px;
+	white-space: nowrap;
 }
 
 #left-sidebar-show-btn img {
 	margin: 0px;
 	width: 20px;
+	vertical-align: middle;
+}
+
+#left-sidebar-show-btn span {
+	margin-left: 6px;
+	vertical-align: middle;
+}
+
+@media (max-width: 540px) {
+	#left-sidebar-show-btn {
+		padding: 10px;
+		font-size: 12px;
+	}
+
+	#left-sidebar-show-btn span {
+		margin-left: 4px;
+	}
 }
 
 .left-sidebar-hide-btn {

@@ -4,6 +4,7 @@
   "base.dev_mode": "DEV MODE",
   "base.download_release_file": "Download Release File",
   "base.debug": "Debug",
+  "base.menu.open": "Menu",
   "base.menu.dashboard": "Dashboard",
   "base.menu.databases": "Notes",
   "base.menu.public_side": "Public Side",

@@ -79,6 +79,7 @@ class base {
 			"dev_mode" => $ctl->t("base.dev_mode"),
 			"download_release_file" => $ctl->t("base.download_release_file"),
 			"debug" => $ctl->t("base.debug"),
+			"menu_open" => $ctl->t("base.menu.open"),
 			"dashboard" => $ctl->t("base.menu.dashboard"),
 			"databases" => $ctl->t("base.menu.databases"),
 			"public_side" => $ctl->t("base.menu.public_side"),

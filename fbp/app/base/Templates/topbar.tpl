@@ -11,7 +11,7 @@
 
         <div class="topbar_left_area">
 			<div style="display: block;float:left;">
-				<button id="left-sidebar-show-btn" class="ajax-link" data-class="base" data-function="show_left_sidemenu"><img src="app.php?class=base&function=img&file=menu-hamburger.png" /></button>
+				<button id="left-sidebar-show-btn" class="ajax-link" data-class="base" data-function="show_left_sidemenu" aria-label="{$base_i18n.menu_open}"><img src="app.php?class=base&function=img&file=menu-hamburger.png" alt="" /><span>{$base_i18n.menu_open}</span></button>
 			</div>
 			<div style="display: block;float: left;">
 				<div style="height:47px;display: inline-block;margin-left:10px;margin-top: 7px;">

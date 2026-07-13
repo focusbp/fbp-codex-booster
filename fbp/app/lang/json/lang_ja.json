@@ -4,6 +4,7 @@
   "base.dev_mode": "開発モード",
   "base.download_release_file": "リリースファイルをダウンロード",
   "base.debug": "デバッグ",
+  "base.menu.open": "メニュー",
   "base.menu.dashboard": "ダッシュボード",
   "base.menu.databases": "ノート",
   "base.menu.public_side": "公開側",
