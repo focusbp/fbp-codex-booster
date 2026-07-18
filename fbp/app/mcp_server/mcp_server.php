@@ -523,6 +523,7 @@ class mcp_server {
 			"id" => $ctl->encrypt((string) ($data["id"] ?? 0)),
 			"_post_action_table" => $table,
 			"_post_action_from" => $from,
+			"_post_action_source" => "mcp_server",
 		];
 		if (is_array($before_data)) {
 			$post["_post_action_before"] = json_encode($before_data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
