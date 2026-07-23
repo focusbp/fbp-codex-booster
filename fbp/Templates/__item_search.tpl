@@ -11,7 +11,9 @@ $row : array of the values.
 
 <div class="field_edit" data-parameter-name="{$name|escape}" data-parameter-title="{$title|escape}" data-field-type="{$type|escape}">
 
+{if empty($hide_title)}
 <h6 class="lang">{$title}</h6>
+{/if}
 	
 {if $type == "text"}
 	

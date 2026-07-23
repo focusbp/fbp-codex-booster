@@ -4,3 +4,6 @@ screen_name,255,T
 parameter_name,255,T
 db_fields_id,24,N
 sort,24,T
+search_default_value,255,T
+search_default_from,255,T
+search_default_to,255,T

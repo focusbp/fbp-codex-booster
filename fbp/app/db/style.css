@@ -175,27 +175,68 @@ SPAN.td {
 	border-top:1px #ccc solid;
 }
 
+.screen_field p {
+	display:flex;
+	align-items:center;
+}
+
+.screen_field_title {
+	min-width:0;
+}
+
 .screen_field_handle {
 	cursor: pointer;
 }
 
 .screen_field_delete {
-	float: right;
+	float:none;
     background: #ccc;
     border-radius: 20px;
     font-size: 10px;
-    margin-top: 5px;
+    margin:0;
     display: block;
     width: 15px;
     height: 15px;
     text-align: center;
 	cursor: pointer;
 	transition: 0.5s;
+	flex:0 0 15px;
+	line-height:15px;
 }
 
 .screen_field_delete:hover {
 	background: #4BA3FF;
 	color:#FFF;
+}
+
+.screen_field_edit {
+	float:none;
+	margin:0 10px 0 auto;
+	padding:0 !important;
+	width:15px;
+	height:15px;
+	min-width:0;
+	border:0;
+	border-radius:20px;
+	background:#ccc;
+	color:#111;
+	cursor:pointer;
+	transition:0.5s;
+	display:flex;
+	align-items:center;
+	justify-content:center;
+	flex:0 0 15px;
+}
+
+.screen_field_edit .material-symbols-outlined {
+	display:block;
+	font-size:11px;
+	line-height:15px;
+}
+
+.screen_field_edit:hover {
+	background:#4BA3FF;
+	color:#111;
 }
 
 .new_screen {

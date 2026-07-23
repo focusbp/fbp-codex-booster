@@ -50,7 +50,7 @@ append_function_dialog(function (dialog_id) {
 	
     $(dialog_id+".screen_field_list").sortable({
         handle:".screen_field_handle",
-        cancel:".screen_field_delete",
+        cancel:".screen_field_delete,.screen_field_edit",
 		axis:"y",
         update: function(){
             var log = $(this).sortable("toArray");

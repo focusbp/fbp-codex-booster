@@ -680,12 +680,79 @@ class db {
 			if ($check_d == null) {
 				$this->fmt_screen_fields->delete($val["id"]);
 			} else {
-				$screen_fields_arr[$val["id"]] = $check_d["parameter_title"];
+				$screen_fields_arr[] = [
+					"id" => $val["id"],
+					"parameter_title" => $check_d["parameter_title"],
+					"has_search_default" => $screen["screen_name"] === "search",
+				];
 			}
 		}
 		$ctl->assign("screen_fields_arr", $screen_fields_arr);
 
 		$ctl->reload_area("#screen_fields_area", $ctl->fetch("_screen_fields.tpl"));
+	}
+
+	function edit_screen_field(Controller $ctl) {
+		$id = (int) $ctl->POST("id");
+		$screen_field = $this->fmt_screen_fields->get($id);
+		if (empty($screen_field)) {
+			$ctl->show_notification_text("Screen field not found.");
+			return;
+		}
+		if (($screen_field["screen_name"] ?? "") !== "search") {
+			$ctl->show_notification_text("This screen field has no configurable options.");
+			return;
+		}
+
+		$field = $this->fmt_db_fields->get($screen_field["db_fields_id"]);
+		if (empty($field)) {
+			$ctl->show_notification_text("Field not found.");
+			return;
+		}
+
+		$ctl->assign_field_settings("screen_field_setting", $screen_field["tb_name"], [$field["parameter_name"]], true, false);
+		$ctl->assign("screen_field", $screen_field);
+		$ctl->assign("row", [
+			$field["parameter_name"] => $screen_field["search_default_value"] ?? "",
+			$field["parameter_name"] . "_from" => $screen_field["search_default_from"] ?? "",
+			$field["parameter_name"] . "_to" => $screen_field["search_default_to"] ?? "",
+		]);
+		$ctl->show_multi_dialog("edit_screen_field", "edit_screen_field.tpl", "項目設定", 600, true, true);
+	}
+
+	function edit_screen_field_exe(Controller $ctl) {
+		$post = $ctl->POST();
+		$id = (int) ($post["id"] ?? 0);
+		$screen_field = $this->fmt_screen_fields->get($id);
+		if (empty($screen_field) || ($screen_field["screen_name"] ?? "") !== "search") {
+			$ctl->show_notification_text("Search screen field not found.");
+			return;
+		}
+
+		$field = $this->fmt_db_fields->get($screen_field["db_fields_id"]);
+		if (empty($field)) {
+			$ctl->show_notification_text("Field not found.");
+			return;
+		}
+
+		$name = $field["parameter_name"];
+		$type = $field["type"] ?? "";
+		$screen_field["search_default_value"] = "";
+		$screen_field["search_default_from"] = "";
+		$screen_field["search_default_to"] = "";
+		if ($type === "date" || $type === "datetime") {
+			$screen_field["search_default_from"] = trim((string) ($post[$name . "_from"] ?? ""));
+			$screen_field["search_default_to"] = trim((string) ($post[$name . "_to"] ?? ""));
+		} else {
+			$screen_field["search_default_value"] = trim((string) ($post[$name] ?? ""));
+		}
+		$this->fmt_screen_fields->update($screen_field);
+
+		$screen_list = $this->fmt_screen->select(["tb_name", "screen_name"], [$screen_field["tb_name"], "search"]);
+		$ctl->close_multi_dialog("edit_screen_field");
+		if (count($screen_list) > 0) {
+			$ctl->invoke("screen_fields_area", ["screen_id" => $screen_list[0]["id"]]);
+		}
 	}
 
 	function add_to_screen(Controller $ctl) {

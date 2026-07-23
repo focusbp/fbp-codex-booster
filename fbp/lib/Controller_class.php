@@ -3990,6 +3990,11 @@ class Controller_class implements Controller {
 				$option_color = $this->get_constant_array_color($constant_array_name);
 
 				$arr = $f;
+				if ($flg == "screen" && $screen_name == "search") {
+					$arr["search_default_value"] = $sf["search_default_value"] ?? "";
+					$arr["search_default_from"] = $sf["search_default_from"] ?? "";
+					$arr["search_default_to"] = $sf["search_default_to"] ?? "";
+				}
 				$arr["is_table_dropdown"] = startsWith($constant_array_name, "table/");
 				$arr["options"] = $option_arr;
 				$arr["colors"] = $option_color;
@@ -4202,6 +4207,14 @@ class Controller_class implements Controller {
 			$f = $fmt_fields->get($sf["db_fields_id"]);
 			if (($f["parameter_name"] ?? "") === "parent_id") {
 				continue;
+			}
+			if (!is_array($f)) {
+				continue;
+			}
+			if (!is_array($screen_or_fieldnamearray) && $screen_or_fieldnamearray === "search") {
+				$f["search_default_value"] = $sf["search_default_value"] ?? "";
+				$f["search_default_from"] = $sf["search_default_from"] ?? "";
+				$f["search_default_to"] = $sf["search_default_to"] ?? "";
 			}
 			$arr_list[] = $f;
 		}

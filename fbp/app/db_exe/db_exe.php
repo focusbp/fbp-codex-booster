@@ -634,6 +634,33 @@ class db_exe {
 		return [$search_field_list, $search_values, $search_match_patterns];
 	}
 
+	private function get_search_defaults(array $fields): array {
+		$defaults = [];
+		foreach ($fields as $field) {
+			$name = $field["parameter_name"] ?? "";
+			if ($name === "") {
+				continue;
+			}
+			$type = $field["type"] ?? "";
+			if ($type === "date" || $type === "datetime") {
+				$from = $this->normalize_timestamp_search_value($field["search_default_from"] ?? "");
+				$to = $this->normalize_timestamp_search_value($field["search_default_to"] ?? "");
+				if ($from !== "") {
+					$defaults[$name . "_from"] = $from;
+				}
+				if ($to !== "") {
+					$defaults[$name . "_to"] = $to;
+				}
+				continue;
+			}
+			$value = $field["search_default_value"] ?? "";
+			if ($value !== "") {
+				$defaults[$name] = $value;
+			}
+		}
+		return $defaults;
+	}
+
 	
 	function page(Controller $ctl){
 		if (!$this->can_execute($ctl)) {
@@ -648,6 +675,10 @@ class db_exe {
 			//List Type is "Search and Table"
 			$search = $ctl->get_session("search_" . $this->table_name);
 			$search_fields = $this->assign_search_group($ctl, "group1", true, true);
+			if ($search === null) {
+				$search = $this->get_search_defaults($search_fields);
+				$ctl->set_session("search_" . $this->table_name, $search);
+			}
 			if(count($search_fields)>0){
 				$ctl->assign("show_search_box",true);
 			}
@@ -658,6 +689,10 @@ class db_exe {
 			//List Type is "Manual Sort"
 			$search = $ctl->get_session("search_" . $this->table_name);
 			$search_fields = $this->assign_search_group($ctl, "group1", true, true);
+			if ($search === null) {
+				$search = $this->get_search_defaults($search_fields);
+				$ctl->set_session("search_" . $this->table_name, $search);
+			}
 			if(count($search_fields)>0){
 				$ctl->assign("show_search_box",true);
 			}
