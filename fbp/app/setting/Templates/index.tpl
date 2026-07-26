@@ -316,7 +316,7 @@
 				<div class="setting_tab_inner">
 					<table class="setting_detail_table">
 						<tr>
-							<th rowspan="5">{t key="setting.square_setting"}</th>
+							<th rowspan="7">{t key="setting.square_setting"}</th>
 							<td>{t key="setting.application_id"}</td>
 							<td><input type="text" name="square_application_id" value="{$setting.square_application_id}"></td>
 						</tr>
@@ -335,6 +335,14 @@
 						<tr>
 							<td>Application Secret</td>
 							<td><input type="password" name="square_application_secret" value="" placeholder="{$masked_setting.square_application_secret|escape}"></td>
+						</tr>
+						<tr>
+							<td>OAuth Application ID</td>
+							<td><input type="text" name="square_oauth_application_id" value="{$setting.square_oauth_application_id|escape}"></td>
+						</tr>
+						<tr>
+							<td>OAuth Application Secret</td>
+							<td><input type="password" name="square_oauth_application_secret" value="" placeholder="{$masked_setting.square_oauth_application_secret|escape}"></td>
 						</tr>
 					</table>
 					<div class="setting_tab_actions">

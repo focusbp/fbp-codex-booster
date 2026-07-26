@@ -20,6 +20,7 @@ class setting {
 			"line_channel_secret",
 			"smtp_password",
 			"square_application_secret",
+			"square_oauth_application_secret",
 			"square_access_token",
 			"vimeo_access_token",
 			"vimeo_client_secret",
@@ -284,6 +285,8 @@ class setting {
 			"square_application_secret",
 			"square_access_token",
 			"square_location_id",
+			"square_oauth_application_id",
+			"square_oauth_application_secret",
 			"currency",
 		];
 		foreach ($square_keys as $key) {
