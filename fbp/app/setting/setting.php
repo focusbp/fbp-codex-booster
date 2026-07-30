@@ -373,20 +373,10 @@ class setting {
 		$ctl->assign("setting", $setting);
 		$ctl->assign("masked_setting", $this->mask_sensitive_setting($setting));
 		$ctl->assign("line_webhook_url", $ctl->get_APP_URL("webhook_line", "receive"));
-		$ctl->assign("square_oauth_redirect_url", $this->get_square_oauth_redirect_url($ctl));
 		$ctl->assign("mcp_server_info", $this->get_mcp_server_info($ctl));
 		$ctl->assign("mcp_servers_info", $this->get_mcp_servers_info($ctl));
 
 		$ctl->show_main_area("index.tpl", $ctl->t("setting.dialog.index"));
-	}
-
-	private function get_square_oauth_redirect_url(Controller $ctl): string {
-		$base = $ctl->get_APP_URL("base", "page");
-		$suffix = "/base*page";
-		if (substr($base, -strlen($suffix)) === $suffix) {
-			$base = substr($base, 0, -strlen($suffix));
-		}
-		return $base . "/fbp/app.php?class=public_pages&function=application_square_oauth_callback";
 	}
 
 	function mcp_server_detail(Controller $ctl) {

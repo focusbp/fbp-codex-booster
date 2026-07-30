@@ -338,13 +338,9 @@
 					</div>
 					<table class="setting_detail_table setting_oauth_table">
 						<tr>
-							<th rowspan="2">{t key="setting.oauth_setting"}</th>
+							<th>{t key="setting.oauth_setting"}</th>
 							<td>{t key="setting.application_secret"}</td>
 							<td><input type="password" name="square_application_secret" value="" placeholder="{$masked_setting.square_application_secret|escape}"></td>
-						</tr>
-						<tr>
-							<td>{t key="setting.redirect_url"}</td>
-							<td><div class="setting_readonly_value setting_oauth_redirect_url">{$square_oauth_redirect_url|escape}</div></td>
 						</tr>
 					</table>
 					<div class="setting_square_guide">
