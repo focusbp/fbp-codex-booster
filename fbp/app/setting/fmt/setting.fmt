@@ -8,8 +8,6 @@ square_application_id,100,T
 square_application_secret,150,T
 square_access_token,100,T
 square_location_id,100,T
-square_oauth_application_id,100,T
-square_oauth_application_secret,150,T
 startup_class1,50,T
 startup_function1,50,T
 smtp_server,255,T

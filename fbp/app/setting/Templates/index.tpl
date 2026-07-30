@@ -326,9 +326,13 @@
 					</div>
 					<table class="setting_detail_table">
 						<tr>
-							<th rowspan="4">{t key="setting.square_setting"}</th>
+							<th rowspan="5">{t key="setting.square_setting"}</th>
 							<td>{t key="setting.application_id"}</td>
 							<td><input type="text" name="square_application_id" value="{$setting.square_application_id}"></td>
+						</tr>
+						<tr>
+							<td>{t key="setting.application_secret"}</td>
+							<td><input type="password" name="square_application_secret" value="" placeholder="{$masked_setting.square_application_secret|escape}"></td>
 						</tr>
 						<tr>
 							<td>{t key="setting.access_token"}</td>
@@ -341,21 +345,6 @@
 						<tr>
 							<td>{t key="setting.currency"}</td>
 							<td>{html_options name="currency" options=$currency_list selected=$setting.currency}</td>
-						</tr>
-					</table>
-					<table class="setting_detail_table setting_oauth_table">
-						<tr>
-							<th rowspan="3">{t key="setting.oauth_setting"}</th>
-							<td>{t key="setting.application_secret"}</td>
-							<td><input type="password" name="square_application_secret" value="" placeholder="{$masked_setting.square_application_secret|escape}"></td>
-						</tr>
-						<tr>
-							<td>{t key="setting.oauth_application_id"}</td>
-							<td><input type="text" name="square_oauth_application_id" value="{$setting.square_oauth_application_id|escape}"></td>
-						</tr>
-						<tr>
-							<td>{t key="setting.oauth_application_secret"}</td>
-							<td><input type="password" name="square_oauth_application_secret" value="" placeholder="{$masked_setting.square_oauth_application_secret|escape}"></td>
 						</tr>
 					</table>
 					<div class="setting_tab_actions">
