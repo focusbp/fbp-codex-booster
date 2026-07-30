@@ -314,25 +314,11 @@
 
 			<div id="setting-tab-payment" class="setting_tab_panel">
 				<div class="setting_tab_inner">
-					<div class="setting_square_guide">
-						<strong>{t key="setting.square_setup_guide"}</strong>
-						<ol>
-							<li>{t key="setting.square_setup_guide_step_1"}</li>
-							<li>{t key="setting.square_setup_guide_step_2"}</li>
-							<li>{t key="setting.square_setup_guide_step_3"}</li>
-							<li>{t key="setting.square_setup_guide_step_4"}</li>
-							<li>{t key="setting.square_setup_guide_step_5"}</li>
-						</ol>
-					</div>
 					<table class="setting_detail_table">
 						<tr>
-							<th rowspan="5">{t key="setting.square_setting"}</th>
+							<th rowspan="4">{t key="setting.square_setting"}</th>
 							<td>{t key="setting.application_id"}</td>
 							<td><input type="text" name="square_application_id" value="{$setting.square_application_id}"></td>
-						</tr>
-						<tr>
-							<td>{t key="setting.application_secret"}</td>
-							<td><input type="password" name="square_application_secret" value="" placeholder="{$masked_setting.square_application_secret|escape}"></td>
 						</tr>
 						<tr>
 							<td>{t key="setting.access_token"}</td>
@@ -349,6 +335,25 @@
 					</table>
 					<div class="setting_tab_actions">
 						<button type="button" class="ajax-link lang" data-class="setting" data-function="square" data-form="setting_form">{t key="setting.square_test"}</button>
+					</div>
+					<table class="setting_detail_table setting_oauth_table">
+						<tr>
+							<th rowspan="2">{t key="setting.oauth_setting"}</th>
+							<td>{t key="setting.application_secret"}</td>
+							<td><input type="password" name="square_application_secret" value="" placeholder="{$masked_setting.square_application_secret|escape}"></td>
+						</tr>
+						<tr>
+							<td>{t key="setting.redirect_url"}</td>
+							<td><div class="setting_readonly_value setting_oauth_redirect_url">{$square_oauth_redirect_url|escape}</div></td>
+						</tr>
+					</table>
+					<div class="setting_square_guide">
+						<strong>{t key="setting.square_setup_guide"}</strong>
+						<ol>
+							<li>{t key="setting.square_setup_guide_step_1"}</li>
+							<li>{t key="setting.square_setup_guide_step_2"}</li>
+							<li>{t key="setting.square_setup_guide_step_3"}</li>
+						</ol>
 					</div>
 				</div>
 			</div>

@@ -149,6 +149,14 @@
 	padding: 0;
 }
 
+.class_style_setting .setting_oauth_table {
+	margin-top: 16px;
+}
+
+.class_style_setting .setting_oauth_redirect_url {
+	word-break: break-all;
+}
+
 
 .class_style_setting .setting_readonly_value {
 	line-height: 1.6;
