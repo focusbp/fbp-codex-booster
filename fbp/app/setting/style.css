@@ -134,6 +134,25 @@
 	line-height: 1.4;
 }
 
+.class_style_setting .setting_square_guide {
+	margin-bottom: 16px;
+	padding: 14px 16px;
+	border: 1px solid #dbe4ee;
+	border-radius: 6px;
+	background: #f7f9fc;
+	color: #334155;
+	line-height: 1.6;
+}
+
+.class_style_setting .setting_square_guide ol {
+	margin: 8px 0 0 20px;
+	padding: 0;
+}
+
+.class_style_setting .setting_oauth_table {
+	margin-top: 16px;
+}
+
 .class_style_setting .setting_readonly_value {
 	line-height: 1.6;
 	color: #111827;

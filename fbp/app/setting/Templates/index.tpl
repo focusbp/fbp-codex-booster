@@ -314,14 +314,24 @@
 
 			<div id="setting-tab-payment" class="setting_tab_panel">
 				<div class="setting_tab_inner">
+					<div class="setting_square_guide">
+						<strong>{t key="setting.square_setup_guide"}</strong>
+						<ol>
+							<li>{t key="setting.square_setup_guide_step_1"}</li>
+							<li>{t key="setting.square_setup_guide_step_2"}</li>
+							<li>{t key="setting.square_setup_guide_step_3"}</li>
+							<li>{t key="setting.square_setup_guide_step_4"}</li>
+							<li>{t key="setting.square_setup_guide_step_5"}</li>
+						</ol>
+					</div>
 					<table class="setting_detail_table">
 						<tr>
-							<th rowspan="7">{t key="setting.square_setting"}</th>
+							<th rowspan="4">{t key="setting.square_setting"}</th>
 							<td>{t key="setting.application_id"}</td>
 							<td><input type="text" name="square_application_id" value="{$setting.square_application_id}"></td>
 						</tr>
 						<tr>
-							<td>Access Token</td>
+							<td>{t key="setting.access_token"}</td>
 							<td><input type="password" name="square_access_token" value="" placeholder="{$masked_setting.square_access_token|escape}"></td>
 						</tr>
 						<tr>
@@ -329,19 +339,22 @@
 							<td><input type="text" name="square_location_id" value="{$setting.square_location_id}"></td>
 						</tr>
 						<tr>
-							<td>Currency</td>
+							<td>{t key="setting.currency"}</td>
 							<td>{html_options name="currency" options=$currency_list selected=$setting.currency}</td>
 						</tr>
+					</table>
+					<table class="setting_detail_table setting_oauth_table">
 						<tr>
-							<td>Application Secret</td>
+							<th rowspan="3">{t key="setting.oauth_setting"}</th>
+							<td>{t key="setting.application_secret"}</td>
 							<td><input type="password" name="square_application_secret" value="" placeholder="{$masked_setting.square_application_secret|escape}"></td>
 						</tr>
 						<tr>
-							<td>OAuth Application ID</td>
+							<td>{t key="setting.oauth_application_id"}</td>
 							<td><input type="text" name="square_oauth_application_id" value="{$setting.square_oauth_application_id|escape}"></td>
 						</tr>
 						<tr>
-							<td>OAuth Application Secret</td>
+							<td>{t key="setting.oauth_application_secret"}</td>
 							<td><input type="password" name="square_oauth_application_secret" value="" placeholder="{$masked_setting.square_oauth_application_secret|escape}"></td>
 						</tr>
 					</table>
