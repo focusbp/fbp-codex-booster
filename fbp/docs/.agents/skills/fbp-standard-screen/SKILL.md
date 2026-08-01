@@ -14,6 +14,7 @@ description: Build, maintain, or adjust FBP Standard Screen note management usin
 - 既存 Standard Screen だけでは足りず、`db_additionals` の add/edit/list 運用が必要
 - 標準画面の編集・削除アイコンや確認画面をプロジェクト固有にカスタマイズしたい
 - MCP Note CRUD と同じ保存・副作用経路に寄せたい
+- 検索画面に固定の初期条件を設定したい
 
 ## workflow
 1. 新規ノート管理画面は、まず Standard Screen で作れるか確認する。ユーザーが「Original Screen指定」と明示した場合、または標準画面では足りない業務UIが必要な場合だけ `fbp-original-screen` へ切り替える。
@@ -39,6 +40,15 @@ description: Build, maintain, or adjust FBP Standard Screen note management usin
 - `enabled` / `is_active` / `active` / `有効` などの有効状態項目は、数値テキストボックスではなく dropdown または checkbox として表示する。検索条件に入れる場合も選択式にする。
 - file/image 項目は業務上入力・確認が必要な場合だけ `add` / `edit` に入れる。`list` では原則避け、必要なら代表画像など最小限にする。
 - checkbox 項目は配列値として扱う。表示・保存の副作用は `post_action_class` へ寄せ、画面ごとの手書き処理に閉じ込めない。
+
+## search default values
+
+- 固定の検索初期値は、ノート項目そのものの `default_value` ではなく、`search` の `screen_fields` にある項目設定から設定する。管理UIでは検索項目行の歯車ボタンを使う。
+- 初期値は検索画面を初めて開いたときだけ適用する。検索を実行または条件をクリアした後は、その検索セッションを優先し、初期値を再適用しない。
+- テキスト、数値、選択肢などは値を1つ設定する。`date` / `datetime` は開始・終了を別々に設定する。未設定は初期値なし。
+- 選択肢の値はラベルをハードコードせず、対象の `constant_array` のキーを設定する。
+- ログインユーザー、所属、ロールなどで閲覧範囲を制限する用途には使わない。利用者が解除できない条件は `<ノート名>_visibility_filter` に置く。
+- 設定後は `screen_fields_list` で `search_default_value`（日付・日時は `search_default_from` / `search_default_to`）を確認し、新しいセッションで `db_exe/page` を呼んで初期選択を確認する。続けて `standard_screen_check` を実行する。
 
 ## db_additionals workflow
 1. `db_additionals` は Standard Screen 側の拡張として扱う。新規 Original Screen の代替として使わない。

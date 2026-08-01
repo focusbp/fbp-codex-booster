@@ -124,6 +124,24 @@ class pdfmaker_class {
 		$this->addMemoryImage($key, $layout);
 	}
 
+	/**
+	 * Add a Code 39 barcode.
+	 *
+	 * Layout accepts x, y, baseline (bar width), height, and barcode_align
+	 * (L or R). The human-readable code is printed below the bars.
+	 */
+	function addCode39($code, $layout = []) {
+		$layout["align"] = "BC39";
+		if($this->newpage){
+			$layout["newpage"] = true;
+			$this->newpage = false;
+		}
+		$this->parameter[$this->c] = $layout;
+		$this->body[$this->c] = strtoupper(trim((string) $code));
+		$this->c++;
+		$this->blank = false;
+	}
+
 	private function registerMemoryImage($key, $data, $type = "png") {
 		$this->memory_images[$key] = [
 			"data" => $data,
@@ -629,6 +647,20 @@ class pdfmaker_class {
 
 				$pdf->ImageMemory($image_key, $x, $y, $w, $h);
 				$previous_data="image";
+			} else if ($set["align"] == "BC39") {
+				//----------
+				// Code 39 barcode
+				//----------
+				$code = (string) ($body[$c] ?? "");
+				if ($code !== "") {
+					$x = isset($set["x"]) ? (float) $set["x"] : $pdf->GetX();
+					$y = isset($set["y"]) ? (float) $set["y"] : $pdf->GetY();
+					$baseline = isset($set["baseline"]) ? (float) $set["baseline"] : 0.5;
+					$height = isset($set["height"]) ? (float) $set["height"] : 5.0;
+					$barcode_align = strtoupper((string) ($set["barcode_align"] ?? "L"));
+					$pdf->Code39($x, $y, $code, $baseline, $height, $barcode_align === "R" ? "R" : "L");
+				}
+				$previous_data="barcode";
 			} else if ($set["align"] == "RECT") {
 				//----------
 				// 四角

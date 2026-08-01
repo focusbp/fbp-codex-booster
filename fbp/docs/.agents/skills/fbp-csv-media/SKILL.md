@@ -97,4 +97,5 @@ function file_download(Controller $ctl) {
 - `ValueFormatter` は CSV/PDF/Mail など PHP 直書き出力用。HTML 表示には使わず、`fields_*` / `html_*` helper を優先する。
 - `db()->insert()` / `update()` に配列リテラルを直接渡さず、変数化してから渡す（参照渡し対策）。
 - CLI `app_call` の `files.path` 検証では `is_uploaded_file()` が `false` になるため、CLI時のみ `is_file()` を許可して検証する。
+- PDF変換などで一時ファイルが必要な場合、システムの `/tmp` を前提にせず、サーバー上の `/home/<project>/tmp` を使う。不要になった一時ファイルは処理完了時に削除する。
 - 入力部品や `select` に固定 `width` は原則付けない。ユーザーが明示指定した場合のみ追加する。`style="width:220px;"` のような推測ベースの幅指定は入れない。

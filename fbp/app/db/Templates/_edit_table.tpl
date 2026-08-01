@@ -66,8 +66,10 @@
 			{html_options id="show_search_id" name="show_search_id" options=$show_id_opt selected=$data["show_search_id"]}
 			<p class="lang">{t key="db.duplicate_icon"}</p>
 			{html_options id="show_duplicate" name="show_duplicate" options=$show_duplicate_opt selected=$data["show_duplicate"]}
-			<p class="lang">{t key="db.show_icon_on_parent_list"}</p>
-			{html_options id="show_icon_on_parent_list" name="show_icon_on_parent_list" options=$show_icon_on_parent_list_opt selected=$data["show_icon_on_parent_list"]}
+		</div>
+		<p class="lang">{t key="db.show_icon_on_parent_list"}</p>
+		{html_options id="show_icon_on_parent_list" name="show_icon_on_parent_list" options=$show_icon_on_parent_list_opt selected=$data["show_icon_on_parent_list"]}
+		<div class="standard-screen-only-fields">
 			<p class="lang">{t key="db.post_action_hook_class"}</p>
 			<input type="text" name="post_action_class" value="{$data.post_action_class}">
 		</div>
