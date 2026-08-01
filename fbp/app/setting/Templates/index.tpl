@@ -372,11 +372,11 @@
 						<tr>
 							<th rowspan="2">{t key="setting.api_authentication_hmac"}</th>
 							<td>{t key="setting.api_key"}</td>
-							<td><input type="text" name="api_key" value="{$setting.api_key}" readonly onclick="this.select();"></td>
+							<td><input type="text" name="api_key" value="" placeholder="{$masked_setting.api_key}" autocomplete="off" spellcheck="false"></td>
 						</tr>
 						<tr>
 							<td>{t key="setting.api_secret"}</td>
-							<td><input type="text" name="api_secret" value="{$setting.api_secret}" readonly onclick="this.select();"></td>
+							<td><input type="password" name="api_secret" value="" placeholder="{$masked_setting.api_secret}" autocomplete="new-password" spellcheck="false"></td>
 						</tr>
 						<tr>
 							<th rowspan="2">{t key="setting.release_api_hmac"}</th>
