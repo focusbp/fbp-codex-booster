@@ -607,6 +607,7 @@
   "restore.restore_button": "Restore",
   "restore.restore_user_data": "Restore User Data",
   "restore.restore_setting": "Restore Setting",
+  "restore.restore_sensitive_setting": "Restore Sensitive Settings such as API Keys",
   "restore.success": "Successfully Restored.",
   "db_exe.validation.parent_id_missing": "Parent ID is missing.",
   "db_exe.validation.child_table_required": "This note cannot be opened as a child list. Please open it again from the parent note.",

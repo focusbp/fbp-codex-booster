@@ -529,6 +529,7 @@
   "restore.restore_button": "恢复",
   "restore.restore_user_data": "恢复用户数据",
   "restore.restore_setting": "恢复设置",
+  "restore.restore_sensitive_setting": "恢复 API 密钥等敏感设置",
   "restore.success": "恢复成功。",
   "db_exe.validation.parent_id_missing": "缺少 Parent ID。",
   "db_exe.validation.child_table_required": "此笔记不能作为子列表打开。请从父笔记重新打开。",

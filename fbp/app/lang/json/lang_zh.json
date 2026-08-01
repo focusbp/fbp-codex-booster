@@ -229,6 +229,7 @@
   "restore.restore_button": "恢复",
   "restore.restore_user_data": "恢复用户数据",
   "restore.restore_setting": "恢复设置",
+  "restore.restore_sensitive_setting": "恢复 API 密钥等敏感设置",
   "restore.success": "恢复成功。",
   "setting.dialog.index": "设置",
   "setting.submit": "保存",

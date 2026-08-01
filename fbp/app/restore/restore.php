@@ -4,6 +4,24 @@ class restore {
 
 	private $dir;
 	private $zipfile;
+	private $sensitive_setting_keys = [
+		"api_key",
+		"api_secret",
+		"api_key_map",
+		"chatgpt_api_key",
+		"line_accesstoken",
+		"line_channel_secret",
+		"smtp_password",
+		"square_application_secret",
+		"square_access_token",
+		"square_oauth_application_secret",
+		"vimeo_access_token",
+		"vimeo_client_secret",
+		"release_api_key",
+		"release_api_secret",
+		"secret",
+		"iv",
+	];
 
 	function __construct(Controller $ctl) {
 		$this->dir = realpath(dirname(__FILE__) . "/../../../classes");
@@ -135,6 +153,8 @@ class restore {
 
 	function restore_exe(Controller $ctl) {
 		$excludedPaths = $this->getRestoreExcludedPaths($ctl);
+		$preservedSensitiveSettings = $this->getPreservedSensitiveSettings($ctl);
+		$ctl->close_all_db();
 
 		// Delete files
 		//app
@@ -165,6 +185,7 @@ class restore {
 			}
 
 			unlink($this->zipfile);
+			$this->restorePreservedSensitiveSettings($ctl, $preservedSensitiveSettings);
 
 			$ctl->assign("success", $ctl->t("restore.success"));
 			
@@ -227,5 +248,34 @@ class restore {
 			$excludedPaths[] = "data/setting/";
 		}
 		return $excludedPaths;
+	}
+
+	private function getPreservedSensitiveSettings(Controller $ctl): ?array {
+		if ((string) $ctl->POST("restore_setting") !== "1" || (string) $ctl->POST("restore_sensitive_setting") === "1") {
+			return null;
+		}
+
+		$currentSetting = $ctl->get_setting();
+		$preservedSettings = [];
+		foreach ($this->sensitive_setting_keys as $key) {
+			$preservedSettings[$key] = $currentSetting[$key] ?? "";
+		}
+		return $preservedSettings;
+	}
+
+	private function restorePreservedSensitiveSettings(Controller $ctl, ?array $preservedSensitiveSettings): void {
+		if ($preservedSensitiveSettings === null) {
+			return;
+		}
+
+		$settingFfm = $ctl->db("setting", "setting");
+		$restoredSetting = $settingFfm->get(1);
+		if (!is_array($restoredSetting)) {
+			return;
+		}
+		foreach ($preservedSensitiveSettings as $key => $value) {
+			$restoredSetting[$key] = $value;
+		}
+		$ctl->save_setting($restoredSetting);
 	}
 }

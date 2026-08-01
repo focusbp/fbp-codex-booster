@@ -35,6 +35,13 @@
 			{t key="restore.restore_setting"}
 		</label>
 	</div>
+
+	<div style="margin-bottom:10px;">
+		<label>
+			<input type="checkbox" name="restore_sensitive_setting" value="1">
+			{t key="restore.restore_sensitive_setting"}
+		</label>
+	</div>
 </form>
 
 {if $flg}
