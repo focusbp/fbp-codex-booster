@@ -590,7 +590,7 @@ class CustomizedPDF extends tFPDF {
 	/*
 	 * Code 39
 	 */
-	function Code39($xpos, $ypos, $code, $baseline=0.5, $height=5, $align = 'L'){
+	function Code39($xpos, $ypos, $code, $baseline=0.5, $height=5, $align = 'L', $show_text = true){
 
 		$wide = $baseline;
 		$narrow = $baseline / 3 ; 
@@ -667,8 +667,10 @@ class CustomizedPDF extends tFPDF {
 			$xpos = $xpos - $lineWidth;
 		}
 
-		$this->SetFontSize(10);
-		$this->Text($xpos, $ypos + $height + 4, $code);
+		if ($show_text) {
+			$this->SetFontSize(10);
+			$this->Text($xpos, $ypos + $height + 4, $code);
+		}
 		$this->SetFillColor(0);
 
 		$code = '*'.strtoupper($code).'*';
