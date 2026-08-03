@@ -59,7 +59,7 @@ try {
 	release_test_assert(!file_exists($root . "/classes/data/lang/old.dat"), "old release data remains");
 	release_test_assert(is_file($root . "/classes/data/_common/fmt/setting.fmt"), "common fmt was not deployed");
 	release_test_assert(!is_dir($root . "/classes/data/templates_c"), "template cache was not cleared");
-	release_test_assert(glob($root . "/classes/.release_stage_*") === [], "release stage remains");
+	release_test_assert(glob($root . "/classes/log/.release_stage_*") === [], "release stage remains");
 
 	printf("release manager atomic deployment test passed\n");
 } finally {

@@ -328,7 +328,7 @@ class ReleaseManager {
 	}
 
 	private function createReleaseStageDirectory(): string {
-		$stageDir = $this->extractdir . "/.release_stage_" . bin2hex(random_bytes(8));
+		$stageDir = $this->extractdir . "/log/.release_stage_" . bin2hex(random_bytes(8));
 		if (!mkdir($stageDir, 0700, true) && !is_dir($stageDir)) {
 			throw new Exception("Cannot create release staging directory.");
 		}
