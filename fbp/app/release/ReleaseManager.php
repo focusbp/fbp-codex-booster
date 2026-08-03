@@ -174,18 +174,24 @@ class ReleaseManager {
 			throw new Exception($ctl->t("release.validation.cannot_open_file", ["file" => basename($zipFile)]));
 		}
 
+		$stageDir = $this->createReleaseStageDirectory();
 		try {
-			$this->deleteDirectoryContents($this->appdir);
-			foreach ($this->db_copy_list as $f) {
-				$this->deleteDirectory("$this->datadir/$f");
+			$rootEntries = $this->extractReleaseZipToDirectory($zip, $ctl, $zipFile, $stageDir);
+			if (!is_dir($stageDir . "/app")) {
+				throw new Exception($ctl->t("release.validation.cannot_open_file", ["file" => basename($zipFile)]));
 			}
-			$this->deleteDirectory($this->public_assets_dir);
-			mkdir($this->public_assets_dir, 0777, true);
+			$this->replaceReleaseDirectory($stageDir . "/app", $this->appdir, $ctl, $zipFile, false);
+			foreach ($this->db_copy_list as $f) {
+				$this->replaceReleaseDirectory($stageDir . "/data/$f", "$this->datadir/$f", $ctl, $zipFile, false);
+			}
+			$this->replaceReleaseDirectory($stageDir . "/data/public_pages/assets", $this->public_assets_dir, $ctl, $zipFile, true);
+			$this->copyStagedDirectoryFiles($stageDir . "/data/_common/fmt", $this->datadir . "/_common/fmt");
+			$this->copyStagedDirectoryFiles($stageDir . "/data/mcp_manage", $this->datadir . "/mcp_manage");
 			$this->deleteDirectory($this->datadir . "/templates_c");
-
-			$this->extractReleaseZip($zip, $ctl, $zipFile);
+			$this->extractRootFiles($zip, $ctl, $zipFile, $rootEntries);
 		} finally {
 			$zip->close();
+			$this->deleteDirectory($stageDir);
 		}
 
 		if (is_file($zipFile)) {
@@ -209,22 +215,6 @@ class ReleaseManager {
 			}
 		}
 		rmdir($dir);
-	}
-
-	private function deleteDirectoryContents($dir): void {
-		if (!is_dir($dir)) {
-			return;
-		}
-		$items = array_diff(scandir($dir), ['.', '..']);
-		foreach ($items as $item) {
-			$path = "$dir/$item";
-			if (is_dir($path)) {
-				$this->deleteDirectoryContents($path);
-				rmdir($path);
-			} else {
-				unlink($path);
-			}
-		}
 	}
 
 	private function addDirectoryFilesToZip(ZipArchive $zip, string $dir): void {
@@ -337,7 +327,15 @@ class ReleaseManager {
 		}
 	}
 
-	private function extractReleaseZip(ZipArchive $zip, Controller $ctl, string $zipFile): void {
+	private function createReleaseStageDirectory(): string {
+		$stageDir = $this->extractdir . "/.release_stage_" . bin2hex(random_bytes(8));
+		if (!mkdir($stageDir, 0700, true) && !is_dir($stageDir)) {
+			throw new Exception("Cannot create release staging directory.");
+		}
+		return $stageDir;
+	}
+
+	private function extractReleaseZipToDirectory(ZipArchive $zip, Controller $ctl, string $zipFile, string $targetDir): array {
 		$entries = [];
 		$rootEntries = [];
 		for ($i = 0; $i < $zip->numFiles; $i++) {
@@ -352,12 +350,56 @@ class ReleaseManager {
 			$entries[] = $filename;
 		}
 		if (count($entries) === 0 && count($rootEntries) === 0) {
-			return;
+			return [];
 		}
-		if (count($entries) > 0 && !$zip->extractTo($this->extractdir, $entries)) {
+		if (count($entries) > 0 && !$zip->extractTo($targetDir, $entries)) {
 			throw new Exception($ctl->t("release.validation.cannot_open_file", ["file" => basename($zipFile)]));
 		}
-		$this->extractRootFiles($zip, $ctl, $zipFile, $rootEntries);
+		return $rootEntries;
+	}
+
+	private function replaceReleaseDirectory(string $stagedDir, string $targetDir, Controller $ctl, string $zipFile, bool $createWhenAbsent): void {
+		if (!is_dir($stagedDir)) {
+			$this->deleteDirectory($targetDir);
+			if ($createWhenAbsent && !mkdir($targetDir, 0777, true) && !is_dir($targetDir)) {
+				throw new Exception($ctl->t("release.validation.cannot_open_file", ["file" => basename($zipFile)]));
+			}
+			return;
+		}
+
+		$backupDir = $targetDir . ".release_previous_" . bin2hex(random_bytes(8));
+		if (file_exists($targetDir) && !rename($targetDir, $backupDir)) {
+			throw new Exception($ctl->t("release.validation.cannot_open_file", ["file" => basename($zipFile)]));
+		}
+		if (!rename($stagedDir, $targetDir)) {
+			if (is_dir($backupDir)) {
+				rename($backupDir, $targetDir);
+			}
+			throw new Exception($ctl->t("release.validation.cannot_open_file", ["file" => basename($zipFile)]));
+		}
+		$this->deleteDirectory($backupDir);
+	}
+
+	private function copyStagedDirectoryFiles(string $sourceDir, string $targetDir): void {
+		if (!is_dir($sourceDir)) {
+			return;
+		}
+		$files = new RecursiveIteratorIterator(
+			new RecursiveDirectoryIterator($sourceDir, FilesystemIterator::SKIP_DOTS),
+			RecursiveIteratorIterator::LEAVES_ONLY
+		);
+		foreach ($files as $file) {
+			if (!$file->isFile()) {
+				continue;
+			}
+			$relativePath = substr($file->getPathname(), strlen($sourceDir) + 1);
+			$targetPath = $targetDir . "/" . $relativePath;
+			$targetParent = dirname($targetPath);
+			if (!is_dir($targetParent)) {
+				mkdir($targetParent, 0777, true);
+			}
+			copy($file->getPathname(), $targetPath);
+		}
 	}
 
 	private function extractRootFiles(ZipArchive $zip, Controller $ctl, string $zipFile, array $entries): void {
