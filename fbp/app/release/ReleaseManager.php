@@ -180,11 +180,11 @@ class ReleaseManager {
 			if (!is_dir($stageDir . "/app")) {
 				throw new Exception($ctl->t("release.validation.cannot_open_file", ["file" => basename($zipFile)]));
 			}
-			$this->replaceReleaseDirectory($stageDir . "/app", $this->appdir, $ctl, $zipFile, false);
+			$this->deployStagedDirectory($stageDir . "/app", $this->appdir, $ctl, $zipFile, false);
 			foreach ($this->db_copy_list as $f) {
-				$this->replaceReleaseDirectory($stageDir . "/data/$f", "$this->datadir/$f", $ctl, $zipFile, false);
+				$this->deployStagedDirectory($stageDir . "/data/$f", "$this->datadir/$f", $ctl, $zipFile, false);
 			}
-			$this->replaceReleaseDirectory($stageDir . "/data/public_pages/assets", $this->public_assets_dir, $ctl, $zipFile, true);
+			$this->deployStagedDirectory($stageDir . "/data/public_pages/assets", $this->public_assets_dir, $ctl, $zipFile, true);
 			$this->copyStagedDirectoryFiles($stageDir . "/data/_common/fmt", $this->datadir . "/_common/fmt");
 			$this->copyStagedDirectoryFiles($stageDir . "/data/mcp_manage", $this->datadir . "/mcp_manage");
 			$this->deleteDirectory($this->datadir . "/templates_c");
@@ -358,7 +358,7 @@ class ReleaseManager {
 		return $rootEntries;
 	}
 
-	private function replaceReleaseDirectory(string $stagedDir, string $targetDir, Controller $ctl, string $zipFile, bool $createWhenAbsent): void {
+	private function deployStagedDirectory(string $stagedDir, string $targetDir, Controller $ctl, string $zipFile, bool $createWhenAbsent): void {
 		if (!is_dir($stagedDir)) {
 			$this->deleteDirectory($targetDir);
 			if ($createWhenAbsent && !mkdir($targetDir, 0777, true) && !is_dir($targetDir)) {
@@ -366,18 +366,11 @@ class ReleaseManager {
 			}
 			return;
 		}
-
-		$backupDir = $targetDir . ".release_previous_" . bin2hex(random_bytes(8));
-		if (file_exists($targetDir) && !rename($targetDir, $backupDir)) {
+		if (!is_dir($targetDir) && !mkdir($targetDir, 0777, true) && !is_dir($targetDir)) {
 			throw new Exception($ctl->t("release.validation.cannot_open_file", ["file" => basename($zipFile)]));
 		}
-		if (!rename($stagedDir, $targetDir)) {
-			if (is_dir($backupDir)) {
-				rename($backupDir, $targetDir);
-			}
-			throw new Exception($ctl->t("release.validation.cannot_open_file", ["file" => basename($zipFile)]));
-		}
-		$this->deleteDirectory($backupDir);
+		$this->copyStagedDirectoryFiles($stagedDir, $targetDir);
+		$this->removeFilesMissingFromStage($stagedDir, $targetDir);
 	}
 
 	private function copyStagedDirectoryFiles(string $sourceDir, string $targetDir): void {
@@ -396,9 +389,33 @@ class ReleaseManager {
 			$targetPath = $targetDir . "/" . $relativePath;
 			$targetParent = dirname($targetPath);
 			if (!is_dir($targetParent)) {
-				mkdir($targetParent, 0777, true);
+				if (!mkdir($targetParent, 0777, true) && !is_dir($targetParent)) {
+					throw new RuntimeException("Cannot create release target directory.");
+				}
 			}
-			copy($file->getPathname(), $targetPath);
+			$tempPath = $targetPath . ".release_new_" . bin2hex(random_bytes(8));
+			if (!copy($file->getPathname(), $tempPath) || !rename($tempPath, $targetPath)) {
+				@unlink($tempPath);
+				throw new RuntimeException("Cannot install staged release file.");
+			}
+		}
+	}
+
+	private function removeFilesMissingFromStage(string $sourceDir, string $targetDir): void {
+		foreach (array_diff(scandir($targetDir), [".", ".."]) as $item) {
+			$sourcePath = $sourceDir . "/" . $item;
+			$targetPath = $targetDir . "/" . $item;
+			if (!file_exists($sourcePath)) {
+				if (is_dir($targetPath)) {
+					$this->deleteDirectory($targetPath);
+				} else {
+					unlink($targetPath);
+				}
+				continue;
+			}
+			if (is_dir($targetPath) && is_dir($sourcePath)) {
+				$this->removeFilesMissingFromStage($sourcePath, $targetPath);
+			}
 		}
 	}
 
