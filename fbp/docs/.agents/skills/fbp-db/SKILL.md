@@ -66,6 +66,10 @@ description: Manage FBP DB schema using CLI (db tables/fields), relation setup, 
 - `text + format_check=date_yyyy_mm_dd` での日付実装は新規作成で禁止する。
 - 既存が `text` の場合は、改修時に `date` へ移行可否を確認し、不可の場合のみ理由を作業ログに明記して暫定維持する。
 
+## field type policy
+- `db_fields_add` / `db_fields_edit` の前に、対象frameworkの `fbp/app/db/db.php` にある `type_opt` を確認し、一覧にある型だけを指定する。`format_check` の選択肢を `type` として指定しない。
+- メールアドレスは `type=text`、`format_check=email` を使う。`type=email` は使用しない。
+
 ## field length policy
 - 固定長DBの `db_fields.length` は 0 以下にしない。
 - CLI、DB管理画面、管理APIでは、型ごとの既定長を使って `length <= 0` を補正する。
@@ -94,5 +98,6 @@ description: Manage FBP DB schema using CLI (db tables/fields), relation setup, 
 - `db_tables_list` の結果で対象テーブルの `list_width` / `edit_width` が `600`〜`1200` に入っていることを確認する。
 - `sort` 項目があるテーブルでは、手動並び替えが必要かを明示的に確認する。必要なら `list_type=1` / `sortkey=sort` にし、不要なら通常画面の `screen_fields` に `sort` を出さない。
 - 日付項目を `text` 型で新規追加しない（必ず `type=date` を使う）。
+- 使用可能な `type` を確認せずにDB項目を追加・変更しない。特にメールアドレスの `type=email` 指定は禁止し、`text + format_check=email` にする。
 - `text` / `textarea` 項目の文字数指定を、そのまま DB length として設定しない。
 - メニューリンク追加で `/common/menu.tpl` は使わない。メニュー追加は DB追加 / Dashboard登録 / 設定の「ホームページを表示」で行う。
