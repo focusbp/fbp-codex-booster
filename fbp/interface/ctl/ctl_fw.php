@@ -371,7 +371,13 @@ interface ctl_fw {
 	 */
 	function get_email_template_list($add_empty_data = true);
 	
-	function get_APP_URL($class = null, $function = null, $params = null);
+	/**
+	 * Builds an application URL using standard query syntax by default.
+	 *
+	 * Pass ["query_format" => "legacy"] as the fourth argument only when the
+	 * former "&key=value" query form is explicitly required.
+	 */
+	function get_APP_URL($class = null, $function = null, $params = null, $options = []);
 	
 	
 	function polling_start($nickname, $status_text, $info_data=[], $timeout_seconds=60, $timeout_handler_function=null,$timeout_handler_class=null);

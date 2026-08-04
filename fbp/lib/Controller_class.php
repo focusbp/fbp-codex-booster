@@ -4491,7 +4491,20 @@ class Controller_class implements Controller {
 		$this->arr["close_dialog_by_id"][] = $md;
 	}
 
-	function get_APP_URL($class = null, $function = null, $params = null) {
+	/**
+	 * Builds an application URL.
+	 *
+	 * Query parameters use the standard "?key=value" form by default. Pass
+	 * ["query_format" => "legacy"] only when the former "&key=value" form is
+	 * explicitly required for compatibility.
+	 *
+	 * @param mixed $class
+	 * @param mixed $function
+	 * @param mixed $params
+	 * @param array $options
+	 * @return string
+	 */
+	function get_APP_URL($class = null, $function = null, $params = null, $options = []) {
 		$force_https = false;
 
 		// スキーム判定
@@ -4519,16 +4532,19 @@ class Controller_class implements Controller {
 			$url = substr($url, 0, -strlen("/"));
 		}
 
+		$query_format = is_array($options) ? (string) ($options["query_format"] ?? "standard") : "standard";
+		$query_separator = $query_format === "legacy" ? "&" : "?";
+
 		// params (auto URL-encode)
 		$p = "";
 		if ($params != null) {
 			if (is_array($params)) {
 				$q = http_build_query($params, "", "&", PHP_QUERY_RFC3986);
 				if ($q !== "") {
-					$p = "&" . $q;
+					$p = $query_separator . $q;
 				}
 			} else {
-				$p = "&" . (string) $params;
+				$p = $query_separator . (string) $params;
 			}
 		}
 
