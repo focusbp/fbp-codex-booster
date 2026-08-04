@@ -1,6 +1,6 @@
 ---
 name: fbp-public-pages
-description: Build and operate public_pages with login-free entry points, secure URL parameter design, and CLI-first verification.
+description: Build and operate public_pages with login-free entry points, secure URL parameter design, LINE-safe outbound links, and CLI-first verification. Use for public_pages and public URLs sent from LINE, webhooks, or email.
 ---
 
 # fbp-public-pages
@@ -33,6 +33,23 @@ description: Build and operate public_pages with login-free entry points, secure
 - 実ファイル応答は特別な要件がない限り独自header実装を作らず、`$ctl->res_saved_file($stored, $download_name)` を使う。
 - ダウンロードURLは文字列連結せず、`$ctl->get_APP_URL("<class>", "file_download", ["code" => $code, "download" => "1"])` のように生成する。LINE側の古い判定を避けたい場合は `download=1` などの明示パラメータを付ける。
 - サンプルコードは `fbp-csv-media` の `download links` を参照する。
+
+## LINE message URLs
+- LINE の返信・push・URI action へパラメータ付きURLを送る場合、最初のクエリ区切りは必ず `?` にする。`/public_pages*register&token=...` は送らず、`/public_pages*register?token=...` にする。2個目以降のパラメータは `&` を使う。
+- URL本体とパラメータは `$ctl->get_APP_URL()` で生成する。現行の出力が最初のパラメータにも `&` を使う場合は、LINE送信用の app-owned helper/service で最初の区切りだけ `?` へ正規化する。LINE対応だけを理由に `Controller::get_APP_URL()` を全体変更しない。
+- 重要な入口は、対応するメッセージ形式なら URI action を優先する。プレーンテキストで送る場合もURLを独立した行に置き、OS依存の自動リンク判定がトークン部分を落としても気づけない形式を避ける。
+- 実装後は、LINEへ渡す最終文字列が `?<key>=` を含み、`*<function>&<key>=` を含まないことを確認する。`app_call` / `app_check` またはHTTP確認で、受け側の `GET("<key>")` に値が届くことまで検証する。
+
+```php
+private function line_message_url(Controller $ctl, string $function, array $params): string {
+	$url = $ctl->get_APP_URL("public_pages", $function, $params);
+	if (strpos($url, "?") !== false) {
+		return $url;
+	}
+	$separator_position = strpos($url, "&");
+	return $separator_position === false ? $url : substr_replace($url, "?", $separator_position, 1);
+}
+```
 
 ## minimal public pages
 - `minimal` は、公開側アプリの独自デザインに管理画面CSSを影響させず、同時に FBP Ajax / dialog / Screen Log などフレームワーク連携をスムーズに使うための公開側標準モードとして扱う。
@@ -340,7 +357,7 @@ private function assign_news_list(Controller $ctl) {
 - URL発行側と受け側で、クラス名・関数名・パラメータキー（例: `id`）を必ず一致させる。
 - URLの基本形は `/<class>*<function>`。例: `public_pages -> lp` の場合は `/public_pages*lp`。
 - クエリ付き例: `$ctl->get_APP_URL("public_pages", "lp", ["id" => $id_enc])` は `/public_pages*lp?id=<encrypted>` 形式になる。
-- このフレームワークでは `/<class>*<function>&key=value` や `/<class>*<function>?key=value` を公開URLの正常系として扱う。`*` による class/function 表記や、先頭が `?class=` でないこと自体を異常扱いしない。
+- このフレームワークのルーターは `/<class>*<function>&key=value` と `/<class>*<function>?key=value` の両方を処理できる。ただし、LINEへ送るパラメータ付きURLは `LINE message URLs` の例外ルールに従い、先頭を必ず `?` にする。`*` による class/function 表記や、先頭が `?class=` でないこと自体は異常扱いしない。
 
 ## root rewrite and homepage menu
 - 管理側の「メニューにホームページリンクを表示」は `website_url` をリンク先として使う。`show_menu_homepage=1` でも `website_url` が空、または `http/https` URLでなければ表示されない。
