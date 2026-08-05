@@ -836,25 +836,26 @@ class fixed_file_manager implements FFM {
 							}
 						}
 
+						$check = false;
 						foreach ($iname as $name) {
-							$check = false;
+							$field_check = false;
 							$v = trim($d[$name]);
 							if (empty($v)) {
 								continue;
 							}
 							if ($exact_match) {
 								if ($v === $value[$key]) {
-									$check = true;
+									$field_check = true;
 								}
 							} else {
 								if (($v == $value[$key]) || (strpos($v, $value[$key]) !== false)) {
-									$check = true;
+									$field_check = true;
 								} else {
 									// 大文字・小文字関係なく検索
 									$v = strtoupper($v);
 									$vc = strtoupper($value[$key]);
 									if (strpos($v, $vc) !== false) {
-										$check = true;
+										$field_check = true;
 									} else {
 										// 空白文字で分割(or)
 										$ex = preg_split("/[\s,]+/", $vc);
@@ -863,13 +864,13 @@ class fixed_file_manager implements FFM {
 												continue;
 											}
 											if (strpos($v, $vcc) !== false) {
-												$check = true;
+												$field_check = true;
 											}
 										}
 									}
 								}
 							}
-							$check = $check || $check;
+							$check = $check || $field_check;
 						}
 
 						if ($and_or == "AND") {
@@ -996,7 +997,7 @@ class fixed_file_manager implements FFM {
 				$c++;
 				if ($sortitem == null) {
 					if ($max != null) {
-						if ($c >= $max) {
+						if ($c > $max) {
 							$is_last = false;
 							break;
 						}
@@ -1019,7 +1020,7 @@ class fixed_file_manager implements FFM {
 			$c = 0;
 			foreach ($arr as $key => $val) {
 				$c++;
-				if ($c >= $max) {
+				if ($c > $max) {
 					unset($arr[$key]);
 					$is_last = false;
 				}
