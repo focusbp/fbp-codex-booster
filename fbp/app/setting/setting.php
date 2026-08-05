@@ -246,15 +246,21 @@ class setting {
 			$template = str_replace('{$ssl}', "", $template);
 		}
 		$htaccess_path = dirname(__FILE__) . "/../../../.htaccess";
-		file_put_contents($htaccess_path, $template);
+		$this->write_generated_file($htaccess_path, $template, ".htaccess");
 
 		$robots_path = dirname(__FILE__) . "/../../../robots.txt";
-		file_put_contents($robots_path, $setting["robots"] ?? "User-Agent: *\nAllow: /\n");
+		$this->write_generated_file($robots_path, $setting["robots"] ?? "User-Agent: *\nAllow: /\n", "robots.txt");
 
 		return [
 			"htaccess" => is_file($htaccess_path),
 			"robots" => is_file($robots_path),
 		];
+	}
+
+	private function write_generated_file(string $path, string $contents, string $label): void {
+		if (@file_put_contents($path, $contents) === false) {
+			throw new RuntimeException("Failed to write {$label}.");
+		}
 	}
 
 	private function get_setting_field_names(): array {

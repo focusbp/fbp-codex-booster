@@ -1,5 +1,8 @@
 # app-framework5 History
 
+## 2026-08-05
+- Changed setting-generated `.htaccess` and `robots.txt` writes to throw an exception when `file_put_contents()` fails, so setting screen/API saves cannot silently report success after a write failure.
+
 ## 2026-08-04
 - Changed `get_APP_URL()` to generate standard `?key=value` query strings by default, preventing LINE and other external clients from dropping the first parameter.
 - Kept the former `&key=value` output available through the explicit `query_format=legacy` option; existing legacy links remain routable without `.htaccess` changes.
