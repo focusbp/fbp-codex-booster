@@ -10,6 +10,9 @@ description: Verify FBP application screens with Playwright browser automation. 
 Use `~/scripts/playwright_node.sh` as the Playwright entrypoint. Do not start with raw
 `node`, `npx playwright test`, or `@playwright/test`; this environment may only have the
 `playwright` package inside the npx cache, and the wrapper sets `NODE_PATH` correctly.
+The wrapper also exports the current rotated test-gateway Basic-auth values as
+`PLAYWRIGHT_TEST_BASIC_AUTH_USERNAME` and `PLAYWRIGHT_TEST_BASIC_AUTH_PASSWORD`, and keeps them
+stable for the lifetime of the browser process.
 Do not run Playwright from `~/` in a way that creates default output directories such as
 `~/test-results` or `~/playwright-report`. Put temporary scripts and artifacts under
 `~/scripts/tmp/...`, and put retained screenshots under `/home/nakama/Screenshot/<appcode>/`.
@@ -37,8 +40,11 @@ const browser = await chromium.launch({
    `test_login_id`, and `test_password` values.
 2. If checking source changes, sync before browser verification:
    `~/scripts/copy_to_web.sh app-xxx`.
-3. Pass login values through environment variables. Do not write passwords, API keys, cookies,
-   or generated session details into scripts, docs, or final answers.
+3. Pass FBP login values through environment variables. For a `gw.soshiki-kaikaku.com` test URL,
+   create a browser context with the wrapper-provided `PLAYWRIGHT_TEST_BASIC_AUTH_USERNAME` and
+   `PLAYWRIGHT_TEST_BASIC_AUTH_PASSWORD` as `httpCredentials`. Do not substitute the app's FBP
+   login ID/password for HTTP Basic authentication, and do not write either credential into a
+   script, manifest, doc, or final answer.
 4. Save screenshots under `/home/nakama/Screenshot/<appcode>/`, using clear filenames.
 5. Use `page.screenshot({ path, fullPage: true })` by default.
 6. Always print relevant DOM metrics for layout bugs, such as rendered width, `data-*`
@@ -126,14 +132,25 @@ const { chromium } = require("playwright");
 (async () => {
   const appcode = process.env.APP_CODE;
   const out = `/home/nakama/Screenshot/${appcode}/check.png`;
+  const testUrl = process.env.APP_TEST_URL;
   const browser = await chromium.launch({
     headless: true,
     executablePath: "/usr/bin/google-chrome",
     args: ["--no-sandbox"]
   });
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  const contextOptions = { viewport: { width: 1440, height: 900 } };
+  if (new URL(testUrl).hostname === "gw.soshiki-kaikaku.com") {
+    const username = process.env.PLAYWRIGHT_TEST_BASIC_AUTH_USERNAME || "";
+    const password = process.env.PLAYWRIGHT_TEST_BASIC_AUTH_PASSWORD || "";
+    if (!username || !password) {
+      throw new Error("test gateway Basic-auth credentials are unavailable; use playwright_node.sh");
+    }
+    contextOptions.httpCredentials = { username, password, origin: new URL(testUrl).origin };
+  }
+  const context = await browser.newContext(contextOptions);
+  const page = await context.newPage();
   page.setDefaultTimeout(10000);
-  await page.goto(process.env.APP_TEST_URL, { waitUntil: "domcontentloaded" });
+  await page.goto(testUrl, { waitUntil: "domcontentloaded" });
 
   if (await page.locator('input[name="login_id"]').count()) {
     await page.fill('input[name="login_id"]', process.env.APP_LOGIN_ID || "");
