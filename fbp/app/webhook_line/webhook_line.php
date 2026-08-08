@@ -362,6 +362,13 @@ class webhook_line {
 				$has_reply = true;
 			}
 		}
+		if (!empty($result["reply_flex"]) && is_array($result["reply_flex"])) {
+			$alt_text = (string)($result["reply_flex"]["alt_text"] ?? "");
+			$contents = $result["reply_flex"]["contents"] ?? null;
+			if (is_array($contents) && $linebot->set_flex($alt_text, $contents)) {
+				$has_reply = true;
+			}
+		}
 		if ($has_reply) {
 			$linebot->send_reply();
 		}

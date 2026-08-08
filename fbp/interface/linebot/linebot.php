@@ -14,6 +14,9 @@ interface linebot
     public function set_text(string $text);
     
     public function set_sticker(string $packageId, string $stickerId);
+
+    /** Flex Messageを返信キューに追加 */
+    public function set_flex(string $altText, array $contents): bool;
     
     public function send_reply(): bool;
 

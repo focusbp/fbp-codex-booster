@@ -35,6 +35,7 @@ description: Implement and operate webhook-driven integrations in FBP, including
 - `webhook_rule action_class` 側は、原則として `public_pages` のURLを返す役割にとどめる。
 - LINE の返信・pushにパラメータ付き公開URLを含める場合は、`fbp-public-pages` の `LINE message URLs` に従う。最初のクエリ区切りは必ず `?` にし、`reply_text` の最終文字列へ `*<function>&<key>=` が残っていないことと、受け側の `GET("<key>")` まで値が届くことを確認する。
 - 重要な公開入口は、対応するメッセージ形式なら URI action を優先する。プレーンテキストURLを使う場合はURLを独立した行に置き、標準クエリ形式を返す `$ctl->get_APP_URL()` の出力をそのまま使う。
+- Flex Messageを返信する action_class は、`["reply_flex" => ["alt_text" => "...", "contents" => <bubble|carousel>], "handled" => true]` を返す。公開URLはFlex Message内のURI actionへ設定し、カード全体やボタンから直接開ける形を優先する。
 - LINE webhook から `public_pages` へ渡す公開入口の識別子は初回だけ受け、復号後は session に保存して以後の内部導線では再送しない。
 - 公開側フォームは `function.js` 読み込み前提で、管理ダイアログと同じ `<form onsubmit="return false;"> + <button class="ajax-link" data-form="...">` で実装してよい。
 - 公開側フォームのバリデーションは `res_error_message()` を使い、エラー時は即 `return` する。

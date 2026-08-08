@@ -146,6 +146,27 @@ class Linebot_class implements linebot {
 		];
 	}
 
+	/** Flex Messageを返信キューに追加 */
+	public function set_flex(string $altText, array $contents): bool {
+		$altText = trim($altText);
+		$containerType = (string)($contents['type'] ?? '');
+		if ($altText === '' || mb_strlen($altText) > 1500) {
+			$this->log('[set_flex] invalid altText');
+			return false;
+		}
+		if (!in_array($containerType, ['bubble', 'carousel'], true)) {
+			$this->log('[set_flex] invalid container type');
+			return false;
+		}
+
+		$this->replyQueue[] = [
+			'type' => 'flex',
+			'altText' => $altText,
+			'contents' => $contents,
+		];
+		return true;
+	}
+
 	public function send_reply(): bool {
 		if (count($this->replyQueue) > 5) {
 			$this->log('Too many messages for a single reply (max 5)');
