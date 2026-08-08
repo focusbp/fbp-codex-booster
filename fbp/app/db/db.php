@@ -54,6 +54,7 @@ class db {
 	private $duplicate_check_opt = [
 	    0 => "",
 	    1 => "Disallow Duplicates",
+	    2 => "Disallow Duplicates Within Parent",
 	];
 	private $display_format_opt = [
 	    0 => "None",

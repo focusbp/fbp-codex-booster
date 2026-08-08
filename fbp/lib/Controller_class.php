@@ -4598,7 +4598,8 @@ class Controller_class implements Controller {
 
 		// Duplicate
 		foreach ($fields as $f) {
-			if (($f["duplicate_check"] ?? 0) == 1) {
+			$duplicate_check = (int) ($f["duplicate_check"] ?? 0);
+			if ($duplicate_check === 1 || $duplicate_check === 2) {
 				$pname = $f["parameter_name"] ?? "";
 				if ($pname != "parent_id") {
 					if (!in_array($pname, $error_fields)) {
@@ -4612,7 +4613,14 @@ class Controller_class implements Controller {
 								$id = $this->decrypt($post_id);
 							}
 
-							$res = $this->validate_duplicate($table_name, [$pname], [$post[$pname] ?? ""], $id);
+							$duplicate_fields = [$pname];
+							$duplicate_values = [$post[$pname] ?? ""];
+							if ($duplicate_check === 2) {
+								$duplicate_fields[] = "parent_id";
+								$duplicate_values[] = $post["parent_id"] ?? "";
+							}
+
+							$res = $this->validate_duplicate($table_name, $duplicate_fields, $duplicate_values, $id);
 							if (!$res) {
 								$this->res_error_message($pname, "Duplicated");
 								$error_fields[] = $pname;
