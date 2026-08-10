@@ -1505,14 +1505,19 @@ class fixed_file_manager implements FFM {
 	private function changeFormat($newformat) {
 		$this->assert_writable("changeFormat");
 
+		// Do not wait for the format lock while still holding the dat lock.
+		// When two requests detect the same format change, the first request
+		// releases and reopens the dat file after taking the format lock. A
+		// second request that kept the dat lock while waiting for that format
+		// lock would deadlock with the first request.
+		$this->closeDatFile();
+		$this->flg_prepared = false;
 		$lock = $this->acquire_change_format_lock();
 		$tmp_path = "";
 		try {
 			// Another process may have been waiting on an old file handle while the
 			// first process renamed the dat file. Reopen the path after taking the
 			// format lock so stale handles cannot run a second conversion.
-			$this->closeDatFile();
-			$this->flg_prepared = false;
 			$this->openDatFile(false, false);
 			if ($newformat == $this->header["format_txt"]) {
 				return;
