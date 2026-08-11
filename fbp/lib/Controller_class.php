@@ -26,6 +26,7 @@ class Controller_class implements Controller {
 	private $cache_field;
 	private $polling_start = false;
 	private $square_error = "";
+	private $square_payment_result = [];
 	public $stop_res = false;
 	private static $instance = null;
 	public $openai;
@@ -2536,6 +2537,7 @@ class Controller_class implements Controller {
 	}
 
 	function square_payment($square_customer_id, $card_id, $price, $currency = null): bool {
+		$this->square_payment_result = [];
 		try {
 			if (!class_exists("mysquare")) {
 				$this->set_square();
@@ -2554,12 +2556,17 @@ class Controller_class implements Controller {
 				$this->square_error = $mysquare->get_error();
 				return false;
 			} else {
+				$this->square_payment_result = is_array($result) ? $result : $mysquare->get_payment_result();
 				return true;
 			}
 		} catch (Throwable $e) {
 			$this->square_error = $e->getMessage();
 			return false;
 		}
+	}
+
+	function square_get_payment_result(): array {
+		return $this->square_payment_result;
 	}
 
 	function square_get_error(): ?string {

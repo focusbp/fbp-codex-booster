@@ -24,6 +24,7 @@ class mysquare {
 	private $testserver;
 	private $client;
 	private $error;
+	private $payment_result = [];
 	
 	function __construct($square_access_token,$testserver) {
 		$this->testserver = $testserver;
@@ -111,6 +112,7 @@ class mysquare {
 	}
 	
 	function payment($customer_id,$card_id,$price,$currency="JPY"){
+		$this->payment_result = [];
 		$payments_api = $this->client->getPaymentsApi();
 
 		$money = new Money();
@@ -129,8 +131,8 @@ class mysquare {
 		$create_payment_request->setCustomerId($customer_id);
 
 		$result = $payments_api->createPayment($create_payment_request);
+		$result_body = json_decode($result->getBody(),true);
 		if ($result->isError()) {
-			$result_body = json_decode($result->getBody(),true);
 			$txt = "";
 			if(isset($result_body["errors"]) && is_array($result_body["errors"])){
 				foreach($result_body["errors"] as $error){
@@ -144,8 +146,17 @@ class mysquare {
 			$this->error = $txt;
 			return false;
 		}else{
-			return true;
+			$payment = $result_body["payment"] ?? [];
+			if (!is_array($payment) || empty($payment["id"])) {
+				throw new Exception("Square決済結果を確認できませんでした");
+			}
+			$this->payment_result = $payment;
+			return $payment;
 		}
+	}
+
+	function get_payment_result(): array {
+		return $this->payment_result;
 	}
 	
 	function get_error(){

@@ -19,6 +19,8 @@ interface ctl_square {
 	 * @return mixed The result of the payment transaction from Square.
 	 */
 	function square_payment($square_customer_id, $card_id, $price, $currency = "JPY"):bool;
+
+	function square_get_payment_result():array;
 	
 	function square_get_error():?string;
 	
