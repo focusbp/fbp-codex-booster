@@ -21,6 +21,12 @@ interface ctl_square {
 	function square_payment($square_customer_id, $card_id, $price, $currency = "JPY"):bool;
 
 	function square_get_payment_result():array;
+
+	function square_refund_payment(string $payment_id, int $amount, string $idempotency_key, string $currency = "JPY", string $reason = ""):bool;
+
+	function square_retrieve_refund(string $refund_id):bool;
+
+	function square_get_refund_result():array;
 	
 	function square_get_error():?string;
 	

@@ -27,6 +27,7 @@ class Controller_class implements Controller {
 	private $polling_start = false;
 	private $square_error = "";
 	private $square_payment_result = [];
+	private $square_refund_result = [];
 	public $stop_res = false;
 	private static $instance = null;
 	public $openai;
@@ -2567,6 +2568,50 @@ class Controller_class implements Controller {
 
 	function square_get_payment_result(): array {
 		return $this->square_payment_result;
+	}
+
+	function square_refund_payment(string $payment_id, int $amount, string $idempotency_key, string $currency = "JPY", string $reason = ""): bool {
+		$this->square_refund_result = [];
+		try {
+			if (!class_exists("mysquare")) {
+				$this->set_square();
+			}
+			$mysquare = new mysquare($this->square_access_token, $this->get_session("testserver"));
+			$result = $mysquare->refund_payment($payment_id, $amount, $idempotency_key, $currency, $reason);
+			if (!$result) {
+				$this->square_error = $mysquare->get_error();
+				return false;
+			}
+			$this->square_refund_result = is_array($result) ? $result : $mysquare->get_refund_result();
+			return true;
+		} catch (Throwable $e) {
+			$this->square_error = $e->getMessage();
+			return false;
+		}
+	}
+
+	function square_retrieve_refund(string $refund_id): bool {
+		$this->square_refund_result = [];
+		try {
+			if (!class_exists("mysquare")) {
+				$this->set_square();
+			}
+			$mysquare = new mysquare($this->square_access_token, $this->get_session("testserver"));
+			$result = $mysquare->retrieve_refund($refund_id);
+			if (!$result) {
+				$this->square_error = $mysquare->get_error();
+				return false;
+			}
+			$this->square_refund_result = is_array($result) ? $result : $mysquare->get_refund_result();
+			return true;
+		} catch (Throwable $e) {
+			$this->square_error = $e->getMessage();
+			return false;
+		}
+	}
+
+	function square_get_refund_result(): array {
+		return $this->square_refund_result;
 	}
 
 	function square_get_error(): ?string {

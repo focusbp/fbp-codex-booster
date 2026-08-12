@@ -18,6 +18,7 @@ use Square\Models\CatalogSubscriptionPlan;
 use Square\Models\SubscriptionPhase;
 use Square\Models\Address;
 use Square\Models\CreateSubscriptionRequest;
+use Square\Models\RefundPaymentRequest;
 
 class mysquare {
 	
@@ -25,6 +26,7 @@ class mysquare {
 	private $client;
 	private $error;
 	private $payment_result = [];
+	private $refund_result = [];
 	
 	function __construct($square_access_token,$testserver) {
 		$this->testserver = $testserver;
@@ -157,6 +159,69 @@ class mysquare {
 
 	function get_payment_result(): array {
 		return $this->payment_result;
+	}
+
+	function refund_payment($payment_id, $amount, $idempotency_key, $currency = "JPY", $reason = "") {
+		$this->refund_result = [];
+		$payment_id = trim((string) $payment_id);
+		$idempotency_key = trim((string) $idempotency_key);
+		$currency = trim((string) $currency);
+		if ($payment_id === "") {
+			throw new Exception("Square Payment IDを確認できませんでした");
+		}
+		if ((int) $amount <= 0) {
+			throw new Exception("返金額を確認できませんでした");
+		}
+		if ($idempotency_key === "" || strlen($idempotency_key) > 45) {
+			throw new Exception("返金処理キーを確認できませんでした");
+		}
+		if ($currency === "") {
+			$currency = "JPY";
+		}
+
+		$money = new Money();
+		$money->setAmount((int) $amount);
+		$money->setCurrency($currency);
+		$request = new RefundPaymentRequest($idempotency_key, $money, $payment_id);
+		if (trim((string) $reason) !== "") {
+			$request->setReason(trim((string) $reason));
+		}
+		$result = $this->client->getRefundsApi()->refundPayment($request);
+		$result_body = json_decode($result->getBody(), true);
+		if ($result->isError()) {
+			$this->get_error_text(is_array($result_body) ? $result_body : [], "Square返金処理に失敗しました");
+			return false;
+		}
+		$refund = is_array($result_body) ? ($result_body["refund"] ?? []) : [];
+		if (!is_array($refund) || trim((string) ($refund["id"] ?? "")) === "") {
+			throw new Exception("Square返金結果を確認できませんでした");
+		}
+		$this->refund_result = $refund;
+		return $refund;
+	}
+
+	function retrieve_refund($refund_id) {
+		$this->refund_result = [];
+		$refund_id = trim((string) $refund_id);
+		if ($refund_id === "") {
+			throw new Exception("Square Refund IDを確認できませんでした");
+		}
+		$result = $this->client->getRefundsApi()->getPaymentRefund($refund_id);
+		$result_body = json_decode($result->getBody(), true);
+		if ($result->isError()) {
+			$this->get_error_text(is_array($result_body) ? $result_body : [], "Square返金状態の取得に失敗しました");
+			return false;
+		}
+		$refund = is_array($result_body) ? ($result_body["refund"] ?? []) : [];
+		if (!is_array($refund) || trim((string) ($refund["id"] ?? "")) === "") {
+			throw new Exception("Square返金状態を確認できませんでした");
+		}
+		$this->refund_result = $refund;
+		return $refund;
+	}
+
+	function get_refund_result(): array {
+		return $this->refund_result;
 	}
 	
 	function get_error(){
