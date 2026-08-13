@@ -1645,6 +1645,12 @@ form p {
 	background: #e8f3ff;
 }
 
+/* Keep action cells as table cells so a selected row background fills its full height. */
+.db_exe_action_buttons {
+	display: flex;
+	flex-direction: row-reverse;
+}
+
 #main_table.main_table_horizontal_scroll {
 	overflow-x: auto;
 	overflow-y: visible;

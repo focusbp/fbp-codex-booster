@@ -29,7 +29,8 @@
 		</td>
 			{/if}
 		{/foreach}
-		<td class="row_style" style="padding:10px;display: flex;flex-direction: row-reverse;">
+		<td class="row_style db_exe_action_cell" style="padding:10px;">
+			<div class="db_exe_action_buttons">
 		{if $flg_delete_button}
 		<button class="ajax-link listbutton" data-class="{$class}" data-function="delete" data-id="{$row["_id_enc"]}" data-db_id="{$db_id}" style="float:right;color:#2d2d2d;margin-right:5px;"><span class="material-symbols-outlined">delete</span></button>
 		{/if}
@@ -46,6 +47,7 @@
 				<a class="ajax-link listbutton {$a.show_button_class}" style="color:black;" invoke-class="{$a.class_name}" invoke-function="{$a.function_name}" data-id="{$row["_id_enc"]}"><span class="material-symbols-outlined">{$a.button_title}</span></a>
 			{/if}
 		{/foreach}
+			</div>
 		</td>
 	</tr>
 {/foreach}
