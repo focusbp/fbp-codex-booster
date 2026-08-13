@@ -32,7 +32,7 @@ $row : array of the values.
 		{assign background $field["colors"][$row.$name]}
 		{assign color "#FFF"}
 	{else}
-		{assign background "#FFF"}
+		{assign background "transparent"}
 		{assign color "#000"}
 	{/if}
 	{if $field["is_table_dropdown"]}
