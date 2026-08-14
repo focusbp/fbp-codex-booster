@@ -40,6 +40,8 @@ class fixed_file_manager implements FFM {
 	private const INDEX_MANIFEST_SIZE = 4200;
 	private const INDEX_SHARD_HEADER_SIZE = 64;
 	private const INDEX_SHARD_ENTRY_SIZE = 48;
+	private const TEXT_SCAN_BLOCK_BYTES = 4194304;
+	private const TEXT_SCAN_MAX_CANDIDATES = 50000;
 	
 
 	private $filename;
@@ -70,6 +72,7 @@ class fixed_file_manager implements FFM {
 	private $index_cache = [];
 	private $index_ready = [];
 	private $index_disabled = false;
+	private $text_search_disabled = false;
 
 	private function is_empty_filter_itemname($iname): bool {
 		if (is_array($iname)) {
@@ -99,6 +102,30 @@ class fixed_file_manager implements FFM {
 		return $this->is_numeric_text_value($stored)
 			&& $this->is_numeric_text_value($search)
 			&& $stored === $search;
+	}
+
+	private function is_filter_text_partial_match($stored_value, $search_value): bool {
+		$stored = trim((string) $stored_value);
+		if (!is_scalar($search_value) && $search_value !== null) {
+			// Keep the legacy strpos() type error for unsupported filter values.
+			strpos($stored, $search_value);
+			return false;
+		}
+		$search = (string) $search_value;
+		if (($stored == $search) || strpos($stored, $search) !== false) {
+			return true;
+		}
+		$stored_upper = strtoupper($stored);
+		$search_upper = strtoupper($search);
+		if (strpos($stored_upper, $search_upper) !== false) {
+			return true;
+		}
+		$tokens = preg_split("/[\s,]+/", $search_upper);
+		if (!is_array($tokens)) return false;
+		foreach ($tokens as $token) {
+			if ($token !== "" && strpos($stored_upper, $token) !== false) return true;
+		}
+		return false;
 	}
 
 	/*
@@ -144,6 +171,7 @@ class fixed_file_manager implements FFM {
 		}
 		$this->read_only = !empty($options["read_only"]);
 		$this->index_disabled = !empty($options["index_disabled"]) || (string) getenv("FBP_FFM_INDEX_DISABLE") === "1";
+		$this->text_search_disabled = !empty($options["text_search_disabled"]) || (string) getenv("FBP_FFM_TEXT_SEARCH_DISABLE") === "1";
 
 		//パラメータ設定
 		if ($datadir == null) {
@@ -838,6 +866,9 @@ class fixed_file_manager implements FFM {
 		// Standard Screen は部分一致を含むため exact_match=false で呼ばれる。
 		// この場合も、AND 条件に含まれる数値型の完全一致だけは安全に候補を絞れる。
 		$candidate_ids = $this->indexed_candidate_ids($itemname, $value, $match_patterns, $and_or, !$exact_match);
+		if ($candidate_ids === null && !$exact_match) {
+			$candidate_ids = $this->text_filter_candidate_ids($itemname, $value, $and_or, $sortitem, $max);
+		}
 		$candidate_pos = 0;
 		if ($candidate_ids === null) {
 			$this->seek_end();
@@ -885,27 +916,7 @@ class fixed_file_manager implements FFM {
 									$field_check = true;
 								}
 							} else {
-								if (($v == $value[$key]) || (strpos($v, $value[$key]) !== false)) {
-									$field_check = true;
-								} else {
-									// 大文字・小文字関係なく検索
-									$v = strtoupper($v);
-									$vc = strtoupper($value[$key]);
-									if (strpos($v, $vc) !== false) {
-										$field_check = true;
-									} else {
-										// 空白文字で分割(or)
-										$ex = preg_split("/[\s,]+/", $vc);
-										foreach ($ex as $vcc) {
-											if ($vcc === "") {
-												continue;
-											}
-											if (strpos($v, $vcc) !== false) {
-												$field_check = true;
-											}
-										}
-									}
-								}
+								$field_check = $this->is_filter_text_partial_match($v, $value[$key]);
 							}
 							$check = $check || $field_check;
 						}
@@ -924,27 +935,7 @@ class fixed_file_manager implements FFM {
 								$check = true;
 							}
 						} else {
-							if (($v == $value[$key]) || (strpos($v, $value[$key]) !== false)) {
-								$check = true;
-							} else {
-								// 大文字・小文字関係なく検索
-								$v = strtoupper($v);
-								$vc = strtoupper($value[$key]);
-								if (strpos($v, $vc) !== false) {
-									$check = true;
-								} else {
-									// 空白文字で分割(or)
-									$ex = preg_split("/[\s,]+/", $vc);
-									foreach ($ex as $vcc) {
-										if ($vcc === "") {
-											continue;
-										}
-										if (strpos($v, $vcc) !== false) {
-											$check = true;
-										}
-									}
-								}
-							}
+							$check = $this->is_filter_text_partial_match($v, $value[$key]);
 						}
 
 						if ($and_or == "AND") {
@@ -2255,6 +2246,183 @@ class fixed_file_manager implements FFM {
 			return $ids;
 		}
 		return [];
+	}
+
+	private function text_filter_candidate_ids(array $itemname, array $value, string $and_or, $sortitem, $max): ?array {
+		if ($this->text_search_disabled || $and_or !== "AND") {
+			return null;
+		}
+
+		$field_map = [];
+		$offset = 1;
+		foreach ($this->format as $field) {
+			$name = (string) ($field["name"] ?? "");
+			$size = (int) ($field["size"] ?? 0);
+			$field_map[$name] = $field + ["data_offset" => $offset];
+			$offset += $size;
+		}
+
+		$selected = null;
+		$selected_score = -1;
+		foreach ($itemname as $i => $names) {
+			$names = is_array($names) ? array_values($names) : [$names];
+			$ranges = [];
+			foreach ($names as $name) {
+				if (!is_string($name) || !isset($field_map[$name]) || ($field_map[$name]["type"] ?? "") !== "T") {
+					$ranges = [];
+					break;
+				}
+				$start = (int) $field_map[$name]["data_offset"];
+				$ranges[] = ["start" => $start, "end" => $start + (int) $field_map[$name]["size"]];
+			}
+			if (count($ranges) === 0 || !array_key_exists($i, $value) || (!is_scalar($value[$i]) && $value[$i] !== null)) {
+				continue;
+			}
+
+			$search = strtoupper((string) $value[$i]);
+			if ($search === "") {
+				continue;
+			}
+			$patterns = [$search => $search];
+			$tokens = preg_split("/[\s,]+/", $search);
+			if (is_array($tokens)) {
+				foreach ($tokens as $token) {
+					if ($token !== "") $patterns[$token] = $token;
+				}
+			}
+			$patterns = array_values(array_filter($patterns, static function (string $pattern) use ($ranges): bool {
+				$length = strlen($pattern);
+				foreach ($ranges as $range) {
+					if ($length <= $range["end"] - $range["start"]) return true;
+				}
+				return false;
+			}));
+			if (count($patterns) === 0) {
+				return [];
+			}
+
+			$score = min(array_map("strlen", $patterns));
+			if ($score > $selected_score) {
+				$selected = [
+					"ranges" => $ranges,
+					"patterns" => $patterns,
+					"value" => $value[$i],
+					"grouped" => is_array($itemname[$i]),
+				];
+				$selected_score = $score;
+			}
+		}
+
+		if ($selected === null) return null;
+		$stop_after = $sortitem === null && $max !== null && count($itemname) === 1 ? max(0, (int) $max) : null;
+		return $this->scan_text_candidate_ids(
+			$selected["ranges"],
+			$selected["patterns"],
+			$selected["value"],
+			$selected["grouped"],
+			$stop_after
+		);
+	}
+
+	private function text_scan_match_position(int $position, int $pattern_length, array $ranges, int $recordsize): array {
+		$record_start = intdiv($position, $recordsize) * $recordsize;
+		$within = $position - $record_start;
+		foreach ($ranges as $range) {
+			$start = (int) $range["start"];
+			$end = (int) $range["end"];
+			if ($within < $start) {
+				return [false, $record_start + $start];
+			}
+			if ($within < $end) {
+				if ($within + $pattern_length <= $end) {
+					return [true, $record_start + $recordsize + (int) $ranges[0]["start"]];
+				}
+				continue;
+			}
+		}
+		return [false, $record_start + $recordsize + (int) $ranges[0]["start"]];
+	}
+
+	private function text_scan_record_matches(string $block, int $record_start, array $ranges, $search_value, bool $grouped): bool {
+		foreach ($ranges as $range) {
+			$stored = trim(substr($block, $record_start + (int) $range["start"], (int) $range["end"] - (int) $range["start"]), " ");
+			if ($grouped && empty($stored)) continue;
+			if ($this->is_filter_text_partial_match($stored, $search_value)) return true;
+		}
+		return false;
+	}
+
+	private function scan_text_candidate_ids(array $ranges, array $patterns, $search_value, bool $grouped, ?int $stop_after): ?array {
+		$recordsize = (int) ($this->header["recordsize"] ?? 0);
+		$headersize = (int) ($this->header["headersize"] ?? 0);
+		$id_size = (int) ($this->format[0]["size"] ?? 0);
+		$data_bytes = (int) $this->eof - $headersize;
+		if ($recordsize <= 1 || $id_size <= 0 || $headersize < 0 || $data_bytes < 0 || $data_bytes % $recordsize !== 0) {
+			return null;
+		}
+		$total_records = intdiv($data_bytes, $recordsize);
+		if ($total_records === 0) return [];
+		$records_per_block = max(1, intdiv(self::TEXT_SCAN_BLOCK_BYTES, $recordsize));
+		$candidates = [];
+		$current = ftell($this->hf);
+
+		try {
+			$record_index = $stop_after === null ? 0 : $total_records;
+			while (($stop_after === null && $record_index < $total_records) || ($stop_after !== null && $record_index > 0)) {
+				if ($stop_after === null) {
+					$block_start_record = $record_index;
+					$block_records = min($records_per_block, $total_records - $record_index);
+					$record_index += $block_records;
+				} else {
+					$block_start_record = max(0, $record_index - $records_per_block);
+					$block_records = $record_index - $block_start_record;
+					$record_index = $block_start_record;
+				}
+				$block_bytes = $block_records * $recordsize;
+				$block_offset = $headersize + ($block_start_record * $recordsize);
+				if (fseek($this->hf, $block_offset) !== 0) return null;
+				$block = "";
+				while (strlen($block) < $block_bytes) {
+					$part = fread($this->hf, $block_bytes - strlen($block));
+					if (!is_string($part) || $part === "") return null;
+					$block .= $part;
+				}
+				$search_block = strtoupper($block);
+
+				foreach ($patterns as $pattern) {
+					$pattern_length = strlen($pattern);
+					$search_position = (int) $ranges[0]["start"];
+					while (($position = strpos($search_block, $pattern, $search_position)) !== false) {
+						[$valid, $next_position] = $this->text_scan_match_position($position, $pattern_length, $ranges, $recordsize);
+						$advance_position = $next_position;
+						if ($valid) {
+							$record_start = intdiv($position, $recordsize) * $recordsize;
+							if (($block[$record_start] ?? "") === " ") {
+								$id = (int) substr($block, $record_start + 1, $id_size);
+								if ($id > 0 && $id <= (int) $this->header["maxid"]) {
+									if (isset($candidates[$id]) || $this->text_scan_record_matches($block, $record_start, $ranges, $search_value, $grouped)) {
+										$candidates[$id] = true;
+										if (count($candidates) > self::TEXT_SCAN_MAX_CANDIDATES) return null;
+									} else {
+										$advance_position = $position + 1;
+									}
+								}
+							}
+						}
+						$search_position = max($position + 1, $advance_position);
+						if ($search_position >= $block_bytes) break;
+					}
+				}
+				unset($search_block, $block);
+				if ($stop_after !== null && count($candidates) > $stop_after) break;
+			}
+		} finally {
+			if (is_int($current)) fseek($this->hf, $current);
+		}
+
+		$ids = array_map("intval", array_keys($candidates));
+		rsort($ids, SORT_NUMERIC);
+		return $ids;
 	}
 
 	private function indexed_candidate_ids(array $itemname, array $value, array $patterns, string $and_or, bool $numeric_only = false): ?array {

@@ -102,7 +102,7 @@ function irregular_compare_with_legacy(string $root, string $message): void {
 	} finally {
 		$indexed->close();
 	}
-	$legacy = irregular_open($root, null, ["index_disabled" => true]);
+	$legacy = irregular_open($root, null, ["index_disabled" => true, "text_search_disabled" => true]);
 	try {
 		$expected = irregular_query_matrix($legacy);
 	} finally {
@@ -233,7 +233,7 @@ try {
 		$ffm = irregular_open($base, null, ["read_only" => true]);
 		$actual = $ffm->select("text", "日本語");
 		$ffm->close();
-		$legacy = irregular_open($base, null, ["read_only" => true, "index_disabled" => true]);
+		$legacy = irregular_open($base, null, ["read_only" => true, "index_disabled" => true, "text_search_disabled" => true]);
 		$expected = $legacy->select("text", "日本語");
 		$legacy->close();
 		irregular_same($expected, $actual, "read-only corrupt index did not fall back");
@@ -280,7 +280,7 @@ try {
 		$ffm = irregular_open($base);
 		$actual = $ffm->filter("number", -9, false, "AND", "id", SORT_ASC, null, $is_last, ["="]);
 		$ffm->close();
-		$legacy = irregular_open($base, null, ["index_disabled" => true]);
+		$legacy = irregular_open($base, null, ["index_disabled" => true, "text_search_disabled" => true]);
 		$expected = $legacy->filter("number", -9, false, "AND", "id", SORT_ASC, null, $is_last, ["="]);
 		$legacy->close();
 		irregular_same($expected, $actual, "Standard Screen numeric filter did not fall back after corruption");

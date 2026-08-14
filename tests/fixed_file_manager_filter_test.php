@@ -73,6 +73,19 @@ try {
 	ffm_filter_test_assert_same([3, 2, 1], array_column($rows, "id"), "grouped text fields were not OR matched");
 	ffm_filter_test_assert_same(true, $is_last, "unlimited grouped filter did not reach the last row");
 
+	$is_last = null;
+	$rows = $ffm->filter(
+		[["first_name", "middle_name", "last_name"]],
+		["target"],
+		false,
+		"AND",
+		null,
+		SORT_DESC,
+		null,
+		$is_last
+	);
+	ffm_filter_test_assert_same([3, 2, 1], array_column($rows, "id"), "grouped partial text fields were not accelerated safely");
+
 	foreach ([null, "sort"] as $sortitem) {
 		$is_last = null;
 		$rows = $ffm->filter([], [], false, "AND", $sortitem, SORT_DESC, 9, $is_last);
