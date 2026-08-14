@@ -37,6 +37,7 @@ class Controller_class implements Controller {
 	private $dashbord_column_width = 1;
 	private $second_work_area_default_width = null;
 	private $last_ai_completion_response = [];
+	private $db_read_only = false;
 
 	function __construct($class = null, $smarty = null) {
 
@@ -181,7 +182,14 @@ class Controller_class implements Controller {
 
 		$key = $ddir . "/" . $name;
 		if (!isset($this->dbarr[$key])) {
-			$ffm = new fixed_file_manager($name, $ddir, $fdir);
+			$read_only = $this->db_read_only
+				&& fixed_file_manager::can_open_read_only($name, $ddir, $fdir);
+			try {
+				$ffm = new fixed_file_manager($name, $ddir, $fdir, ["read_only" => $read_only]);
+			} catch (fixed_file_manager_read_only_format_change_required $e) {
+				// The format may change in the short interval after the read-only preflight.
+				$ffm = new fixed_file_manager($name, $ddir, $fdir);
+			}
 			$ffm->set_controller($this);
 			$ffm->set_info($name, $class);
 			$this->dbarr[$key] = $ffm;
@@ -192,6 +200,17 @@ class Controller_class implements Controller {
 			$ffm->check_hf();
 			return $ffm;
 		}
+	}
+
+	function set_db_read_only(bool $read_only): bool {
+		if ($this->db_read_only === $read_only) {
+			return true;
+		}
+		if (count($this->dbarr) > 0) {
+			return false;
+		}
+		$this->db_read_only = $read_only;
+		return true;
 	}
 
 	// DBの接続をクローズ(ffmのオブジェクトを使用）

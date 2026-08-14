@@ -12,6 +12,12 @@ interface ctl_db {
 	 */
 		function db(string $table_name, ?string $class = null, ?string $separated_by = null): FFM;
 
+	/**
+	 * Sets the default FFM open mode for databases opened later in this request.
+	 * Returns false without changing the mode when a database is already open.
+	 */
+	function set_db_read_only(bool $read_only): bool;
+
 
 	/**
 	 * Validates for duplicate values in a specific field or set of fields.

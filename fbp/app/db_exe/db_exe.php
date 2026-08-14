@@ -2,6 +2,11 @@
 
 
 class db_exe {
+	private const READ_ONLY_FUNCTIONS = [
+		"page", "search", "search_child", "search_weekly_calendar", "rows",
+		"add", "edit", "delete", "rows_child", "add_child", "edit_child", "delete_child",
+		"rows_weekly_calendar", "unassigned_tasks", "set_datetime", "reload",
+	];
 	
 	private $db_setting_id;
 	private $fmt_db;
@@ -12,6 +17,10 @@ class db_exe {
 	private $window_name;
 	private $title;
 	private $access_denied = false;
+
+	public static function is_read_only_function(string $function_name): bool {
+		return in_array($function_name, self::READ_ONLY_FUNCTIONS, true);
+	}
 
 	private function original_management_class_name(): string {
 		return (string) $this->table_name . "_original_management";
@@ -102,6 +111,11 @@ class db_exe {
 		if($post_function=="close_second_work_area"){
 			return;
 		}
+
+		$function_name = $post_function !== "" ? $post_function : $get_function;
+		if (self::is_read_only_function($function_name)) {
+			$ctl->set_db_read_only(true);
+		}
 		
 		$this->window_name = "window_" . $ctl->get_classname();
 		
@@ -126,7 +140,6 @@ class db_exe {
 		// Setting
 		$this->title = $db["menu_name"];
 
-		$function_name = $post_function !== "" ? $post_function : $get_function;
 		if (!$this->check_table_access($ctl, $function_name)) {
 			$this->deny_table_access($ctl);
 			return;

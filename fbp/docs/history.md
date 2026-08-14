@@ -12,6 +12,7 @@
 - Re-ran the pre-binary JSON implementation and current binary implementation as a release preflight, including strict IDX-free byte comparison, five existing `.dat` copies, five framework regression tests, one-million-row benchmarks, and a scan confirming no existing test-app `.fmt` currently enables `IDX`.
 - Enabled Standard Screen filters to use opt-in indexes for numeric equality conditions while preserving text partial matching, range and OR fallbacks; one million rows improved from 2.487848 seconds to 0.027545 seconds with identical results.
 - Added internal 4 MiB block scanning for T-field partial matching without external commands or text index files, with fixed-field boundary checks, candidate-limit fallback, and final legacy-condition revalidation; one million rows improved by about 7.7–9.9x with identical results.
+- Opened Standard Screen display-only requests with shared read-only FFM locks so concurrent lists and searches do not serialize, while write functions retain exclusive locks and missing/stale formats safely use the existing writable initialization path.
 
 ## 2026-08-05
 - Changed setting-generated `.htaccess` and `robots.txt` writes to throw an exception when `file_put_contents()` fails, so setting screen/API saves cannot silently report success after a write failure.
