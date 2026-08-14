@@ -14,6 +14,7 @@
 			<th class="lang">{t key="db.field_title"}</th>
 			<th class="lang">{t key="db.type"}</th>
 			<th class="lang">{t key="db.display_format"}</th>
+			<th>Index</th>
 			<th class="lang">{t key="db.length"}</th>
 			<th class="lang">{t key="db.options"}</th>
 			<th></th>
@@ -34,6 +35,7 @@
 			  >{$item.parameter_title}</td>
 				<td>{$item.type}</td>
 				<td>{$display_format_opt[$field_display_format]}</td>
+				<td>{if $item.index_flag|default:0}IDX{/if}</td>
 				<td>{$item.length}</td>
 				<td>{$item.constant_array_name}
 					<span class="option_list_in_row">

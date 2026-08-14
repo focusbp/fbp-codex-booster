@@ -19,3 +19,4 @@ title_color,10,T
 display_format,1,N
 parent_relation_flag,1,N
 parent_db_id,24,N
+index_flag,1,N

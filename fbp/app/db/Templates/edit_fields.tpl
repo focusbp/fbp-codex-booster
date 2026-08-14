@@ -76,6 +76,10 @@
 		{html_options name="display_format" selected=$data.display_format|default:0 options=$display_format_opt}
 	</div>
 	<div>
+		<p>Index:</p>
+		{html_options name="index_flag" selected=$data.index_flag|default:0 options=$index_flag_opt}
+	</div>
+	<div>
 		<p class="lang">{t key="db.title_color"}:</p>
 		<input type="text" name="title_color" value="{$data.title_color}" class="colorpicker">
 	</div>

@@ -56,6 +56,7 @@ class db {
 	    1 => "Disallow Duplicates",
 	    2 => "Disallow Duplicates Within Parent",
 	];
+	private $index_flag_opt = [0 => "Off", 1 => "IDX"];
 	private $display_format_opt = [
 	    0 => "None",
 	    1 => "Currency Format",
@@ -216,6 +217,7 @@ class db {
 		$ctl->assign("side_list_type_opt", $this->side_list_type_opt);
 		$ctl->assign("horizontal_scroll_opt", $this->get_horizontal_scroll_options($ctl));
 		$ctl->assign("duplicate_check_opt", $this->duplicate_check_opt);
+		$ctl->assign("index_flag_opt", $this->index_flag_opt);
 		$ctl->assign("display_format_opt", $this->get_display_format_options($ctl));
 		$ctl->assign("format_check_title_opt", $this->format_check_title_opt);
 		$ctl->assign("show_id_opt", $this->show_id_opt);
@@ -932,6 +934,7 @@ class db {
 		$post["display_format"] = 0;
 		$post["parent_relation_flag"] = 0;
 		$post["parent_db_id"] = 0;
+		$post["index_flag"] = 0;
 		$ctl->assign('post', $post);
 		$ctl->assign("parent_db_opt", $this->get_parent_opt($post['db_id'] ?? null));
 		$ctl->show_multi_dialog("add_db_fields", "add_fields.tpl", $ctl->t("db.dialog.add_parameters"), 1000, true, true);
@@ -1001,6 +1004,7 @@ class db {
 		// Set default length
 		$post["length"] = $this->default_field_length((string) $type);
 		$post["display_format"] = $this->normalize_display_format((string) $type, $post["display_format"] ?? 0);
+		$post["index_flag"] = !empty($post["index_flag"]) && $parameter_name !== "id" ? 1 : 0;
 
 		// sortを調べる
 			$db_id = $post["db_id"] ?? null;
@@ -1187,6 +1191,7 @@ class db {
 		}
 		$this->normalize_field_length($data);
 		$data["display_format"] = $this->normalize_display_format((string) ($data["type"] ?? ""), $post["display_format"] ?? 0);
+		$data["index_flag"] = !empty($post["index_flag"]) && $parameter_name !== "id" ? 1 : 0;
 
 		if (!in_array($type, ["dropdown", "checkbox", "radio"])) {
 			$data["constant_array_name"] = "";
@@ -1353,7 +1358,8 @@ class db {
 			$fields = $this->fmt_db_fields->select("db_id", $db_id, true, "AND", "sort", SORT_ASC);
 			foreach ($fields as $field) {
 				$t = $this->field_format_type($ctl, $field);
-				$txt .= $field["parameter_name"] . "," . $field["length"] . "," . $t . "\n";
+				$idx = !empty($field["index_flag"]) && $field["parameter_name"] !== "id" ? ",IDX" : "";
+				$txt .= $field["parameter_name"] . "," . $field["length"] . "," . $t . $idx . "\n";
 			}
 			file_put_contents($dir . $table["tb_name"] . ".fmt", $txt);
 		}

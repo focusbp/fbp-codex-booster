@@ -67,6 +67,10 @@
 		{html_options name="display_format" selected=$post.display_format options=$display_format_opt}
 	</div>
 	<div>
+		<p>Index:</p>
+		{html_options name="index_flag" selected=$post.index_flag|default:0 options=$index_flag_opt}
+	</div>
+	<div>
 		<p class="lang">{t key="db.default"}:</p>
 		<input type="text" name="default_value" value="{$post.default_value}">
 	</div>

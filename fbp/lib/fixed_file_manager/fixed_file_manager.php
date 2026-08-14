@@ -60,6 +60,9 @@ class fixed_file_manager implements FFM {
 	private $operation_log_dir;
 	private $strict_field_length = false;
 	private $allow_zero_length_read_for_change_format = false;
+	private $index_cache = [];
+	private $index_ready = [];
+	private $index_disabled = false;
 
 	private function is_empty_filter_itemname($iname): bool {
 		if (is_array($iname)) {
@@ -133,6 +136,7 @@ class fixed_file_manager implements FFM {
 			throw new Exception("Unknown format source : " . $this->format_source);
 		}
 		$this->read_only = !empty($options["read_only"]);
+		$this->index_disabled = !empty($options["index_disabled"]) || (string) getenv("FBP_FFM_INDEX_DISABLE") === "1";
 
 		//パラメータ設定
 		if ($datadir == null) {
@@ -200,6 +204,7 @@ class fixed_file_manager implements FFM {
 			$this->flg_prepared = false;
 			$this->changeFormat($format_txt);
 		}
+		$this->prepare_indexes();
 	}
 
 	public static function open_dat_header_readonly(string $path_dat): fixed_file_manager {
@@ -230,6 +235,7 @@ class fixed_file_manager implements FFM {
 
 	public function allclear() {
 		$this->assert_writable("allclear");
+		$this->mark_indexes_dirty();
 		$snapshot = $this->snapshot_dat_file("allclear");
 		$this->write_operation_log("allclear", null, null, [
 			"snapshot" => $snapshot,
@@ -243,6 +249,7 @@ class fixed_file_manager implements FFM {
 
 		$this->flg_prepared = false;
 		$this->openDatFile();
+		$this->rebuild_indexes();
 	}
 
 	/*
@@ -435,6 +442,7 @@ class fixed_file_manager implements FFM {
 		$this->check_hf();
 		$this->assert_field_lengths($dataset);
 
+		$this->mark_indexes_dirty();
 		$p = ftell($this->hf); //あとで戻す
 		// 
 		//最大IDをセット
@@ -459,6 +467,7 @@ class fixed_file_manager implements FFM {
 		$this->eof = ftell($this->hf);
 
 		fseek($this->hf, $p); //戻す
+		$this->apply_index_insert($dataset);
 		return $id;
 	}
 
@@ -468,9 +477,11 @@ class fixed_file_manager implements FFM {
 		$d = $this->get($id);
 		//ポインタを戻す
 		if ($d != null) {
+			$this->mark_indexes_dirty();
 			$this->write_operation_log("delete", $d, null);
 			fseek($this->hf, -1 * $this->header["recordsize"], SEEK_CUR);
 			fwrite($this->hf, "X");
+			$this->apply_index_delete($d);
 		}
 		fseek($this->hf, $p); //戻す
 	}
@@ -483,6 +494,7 @@ class fixed_file_manager implements FFM {
 
 		//ポインタを戻して書き込む
 		if ($d != null) {
+			$this->mark_indexes_dirty();
 
 			// $dのデータを上書き
 			foreach ($dataset as $key => $val) {
@@ -493,6 +505,7 @@ class fixed_file_manager implements FFM {
 
 			fseek($this->hf, -1 * $this->header["recordsize"], SEEK_CUR);
 			$this->writedata($d);
+			$this->apply_index_update($before, $d);
 		}
 		fseek($this->hf, $p); //戻す
 	}
@@ -591,7 +604,9 @@ class fixed_file_manager implements FFM {
 			"restored_from_flag" => "X",
 		]);
 		fseek($this->hf, (int) $record["offset"]);
+		$this->mark_indexes_dirty();
 		$this->writedata($dataset);
+		$this->apply_index_insert($dataset);
 		fseek($this->hf, $p);
 	}
 
@@ -812,11 +827,23 @@ class fixed_file_manager implements FFM {
 			$all = false;
 		}
 
-		$this->seek_end();
+		$candidate_ids = $exact_match ? $this->indexed_candidate_ids($itemname, $value, $match_patterns, $and_or) : null;
+		$candidate_pos = 0;
+		if ($candidate_ids === null) {
+			$this->seek_end();
+		}
 		$arr = array();
 		$c = 0;
 
-		while (($d = $this->before()) != null) {
+		while (true) {
+			if ($candidate_ids === null) {
+				$d = $this->before();
+				if ($d === null) break;
+			} else {
+				if ($candidate_pos >= count($candidate_ids)) break;
+				$d = $this->get($candidate_ids[$candidate_pos++]);
+				if ($d === null) continue;
+			}
 
 			if ($and_or == "AND") {
 				$flg = true;
@@ -1127,11 +1154,23 @@ class fixed_file_manager implements FFM {
 			}
 		}
 
-		$this->seek_end();
+		$candidate_ids = $this->indexed_candidate_ids($itemname, $value, $match_patterns, $and_or);
+		$candidate_pos = 0;
+		if ($candidate_ids === null) {
+			$this->seek_end();
+		}
 		$arr = array();
 		$c = 0;
 
-		while (($d = $this->before()) != null) {
+		while (true) {
+			if ($candidate_ids === null) {
+				$d = $this->before();
+				if ($d === null) break;
+			} else {
+				if ($candidate_pos >= count($candidate_ids)) break;
+				$d = $this->get($candidate_ids[$candidate_pos++]);
+				if ($d === null) continue;
+			}
 
 			if ($and_or == "AND") {
 				$flg = true;
@@ -1592,6 +1631,7 @@ class fixed_file_manager implements FFM {
 			$this->close();
 			$this->flg_prepared = false;
 			$this->openDatFile();
+			$this->rebuild_indexes();
 		} finally {
 			if ($tmp_path !== "" && is_file($tmp_path)) {
 				@unlink($tmp_path);
@@ -1670,11 +1710,16 @@ class fixed_file_manager implements FFM {
 			$line = trim($line);
 			if (!empty($line)) {
 				$data = explode(",", $line);
-				if (count($data) == 3) {
+				if (count($data) === 3 || count($data) === 4) {
+					$option = count($data) === 4 ? trim((string) $data[3]) : "";
+					if (count($data) === 4 && $option !== "IDX") {
+						throw new Exception('Wrong format option : ' . $line);
+					}
 					$ar = array();
-					$ar["name"] = $data[0];
-					$ar["size"] = $data[1];
-					$ar["type"] = $data[2];
+					$ar["name"] = trim((string) $data[0]);
+					$ar["size"] = trim((string) $data[1]);
+					$ar["type"] = trim((string) $data[2]);
+					$ar["indexed"] = $option === "IDX" && $ar["name"] !== "id";
 					$arr[] = $ar;
 				} else {
 					throw new Exception('Wrong format : ' . $line);
@@ -1704,6 +1749,213 @@ class fixed_file_manager implements FFM {
 			throw new Exception('Format Error : First item must be "id"' . $txt);
 		}
 		return $arr;
+	}
+
+	private function indexed_fields(): array {
+		if ($this->index_disabled) {
+			return [];
+		}
+		return array_values(array_filter($this->format, static function (array $field): bool {
+			return !empty($field["indexed"])
+				&& ($field["name"] ?? "") !== "id"
+				&& in_array((string) ($field["type"] ?? ""), ["T", "N", "F"], true);
+		}));
+	}
+
+	private function index_path(string $field): string {
+		return $this->path_dat . "." . $field . ".idx";
+	}
+
+	private function index_dirty_path(): string {
+		return $this->path_dat . ".idx.dirty";
+	}
+
+	private function index_key(array $field, $value): string {
+		$type = (string) ($field["type"] ?? "T");
+		if ($type === "N") {
+			$normalized = (string) (int) $value;
+		} elseif ($type === "F") {
+			$normalized = sprintf("%.17g", (float) $value);
+		} else {
+			$normalized = trim((string) $value);
+		}
+		return hash("sha256", $type . "\0" . $normalized);
+	}
+
+	private function index_meta(array $field, array $values): array {
+		$count = 0;
+		foreach ($values as $ids) {
+			$count += count($ids);
+		}
+		return [
+			"version" => 1,
+			"table" => $this->filename,
+			"field" => $field["name"],
+			"type" => $field["type"],
+			"format_hash" => hash("sha256", (string) $this->header["format_txt"]),
+			"maxid" => (int) $this->header["maxid"],
+			"count" => $count,
+		];
+	}
+
+	private function prepare_indexes(): void {
+		$this->index_cache = [];
+		$this->index_ready = [];
+		$fields = $this->indexed_fields();
+		if (count($fields) === 0 || is_file($this->index_dirty_path())) {
+			return;
+		}
+		foreach ($fields as $field) {
+			$name = (string) $field["name"];
+			$path = $this->index_path($name);
+			$decoded = is_file($path) ? json_decode((string) @file_get_contents($path), true) : null;
+			$values = is_array($decoded["values"] ?? null) ? $decoded["values"] : null;
+			$meta = is_array($decoded["meta"] ?? null) ? $decoded["meta"] : [];
+			if ($values === null
+				|| (int) ($meta["version"] ?? 0) !== 1
+				|| (string) ($meta["field"] ?? "") !== $name
+				|| (string) ($meta["type"] ?? "") !== (string) $field["type"]
+				|| (string) ($meta["format_hash"] ?? "") !== hash("sha256", (string) $this->header["format_txt"])
+				|| (int) ($meta["maxid"] ?? -1) !== (int) $this->header["maxid"]) {
+				continue;
+			}
+			$this->index_cache[$name] = $values;
+			$this->index_ready[$name] = true;
+		}
+	}
+
+	public function rebuild_indexes(): void {
+		$this->assert_writable("rebuild indexes");
+		$fields = $this->indexed_fields();
+		if (count($fields) === 0) {
+			$this->clear_indexes_dirty();
+			return;
+		}
+		foreach ($fields as $field) {
+			$this->index_cache[$field["name"]] = [];
+			$this->index_ready[$field["name"]] = true;
+		}
+		$current = ftell($this->hf);
+		fseek($this->hf, $this->header["headersize"]);
+		while (($row = $this->next()) !== null) {
+			$this->add_row_to_index_cache($row, $fields);
+		}
+		fseek($this->hf, $current);
+		$this->persist_indexes($fields);
+	}
+
+	private function mark_indexes_dirty(): void {
+		if (count($this->indexed_fields()) === 0) {
+			return;
+		}
+		if (file_put_contents($this->index_dirty_path(), "1\n", LOCK_EX) === false) {
+			throw new Exception("Failed to mark indexes dirty: " . $this->index_dirty_path());
+		}
+	}
+
+	private function clear_indexes_dirty(): void {
+		$path = $this->index_dirty_path();
+		if (is_file($path)) {
+			@unlink($path);
+		}
+	}
+
+	private function persist_indexes(?array $fields = null): void {
+		$fields = $fields ?? $this->indexed_fields();
+		foreach ($fields as $field) {
+			$name = (string) $field["name"];
+			if (empty($this->index_ready[$name])) {
+				$this->rebuild_indexes();
+				return;
+			}
+			$payload = json_encode([
+				"meta" => $this->index_meta($field, $this->index_cache[$name]),
+				"values" => $this->index_cache[$name],
+			], JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+			if ($payload === false) {
+				throw new Exception("Failed to encode index: " . $name);
+			}
+			$path = $this->index_path($name);
+			$tmp = $path . ".tmp." . getmypid() . "." . bin2hex(random_bytes(4));
+			if (file_put_contents($tmp, $payload, LOCK_EX) === false || !rename($tmp, $path)) {
+				@unlink($tmp);
+				throw new Exception("Failed to write index: " . $path);
+			}
+		}
+		$this->clear_indexes_dirty();
+	}
+
+	private function add_row_to_index_cache(array $row, ?array $fields = null): void {
+		foreach ($fields ?? $this->indexed_fields() as $field) {
+			$name = (string) $field["name"];
+			$key = $this->index_key($field, $row[$name] ?? null);
+			$this->index_cache[$name][$key] = $this->index_cache[$name][$key] ?? [];
+			$this->index_cache[$name][$key][] = (int) $row["id"];
+		}
+	}
+
+	private function remove_row_from_index_cache(array $row): void {
+		foreach ($this->indexed_fields() as $field) {
+			$name = (string) $field["name"];
+			if (empty($this->index_ready[$name])) {
+				continue;
+			}
+			$key = $this->index_key($field, $row[$name] ?? null);
+			$ids = $this->index_cache[$name][$key] ?? [];
+			$ids = array_values(array_filter($ids, static fn($id) => (int) $id !== (int) $row["id"]));
+			if (count($ids) === 0) {
+				unset($this->index_cache[$name][$key]);
+			} else {
+				$this->index_cache[$name][$key] = $ids;
+			}
+		}
+	}
+
+	private function apply_index_insert(array $row): void {
+		if (count($this->indexed_fields()) === 0) return;
+		foreach ($this->indexed_fields() as $field) {
+			if (empty($this->index_ready[$field["name"]])) {
+				$this->rebuild_indexes();
+				return;
+			}
+		}
+		$this->add_row_to_index_cache($row);
+		$this->persist_indexes();
+	}
+
+	private function apply_index_delete(array $row): void {
+		if (count($this->indexed_fields()) === 0) return;
+		$this->remove_row_from_index_cache($row);
+		$this->persist_indexes();
+	}
+
+	private function apply_index_update(array $before, array $after): void {
+		if (count($this->indexed_fields()) === 0) return;
+		$this->remove_row_from_index_cache($before);
+		$this->add_row_to_index_cache($after);
+		$this->persist_indexes();
+	}
+
+	private function indexed_candidate_ids(array $itemname, array $value, array $patterns, string $and_or): ?array {
+		if ($this->index_disabled || $and_or !== "AND" || is_file($this->index_dirty_path())) {
+			return null;
+		}
+		$field_map = [];
+		foreach ($this->indexed_fields() as $field) {
+			$field_map[$field["name"]] = $field;
+		}
+		$candidates = null;
+		foreach ($itemname as $i => $name) {
+			if (is_array($name) || ($patterns[$i] ?? "=") !== "=" || !isset($field_map[$name]) || empty($this->index_ready[$name])) {
+				continue;
+			}
+			$key = $this->index_key($field_map[$name], $value[$i] ?? null);
+			$ids = array_map("intval", $this->index_cache[$name][$key] ?? []);
+			$candidates = $candidates === null ? $ids : array_values(array_intersect($candidates, $ids));
+		}
+		if ($candidates === null) return null;
+		rsort($candidates, SORT_NUMERIC);
+		return $candidates;
 	}
 
 	/*

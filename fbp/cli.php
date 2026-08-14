@@ -290,7 +290,8 @@ function cli_make_table_format(Dirs $dir, $ffm_db, $ffm_db_fields, $ffm_constant
 		$fields = $ffm_db_fields->select("db_id", $db_id, true, "AND", "sort", SORT_ASC);
 		foreach ($fields as $field) {
 			$t = cli_field_format_type($field, $ffm_constant_array, $ffm_values);
-			$txt .= $field["parameter_name"] . "," . $field["length"] . "," . $t . "\n";
+			$idx = !empty($field["index_flag"]) && $field["parameter_name"] !== "id" ? ",IDX" : "";
+			$txt .= $field["parameter_name"] . "," . $field["length"] . "," . $t . $idx . "\n";
 		}
 		file_put_contents($fmt_root . $table["tb_name"] . ".fmt", $txt);
 	}
@@ -1472,6 +1473,8 @@ function cli_normalize_db_field_payload(array $data): array {
 			$data["image_width_thumbnail"] = 120;
 		}
 	}
+
+	$data["index_flag"] = !empty($data["index_flag"]) && (string) ($data["parameter_name"] ?? "") !== "id" ? 1 : 0;
 
 	return $data;
 }
