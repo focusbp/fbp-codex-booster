@@ -4,6 +4,7 @@
 - Added opt-in `IDX` fields to fixed file formats, exact-match candidate indexes for `select()` and exact `filter()`, CRUD/change-format index maintenance, and safe full-scan fallback for missing, dirty, or invalid indexes.
 - Added the `db_fields.index_flag` management option and preserved the existing behavior for every field without `IDX`.
 - Added CLI-only FFM index, concurrency, performance, existing-corpus, and pre/post implementation differential tests under the fixed file manager directory.
+- Added 16 irregular index tests and automatic writable-mode rebuilds for missing or structurally invalid indexes; dirty state remains a full-scan condition requiring explicit integrity review.
 
 ## 2026-08-05
 - Changed setting-generated `.htaccess` and `robots.txt` writes to throw an exception when `file_put_contents()` fails, so setting screen/API saves cannot silently report success after a write failure.

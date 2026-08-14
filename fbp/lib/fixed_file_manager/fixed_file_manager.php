@@ -1798,6 +1798,25 @@ class fixed_file_manager implements FFM {
 		];
 	}
 
+	private function is_valid_index_values(array $values, int $expected_count): bool {
+		$count = 0;
+		$seen_ids = [];
+		$maxid = (int) $this->header["maxid"];
+		foreach ($values as $key => $ids) {
+			if (!is_string($key) || preg_match('/^[a-f0-9]{64}$/', $key) !== 1 || !is_array($ids)) {
+				return false;
+			}
+			foreach ($ids as $id) {
+				if (!is_int($id) || $id <= 0 || $id > $maxid || isset($seen_ids[$id])) {
+					return false;
+				}
+				$seen_ids[$id] = true;
+				$count++;
+			}
+		}
+		return $count === $expected_count;
+	}
+
 	private function prepare_indexes(): void {
 		$this->index_cache = [];
 		$this->index_ready = [];
@@ -1805,6 +1824,7 @@ class fixed_file_manager implements FFM {
 		if (count($fields) === 0 || is_file($this->index_dirty_path())) {
 			return;
 		}
+		$needs_rebuild = false;
 		foreach ($fields as $field) {
 			$name = (string) $field["name"];
 			$path = $this->index_path($name);
@@ -1813,14 +1833,27 @@ class fixed_file_manager implements FFM {
 			$meta = is_array($decoded["meta"] ?? null) ? $decoded["meta"] : [];
 			if ($values === null
 				|| (int) ($meta["version"] ?? 0) !== 1
+				|| (string) ($meta["table"] ?? "") !== $this->filename
 				|| (string) ($meta["field"] ?? "") !== $name
 				|| (string) ($meta["type"] ?? "") !== (string) $field["type"]
 				|| (string) ($meta["format_hash"] ?? "") !== hash("sha256", (string) $this->header["format_txt"])
-				|| (int) ($meta["maxid"] ?? -1) !== (int) $this->header["maxid"]) {
+				|| (int) ($meta["maxid"] ?? -1) !== (int) $this->header["maxid"]
+				|| !isset($meta["count"])
+				|| !$this->is_valid_index_values($values, (int) $meta["count"])) {
+				$needs_rebuild = true;
 				continue;
 			}
 			$this->index_cache[$name] = $values;
 			$this->index_ready[$name] = true;
+		}
+		if ($needs_rebuild && !$this->read_only) {
+			try {
+				$this->mark_indexes_dirty();
+				$this->rebuild_indexes();
+			} catch (Throwable $e) {
+				$this->index_cache = [];
+				$this->index_ready = [];
+			}
 		}
 	}
 
