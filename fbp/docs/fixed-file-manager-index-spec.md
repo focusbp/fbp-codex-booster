@@ -81,10 +81,11 @@ parameter_name,length,type,IDX
 
 ## 6. 初期実装の対象
 
-初期実装は完全一致検索の候補ID取得に限定する。
+初期実装は完全一致検索の候補ID取得に限定する。Standard Screen対応後は、`filter()`が`exact_match=false`でも、AND条件内の`N`型・`=`条件だけを索引候補の絞り込みに利用する。
 
 - `select()` の一致演算子 `=`
 - `filter()` の `exact_match=true`
+- `filter()` の `exact_match=false`に含まれる`N`型・`=`条件（Standard Screenのdropdown、radio、number等）
 - `T`、`N`、`F` 型の単一値
 - 単一条件、またはAND条件中のインデックス対象条件
 - `parent_id` を最優先の利用対象とする
@@ -94,7 +95,7 @@ parameter_name,length,type,IDX
 次は初期実装でインデックスを使わず、従来検索へ戻す。
 
 - 部分一致検索
-- `filter()` の `exact_match=false`
+- `filter()` の `exact_match=false`に含まれる`T`・`F`・`A`型、配列項目、範囲条件
 - `A` 型
 - 範囲比較 `<`、`<=`、`>`、`>=`
 - インデックスだけでは安全に候補集合を決定できないOR条件
@@ -238,6 +239,7 @@ fbp/lib/fixed_file_manager/tests/run.php
 - `is_last`の真偽
 - `set_flg_filter_zero()`有効・無効
 - `_id_enc`付加環境
+- Standard Screen相当の`exact_match=false`で、N型完全一致、0、N型＋T型部分一致、N型範囲条件
 
 ### 11.5 CRUD追従
 
@@ -372,7 +374,7 @@ fbp/lib/fixed_file_manager/tests/run.php
 php fbp/lib/fixed_file_manager/tests/irregular.php
 ```
 
-2026-08-14時点の128分割バイナリ版は19ケース中19件PASS。
+2026-08-14時点のStandard Screen数値検索対応後は20ケース中20件PASS。
 
 PASS:
 
@@ -385,6 +387,7 @@ PASS:
 - manifestのversion、shard数、最大ID、`.fmt`ハッシュ、identity不一致の検出と自動再構築
 - shard欠落、切詰め、shard番号不一致の検出と自動再構築
 - shardのSHA-256不一致を検索時に検出し、全件検索へ戻してdirtyを残すこと
+- Standard Screen相当のN型完全一致で、対象shard破損時に全件検索へ戻してdirtyを残すこと
 - 3 writer・3 readerの並行実行と、終了後60件の全件比較
 - 5プロセスによる同時`changeFormat()`と検索
 
@@ -546,3 +549,24 @@ FFM本体へ128分割・64-bit ID固定バイナリを実装し、100万件性�
 | プロセス最大RSS | 147,256 KiB | 108,364 KiB |
 
 変更後は索引構築が約6〜17%、ロード済み索引検索が絶対値で約0.4〜169ミリ秒遅くなるケースがある。一方、既存の`IDX`なし経路はバイト単位で不変であり、バイナリ版はコールドオープン、並列メモリ、CRUD、構築時メモリを大幅に改善した。この試験範囲では、既存システムへ影響なくフレームワークをリリースできると判断する。リリース後に個別項目へ`IDX`を追加した時点でのみ索引が作成される。
+
+## 20. Standard Screen数値検索対応
+
+Standard Screenの`db_exe::rows()`は、文字列の部分一致を維持するため`filter(..., exact_match=false)`を使用する。この呼出し全体を完全一致扱いへ変更せず、AND条件内で索引を安全に使える`N`型・`=`条件だけから候補IDを取得し、従来の条件判定で全条件を再確認する。
+
+- dropdown、radio、number、親IDなど、`.fmt`上で`N`型かつ検索演算子が`=`の項目だけが対象。
+- T型の部分一致、F型、A型、日付等の範囲条件、OR条件は従来どおり全件検索する。
+- N型完全一致とT型部分一致のANDでは、N型索引で候補を絞った後にT型部分一致を従来処理で判定する。
+- 索引なし、dirty、欠落、破損時は従来の全件検索へ戻る。
+- `IDX`なしの既存画面には変化がない。
+
+2026-08-14の100万件・1,000種類の`parent_id`（一致1,000件）測定:
+
+| 項目 | 結果 |
+|---|---:|
+| 全件検索 | 2.487848秒 |
+| Standard Screen相当filter | 0.027545秒 |
+| 短縮率 | 約90倍 |
+| 検索時PHPピーク | 10 MiB |
+
+基本差分テスト、異常系20件、既存5回帰テストはすべてPASSした。app-soshikikaikakuのStandard Screenでも索引ON/OFFの出力SHA-256は一致した。プロジェクト192件では画面処理全体が双方約0.30〜0.32秒であり、現時点では速度差より共通初期化処理が支配的だが、件数増加時には全件走査を避けられる。

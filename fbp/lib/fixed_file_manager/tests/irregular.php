@@ -67,6 +67,11 @@ function irregular_query_matrix(fixed_file_manager $ffm): array {
 	$out["or_fallback"] = $ffm->select(["text", "number"], ["日本語", -9], ["=", "="], "OR");
 	$out["range_fallback"] = $ffm->select("number", 0, ">=");
 	$out["partial_fallback"] = $ffm->filter("text", "日本", false);
+	$ffm->set_flg_filter_zero(true);
+	$out["standard_numeric"] = $ffm->filter("number", 0, false, "AND", "id", SORT_ASC, null, $is_last, ["="]);
+	$ffm->set_flg_filter_zero(false);
+	$out["standard_numeric_range"] = $ffm->filter("number", -9, false, "AND", "id", SORT_ASC, null, $is_last, [">="]);
+	$out["standard_mixed"] = $ffm->filter(["number", "text"], [0, "日本"], false, "AND", "id", SORT_ASC, null, $is_last, ["=", "="]);
 	return $out;
 }
 
@@ -264,6 +269,22 @@ try {
 		irregular_write_at($path, filesize($path) - 1, "Z");
 		irregular_compare_with_legacy($base, "checksum mismatch did not fall back");
 		if (!is_file($base . "/data/sample.dat.idx.dirty")) throw new RuntimeException("checksum mismatch did not mark index dirty");
+		$ffm = irregular_open($base); $ffm->rebuild_indexes(); $ffm->close();
+	});
+
+	$run("standard_numeric_corruption_falls_back", static function () use ($base): void {
+		$path = irregular_shard_path($base, "number", "N", -9);
+		$offset = filesize($path) - 1;
+		$current = file_get_contents($path, false, null, $offset, 1);
+		irregular_write_at($path, $offset, chr(ord($current) ^ 0xff));
+		$ffm = irregular_open($base);
+		$actual = $ffm->filter("number", -9, false, "AND", "id", SORT_ASC, null, $is_last, ["="]);
+		$ffm->close();
+		$legacy = irregular_open($base, null, ["index_disabled" => true]);
+		$expected = $legacy->filter("number", -9, false, "AND", "id", SORT_ASC, null, $is_last, ["="]);
+		$legacy->close();
+		irregular_same($expected, $actual, "Standard Screen numeric filter did not fall back after corruption");
+		if (!is_file($base . "/data/sample.dat.idx.dirty")) throw new RuntimeException("Standard Screen numeric corruption did not mark index dirty");
 		$ffm = irregular_open($base); $ffm->rebuild_indexes(); $ffm->close();
 	});
 

@@ -75,10 +75,16 @@ foreach ($counts as $count) {
 		$indexed = $ffm->select("parent_id", 777);
 		$indexed_seconds = microtime(true) - $started;
 		$indexed_peak_memory = memory_get_peak_usage(true);
+		memory_reset_peak_usage();
+		$started = microtime(true);
+		$standard_filter = $ffm->filter("parent_id", 777, false, "AND", null, SORT_DESC, null, $is_last, ["="]);
+		$standard_filter_seconds = microtime(true) - $started;
+		$standard_filter_peak_memory = memory_get_peak_usage(true);
 		$index_size = perf_path_size($root . "/data/sample.dat.parent_id.idx");
 		$dat_size = filesize($root . "/data/sample.dat");
 		$ffm->close();
 		if ($legacy !== $indexed) throw new RuntimeException("performance result mismatch at " . $count);
+		if ($legacy !== $standard_filter) throw new RuntimeException("Standard Screen filter result mismatch at " . $count);
 		$results[] = [
 			"rows" => $count,
 			"matches" => count($indexed),
@@ -86,6 +92,7 @@ foreach ($counts as $count) {
 			"legacy_search_seconds" => round($legacy_seconds, 6),
 			"index_build_seconds" => round($build_seconds, 6),
 			"indexed_search_seconds" => round($indexed_seconds, 6),
+			"standard_filter_seconds" => round($standard_filter_seconds, 6),
 			"dat_bytes" => $dat_size,
 			"index_bytes" => $index_size,
 			"insert_peak_memory_bytes" => $insert_peak_memory,
@@ -93,6 +100,7 @@ foreach ($counts as $count) {
 			"index_build_peak_memory_bytes" => $build_peak_memory,
 			"index_loaded_memory_bytes" => $index_loaded_memory,
 			"indexed_search_peak_memory_bytes" => $indexed_peak_memory,
+			"standard_filter_peak_memory_bytes" => $standard_filter_peak_memory,
 		];
 	} finally {
 		if (isset($ffm) && $ffm instanceof fixed_file_manager) $ffm->close();

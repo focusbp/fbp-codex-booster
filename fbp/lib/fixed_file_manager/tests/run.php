@@ -73,6 +73,12 @@ function ffm_test_query_matrix(fixed_file_manager $ffm): array {
 	$out["select"] = $ffm->select(["parent_id", "status"], [10, 1], ["=", "="], "AND", "id", SORT_DESC, 5, $is_last);
 	$out["select_last"] = $is_last;
 	$out["partial"] = $ffm->filter("name", "ha", false);
+	$out["standard_numeric"] = $ffm->filter("status", 1, false, "AND", "id", SORT_ASC, null, $is_last, ["="]);
+	$ffm->set_flg_filter_zero(true);
+	$out["standard_numeric_zero"] = $ffm->filter("status", 0, false, "AND", "id", SORT_ASC, null, $is_last, ["="]);
+	$ffm->set_flg_filter_zero(false);
+	$out["standard_mixed"] = $ffm->filter(["parent_id", "name"], [10, "ha"], false, "AND", "id", SORT_ASC, null, $is_last, ["=", "="]);
+	$out["standard_numeric_range"] = $ffm->filter("status", 1, false, "AND", "id", SORT_ASC, null, $is_last, [">="]);
 	$out["or"] = $ffm->select(["parent_id", "status"], [20, 2], ["=", "="], "OR");
 	return $out;
 }

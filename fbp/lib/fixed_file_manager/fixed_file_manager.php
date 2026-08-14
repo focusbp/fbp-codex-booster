@@ -835,7 +835,9 @@ class fixed_file_manager implements FFM {
 			$all = false;
 		}
 
-		$candidate_ids = $exact_match ? $this->indexed_candidate_ids($itemname, $value, $match_patterns, $and_or) : null;
+		// Standard Screen は部分一致を含むため exact_match=false で呼ばれる。
+		// この場合も、AND 条件に含まれる数値型の完全一致だけは安全に候補を絞れる。
+		$candidate_ids = $this->indexed_candidate_ids($itemname, $value, $match_patterns, $and_or, !$exact_match);
 		$candidate_pos = 0;
 		if ($candidate_ids === null) {
 			$this->seek_end();
@@ -2255,7 +2257,7 @@ class fixed_file_manager implements FFM {
 		return [];
 	}
 
-	private function indexed_candidate_ids(array $itemname, array $value, array $patterns, string $and_or): ?array {
+	private function indexed_candidate_ids(array $itemname, array $value, array $patterns, string $and_or, bool $numeric_only = false): ?array {
 		if ($this->index_disabled || $and_or !== "AND" || is_file($this->index_dirty_path())) {
 			return null;
 		}
@@ -2266,6 +2268,9 @@ class fixed_file_manager implements FFM {
 		$candidates = null;
 		foreach ($itemname as $i => $name) {
 			if (is_array($name) || ($patterns[$i] ?? "=") !== "=" || !isset($field_map[$name]) || empty($this->index_ready[$name])) {
+				continue;
+			}
+			if ($numeric_only && ($field_map[$name]["type"] ?? null) !== "N") {
 				continue;
 			}
 			$ids = $this->lookup_index_ids($field_map[$name], $value[$i] ?? null);
