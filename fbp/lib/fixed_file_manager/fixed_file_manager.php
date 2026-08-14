@@ -33,6 +33,13 @@ if (!class_exists("FixedFileManagerFieldLengthException", false)) {
 }
 
 class fixed_file_manager implements FFM {
+	private const INDEX_VERSION = 2;
+	private const INDEX_SHARDS = 128;
+	private const INDEX_MANIFEST_MAGIC = "FFMMETA2";
+	private const INDEX_SHARD_MAGIC = "FFMSHRD2";
+	private const INDEX_MANIFEST_SIZE = 4200;
+	private const INDEX_SHARD_HEADER_SIZE = 64;
+	private const INDEX_SHARD_ENTRY_SIZE = 48;
 	
 
 	private $filename;
@@ -363,6 +370,7 @@ class fixed_file_manager implements FFM {
 
 	//クローズ
 	function closeDatFile() {
+		$this->close_index_cache();
 		if (is_resource($this->hf)) {
 			@flock($this->hf, LOCK_UN);
 			@fclose($this->hf);
@@ -1766,11 +1774,19 @@ class fixed_file_manager implements FFM {
 		return $this->path_dat . "." . $field . ".idx";
 	}
 
+	private function index_manifest_path(string $field): string {
+		return $this->index_path($field) . "/manifest.bin";
+	}
+
+	private function index_shard_path(string $field, int $shard): string {
+		return $this->index_path($field) . "/" . sprintf("%03d.bin", $shard);
+	}
+
 	private function index_dirty_path(): string {
 		return $this->path_dat . ".idx.dirty";
 	}
 
-	private function index_key(array $field, $value): string {
+	private function index_key(array $field, $value, bool $raw = false): string {
 		$type = (string) ($field["type"] ?? "T");
 		if ($type === "N") {
 			$normalized = (string) (int) $value;
@@ -1779,45 +1795,131 @@ class fixed_file_manager implements FFM {
 		} else {
 			$normalized = trim((string) $value);
 		}
-		return hash("sha256", $type . "\0" . $normalized);
+		return hash("sha256", $type . "\0" . $normalized, $raw);
 	}
 
-	private function index_meta(array $field, array $values): array {
-		$count = 0;
-		foreach ($values as $ids) {
-			$count += count($ids);
+	private function index_shard_number(string $raw_key): int {
+		return ord($raw_key[0]) >> 1;
+	}
+
+	private function index_format_hash(bool $raw = true): string {
+		return hash("sha256", (string) $this->header["format_txt"], $raw);
+	}
+
+	private function index_identity(array $field): string {
+		return hash("sha256", $this->filename . "\0" . (string) $field["name"] . "\0" . (string) $field["type"] . "\0" . $this->index_format_hash(false), true);
+	}
+
+	private function index_manifest_payload(array $field, int $count, array $checksums): string {
+		if (count($checksums) !== self::INDEX_SHARDS) throw new Exception("Index checksum count mismatch");
+		$type = str_pad(substr((string) $field["type"], 0, 1), 8, "\0");
+		$payload = self::INDEX_MANIFEST_MAGIC
+			. pack("NNJJ", self::INDEX_VERSION, self::INDEX_SHARDS, (int) $this->header["maxid"], $count)
+			. $type
+			. $this->index_format_hash(true)
+			. $this->index_identity($field);
+		foreach ($checksums as $checksum) {
+			if (!is_string($checksum) || strlen($checksum) !== 32) throw new Exception("Invalid index shard checksum");
+			$payload .= $checksum;
+		}
+		return $payload;
+	}
+
+	private function read_index_manifest(array $field): ?array {
+		$path = $this->index_manifest_path((string) $field["name"]);
+		$payload = is_file($path) ? @file_get_contents($path) : false;
+		if (!is_string($payload) || strlen($payload) !== self::INDEX_MANIFEST_SIZE || substr($payload, 0, 8) !== self::INDEX_MANIFEST_MAGIC) {
+			return null;
+		}
+		$meta = unpack("Nversion/Nshards/Jmaxid/Jcount", substr($payload, 8, 24));
+		if ((int) $meta["version"] !== self::INDEX_VERSION
+			|| (int) $meta["shards"] !== self::INDEX_SHARDS
+			|| (int) $meta["maxid"] !== (int) $this->header["maxid"]
+			|| rtrim(substr($payload, 32, 8), "\0") !== (string) $field["type"]
+			|| !hash_equals($this->index_format_hash(true), substr($payload, 40, 32))
+			|| !hash_equals($this->index_identity($field), substr($payload, 72, 32))) {
+			return null;
 		}
 		return [
-			"version" => 1,
-			"table" => $this->filename,
-			"field" => $field["name"],
-			"type" => $field["type"],
-			"format_hash" => hash("sha256", (string) $this->header["format_txt"]),
-			"maxid" => (int) $this->header["maxid"],
-			"count" => $count,
+			"count" => (int) $meta["count"],
+			"maxid" => (int) $meta["maxid"],
+			"checksums" => str_split(substr($payload, 104), 32),
 		];
 	}
 
-	private function is_valid_index_values(array $values, int $expected_count): bool {
-		$count = 0;
-		$seen_ids = [];
-		$maxid = (int) $this->header["maxid"];
-		foreach ($values as $key => $ids) {
-			if (!is_string($key) || preg_match('/^[a-f0-9]{64}$/', $key) !== 1 || !is_array($ids)) {
-				return false;
-			}
-			foreach ($ids as $id) {
-				if (!is_int($id) || $id <= 0 || $id > $maxid || isset($seen_ids[$id])) {
-					return false;
-				}
-				$seen_ids[$id] = true;
-				$count++;
-			}
+	private function parse_index_shard_header($handle, array $field, int $shard, ?int $file_size = null): ?array {
+		if (!is_resource($handle) || fseek($handle, 0) !== 0) return null;
+		$payload = fread($handle, self::INDEX_SHARD_HEADER_SIZE);
+		if (!is_string($payload) || strlen($payload) !== self::INDEX_SHARD_HEADER_SIZE || substr($payload, 0, 8) !== self::INDEX_SHARD_MAGIC) {
+			return null;
 		}
-		return $count === $expected_count;
+		$meta = unpack("Nversion/Nshard/Nkey_count/Nreserved/Jid_count", substr($payload, 8, 24));
+		$key_count = (int) $meta["key_count"];
+		$id_count = (int) $meta["id_count"];
+		$expected_size = self::INDEX_SHARD_HEADER_SIZE + ($key_count * self::INDEX_SHARD_ENTRY_SIZE) + ($id_count * 8);
+		if ((int) $meta["version"] !== self::INDEX_VERSION
+			|| (int) $meta["shard"] !== $shard
+			|| $key_count < 0
+			|| $id_count < $key_count
+			|| !hash_equals($this->index_identity($field), substr($payload, 32, 32))
+			|| ($file_size !== null && $file_size !== $expected_size)) {
+			return null;
+		}
+		return [
+			"key_count" => $key_count,
+			"id_count" => $id_count,
+			"ids_offset" => self::INDEX_SHARD_HEADER_SIZE + ($key_count * self::INDEX_SHARD_ENTRY_SIZE),
+		];
+	}
+
+	private function validate_index_field(array $field, array $manifest): bool {
+		$total = 0;
+		for ($shard = 0; $shard < self::INDEX_SHARDS; $shard++) {
+			$path = $this->index_shard_path((string) $field["name"], $shard);
+			$size = is_file($path) ? filesize($path) : false;
+			$handle = $size === false ? false : @fopen($path, "rb");
+			$meta = is_resource($handle) ? $this->parse_index_shard_header($handle, $field, $shard, (int) $size) : null;
+			if (is_resource($handle)) fclose($handle);
+			if ($meta === null) return false;
+			$total += (int) $meta["id_count"];
+		}
+		return $total === (int) $manifest["count"];
+	}
+
+	private function close_index_cache(?string $field = null, ?int $shard = null): void {
+		foreach ($this->index_cache as $field_name => &$shards) {
+			if ($field !== null && $field_name !== $field) continue;
+			foreach ($shards as $shard_number => $state) {
+				if ($shard !== null && (int) $shard_number !== $shard) continue;
+				if (is_array($state) && isset($state["handle"]) && is_resource($state["handle"])) fclose($state["handle"]);
+				unset($shards[$shard_number]);
+			}
+			if (count($shards) === 0) unset($this->index_cache[$field_name]);
+		}
+		unset($shards);
+	}
+
+	private function remove_index_path(string $path): void {
+		if (is_file($path) || is_link($path)) {
+			@unlink($path);
+			return;
+		}
+		if (!is_dir($path)) return;
+		foreach (array_diff(scandir($path), [".", ".."]) as $name) $this->remove_index_path($path . "/" . $name);
+		@rmdir($path);
+	}
+
+	private function cleanup_unused_indexes(array $fields): void {
+		if ($this->index_disabled) return;
+		$keep = [];
+		foreach ($fields as $field) $keep[$this->index_path((string) $field["name"])] = true;
+		foreach (glob($this->path_dat . ".*.idx") ?: [] as $path) {
+			if (!isset($keep[$path])) $this->remove_index_path($path);
+		}
 	}
 
 	private function prepare_indexes(): void {
+		$this->close_index_cache();
 		$this->index_cache = [];
 		$this->index_ready = [];
 		$fields = $this->indexed_fields();
@@ -1827,30 +1929,19 @@ class fixed_file_manager implements FFM {
 		$needs_rebuild = false;
 		foreach ($fields as $field) {
 			$name = (string) $field["name"];
-			$path = $this->index_path($name);
-			$decoded = is_file($path) ? json_decode((string) @file_get_contents($path), true) : null;
-			$values = is_array($decoded["values"] ?? null) ? $decoded["values"] : null;
-			$meta = is_array($decoded["meta"] ?? null) ? $decoded["meta"] : [];
-			if ($values === null
-				|| (int) ($meta["version"] ?? 0) !== 1
-				|| (string) ($meta["table"] ?? "") !== $this->filename
-				|| (string) ($meta["field"] ?? "") !== $name
-				|| (string) ($meta["type"] ?? "") !== (string) $field["type"]
-				|| (string) ($meta["format_hash"] ?? "") !== hash("sha256", (string) $this->header["format_txt"])
-				|| (int) ($meta["maxid"] ?? -1) !== (int) $this->header["maxid"]
-				|| !isset($meta["count"])
-				|| !$this->is_valid_index_values($values, (int) $meta["count"])) {
+			$manifest = is_dir($this->index_path($name)) ? $this->read_index_manifest($field) : null;
+			if ($manifest === null || !$this->validate_index_field($field, $manifest)) {
 				$needs_rebuild = true;
 				continue;
 			}
-			$this->index_cache[$name] = $values;
-			$this->index_ready[$name] = true;
+			$this->index_ready[$name] = $manifest;
 		}
 		if ($needs_rebuild && !$this->read_only) {
 			try {
 				$this->mark_indexes_dirty();
 				$this->rebuild_indexes();
 			} catch (Throwable $e) {
+				$this->close_index_cache();
 				$this->index_cache = [];
 				$this->index_ready = [];
 			}
@@ -1860,21 +1951,36 @@ class fixed_file_manager implements FFM {
 	public function rebuild_indexes(): void {
 		$this->assert_writable("rebuild indexes");
 		$fields = $this->indexed_fields();
+		$this->close_index_cache();
 		if (count($fields) === 0) {
+			$this->cleanup_unused_indexes($fields);
 			$this->clear_indexes_dirty();
 			return;
 		}
-		foreach ($fields as $field) {
-			$this->index_cache[$field["name"]] = [];
-			$this->index_ready[$field["name"]] = true;
-		}
 		$current = ftell($this->hf);
-		fseek($this->hf, $this->header["headersize"]);
-		while (($row = $this->next()) !== null) {
-			$this->add_row_to_index_cache($row, $fields);
+		$this->mark_indexes_dirty();
+		try {
+			foreach ($fields as $field) {
+				$values_by_shard = array_fill(0, self::INDEX_SHARDS, []);
+				$count = 0;
+				fseek($this->hf, $this->header["headersize"]);
+				while (($row = $this->next()) !== null) {
+					$raw_key = $this->index_key($field, $row[$field["name"]] ?? null, true);
+					$shard = $this->index_shard_number($raw_key);
+					$hex_key = bin2hex($raw_key);
+					$values_by_shard[$shard][$hex_key] = $values_by_shard[$shard][$hex_key] ?? [];
+					$values_by_shard[$shard][$hex_key][] = (int) $row["id"];
+					$count++;
+				}
+				$checksums = $this->build_index_directory($field, $values_by_shard, $count);
+				$this->index_ready[$field["name"]] = ["count" => $count, "maxid" => (int) $this->header["maxid"], "checksums" => $checksums];
+				unset($values_by_shard);
+			}
+			$this->cleanup_unused_indexes($fields);
+			$this->clear_indexes_dirty();
+		} finally {
+			if (is_resource($this->hf)) fseek($this->hf, $current);
 		}
-		fseek($this->hf, $current);
-		$this->persist_indexes($fields);
 	}
 
 	private function mark_indexes_dirty(): void {
@@ -1893,80 +1999,260 @@ class fixed_file_manager implements FFM {
 		}
 	}
 
-	private function persist_indexes(?array $fields = null): void {
-		$fields = $fields ?? $this->indexed_fields();
+	private function build_index_directory(array $field, array $values_by_shard, int $count): array {
+		$path = $this->index_path((string) $field["name"]);
+		foreach (array_merge(glob($path . ".tmp.*") ?: [], glob($path . ".old.*") ?: []) as $stale) $this->remove_index_path($stale);
+		$tmp = $path . ".tmp." . getmypid() . "." . bin2hex(random_bytes(4));
+		$old = $path . ".old." . getmypid() . "." . bin2hex(random_bytes(4));
+		if (!mkdir($tmp, 0770, true)) throw new Exception("Failed to create index directory: " . $tmp);
+		try {
+			$checksums = [];
+			foreach ($values_by_shard as $shard => $values) {
+				$shard_path = $tmp . "/" . sprintf("%03d.bin", $shard);
+				$this->write_index_shard_file($shard_path, $field, (int) $shard, $values);
+				$checksums[] = hash_file("sha256", $shard_path, true);
+			}
+			if (file_put_contents($tmp . "/manifest.bin", $this->index_manifest_payload($field, $count, $checksums), LOCK_EX) === false) {
+				throw new Exception("Failed to write index manifest: " . $tmp);
+			}
+			if (file_exists($path) && !rename($path, $old)) throw new Exception("Failed to preserve old index: " . $path);
+			if (!rename($tmp, $path)) {
+				if (file_exists($old)) @rename($old, $path);
+				throw new Exception("Failed to activate index: " . $path);
+			}
+			$this->remove_index_path($old);
+		} finally {
+			$this->remove_index_path($tmp);
+		}
+		return $checksums;
+	}
+
+	private function write_index_shard_file(string $path, array $field, int $shard, array $values): void {
+		ksort($values, SORT_STRING);
+		$directory = "";
+		$id_data = "";
+		$id_offset = 0;
+		foreach ($values as $hex_key => $ids) {
+			if (preg_match('/^[a-f0-9]{64}$/', (string) $hex_key) !== 1) throw new Exception("Invalid index key");
+			$raw_key = hex2bin($hex_key);
+			if ($this->index_shard_number($raw_key) !== $shard) throw new Exception("Index key is in wrong shard");
+			$ids = array_values(array_unique(array_map("intval", $ids)));
+			sort($ids, SORT_NUMERIC);
+			foreach ($ids as $id) if ($id <= 0 || $id > (int) $this->header["maxid"]) throw new Exception("Invalid index ID: " . $id);
+			$directory .= $raw_key . pack("JN", $id_offset, count($ids)) . pack("N", 0);
+			if (count($ids) > 0) $id_data .= pack("J*", ...$ids);
+			$id_offset += count($ids);
+		}
+		$payload = self::INDEX_SHARD_MAGIC
+			. pack("NNNNJ", self::INDEX_VERSION, $shard, count($values), 0, $id_offset)
+			. $this->index_identity($field)
+			. $directory
+			. $id_data;
+		if (file_put_contents($path, $payload, LOCK_EX) === false) throw new Exception("Failed to write index shard: " . $path);
+	}
+
+	private function read_index_shard_values(array $field, int $shard): ?array {
+		$name = (string) $field["name"];
+		$path = $this->index_shard_path((string) $field["name"], $shard);
+		$expected_checksum = $this->index_ready[$name]["checksums"][$shard] ?? null;
+		$actual_checksum = is_file($path) ? hash_file("sha256", $path, true) : false;
+		if (!is_string($expected_checksum) || !is_string($actual_checksum) || !hash_equals($expected_checksum, $actual_checksum)) return null;
+		$size = is_file($path) ? filesize($path) : false;
+		$handle = $size === false ? false : @fopen($path, "rb");
+		if (!is_resource($handle)) return null;
+		try {
+			$meta = $this->parse_index_shard_header($handle, $field, $shard, (int) $size);
+			if ($meta === null) return null;
+			$entries = [];
+			$seen_ids = [];
+			$total = 0;
+			for ($i = 0; $i < $meta["key_count"]; $i++) {
+				fseek($handle, self::INDEX_SHARD_HEADER_SIZE + ($i * self::INDEX_SHARD_ENTRY_SIZE));
+				$entry = fread($handle, self::INDEX_SHARD_ENTRY_SIZE);
+				if (strlen($entry) !== self::INDEX_SHARD_ENTRY_SIZE) return null;
+				$location = unpack("Joffset/Ncount", substr($entry, 32, 12));
+				if ((int) $location["offset"] + (int) $location["count"] > $meta["id_count"]) return null;
+				$raw_key = substr($entry, 0, 32);
+				if ($this->index_shard_number($raw_key) !== $shard) return null;
+				$entries[] = ["key" => bin2hex($raw_key), "offset" => (int) $location["offset"], "count" => (int) $location["count"]];
+			}
+			$values = [];
+			foreach ($entries as $entry) {
+				fseek($handle, $meta["ids_offset"] + ($entry["offset"] * 8));
+				$bytes = fread($handle, $entry["count"] * 8);
+				if (strlen($bytes) !== $entry["count"] * 8) return null;
+				$ids = $entry["count"] === 0 ? [] : array_values(unpack("J*", $bytes));
+				foreach ($ids as $id) {
+					$id = (int) $id;
+					if ($id <= 0 || $id > (int) $this->header["maxid"] || isset($seen_ids[$id])) return null;
+					$seen_ids[$id] = true;
+					$total++;
+				}
+				$values[$entry["key"]] = array_map("intval", $ids);
+			}
+			return $total === $meta["id_count"] ? $values : null;
+		} finally {
+			fclose($handle);
+		}
+	}
+
+	private function persist_index_shard(array $field, int $shard, array $values): string {
+		$name = (string) $field["name"];
+		$this->close_index_cache($name, $shard);
+		$path = $this->index_shard_path($name, $shard);
+		$tmp = $path . ".tmp." . getmypid() . "." . bin2hex(random_bytes(4));
+		try {
+			$this->write_index_shard_file($tmp, $field, $shard, $values);
+			if (!rename($tmp, $path)) throw new Exception("Failed to activate index shard: " . $path);
+			return hash_file("sha256", $path, true);
+		} finally {
+			if (is_file($tmp)) @unlink($tmp);
+		}
+	}
+
+	private function persist_index_manifest(array $field, int $count, array $checksums): void {
+		$path = $this->index_manifest_path((string) $field["name"]);
+		$tmp = $path . ".tmp." . getmypid() . "." . bin2hex(random_bytes(4));
+		try {
+			if (file_put_contents($tmp, $this->index_manifest_payload($field, $count, $checksums), LOCK_EX) === false || !rename($tmp, $path)) {
+				throw new Exception("Failed to write index manifest: " . $path);
+			}
+		} finally {
+			if (is_file($tmp)) @unlink($tmp);
+		}
+	}
+
+	private function apply_index_changes(?array $before, ?array $after): void {
+		$fields = $this->indexed_fields();
+		if (count($fields) === 0) return;
 		foreach ($fields as $field) {
-			$name = (string) $field["name"];
-			if (empty($this->index_ready[$name])) {
-				$this->rebuild_indexes();
-				return;
-			}
-			$payload = json_encode([
-				"meta" => $this->index_meta($field, $this->index_cache[$name]),
-				"values" => $this->index_cache[$name],
-			], JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
-			if ($payload === false) {
-				throw new Exception("Failed to encode index: " . $name);
-			}
-			$path = $this->index_path($name);
-			$tmp = $path . ".tmp." . getmypid() . "." . bin2hex(random_bytes(4));
-			if (file_put_contents($tmp, $payload, LOCK_EX) === false || !rename($tmp, $path)) {
-				@unlink($tmp);
-				throw new Exception("Failed to write index: " . $path);
-			}
-		}
-		$this->clear_indexes_dirty();
-	}
-
-	private function add_row_to_index_cache(array $row, ?array $fields = null): void {
-		foreach ($fields ?? $this->indexed_fields() as $field) {
-			$name = (string) $field["name"];
-			$key = $this->index_key($field, $row[$name] ?? null);
-			$this->index_cache[$name][$key] = $this->index_cache[$name][$key] ?? [];
-			$this->index_cache[$name][$key][] = (int) $row["id"];
-		}
-	}
-
-	private function remove_row_from_index_cache(array $row): void {
-		foreach ($this->indexed_fields() as $field) {
-			$name = (string) $field["name"];
-			if (empty($this->index_ready[$name])) {
-				continue;
-			}
-			$key = $this->index_key($field, $row[$name] ?? null);
-			$ids = $this->index_cache[$name][$key] ?? [];
-			$ids = array_values(array_filter($ids, static fn($id) => (int) $id !== (int) $row["id"]));
-			if (count($ids) === 0) {
-				unset($this->index_cache[$name][$key]);
-			} else {
-				$this->index_cache[$name][$key] = $ids;
-			}
-		}
-	}
-
-	private function apply_index_insert(array $row): void {
-		if (count($this->indexed_fields()) === 0) return;
-		foreach ($this->indexed_fields() as $field) {
 			if (empty($this->index_ready[$field["name"]])) {
 				$this->rebuild_indexes();
 				return;
 			}
 		}
-		$this->add_row_to_index_cache($row);
-		$this->persist_indexes();
+		$touched = [];
+		foreach ($fields as $field) {
+			$name = (string) $field["name"];
+			if ($before !== null && $after !== null) {
+				$before_key = $this->index_key($field, $before[$name] ?? null, true);
+				$after_key = $this->index_key($field, $after[$name] ?? null, true);
+				if (hash_equals($before_key, $after_key)) continue;
+			}
+			foreach ([["row" => $before, "remove" => true], ["row" => $after, "remove" => false]] as $change) {
+				if ($change["row"] === null) continue;
+				$raw_key = $this->index_key($field, $change["row"][$name] ?? null, true);
+				$shard = $this->index_shard_number($raw_key);
+				$key = $name . ":" . $shard;
+				if (!isset($touched[$key])) {
+					$values = $this->read_index_shard_values($field, $shard);
+					if ($values === null) {
+						$this->rebuild_indexes();
+						return;
+					}
+					$touched[$key] = ["field" => $field, "shard" => $shard, "values" => $values];
+				}
+				$hex_key = bin2hex($raw_key);
+				$id = (int) $change["row"]["id"];
+				$ids = $touched[$key]["values"][$hex_key] ?? [];
+				if ($change["remove"]) {
+					$ids = array_values(array_filter($ids, static fn($candidate) => (int) $candidate !== $id));
+					if (count($ids) === 0) unset($touched[$key]["values"][$hex_key]);
+					else $touched[$key]["values"][$hex_key] = $ids;
+				} elseif (!in_array($id, $ids, true)) {
+					$ids[] = $id;
+					$touched[$key]["values"][$hex_key] = $ids;
+				}
+			}
+		}
+		$delta = ($after === null ? 0 : 1) - ($before === null ? 0 : 1);
+		if (count($touched) === 0 && $delta === 0) {
+			$this->clear_indexes_dirty();
+			return;
+		}
+		foreach ($touched as $change) {
+			$name = (string) $change["field"]["name"];
+			$this->index_ready[$name]["checksums"][$change["shard"]] = $this->persist_index_shard($change["field"], $change["shard"], $change["values"]);
+		}
+		foreach ($fields as $field) {
+			$name = (string) $field["name"];
+			$count = (int) $this->index_ready[$name]["count"] + $delta;
+			$checksums = $this->index_ready[$name]["checksums"];
+			$this->persist_index_manifest($field, $count, $checksums);
+			$this->index_ready[$name] = ["count" => $count, "maxid" => (int) $this->header["maxid"], "checksums" => $checksums];
+		}
+		$this->clear_indexes_dirty();
+	}
+
+	private function apply_index_insert(array $row): void {
+		$this->apply_index_changes(null, $row);
 	}
 
 	private function apply_index_delete(array $row): void {
-		if (count($this->indexed_fields()) === 0) return;
-		$this->remove_row_from_index_cache($row);
-		$this->persist_indexes();
+		$this->apply_index_changes($row, null);
 	}
 
 	private function apply_index_update(array $before, array $after): void {
-		if (count($this->indexed_fields()) === 0) return;
-		$this->remove_row_from_index_cache($before);
-		$this->add_row_to_index_cache($after);
-		$this->persist_indexes();
+		$this->apply_index_changes($before, $after);
+	}
+
+	private function open_index_shard(array $field, int $shard): ?array {
+		$name = (string) $field["name"];
+		if (isset($this->index_cache[$name][$shard])) return $this->index_cache[$name][$shard];
+		$path = $this->index_shard_path($name, $shard);
+		$expected_checksum = $this->index_ready[$name]["checksums"][$shard] ?? null;
+		$actual_checksum = is_file($path) ? hash_file("sha256", $path, true) : false;
+		if (!is_string($expected_checksum) || !is_string($actual_checksum) || !hash_equals($expected_checksum, $actual_checksum)) return null;
+		$size = is_file($path) ? filesize($path) : false;
+		$handle = $size === false ? false : @fopen($path, "rb");
+		$meta = is_resource($handle) ? $this->parse_index_shard_header($handle, $field, $shard, (int) $size) : null;
+		if (!is_resource($handle) || $meta === null) {
+			if (is_resource($handle)) fclose($handle);
+			return null;
+		}
+		$state = $meta + ["handle" => $handle];
+		$this->index_cache[$name][$shard] = $state;
+		return $state;
+	}
+
+	private function lookup_index_ids(array $field, $value): ?array {
+		$raw_key = $this->index_key($field, $value, true);
+		$shard = $this->index_shard_number($raw_key);
+		$state = $this->open_index_shard($field, $shard);
+		if ($state === null) return null;
+		$handle = $state["handle"];
+		$low = 0;
+		$high = (int) $state["key_count"] - 1;
+		while ($low <= $high) {
+			$middle = $low + intdiv($high - $low, 2);
+			if (fseek($handle, self::INDEX_SHARD_HEADER_SIZE + ($middle * self::INDEX_SHARD_ENTRY_SIZE)) !== 0) return null;
+			$entry = fread($handle, self::INDEX_SHARD_ENTRY_SIZE);
+			if (!is_string($entry) || strlen($entry) !== self::INDEX_SHARD_ENTRY_SIZE) return null;
+			$comparison = strcmp(substr($entry, 0, 32), $raw_key);
+			if ($comparison < 0) {
+				$low = $middle + 1;
+				continue;
+			}
+			if ($comparison > 0) {
+				$high = $middle - 1;
+				continue;
+			}
+			$location = unpack("Joffset/Ncount", substr($entry, 32, 12));
+			$offset = (int) $location["offset"];
+			$count = (int) $location["count"];
+			if ($offset < 0 || $count < 0 || $offset + $count > (int) $state["id_count"]
+				|| fseek($handle, (int) $state["ids_offset"] + ($offset * 8)) !== 0) return null;
+			$bytes = fread($handle, $count * 8);
+			if (!is_string($bytes) || strlen($bytes) !== $count * 8) return null;
+			$ids = $count === 0 ? [] : array_values(unpack("J*", $bytes));
+			foreach ($ids as &$id) {
+				$id = (int) $id;
+				if ($id <= 0 || $id > (int) $this->header["maxid"]) return null;
+			}
+			unset($id);
+			return $ids;
+		}
+		return [];
 	}
 
 	private function indexed_candidate_ids(array $itemname, array $value, array $patterns, string $and_or): ?array {
@@ -1982,8 +2268,15 @@ class fixed_file_manager implements FFM {
 			if (is_array($name) || ($patterns[$i] ?? "=") !== "=" || !isset($field_map[$name]) || empty($this->index_ready[$name])) {
 				continue;
 			}
-			$key = $this->index_key($field_map[$name], $value[$i] ?? null);
-			$ids = array_map("intval", $this->index_cache[$name][$key] ?? []);
+			$ids = $this->lookup_index_ids($field_map[$name], $value[$i] ?? null);
+			if ($ids === null) {
+				$this->index_ready[$name] = false;
+				$this->close_index_cache($name);
+				if (!$this->read_only) {
+					try { $this->mark_indexes_dirty(); } catch (Throwable $e) {}
+				}
+				return null;
+			}
 			$candidates = $candidates === null ? $ids : array_values(array_intersect($candidates, $ids));
 		}
 		if ($candidates === null) return null;

@@ -26,6 +26,13 @@ function daily_remove(string $dir): void {
 	rmdir($dir);
 }
 
+function daily_path_size(string $path): int {
+	if (is_file($path)) return (int) filesize($path);
+	$total = 0;
+	foreach (array_diff(scandir($path), [".", ".."]) as $name) $total += daily_path_size($path . "/" . $name);
+	return $total;
+}
+
 function daily_assert(bool $condition, string $message): void {
 	if (!$condition) throw new RuntimeException($message);
 }
@@ -273,7 +280,7 @@ try {
 			"histories_per_customer" => 10,
 			"customer_dat_bytes" => filesize($root . "/data/customer.dat"),
 			"history_dat_bytes" => filesize($root . "/data/customer_history.dat"),
-			"history_index_bytes" => filesize($root . "/data/customer_history.dat.parent_id.idx"),
+			"history_index_bytes" => daily_path_size($root . "/data/customer_history.dat.parent_id.idx"),
 		],
 		"generation" => [
 			"customer_seconds" => $customer_insert["seconds"],

@@ -91,8 +91,9 @@ try {
 	ffm_test_same(4, count($ffm->getall()), "changeFormat lost rows");
 	ffm_test_same(4, (int) $ffm->get_header_info()["maxid"], "changeFormat changed maxid");
 	ffm_test_assert(str_contains($ffm->get_header_info()["format_txt"], "parent_id,24,N,IDX"), "IDX missing from dat header");
-	ffm_test_assert(!is_file($root . "/data/sample.dat.id.idx"), "id index must be ignored");
-	ffm_test_assert(is_file($root . "/data/sample.dat.parent_id.idx"), "parent_id index missing");
+	ffm_test_assert(!file_exists($root . "/data/sample.dat.id.idx"), "id index must be ignored");
+	ffm_test_assert(is_dir($root . "/data/sample.dat.parent_id.idx"), "parent_id index missing");
+	ffm_test_assert(count(glob($root . "/data/sample.dat.parent_id.idx/*.bin")) === 129, "binary index must contain manifest and 128 shards");
 	$formats = $ffm->get_format();
 	ffm_test_assert(empty($formats[0]["indexed"]), "id IDX was not ignored");
 	ffm_test_assert(!empty($formats[1]["indexed"]), "parent_id IDX was not parsed");
@@ -114,7 +115,7 @@ try {
 	$legacy->close();
 
 	// Corrupt and dirty indexes must fall back to the legacy scan.
-	file_put_contents($root . "/data/sample.dat.parent_id.idx", "broken");
+	file_put_contents($root . "/data/sample.dat.parent_id.idx/manifest.bin", "broken");
 	$ffm = ffm_test_open($root, $fmt4);
 	ffm_test_same($after_crud, ffm_test_query_matrix($ffm), "corrupt index did not fall back");
 	$ffm->close();
@@ -150,6 +151,7 @@ try {
 	$ffm = ffm_test_open($root, $fmt3);
 	ffm_test_same(4, count($ffm->getall()), "IDX removal lost rows");
 	ffm_test_assert(!str_contains($ffm->get_header_info()["format_txt"], "IDX"), "IDX removal did not update dat header");
+	ffm_test_assert(!file_exists($root . "/data/sample.dat.parent_id.idx"), "IDX removal left binary index directory");
 	$ffm->close();
 
 	// allclear keeps valid empty indexes.

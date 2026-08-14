@@ -7,6 +7,8 @@
 - Added 16 irregular index tests and automatic writable-mode rebuilds for missing or structurally invalid indexes; dirty state remains a full-scan condition requiring explicit integrity review.
 - Added a daily-use benchmark with 100,000 customers and 1,000,000 child histories, including CRUD, cold-request, memory, and eight-reader concurrency measurements.
 - Added an isolated 128-shard JSON versus fixed-binary benchmark for one million index IDs, covering cold, spread, hot-cache, memory, and concurrent-reader behavior.
+- Replaced the opt-in FFM JSON index with a versioned 128-shard fixed-binary index using 64-bit IDs, per-shard checksums, binary-search lookup, touched-shard-only CRUD updates, legacy JSON migration, and safe full-scan fallback.
+- Expanded irregular tests to 19 binary-index cases and repeated the one-million-row and 100,000-customer/one-million-history benchmarks, reducing cold-open allocation from 53 MiB to 2 MiB per PHP process.
 
 ## 2026-08-05
 - Changed setting-generated `.htaccess` and `robots.txt` writes to throw an exception when `file_put_contents()` fails, so setting screen/API saves cannot silently report success after a write failure.

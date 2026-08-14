@@ -70,12 +70,24 @@ function irregular_query_matrix(fixed_file_manager $ffm): array {
 	return $out;
 }
 
-function irregular_index_payload(string $path): array {
-	return json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+function irregular_index_dir(string $root, string $field): string {
+	return $root . "/data/sample.dat." . $field . ".idx";
 }
 
-function irregular_write_payload(string $path, array $payload): void {
-	file_put_contents($path, json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+function irregular_shard_path(string $root, string $field, string $type, $value): string {
+	if ($type === "N") $normalized = (string) (int) $value;
+	elseif ($type === "F") $normalized = sprintf("%.17g", (float) $value);
+	else $normalized = trim((string) $value);
+	$hash = hash("sha256", $type . "\0" . $normalized, true);
+	return irregular_index_dir($root, $field) . "/" . sprintf("%03d.bin", ord($hash[0]) >> 1);
+}
+
+function irregular_write_at(string $path, int $offset, string $bytes): void {
+	$handle = fopen($path, "r+b");
+	if (!is_resource($handle)) throw new RuntimeException("could not mutate " . $path);
+	fseek($handle, $offset);
+	fwrite($handle, $bytes);
+	fclose($handle);
 }
 
 function irregular_compare_with_legacy(string $root, string $message): void {
@@ -161,25 +173,36 @@ try {
 	});
 
 	$run("missing_index", static function () use ($base): void {
-		$path = $base . "/data/sample.dat.text.idx";
-		unlink($path);
+		$path = irregular_index_dir($base, "text");
+		irregular_remove($path);
 		irregular_compare_with_legacy($base, "missing index did not fall back");
 		$ffm = irregular_open($base); $ffm->rebuild_indexes(); $ffm->close();
 	});
 
 	$run("empty_index", static function () use ($base): void {
-		$path = $base . "/data/sample.dat.text.idx";
+		$path = irregular_index_dir($base, "text") . "/manifest.bin";
 		file_put_contents($path, "");
 		irregular_compare_with_legacy($base, "empty index did not fall back");
 		$ffm = irregular_open($base); $ffm->rebuild_indexes(); $ffm->close();
 	});
 
 	$run("orphan_tmp_only", static function () use ($base): void {
-		$path = $base . "/data/sample.dat.text.idx";
+		$path = irregular_index_dir($base, "text");
 		rename($path, $path . ".tmp.orphan");
 		irregular_compare_with_legacy($base, "orphan tmp did not fall back");
-		@unlink($path . ".tmp.orphan");
+		irregular_remove($path . ".tmp.orphan");
 		$ffm = irregular_open($base); $ffm->rebuild_indexes(); $ffm->close();
+	});
+
+	$run("legacy_json_auto_migration", static function () use ($base): void {
+		$path = irregular_index_dir($base, "text");
+		irregular_remove($path);
+		file_put_contents($path, '{"meta":{"version":1},"values":{}}');
+		$ffm = irregular_open($base);
+		$rows = $ffm->select("text", "日本語");
+		$ffm->close();
+		irregular_same(2, count($rows), "legacy JSON migration changed results");
+		if (!is_dir($path) || !is_file($path . "/manifest.bin")) throw new RuntimeException("legacy JSON index was not migrated to binary shards");
 	});
 
 	$run("dirty_after_forced_exit", static function () use ($base): void {
@@ -199,11 +222,8 @@ try {
 	});
 
 	$run("read_only_corruption_falls_back_without_repair", static function () use ($base): void {
-		$path = $base . "/data/sample.dat.text.idx";
-		$payload = irregular_index_payload($path);
-		$payload["meta"]["table"] = "another_table";
-		$payload["values"] = [];
-		irregular_write_payload($path, $payload);
+		$path = irregular_index_dir($base, "text") . "/manifest.bin";
+		irregular_write_at($path, 8, pack("N", 999));
 		$corrupt_hash = hash_file("sha256", $path);
 		$ffm = irregular_open($base, null, ["read_only" => true]);
 		$actual = $ffm->select("text", "日本語");
@@ -218,40 +238,17 @@ try {
 	});
 
 	foreach ([
-		"wrong_table_meta" => static function (array &$payload): void {
-			$payload["meta"]["table"] = "another_table";
-			$payload["values"] = [];
-		},
-		"wrong_count_meta" => static function (array &$payload): void {
-			$payload["meta"]["count"] = 999999;
-			$payload["values"] = [];
-		},
-		"malformed_value_ids" => static function (array &$payload): void {
-			$key = array_key_first($payload["values"]);
-			$payload["values"][$key] = "not-an-id-array";
-		},
-		"invalid_hash_key" => static function (array &$payload): void {
-			$key = array_key_first($payload["values"]);
-			$ids = $payload["values"][$key];
-			unset($payload["values"][$key]);
-			$payload["values"]["not-a-sha256-key"] = $ids;
-		},
-		"duplicate_id_across_values" => static function (array &$payload): void {
-			$keys = array_keys($payload["values"]);
-			$payload["values"][$keys[1]][] = $payload["values"][$keys[0]][0];
-			$payload["meta"]["count"]++;
-		},
-		"out_of_range_id" => static function (array &$payload): void {
-			$key = array_key_first($payload["values"]);
-			$payload["values"][$key][] = $payload["meta"]["maxid"] + 1;
-			$payload["meta"]["count"]++;
-		},
+		"wrong_manifest_version" => static function (string $root): void { irregular_write_at(irregular_index_dir($root, "text") . "/manifest.bin", 8, pack("N", 999)); },
+		"wrong_manifest_shards" => static function (string $root): void { irregular_write_at(irregular_index_dir($root, "text") . "/manifest.bin", 12, pack("N", 64)); },
+		"wrong_manifest_maxid" => static function (string $root): void { irregular_write_at(irregular_index_dir($root, "text") . "/manifest.bin", 16, pack("J", 999)); },
+		"wrong_manifest_format_hash" => static function (string $root): void { irregular_write_at(irregular_index_dir($root, "text") . "/manifest.bin", 40, str_repeat("X", 32)); },
+		"wrong_manifest_identity" => static function (string $root): void { irregular_write_at(irregular_index_dir($root, "text") . "/manifest.bin", 72, str_repeat("Y", 32)); },
+		"missing_shard" => static function (string $root): void { unlink(irregular_shard_path($root, "text", "T", "日本語")); },
+		"truncated_shard" => static function (string $root): void { file_put_contents(irregular_shard_path($root, "text", "T", "日本語"), "short"); },
+		"wrong_shard_number" => static function (string $root): void { irregular_write_at(irregular_shard_path($root, "text", "T", "日本語"), 12, pack("N", 999)); },
 	] as $name => $mutate) {
 		$run($name, static function () use ($base, $mutate, $name): void {
-			$path = $base . "/data/sample.dat.text.idx";
-			$payload = irregular_index_payload($path);
-			$mutate($payload);
-			irregular_write_payload($path, $payload);
+			$mutate($base);
 			try {
 				irregular_compare_with_legacy($base, $name . " did not fall back");
 			} finally {
@@ -262,14 +259,11 @@ try {
 		});
 	}
 
-	$run("extra_nonmatching_id_is_verified", static function () use ($base): void {
-		$path = $base . "/data/sample.dat.text.idx";
-		$payload = irregular_index_payload($path);
-		$key = array_key_first($payload["values"]);
-		$payload["values"][$key][] = 999999;
-		$payload["meta"]["count"]++;
-		irregular_write_payload($path, $payload);
-		irregular_compare_with_legacy($base, "orphan candidate ID affected final result");
+	$run("shard_checksum_mismatch_marks_dirty", static function () use ($base): void {
+		$path = irregular_shard_path($base, "text", "T", "日本語");
+		irregular_write_at($path, filesize($path) - 1, "Z");
+		irregular_compare_with_legacy($base, "checksum mismatch did not fall back");
+		if (!is_file($base . "/data/sample.dat.idx.dirty")) throw new RuntimeException("checksum mismatch did not mark index dirty");
 		$ffm = irregular_open($base); $ffm->rebuild_indexes(); $ffm->close();
 	});
 

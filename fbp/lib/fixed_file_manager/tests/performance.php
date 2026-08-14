@@ -21,6 +21,13 @@ function perf_remove(string $dir): void {
 	rmdir($dir);
 }
 
+function perf_path_size(string $path): int {
+	if (is_file($path)) return (int) filesize($path);
+	$total = 0;
+	foreach (array_diff(scandir($path), [".", ".."]) as $name) $total += perf_path_size($path . "/" . $name);
+	return $total;
+}
+
 $counts = [1000, 10000, 100000];
 if ($argc > 1) {
 	$counts = [];
@@ -68,7 +75,7 @@ foreach ($counts as $count) {
 		$indexed = $ffm->select("parent_id", 777);
 		$indexed_seconds = microtime(true) - $started;
 		$indexed_peak_memory = memory_get_peak_usage(true);
-		$index_size = filesize($root . "/data/sample.dat.parent_id.idx");
+		$index_size = perf_path_size($root . "/data/sample.dat.parent_id.idx");
 		$dat_size = filesize($root . "/data/sample.dat");
 		$ffm->close();
 		if ($legacy !== $indexed) throw new RuntimeException("performance result mismatch at " . $count);
