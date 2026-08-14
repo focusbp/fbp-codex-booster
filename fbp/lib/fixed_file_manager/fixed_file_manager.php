@@ -1587,6 +1587,232 @@ class fixed_file_manager implements FFM {
 		}
 	}
 
+	public function get_many(array $ids): array {
+		$normalized = [];
+		foreach ($ids as $id) {
+			$id = $this->normalize_positive_integer($id);
+			if ($id === null || $id > (int) $this->header["maxid"]) continue;
+			$normalized[$id] = true;
+		}
+		$ids = array_map("intval", array_keys($normalized));
+		sort($ids, SORT_NUMERIC);
+		$rows = [];
+		$current = ftell($this->hf);
+		try {
+			foreach ($ids as $id) {
+				$row = $this->get($id);
+				if ($row !== null) $rows[$id] = $row;
+			}
+		} finally {
+			if (is_resource($this->hf) && is_int($current)) fseek($this->hf, $current);
+		}
+		return $rows;
+	}
+
+	public function neighbors(
+		int $node_id,
+		?array $relation_types = null,
+		?int $max = null,
+		string $direction = "out"
+	): array {
+		$grouped = $this->neighbor_rows([$node_id], $relation_types, $max, $direction, "neighbors");
+		return $node_id > 0 ? ($grouped[$node_id] ?? []) : [];
+	}
+
+	public function neighbors_many(
+		array $node_ids,
+		?array $relation_types = null,
+		?int $max_per_node = null,
+		string $direction = "out"
+	): array {
+		return $this->neighbor_rows($node_ids, $relation_types, $max_per_node, $direction, "neighbors_many");
+	}
+
+	private function normalize_positive_integer($value): ?int {
+		if (is_int($value)) return $value > 0 ? $value : null;
+		if (is_string($value)) {
+			$value = trim($value);
+			if (preg_match('/^[1-9][0-9]*$/', $value) !== 1) return null;
+			$id = (int) $value;
+			return $id > 0 && (string) $id === $value ? $id : null;
+		}
+		if (is_float($value) && is_finite($value) && $value > 0 && $value <= PHP_INT_MAX && floor($value) === $value) {
+			return (int) $value;
+		}
+		return null;
+	}
+
+	private function normalize_neighbor_ids(array $node_ids): array {
+		$normalized = [];
+		foreach ($node_ids as $node_id) {
+			$node_id = $this->normalize_positive_integer($node_id);
+			if ($node_id !== null) $normalized[$node_id] = true;
+		}
+		return array_map("intval", array_keys($normalized));
+	}
+
+	private function normalize_neighbor_relation_types(?array $relation_types): ?array {
+		if ($relation_types === null) return null;
+		$normalized = [];
+		foreach ($relation_types as $relation_type) {
+			if (!is_scalar($relation_type) && $relation_type !== null) continue;
+			$relation_type = trim((string) $relation_type);
+			if ($relation_type !== "") $normalized[$relation_type] = true;
+		}
+		return $normalized;
+	}
+
+	private function neighbor_field_map(): array {
+		$fields = [];
+		foreach ($this->format as $field) $fields[(string) $field["name"]] = $field;
+		return $fields;
+	}
+
+	private function validate_neighbor_request(string $direction, ?int $max, array $field_map, string $method): array {
+		if (!in_array($direction, ["out", "in", "both"], true)) {
+			throw new InvalidArgumentException($method . "() direction must be out, in, or both");
+		}
+		if ($max !== null && $max < 0) {
+			throw new InvalidArgumentException($method . "() max must be null or greater than or equal to 0");
+		}
+		$required = $direction === "out" ? ["from_node_id"] : ($direction === "in" ? ["to_node_id"] : ["from_node_id", "to_node_id"]);
+		foreach ($required as $field) {
+			if (!isset($field_map[$field])) throw new RuntimeException($method . "() requires field: " . $field);
+		}
+		return $required;
+	}
+
+	private function lookup_index_ids_many(array $field, array $values): ?array {
+		$grouped = [];
+		foreach ($values as $value) {
+			$raw_key = $this->index_key($field, $value, true);
+			$grouped[$this->index_shard_number($raw_key)][] = $value;
+		}
+		ksort($grouped, SORT_NUMERIC);
+		$ids = [];
+		foreach ($grouped as $values_in_shard) {
+			foreach ($values_in_shard as $value) {
+				$value_ids = $this->lookup_index_ids($field, $value);
+				if ($value_ids === null) {
+					$name = (string) $field["name"];
+					$this->index_ready[$name] = false;
+					$this->close_index_cache($name);
+					return null;
+				}
+				foreach ($value_ids as $id) $ids[(int) $id] = true;
+			}
+		}
+		$ids = array_map("intval", array_keys($ids));
+		rsort($ids, SORT_NUMERIC);
+		return $ids;
+	}
+
+	private function neighbor_index_candidate_ids(array $node_ids, array $required_fields): ?array {
+		if ($this->index_disabled || is_file($this->index_dirty_path())) return null;
+		$indexed = [];
+		foreach ($this->indexed_fields() as $field) $indexed[(string) $field["name"]] = $field;
+		$ids = [];
+		foreach ($required_fields as $name) {
+			if (!isset($indexed[$name]) || empty($this->index_ready[$name])) return null;
+			$field_ids = $this->lookup_index_ids_many($indexed[$name], $node_ids);
+			if ($field_ids === null) return null;
+			foreach ($field_ids as $id) $ids[$id] = true;
+		}
+		$ids = array_map("intval", array_keys($ids));
+		rsort($ids, SORT_NUMERIC);
+		return $ids;
+	}
+
+	private function neighbor_row_nodes(array $row, array $node_set, string $direction): array {
+		$nodes = [];
+		if ($direction !== "in") {
+			$node_id = (int) ($row["from_node_id"] ?? 0);
+			if (isset($node_set[$node_id])) $nodes[$node_id] = true;
+		}
+		if ($direction !== "out") {
+			$node_id = (int) ($row["to_node_id"] ?? 0);
+			if (isset($node_set[$node_id])) $nodes[$node_id] = true;
+		}
+		return array_map("intval", array_keys($nodes));
+	}
+
+	private function neighbor_row_matches(array $row, ?array $relation_types, bool $has_enabled): bool {
+		if ($has_enabled && (int) ($row["enabled"] ?? 0) !== 1) return false;
+		if ($relation_types !== null && !isset($relation_types[(string) ($row["relation_type"] ?? "")])) return false;
+		return true;
+	}
+
+	private function append_neighbor_row(array &$results, array &$seen, array $row, array $nodes, ?int $max): void {
+		$id = (int) ($row["id"] ?? 0);
+		foreach ($nodes as $node_id) {
+			if ($max !== null && count($results[$node_id]) >= $max) continue;
+			if (isset($seen[$node_id][$id])) continue;
+			$seen[$node_id][$id] = true;
+			$results[$node_id][] = $row;
+		}
+	}
+
+	private function neighbor_results_are_full(array $results, ?int $max): bool {
+		if ($max === null) return false;
+		foreach ($results as $rows) if (count($rows) < $max) return false;
+		return true;
+	}
+
+	private function add_neighbor_encrypted_ids(array &$results): void {
+		if (!class_exists("Controller_class", false)) return;
+		$ctl = Controller_class::getInstance();
+		if ($ctl === null) return;
+		foreach ($results as &$rows) {
+			foreach ($rows as &$row) {
+				if (!array_key_exists("_id_enc", $row)) $row["_id_enc"] = $ctl->encrypt($row["id"]);
+			}
+			unset($row);
+		}
+		unset($rows);
+	}
+
+	private function neighbor_rows(array $node_ids, ?array $relation_types, ?int $max, string $direction, string $method): array {
+		$field_map = $this->neighbor_field_map();
+		$required_fields = $this->validate_neighbor_request($direction, $max, $field_map, $method);
+		$node_ids = $this->normalize_neighbor_ids($node_ids);
+		$results = [];
+		foreach ($node_ids as $node_id) $results[$node_id] = [];
+		if (count($node_ids) === 0 || $max === 0) return $results;
+		$relation_types = $this->normalize_neighbor_relation_types($relation_types);
+		if ($relation_types !== null && count($relation_types) === 0) return $results;
+
+		$node_set = array_fill_keys($node_ids, true);
+		$has_enabled = isset($field_map["enabled"]);
+		$seen = array_fill_keys($node_ids, []);
+		$candidate_ids = $this->neighbor_index_candidate_ids($node_ids, $required_fields);
+		$current = ftell($this->hf);
+		try {
+			if ($candidate_ids !== null) {
+				$rows = $this->get_many($candidate_ids);
+				foreach ($candidate_ids as $id) {
+					if (!isset($rows[$id])) continue;
+					$row = $rows[$id];
+					if (!$this->neighbor_row_matches($row, $relation_types, $has_enabled)) continue;
+					$nodes = $this->neighbor_row_nodes($row, $node_set, $direction);
+					$this->append_neighbor_row($results, $seen, $row, $nodes, $max);
+					if ($this->neighbor_results_are_full($results, $max)) break;
+				}
+			} else {
+				$this->seek_end();
+				while (($row = $this->before()) !== null) {
+					if (!$this->neighbor_row_matches($row, $relation_types, $has_enabled)) continue;
+					$nodes = $this->neighbor_row_nodes($row, $node_set, $direction);
+					$this->append_neighbor_row($results, $seen, $row, $nodes, $max);
+					if ($this->neighbor_results_are_full($results, $max)) break;
+				}
+			}
+		} finally {
+			if (is_resource($this->hf) && is_int($current)) fseek($this->hf, $current);
+		}
+		$this->add_neighbor_encrypted_ids($results);
+		return $results;
+	}
+
 	/*
 	 * フォーマットが変更された
 	 */

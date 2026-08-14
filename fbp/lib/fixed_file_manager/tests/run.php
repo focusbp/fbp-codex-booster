@@ -56,6 +56,21 @@ function ffm_test_rows(fixed_file_manager $ffm): void {
 	] as $row) $ffm->insert($row);
 }
 
+function ffm_test_edge_rows(fixed_file_manager $ffm): void {
+	foreach ([
+		["from_node_id" => 1, "to_node_id" => 2, "relation_type" => "requires", "weight" => 1.0, "enabled" => 1],
+		["from_node_id" => 1, "to_node_id" => 3, "relation_type" => "alternative", "weight" => 0.8, "enabled" => 1],
+		["from_node_id" => 4, "to_node_id" => 1, "relation_type" => "similar_to", "weight" => 0.5, "enabled" => 1],
+		["from_node_id" => 1, "to_node_id" => 5, "relation_type" => "requires", "weight" => 0.2, "enabled" => 0],
+	] as $row) $ffm->insert($row);
+}
+
+function ffm_test_ids(array $rows): array {
+	$ids = array_map(static fn(array $row): int => (int) $row["id"], $rows);
+	sort($ids, SORT_NUMERIC);
+	return $ids;
+}
+
 function ffm_test_query_matrix(fixed_file_manager $ffm): array {
 	$out = [];
 	foreach ([
@@ -220,6 +235,80 @@ try {
 	$ffm->allclear();
 	ffm_test_same([], $ffm->select("parent_id", 10), "allclear left indexed rows");
 	$ffm->close();
+
+	// Graph neighbors use node indexes, filter relation/enabled, and group many nodes.
+	$edge_fmt = "id,12,N\nfrom_node_id,12,N,IDX\nto_node_id,12,N,IDX\nrelation_type,32,T,IDX\nweight,8,F\nenabled,1,N,IDX\n";
+	$edge_root = $roots[] = ffm_test_root("neighbors");
+	$ffm = ffm_test_open($edge_root, $edge_fmt);
+	ffm_test_edge_rows($ffm);
+	ffm_test_same([1, 2], ffm_test_ids($ffm->neighbors(1)), "out neighbors mismatch");
+	ffm_test_same([1], ffm_test_ids($ffm->neighbors(1, ["requires"])), "relation-filtered neighbors mismatch");
+	ffm_test_same([3], ffm_test_ids($ffm->neighbors(1, null, null, "in")), "in neighbors mismatch");
+	ffm_test_same([1, 2, 3], ffm_test_ids($ffm->neighbors(1, null, null, "both")), "both neighbors mismatch");
+	$many = $ffm->neighbors_many([1, "1", 4, 0, -1, "bad", 25]);
+	ffm_test_same([1, 4, 25], array_keys($many), "neighbors_many node normalization mismatch");
+	ffm_test_same([1, 2], ffm_test_ids($many[1]), "neighbors_many node 1 mismatch");
+	ffm_test_same([3], ffm_test_ids($many[4]), "neighbors_many node 4 mismatch");
+	ffm_test_same([], $many[25], "neighbors_many did not retain empty node");
+	ffm_test_same(1, count($ffm->neighbors(1, null, 1)), "neighbors max mismatch");
+	ffm_test_same([], $ffm->neighbors(1, []), "empty relation list must match no edges");
+	$many_rows = $ffm->get_many([3, 1, 3, 0, -1, "bad", 9999]);
+	ffm_test_same([1, 3], array_keys($many_rows), "get_many normalization/order mismatch");
+	$self_loop = ["from_node_id" => 1, "to_node_id" => 1, "relation_type" => "similar_to", "weight" => 0.7, "enabled" => 1];
+	$self_id = $ffm->insert($self_loop);
+	$both = $ffm->neighbors(1, null, null, "both");
+	ffm_test_same(1, count(array_filter($both, static fn(array $row): bool => (int) $row["id"] === $self_id)), "self-loop was duplicated");
+	$ffm->delete(2);
+	ffm_test_assert(!isset($ffm->get_many([2])[2]), "get_many returned deleted row");
+	$indexed_graph = [
+		"out" => ffm_test_ids($ffm->neighbors(1)),
+		"in" => ffm_test_ids($ffm->neighbors(1, null, null, "in")),
+		"both" => ffm_test_ids($ffm->neighbors(1, null, null, "both")),
+		"many" => array_map("ffm_test_ids", $ffm->neighbors_many([1, 4, 25], null, null, "both")),
+	];
+	$ffm->close();
+
+	$readonly_graph = new fixed_file_manager("sample", $edge_root . "/data", $edge_root . "/fmt", ["read_only" => true]);
+	ffm_test_same($indexed_graph["both"], ffm_test_ids($readonly_graph->neighbors(1, null, null, "both")), "read-only neighbors mismatch");
+	$readonly_graph->close();
+
+	$legacy_edge_fmt = str_replace(",IDX", "", $edge_fmt);
+	$legacy_edge_root = $roots[] = ffm_test_root("neighbors-legacy");
+	$legacy_graph = ffm_test_open($legacy_edge_root, $legacy_edge_fmt);
+	ffm_test_edge_rows($legacy_graph);
+	$legacy_self = ["from_node_id" => 1, "to_node_id" => 1, "relation_type" => "similar_to", "weight" => 0.7, "enabled" => 1];
+	$legacy_graph->insert($legacy_self);
+	$legacy_graph->delete(2);
+	ffm_test_same($indexed_graph["out"], ffm_test_ids($legacy_graph->neighbors(1)), "IDX-free out neighbors mismatch");
+	ffm_test_same($indexed_graph["in"], ffm_test_ids($legacy_graph->neighbors(1, null, null, "in")), "IDX-free in neighbors mismatch");
+	ffm_test_same($indexed_graph["both"], ffm_test_ids($legacy_graph->neighbors(1, null, null, "both")), "IDX-free both neighbors mismatch");
+	ffm_test_same($indexed_graph["many"], array_map("ffm_test_ids", $legacy_graph->neighbors_many([1, 4, 25], null, null, "both")), "IDX-free neighbors_many mismatch");
+	$legacy_graph->close();
+
+	// A corrupt required node index falls back to one safe scan.
+	file_put_contents($edge_root . "/data/sample.dat.from_node_id.idx/manifest.bin", "broken");
+	$corrupt_graph = new fixed_file_manager("sample", $edge_root . "/data", $edge_root . "/fmt", ["read_only" => true]);
+	ffm_test_same($indexed_graph["out"], ffm_test_ids($corrupt_graph->neighbors(1)), "corrupt graph index fallback mismatch");
+	$corrupt_graph->close();
+
+	// enabled is optional; required direction fields are not.
+	$no_enabled_root = $roots[] = ffm_test_root("neighbors-no-enabled");
+	$no_enabled_fmt = "id,12,N\nfrom_node_id,12,N,IDX\nto_node_id,12,N,IDX\nrelation_type,32,T\n";
+	$no_enabled = ffm_test_open($no_enabled_root, $no_enabled_fmt);
+	$row = ["from_node_id" => 1, "to_node_id" => 2, "relation_type" => "requires"];
+	$no_enabled->insert($row);
+	ffm_test_same([1], ffm_test_ids($no_enabled->neighbors(1)), "neighbors requires enabled unexpectedly");
+	$no_enabled->close();
+
+	$missing_root = $roots[] = ffm_test_root("neighbors-missing-field");
+	$missing = ffm_test_open($missing_root, "id,12,N\nname,20,T\n");
+	$missing_thrown = false;
+	try { $missing->neighbors(1); } catch (RuntimeException $e) { $missing_thrown = str_contains($e->getMessage(), "from_node_id"); }
+	ffm_test_assert($missing_thrown, "missing graph field did not throw a clear exception");
+	$direction_thrown = false;
+	try { $missing->neighbors_many([1], null, null, "sideways"); } catch (InvalidArgumentException $e) { $direction_thrown = true; }
+	ffm_test_assert($direction_thrown, "invalid graph direction was accepted");
+	$missing->close();
 
 	// Unknown, empty, lowercase and extra fourth-column options are rejected.
 	foreach (["index", "", "idx", "IDX,OTHER"] as $option) {

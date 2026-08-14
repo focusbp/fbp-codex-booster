@@ -635,3 +635,76 @@ Controllerは表示リクエストの先頭で、以後に開くDBの既定モ�
 - 案件`.dat`へ別プロセスが共有ロックを3秒保持中でも、案件一覧は2秒以内に同一SHA-256の画面応答を返した。
 - 同条件の手動並び替えリクエストは1秒で待機タイムアウトし、書込み側の排他ロック維持を確認した。
 - 共有ロック試験前後の案件`.dat` SHA-256は一致した。
+
+## 23. 連想グラフ探索
+
+edge形式のテーブルから接続レコードを取得する追加APIとして、`neighbors()`、`neighbors_many()`、`get_many()`を提供する。既存の`select()`、`filter()`、`get()`およびIDXの生成・更新処理は変更しない。
+
+```php
+public function neighbors(
+    int $node_id,
+    ?array $relation_types = null,
+    ?int $max = null,
+    string $direction = "out"
+): array
+
+public function neighbors_many(
+    array $node_ids,
+    ?array $relation_types = null,
+    ?int $max_per_node = null,
+    string $direction = "out"
+): array
+
+public function get_many(array $ids): array
+```
+
+### 23.1 検索仕様
+
+- `out`は`from_node_id`、`in`は`to_node_id`、`both`は両方を検索する。
+- `enabled`項目が存在する場合は、値が`1`のedgeだけを返す。項目自体がない形式では絞り込まない。
+- `relation_types`が`null`なら限定せず、配列なら指定値のいずれかに完全一致するedgeだけを返す。空配列は0件とする。
+- `both`で自己ループが両方向に一致しても、同じノードの結果内には同じedgeを一度だけ返す。
+- `neighbors_many()`は正の整数として扱えるnode IDだけを採用し、重複を除去する。接続がないIDも空配列のまま返す。
+- 結果は既存検索と同様に新しいIDから並べ、`max`または`max_per_node`を各ノードの結果へ適用する。
+- 必要な`from_node_id`または`to_node_id`が形式にない場合は、対象メソッドと不足項目を含む例外を出す。
+- `get_many()`は正の整数IDを正規化・重複除去してID順に検索し、削除済み行を除いた`id => record`を返す。
+
+### 23.2 IDX利用と一括処理
+
+必要なnode項目のIDXが利用可能な場合、node IDを128シャード単位にまとめてから既存のIDXファイルを開き、各値に対応するedge IDを取得する。同一呼出しで同じシャードを重複して開かず、さらにFFMインスタンスの既存IDXキャッシュを後続呼出しでも再利用する。out/inから得たedge IDは統合・重複除去してから`get_many()`へ渡し、レコード本体を取得後に各nodeへ振り分ける。
+
+`relation_type`のIDXが存在しても、通常はnode IDXで絞った候補をメモリ上で判定する。relation種別ごとの大きなID集合を全展開して積集合を取るより、グラフ探索で想定する局所的なnode候補だけを判定する方が、現在のシャード形式ではメモリとI/Oを抑えやすいためである。
+
+### 23.3 フォールバック
+
+必要なnode項目にIDXがない、dirty、欠落、破損などで利用できない場合は、`.dat`を末尾から一度だけ走査して全nodeの結果を同時に作る。`neighbors_many()`からnodeごとに`neighbors()`や`select()`を繰り返さない。フォールバックでもenabled、relation type、方向、重複除去、並び順、件数制限はIDX経路と一致させる。
+
+### 23.4 テストと性能測定
+
+基本ケースとして、`A → B requires`、`A → C alternative`、`D → A similar_to`、無効な`A → E requires`を使用し、out、in、both、relation絞込み、無効edge除外、複数nodeのグループ化を検証する。加えてIDXなし、IDX破損、enabledなし、自己ループ、削除済み行、read-only、不正ID、件数制限、必須項目欠落を試験する。
+
+2026-08-14にIDX追加前の比較用として保存した`project.dat`、`task.dat`、`task_history.dat`を、IDX実装前のGit版と本機能追加後の版でread-only実行した。全行件数、全行ハッシュ、`parent_id`検索結果、ヘッダー、元`.dat`のSHA-256は3件中3件で一致し、比較後も元ファイルはバイト単位で不変だった。
+
+性能試験は次で実行する。
+
+```text
+php fbp/lib/fixed_file_manager/tests/graph_performance.php 1000000
+```
+
+2026-08-15の測定結果。比較対象は64 node、`both`方向、2種類のrelation、各node最大50件で、従来相当の単一全件走査とIDX経路の結果が一致することを確認した。
+
+| edge数 | 全件走査 | IDX初回 | IDX反復中央値 | 初回短縮率 | 反復短縮率 |
+|---:|---:|---:|---:|---:|---:|
+| 100,000 | 348.039 ms | 36.662 ms | 29.749 ms | 9.49倍 | 11.70倍 |
+| 1,000,000 | 3,387.703 ms | 111.786 ms | 74.835 ms | 30.31倍 | 45.27倍 |
+
+100万件時のIDX構築は31.750秒、索引サイズは36,849,808 bytes、PHPピーク割当量は190,853,120 bytesだった。検索時は必要なnode IDXシャードだけを利用し、反復検索では開いたシャードをキャッシュから再利用する。
+
+### 23.5 残る性能上の注意
+
+- 接続数が極端に多いハブnodeでは、enabledやrelation typeの判定前に候補edge IDを展開するため、時間とメモリが次数に比例する。
+- `max_per_node`が小さくても、無効edgeやrelation不一致を正しく除外するため、現仕様ではIDX候補の途中で安全に打ち切れない。
+- `get_many()`はIDを整列するが、疎なIDを含むため各IDを既存`get()`の二分探索で取得する。巨大な候補集合では追加の一括読込最適化余地がある。
+- 数百万〜数千万件の初回IDX構築は全データを処理するため、構築時間とピークメモリを別途見積もる必要がある。
+- node IDXが利用不能な間は安全性を優先して全件走査する。大規模運用ではdirtyや破損を監視し、IDXを正常に保つ必要がある。
+- relation別集合との適応的な積集合は未実装である。将来、1 nodeあたりの次数が非常に大きく、relation絞込みが強い実データが現れた場合の拡張候補とする。
