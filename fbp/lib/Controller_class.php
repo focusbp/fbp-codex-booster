@@ -4032,52 +4032,52 @@ class Controller_class implements Controller {
 			}
 		}
 
-		foreach ($screen_fields_list as &$sf) {
+		foreach ($screen_fields_list as $sf) {
 
 			$f = $fmt_fields->get($sf["db_fields_id"]);
 
-			if ($f != null) {
-				// Options
-				$constant_array_name = $f["constant_array_name"];
-				$display_fields_for_dropdown = trim((string) ($f["display_fields_for_dropdown"] ?? ""));
-				$emptydata = ($f["type"] == "checkbox" || $f["type"] == "radio") ? false : $option_emptydata;
-				$force_empty_for_table_dropdown = ($flg == "screen" && $screen_name != "search" && $f["type"] == "dropdown" && startsWith($constant_array_name, "table/"));
-				if ($force_empty_for_table_dropdown) {
-					$emptydata = true;
-				}
-				if (startsWith($constant_array_name, "table/") && $display_fields_for_dropdown !== "") {
-					$option_arr = $this->build_table_dropdown_options($constant_array_name, $display_fields_for_dropdown, $emptydata);
+			if ($f == null) {
+				continue;
+			}
+
+			// Options
+			$constant_array_name = $f["constant_array_name"];
+			$display_fields_for_dropdown = trim((string) ($f["display_fields_for_dropdown"] ?? ""));
+			$emptydata = ($f["type"] == "checkbox" || $f["type"] == "radio") ? false : $option_emptydata;
+			$force_empty_for_table_dropdown = ($flg == "screen" && $screen_name != "search" && $f["type"] == "dropdown" && startsWith($constant_array_name, "table/"));
+			if ($force_empty_for_table_dropdown) {
+				$emptydata = true;
+			}
+			if (startsWith($constant_array_name, "table/") && $display_fields_for_dropdown !== "") {
+				$option_arr = $this->build_table_dropdown_options($constant_array_name, $display_fields_for_dropdown, $emptydata);
+			} else {
+				if ($f["type"] == "checkbox" || $f["type"] == "radio") {
+					$option_arr = $this->get_constant_array($constant_array_name, false);
 				} else {
-					if ($f["type"] == "checkbox" || $f["type"] == "radio") {
-						$option_arr = $this->get_constant_array($constant_array_name, false);
+					if(startsWith($constant_array_name, "table/")){
+						$option_arr = $this->get_constant_array($constant_array_name, true);
 					} else {
-						if(startsWith($constant_array_name, "table/")){
-							$option_arr = $this->get_constant_array($constant_array_name, true);
-						}else{
-							$option_arr = $this->get_constant_array($constant_array_name, $option_emptydata);
-						}
+						$option_arr = $this->get_constant_array($constant_array_name, $option_emptydata);
 					}
 				}
-				$option_color = $this->get_constant_array_color($constant_array_name);
-
-				$arr = $f;
-				if ($flg == "screen" && $screen_name == "search") {
-					$arr["search_default_value"] = $sf["search_default_value"] ?? "";
-					$arr["search_default_from"] = $sf["search_default_from"] ?? "";
-					$arr["search_default_to"] = $sf["search_default_to"] ?? "";
-				}
-				$arr["is_table_dropdown"] = startsWith($constant_array_name, "table/");
-				$arr["options"] = $option_arr;
-				$arr["colors"] = $option_color;
-
-				if ($f["type"] == "textarea") {
-					$arr["max_bytes"] = $f["length"];
-				}
-
-				$arr_list[] = $arr;
-			} else {
-				$fmt_screen_fields->delete($sf["id"]);
 			}
+			$option_color = $this->get_constant_array_color($constant_array_name);
+
+			$arr = $f;
+			if ($flg == "screen" && $screen_name == "search") {
+				$arr["search_default_value"] = $sf["search_default_value"] ?? "";
+				$arr["search_default_from"] = $sf["search_default_from"] ?? "";
+				$arr["search_default_to"] = $sf["search_default_to"] ?? "";
+			}
+			$arr["is_table_dropdown"] = startsWith($constant_array_name, "table/");
+			$arr["options"] = $option_arr;
+			$arr["colors"] = $option_color;
+
+			if ($f["type"] == "textarea") {
+				$arr["max_bytes"] = $f["length"];
+			}
+
+			$arr_list[] = $arr;
 		}
 		$this->assign($group_name, $arr_list);
 	}
