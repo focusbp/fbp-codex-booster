@@ -24,6 +24,7 @@ class pdfmaker_class {
 	private $ctl;
 	private $memory_images = [];
 	private $memory_image_index = 1;
+	private $page_footer_callback = null;
 	
 	function set_controller(Controller $ctl){
 		$this->ctl = $ctl;
@@ -31,6 +32,19 @@ class pdfmaker_class {
 
 	function setPageLayout($page_layout) {
 		$this->header = $page_layout;
+	}
+
+	/**
+	 * Register a callback that is drawn from CustomizedPDF::Footer() on every page.
+	 *
+	 * The callback receives the active CustomizedPDF instance and may use absolute
+	 * coordinates. This also covers pages created automatically by long tables.
+	 */
+	function setPageFooterCallback($callback) {
+		if ($callback !== null && !is_callable($callback)) {
+			throw new InvalidArgumentException("Page footer callback must be callable or null.");
+		}
+		$this->page_footer_callback = $callback;
 	}
 	
 	function addPage(){
@@ -318,6 +332,7 @@ class pdfmaker_class {
 
 		// PDFの生成開始
 		$pdf = new CustomizedPDF($orientation, "mm", $pagesize);
+		$pdf->setPageFooterCallback($this->page_footer_callback);
 
 		// 画像ディレクトリセット
 		$pdf->imgdir = $imgdir;

@@ -16,6 +16,9 @@ class CustomizedPDF extends tFPDF {
 	protected $pagenumber_font = "helvetica";
 	
 	protected $pagenumber_y_position = 0;
+
+	protected $page_footer_callback = null;
+	protected $page_footer_set = [];
 	
 	var $angle=0; //Rotate
 	
@@ -50,6 +53,13 @@ class CustomizedPDF extends tFPDF {
 	
 	function pagenumber_y_position($y){
 		$this->pagenumber_y_position = $y;
+	}
+
+	function setPageFooterCallback($callback){
+		if ($callback !== null && !is_callable($callback)) {
+			$this->Error('Page footer callback must be callable or null.');
+		}
+		$this->page_footer_callback = $callback;
 	}
 	
 	/*
@@ -184,6 +194,11 @@ class CustomizedPDF extends tFPDF {
 	}
 
 	function Footer() {
+		if (!isset($this->page_footer_set[$this->page]) && is_callable($this->page_footer_callback)) {
+			call_user_func($this->page_footer_callback, $this);
+			$this->page_footer_set[$this->page] = true;
+		}
+
 		// Check if Footer for this page already exists (do the same for Header())
 		if(!$this->hidefooter){
 			if(!isset($this->footerset[$this->page])) {
