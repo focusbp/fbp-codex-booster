@@ -119,6 +119,13 @@ interface ctl_fw {
 	 * @return string The application code.
 	 */
 	function get_appcode();
+
+	/**
+	 * Retrieves a writable directory for temporary application files.
+	 *
+	 * @return string Absolute directory path without a trailing separator.
+	 */
+	function get_temp_dir();
 	
 	/**
 	 * Sets session data.

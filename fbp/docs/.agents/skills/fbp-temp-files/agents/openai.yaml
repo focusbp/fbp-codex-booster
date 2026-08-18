@@ -1,0 +1,4 @@
+interface:
+  display_name: "FBP Temporary Files"
+  short_description: "Use safe writable temporary directories in FBP apps"
+  default_prompt: "Use $fbp-temp-files to implement temporary-file handling with the FBP Controller."

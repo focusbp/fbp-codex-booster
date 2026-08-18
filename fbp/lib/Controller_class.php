@@ -1933,6 +1933,27 @@ class Controller_class implements Controller {
 		return $this->get_session("appcode");
 	}
 
+	function get_temp_dir() {
+		if (trim((string)ini_get("open_basedir")) === "") {
+			$temp_dir = sys_get_temp_dir();
+		} else {
+			$base_dir = realpath($this->dirs->basedir);
+			if ($base_dir === false) {
+				$base_dir = $this->dirs->basedir;
+			}
+			$temp_dir = rtrim($base_dir, "/\\") . DIRECTORY_SEPARATOR . "tmp";
+		}
+
+		if (!is_dir($temp_dir) && !mkdir($temp_dir, 0700, true) && !is_dir($temp_dir)) {
+			throw new RuntimeException("Temporary directory could not be created.");
+		}
+		if (!is_writable($temp_dir)) {
+			throw new RuntimeException("Temporary directory is not writable.");
+		}
+
+		return rtrim($temp_dir, "/\\");
+	}
+
 	function get_setting() {
 		$setting = $_SESSION[$this->windowcode]["setting"] ?? null;
 		if (is_array($setting)) {
