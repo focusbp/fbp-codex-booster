@@ -1,6 +1,6 @@
 ---
 name: fbp-db
-description: Manage FBP DB schema using CLI (db tables/fields), relation setup, text/textarea field length policy, and screen_fields reflection requirements.
+description: Manage the FBP DB lifecycle from CLI-based table/field design through release of DB definitions, automatic production data-file creation and format updates, relations, field length policy, and screen_fields reflection.
 ---
 
 # fbp-db
@@ -20,6 +20,21 @@ description: Manage FBP DB schema using CLI (db tables/fields), relation setup, 
 4. `screen_build_type=Original Screen` なら `screen_fields` を前提にせず、同じ作業内で `<tb_name>_original_management` 実装へ進む。
 5. `screen_build_type=Standard Screen` のときだけ、`screen_fields` を `list/add/edit/delete/search`（必要なら `list_on_side`）へ反映。サイドパネルの項目・幅・親子導線は `fbp-side-panel` に従う。
 6. `data_*` で実データ確認。
+
+## definition release and runtime lifecycle
+- DB管理画面または `db_tables_*` / `db_fields_*` / `screen_fields_*` で作成した定義を正本にする。管理対象ノートの `.fmt` を手作業で作らない。
+- 通常のFBPリリースは `db`、`db_additionals` などのリリース対象 `.dat` と、生成済み `classes/data/_common/fmt/*.fmt` をアプリコードと一緒に本番へコピーする。
+- 本番に対象ノートの実データ `.dat` がまだ存在しない場合、FBPはコピー済み `.fmt` を使い、最初のDBアクセス時に `.dat` を自動作成する。新規配布用に `db_tables_add` / `db_fields_add` を再実行する常設migrationを追加しない。
+- 既存の実データ `.dat` に対して定義が変わった場合、FBPは新しい `.fmt` に合わせて形式更新する。リリース前にテスト環境の既存データで `changeFormat()` が通ることを `describe` と `data_list` / `getall` で確認する。
+- Standard Screenの配布ではテーブル・項目だけでなく、`screen_fields` と必要な `db_additionals` も同じリリース対象として確認する。
+- 独自の配布scriptが通常のFBPリリースを使わない場合は、新規配布経路がDB定義と生成済み `.fmt` を初期配置することを確認する。定義が初期配置されるなら、個別のテーブル作成migrationは不要。
+- 一時migrationを使うのは、標準リリースでは表現できないデータ変換や、定義配布前に存在する本番データの補正が必要な場合だけにする。全対象への適用完了後は通常リリースから外す。
+
+### release verification
+1. テスト環境で `db_schema`、`db_tables_list`、`db_additionals_list` を確認する。
+2. Standard Screenは `standard_screen_check` で意図しない `ERROR` / `WARN` がないことを確認する。
+3. 実データがある変更は `describe` と `data_list` / `getall` で形式更新とデータ保持を確認する。
+4. 本番反映は環境指定の承認済みrelease scriptを使い、反映後に現在の定義とデータ読込を再確認する。
 
 ## terminology
 - `メニュー画面`: `show_sidemenu()` で開く UI。DOM は `#sidemenu`。
