@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . "/PollingSecurity.php";
+
 class Controller_class implements Controller {
 
 	private $class;
@@ -4787,9 +4789,13 @@ class Controller_class implements Controller {
 			$timeout_handler_class = $this->class;
 		}
 
-		$polling_id = uniqid();
+		$polling_id = PollingSecurity::generatePollingId();
+		$polling_token = PollingSecurity::generateOwnerToken();
+		PollingSecurity::registerOwner($polling_id, $polling_token, $this->windowcode);
 		$data = [
 		    "polling_id" => $polling_id,
+		    "polling_token" => $polling_token,
+		    "polling_reconnect_wait_seconds" => PollingSecurity::DEFAULT_RECONNECT_WAIT_SECONDS,
 		    "nickname" => $nickname,
 		    "status_text" => $status_text,
 		    "info_data" => $info_data,
@@ -4806,7 +4812,7 @@ class Controller_class implements Controller {
 	/**
 	 * Waiting for the polling start
 	 */
-	function polling_wait() {
+	function polling_wait($timeout_seconds = null): bool {
 		if ($this->polling_start) {
 			throw new Exception("This function cannot be used within the same function where polling_start() is executed.");
 		}
@@ -4815,12 +4821,47 @@ class Controller_class implements Controller {
 			throw new Exception("call polling_start first.");
 		}
 
-		while (true) {
-			if ($this->polling_get_status($polling_id) !== false) {
-				break;
-			}
-			sleep(1);
+		$session_was_active = session_status() === PHP_SESSION_ACTIVE;
+		if ($session_was_active) {
+			session_write_close();
 		}
+
+		if ($timeout_seconds === null) {
+			$timeout_seconds = PollingSecurity::POLLING_START_TIMEOUT_SECONDS;
+		}
+		$timeout_seconds = max(0.1, (float) $timeout_seconds);
+		$connected = false;
+		$deadline = microtime(true) + $timeout_seconds;
+		try {
+			while (microtime(true) < $deadline) {
+				if ($this->polling_get_status($polling_id) !== false) {
+					$connected = true;
+					break;
+				}
+
+				if ($session_was_active) {
+					if (!session_start()) {
+						break;
+					}
+					$owner_state = PollingSecurity::getCurrentSessionOwnerState($polling_id);
+					session_write_close();
+					if ($owner_state === "waiting" || $owner_state === "failed" || $owner_state === null) {
+						break;
+					}
+				}
+
+				if (connection_aborted()) {
+					break;
+				}
+				usleep(100000);
+			}
+		} finally {
+			if ($session_was_active && session_status() !== PHP_SESSION_ACTIVE) {
+				session_start();
+			}
+		}
+
+		return $connected;
 	}
 
 	/**
@@ -4849,6 +4890,9 @@ class Controller_class implements Controller {
 
 		foreach ($pollingDirs as $pollingDir) {
 			$polling_id = basename($pollingDir); // ディレクトリ名がpolling_id
+			if (!PollingSecurity::isValidPollingId($polling_id)) {
+				continue;
+			}
 			$infoFile = $pollingDir . '/info.json';
 
 			if (file_exists($infoFile)) {
@@ -4897,9 +4941,11 @@ class Controller_class implements Controller {
 		if ($polling_id == null) {
 			$polling_id = $this->get_session("_polling_id");
 		}
+		if (!PollingSecurity::isValidPollingId($polling_id)) {
+			return false;
+		}
 
-		$dir = $this->dirs->pollingdir;
-		$pollingDir = $dir . '/' . $polling_id;
+		$pollingDir = PollingSecurity::getClientDir($this->dirs->pollingdir, $polling_id);
 		$infoFile = $pollingDir . '/info.json';
 
 		// 該当するpolling_idのディレクトリが存在するか確認
@@ -4965,7 +5011,11 @@ class Controller_class implements Controller {
 
 	function polling_transmit($polling_id, $invoke_function, $params = [], $invoke_class = null): bool {
 
-		$clientDir = $this->dirs->pollingdir . "/" . $polling_id;
+		if (!PollingSecurity::isValidPollingId($polling_id)) {
+			$this->console_log("Invalid polling ID.");
+			return false;
+		}
+		$clientDir = PollingSecurity::getClientDir($this->dirs->pollingdir, $polling_id);
 
 		if ($invoke_class == null) {
 			$invoke_class = $this->class;
@@ -4990,27 +5040,21 @@ class Controller_class implements Controller {
 		);
 
 		// ユニークなファイル名を生成
-		$filePath = $clientDir . '/msg_' . uniqid() . '.json';
+		$message_id = bin2hex(random_bytes(16));
+		$filePath = $clientDir . '/msg_' . $message_id . '.json';
+		$tempFilePath = $clientDir . '/msg_' . $message_id . '.tmp';
 
-		// 排他制御でファイル作成
-		$fp = fopen($filePath, 'c+');
-		if (!$fp) {
+		// 完成したファイルだけを受信側へ見せるため、一時ファイルからatomic renameする。
+		$json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+		if ($json === false || file_put_contents($tempFilePath, $json, LOCK_EX) === false) {
 			$this->console_log("Failed to create message file for polling ID '{$polling_id}'.");
 			return false;
 		}
-
-		if (flock($fp, LOCK_EX)) { // 排他制御を実施
-			fwrite($fp, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-			fflush($fp); // バッファをフラッシュ
-			flock($fp, LOCK_UN); // ロック解除
-		} else {
-			fclose($fp);
-			$this->console_log("Could not lock the file for writing.");
+		if (!rename($tempFilePath, $filePath)) {
+			@unlink($tempFilePath);
+			$this->console_log("Failed to publish message file for polling ID '{$polling_id}'.");
 			return false;
 		}
-
-
-		fclose($fp);
 		return true;
 	}
 
@@ -5021,12 +5065,9 @@ class Controller_class implements Controller {
 		}
 
 		$polling_id = $this->get_session("_polling_id");
-		try {
-			$clientDir = $this->dirs->pollingdir . "/" . $polling_id;
-			array_map('unlink', glob($clientDir . '/*')); // 中のファイルを削除
-			rmdir($clientDir); // ディレクトリを削除
-		} catch (Exception $e) {
-			// Nothing to do
+		if (PollingSecurity::isValidPollingId($polling_id)) {
+			PollingSecurity::removeClientDirectory($this->dirs->pollingdir, $polling_id);
+			PollingSecurity::unregisterOwner($polling_id);
 		}
 	}
 
@@ -5048,9 +5089,11 @@ class Controller_class implements Controller {
 		if ($polling_id == null) {
 			$polling_id = $this->get_session("_polling_id");
 		}
+		if (!PollingSecurity::isValidPollingId($polling_id)) {
+			return false;
+		}
 
-		$dir = $this->dirs->pollingdir;
-		$pollingDir = $dir . '/' . $polling_id;
+		$pollingDir = PollingSecurity::getClientDir($this->dirs->pollingdir, $polling_id);
 		$infoFile = $pollingDir . '/info.json';
 
 		// 該当するpolling_idのディレクトリが存在するか確認
@@ -5099,9 +5142,11 @@ class Controller_class implements Controller {
 		if ($polling_id == null) {
 			$polling_id = $this->get_session("_polling_id");
 		}
+		if (!PollingSecurity::isValidPollingId($polling_id)) {
+			return false;
+		}
 
-		$dir = $this->dirs->pollingdir;
-		$pollingDir = $dir . '/' . $polling_id;
+		$pollingDir = PollingSecurity::getClientDir($this->dirs->pollingdir, $polling_id);
 		$infoFile = $pollingDir . '/info.json';
 
 		// 該当するpolling_idのディレクトリが存在するか確認

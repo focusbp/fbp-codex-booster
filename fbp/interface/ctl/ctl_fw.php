@@ -389,7 +389,7 @@ interface ctl_fw {
 	
 	function polling_start($nickname, $status_text, $info_data=[], $timeout_seconds=60, $timeout_handler_function=null,$timeout_handler_class=null);
 	
-	function polling_wait();
+	function polling_wait($timeout_seconds=null):bool;
 	
 	/**
 	 * Returns a list of polling information.

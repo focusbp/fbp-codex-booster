@@ -5476,7 +5476,44 @@ function getMaxZIndex() {
 var polling_status = false;
 var polling_request = null;
 var polling_id = null;
+var polling_token = null;
 var polling_startTime;
+var polling_timeout_interval = null;
+var polling_reconnect_timer = null;
+
+function isCurrentPolling(target_polling_id, target_polling_token) {
+	return polling_status && polling_id === target_polling_id && polling_token === target_polling_token;
+}
+
+function getPollingReconnectWaitSeconds(md, response_seconds = null) {
+	var seconds = response_seconds;
+	if (seconds == null) {
+		seconds = md["polling_reconnect_wait_seconds"];
+	}
+	seconds = Number(seconds);
+	if (!Number.isFinite(seconds) || seconds < 1) {
+		seconds = 10;
+	}
+	return Math.min(seconds, 300);
+}
+
+function scheduleLongPollingReconnect(md, wait_seconds = 0) {
+	var target_polling_id = md["polling_id"];
+	var target_polling_token = md["polling_token"];
+	if (!isCurrentPolling(target_polling_id, target_polling_token)) {
+		return;
+	}
+	if (polling_reconnect_timer !== null) {
+		clearTimeout(polling_reconnect_timer);
+	}
+	polling_reconnect_timer = setTimeout(function () {
+		polling_reconnect_timer = null;
+		if (isCurrentPolling(target_polling_id, target_polling_token)) {
+			startLongPolling(md, true);
+		}
+	}, Math.max(0, Number(wait_seconds) || 0) * 1000);
+}
+
 function startLongPolling(md, force = false) {
 
 	//２重起動防止
@@ -5491,14 +5528,26 @@ function startLongPolling(md, force = false) {
 	}
 
 	var new_polling_id = md["polling_id"];
+	var new_polling_token = md["polling_token"];
 	var nickname = md["nickname"];
 	var timeout_seconds = md["timeout_seconds"];
 	var timeout_handler_function = md["timeout_handler_function"];
 	var timeout_handler_class = md["timeout_handler_class"];
 
-	if (new_polling_id === null) {
+	if (new_polling_id == null || new_polling_token == null) {
 		return;
 	}
+	if (force && !isCurrentPolling(new_polling_id, new_polling_token)) {
+		return;
+	}
+	if (polling_reconnect_timer !== null) {
+		clearTimeout(polling_reconnect_timer);
+		polling_reconnect_timer = null;
+	}
+
+	polling_status = true;
+	polling_id = new_polling_id;
+	polling_token = new_polling_token;
 
 	if (force === false) {
 		// 最初の処理
@@ -5507,34 +5556,46 @@ function startLongPolling(md, force = false) {
 
 		// タイムアウト検出
 		let intervalId = setInterval(() => {
+			if (!isCurrentPolling(new_polling_id, new_polling_token)) {
+				clearInterval(intervalId);
+				if (polling_timeout_interval === intervalId) {
+					polling_timeout_interval = null;
+				}
+				return;
+			}
 			let elapsedSeconds = (Date.now() - polling_startTime) / 1000;
 
 			if (elapsedSeconds > timeout_seconds) {
 
 				if (document.visibilityState !== "visible") {
 					// 画面表示中はタイムアウトしない
-					clearInterval(intervalId); // インターバルを停止
+					clearInterval(intervalId);
+					if (polling_timeout_interval === intervalId) {
+						polling_timeout_interval = null;
+					}
 					stopLongPolling();
 					finalizePolling(timeout_handler_class, timeout_handler_function);
 				}
 			}
-		}, 1000); // 10msごとにチェック
+		}, 1000);
+		polling_timeout_interval = intervalId;
 	} else {
 		// ループ２回目以降の処理
 		append_debug_window("Polling : " + new_polling_id + " " + nickname);
 	}
-
-	polling_status = true;
-	polling_id = new_polling_id;
 
 	polling_request = $.ajax({
 		url: "polling.php", // PHPスクリプトのURL
 		method: "POST", // POSTメソッドに変更
 		data: md,
 		success: function (response) {
-			var flg_continue = true;
+			if (!isCurrentPolling(new_polling_id, new_polling_token)) {
+				return;
+			}
+			polling_request = null;
+			var reconnect_wait_seconds = 0;
 			try {
-				var response_json = JSON.parse(response);
+				var response_json = typeof response === "string" ? JSON.parse(response) : response;
 				var data = response_json.data;
 				if (response_json.success) {
 					var fd = new FormData();
@@ -5546,49 +5607,63 @@ function startLongPolling(md, force = false) {
 					appcon("app.php", fd);
 				} else {
 					if (response_json.message === "Abort") {
-						flg_continue = false;
 						finalizePolling(timeout_handler_class, timeout_handler_function);
+						return;
 
-					} else if (response_json.message === "Timeout") {
-						// Nothing
+					} else if (response_json.message === "Timeout" || response_json.message === "Wait") {
+						reconnect_wait_seconds = getPollingReconnectWaitSeconds(md, response_json.retry_after_seconds);
 
 					} else {
 						append_debug_window("Fail", response);
+						reconnect_wait_seconds = getPollingReconnectWaitSeconds(md);
 					}
 				}
 			} catch (e) {
 				console.error("Invalid JSON: ", e);
+				reconnect_wait_seconds = getPollingReconnectWaitSeconds(md);
 			}
 
-			// 再びポーリング開始
-			if (flg_continue) {
-				startLongPolling(md, true);
-			}
+			scheduleLongPollingReconnect(md, reconnect_wait_seconds);
 		},
 		error: function (error) {
-			append_debug_window("Polling connection has the error.", error);
-			if (polling_status) {
-				setTimeout(function () {
-					startLongPolling(md, true);
-				}, 3000); // 3秒後に再接続
+			if (!isCurrentPolling(new_polling_id, new_polling_token)) {
+				return;
 			}
+			polling_request = null;
+			append_debug_window("Polling connection has the error.", error);
+			if (error.status === 400 || error.status === 403 || error.status === 405) {
+				finalizePolling(timeout_handler_class, timeout_handler_function);
+				return;
+			}
+			scheduleLongPollingReconnect(md, getPollingReconnectWaitSeconds(md));
 		}
 	});
 }
 
 // サーバーにポーリング停止情報を送る
 function stopLongPolling() {
-	navigator.sendBeacon("polling_stop.php", JSON.stringify({polling_id: polling_id}));
+	if (polling_id !== null && polling_token !== null) {
+		navigator.sendBeacon("polling_stop.php", JSON.stringify({polling_id: polling_id, polling_token: polling_token}));
+	}
 }
 
 // ポーリングを安全に終了させる
 function finalizePolling(timeout_handler_class, timeout_handler_function) {
 	polling_status = false;
+	if (polling_timeout_interval !== null) {
+		clearInterval(polling_timeout_interval);
+		polling_timeout_interval = null;
+	}
+	if (polling_reconnect_timer !== null) {
+		clearTimeout(polling_reconnect_timer);
+		polling_reconnect_timer = null;
+	}
 	if (polling_request !== null) {
 		polling_request.abort();  // polling_status = falseなので、errorが発生しても再接続を行わない
 	}
 	polling_request = null;
 	polling_id = null;
+	polling_token = null;
 
 	if (timeout_handler_function !== null) {
 		var fd = new FormData();
