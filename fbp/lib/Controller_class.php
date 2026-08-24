@@ -4143,6 +4143,32 @@ class Controller_class implements Controller {
 	}
 
 	private function get_table_dropdown_rows($table_name, $ffm) {
+		$filter_conditions = [];
+		$class_name = $table_name . "_visibility_filter";
+		$file_path = $this->dirs->appdir_user . "/" . $class_name . "/" . $class_name . ".php";
+		if (is_file($file_path)) {
+			require_once $file_path;
+			if (class_exists($class_name)) {
+				$filter = new $class_name();
+				if (method_exists($filter, "get_filter_conditions")) {
+					$conditions = $filter->get_filter_conditions($this, "dropdown");
+					if (is_array($conditions)) {
+						$filter_conditions = $conditions;
+					}
+				}
+			}
+		}
+		$filter_fields = [];
+		$filter_values = [];
+		$filter_patterns = [];
+		foreach ($filter_conditions as $condition) {
+			if (!is_array($condition) || empty($condition["field"])) {
+				continue;
+			}
+			$filter_fields[] = (string) $condition["field"];
+			$filter_values[] = $condition["value"] ?? "";
+			$filter_patterns[] = (string) ($condition["match_pattern"] ?? "=");
+		}
 		$fmt_db = $this->db("db", "db");
 		$fmt_fields = $this->db("db_fields", "db");
 		$db_list = $fmt_db->select("tb_name", $table_name);
@@ -4151,11 +4177,15 @@ class Controller_class implements Controller {
 			if ($db_id > 0) {
 				$sort_fields = $fmt_fields->select(["db_id", "parameter_name"], [$db_id, "sort"], true, "AND", "id", SORT_ASC);
 				if (count($sort_fields) > 0) {
-					return $ffm->getall("sort", SORT_ASC);
+					return empty($filter_fields)
+						? $ffm->getall("sort", SORT_ASC)
+						: $ffm->filter($filter_fields, $filter_values, true, "AND", "sort", SORT_ASC, null, $is_last, $filter_patterns);
 				}
 			}
 		}
-		return $ffm->getall("id", SORT_DESC);
+		return empty($filter_fields)
+			? $ffm->getall("id", SORT_DESC)
+			: $ffm->filter($filter_fields, $filter_values, true, "AND", "id", SORT_DESC, null, $is_last, $filter_patterns);
 	}
 
 	private function get_db_field_map_by_table_name(string $table_name): array {
