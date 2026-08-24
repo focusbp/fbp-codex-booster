@@ -1823,6 +1823,7 @@ line-height: 1em;
 
 .original_screen_page {
 	padding: 16px;
+	margin: 0 !important;
 }
 
 .original_screen_toolbar {
