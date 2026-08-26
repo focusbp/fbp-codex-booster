@@ -32,7 +32,3 @@
 		{/foreach}
 	</tbody>
 </table>
-
-{if $is_last == false}
-	<div class="ajax-auto" data-form="email_format_email_format_search_form" data-class="{$class}" data-function="page" data-max="{$max}"><div>
-		{/if}

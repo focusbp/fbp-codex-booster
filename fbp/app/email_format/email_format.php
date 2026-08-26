@@ -13,7 +13,6 @@ class email_format {
 
 		$post = $ctl->POST();
 		$ctl->assign('post', $post);
-		$max = $ctl->increment_post_value('max', 10);
 		$button = (string) ($post['button'] ?? '');
 		$search_template_name = (string) ($ctl->get_session("search_template_name_em_tmp") ?? '');
 		$posted_search_template_name = trim((string) ($post['search_template_name'] ?? ''));
@@ -28,9 +27,7 @@ class email_format {
 			$ctl->set_session("search_template_name_em_tmp", $search_template_name);
 		}
 
-		$items = $this->fmt_email_format->filter(["template_name"], [$search_template_name], false, 'AND', 'sort', SORT_ASC, $max, $is_last);
-		$ctl->assign("max", $max);
-		$ctl->assign("is_last", $is_last);
+		$items = $this->fmt_email_format->filter(["template_name"], [$search_template_name], false, 'AND', 'sort', SORT_ASC);
 		$ctl->assign("items", $items);
 
 		if($window === "window"){
