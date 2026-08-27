@@ -866,8 +866,14 @@ function open_original_time_picker_panel(input) {
 	var minuteValue = parsed.minute;
 	var meridiemValue = parsed.meridiem;
 	var minuteNumber = parseInt(minuteValue, 10);
+	var configuredMinuteStep = parseInt(input.attr("data-minute-step"), 10);
+	if ([1, 5, 10, 15, 30].indexOf(configuredMinuteStep) === -1) {
+		configuredMinuteStep = 0;
+	}
 	var minuteStep = "10";
-	if (!isNaN(minuteNumber)) {
+	if (configuredMinuteStep > 0) {
+		minuteStep = String(configuredMinuteStep);
+	} else if (!isNaN(minuteNumber)) {
 		if (minuteNumber % 10 === 0) {
 			minuteStep = "10";
 		} else if (minuteNumber % 5 === 0) {
@@ -876,6 +882,12 @@ function open_original_time_picker_panel(input) {
 			minuteStep = "1";
 		}
 	}
+	var minuteStepSelector = configuredMinuteStep > 0 ? "" :
+		'<div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:10px;font-size:12px;color:#475569;gap:8px;">' +
+			'<label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="fbp_original_time_step" value="10" checked>10</label>' +
+			'<label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="fbp_original_time_step" value="5">5</label>' +
+			'<label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="fbp_original_time_step" value="1">1</label>' +
+		'</div>';
 
 	var hourOptions = "";
 	var hourStart = mode.usesMeridiem ? 1 : 0;
@@ -897,11 +909,7 @@ function open_original_time_picker_panel(input) {
 	}
 	var panel = $(
 		'<div class="fbp-original-time-panel" style="background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 10px 30px rgba(15,23,42,0.18);padding:14px;min-width:260px;max-width:320px;">' +
-			'<div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:10px;font-size:12px;color:#475569;gap:8px;">' +
-				'<label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="fbp_original_time_step" value="10" checked>10</label>' +
-				'<label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="fbp_original_time_step" value="5">5</label>' +
-				'<label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="fbp_original_time_step" value="1">1</label>' +
-			'</div>' +
+			minuteStepSelector +
 			'<div style="display:flex;gap:10px;align-items:end;margin-bottom:12px;">' +
 				'<div style="flex:1;">' +
 					'<div style="font-size:12px;color:#64748b;margin-bottom:4px;">' + escapeHtml(get_client_localized_text("original_time_hour")) + '</div>' +
