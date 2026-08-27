@@ -32,7 +32,7 @@ if (!class_exists("FixedFileManagerFieldLengthException", false)) {
 	}
 }
 
-class fixed_file_manager_read_only_format_change_required extends RuntimeException {}
+class fixed_file_manager_read_only_writable_open_required extends RuntimeException {}
 
 class fixed_file_manager implements FFM {
 	private const INDEX_VERSION = 2;
@@ -226,6 +226,11 @@ class fixed_file_manager implements FFM {
 
 		// datファイルがなかったら作成する
 		if (!file_exists($this->path_dat)) {
+			if ($this->read_only) {
+				throw new fixed_file_manager_read_only_writable_open_required(
+					"Read-only fixed_file_manager requires initial creation : " . $this->path_dat
+				);
+			}
 			$header_txt = $this->makeHeader(0, $format_txt, $this->parseFormat($format_txt));
 			file_put_contents($this->path_dat, $header_txt);
 
@@ -240,7 +245,7 @@ class fixed_file_manager implements FFM {
 		if ($format_txt != $this->header["format_txt"]) {
 			if ($this->read_only) {
 				$this->close();
-				throw new fixed_file_manager_read_only_format_change_required(
+				throw new fixed_file_manager_read_only_writable_open_required(
 					"Read-only fixed_file_manager requires format conversion : " . $this->path_dat
 				);
 			}
@@ -248,36 +253,6 @@ class fixed_file_manager implements FFM {
 			$this->changeFormat($format_txt);
 		}
 		$this->prepare_indexes();
-	}
-
-	public static function can_open_read_only(string $filename, string $datadir, string $formatdir): bool {
-		$path_dat = rtrim($datadir, "/") . "/" . $filename . ".dat";
-		$path_fmt = rtrim($formatdir, "/") . "/" . $filename . ".fmt";
-		if (!is_file($path_dat) || !is_file($path_fmt)) return false;
-
-		$fmt_source = @file_get_contents($path_fmt);
-		if (!is_string($fmt_source)) return false;
-		$format_txt = self::normalize_format_text($fmt_source);
-		$hf = @fopen($path_dat, "rb");
-		if (!is_resource($hf)) return false;
-		try {
-			if (!flock($hf, LOCK_SH)) return false;
-			$fixed_header = fread($hf, 44);
-			if (!is_string($fixed_header) || strlen($fixed_header) !== 44) return false;
-			$header_size_text = substr($fixed_header, 28, 16);
-			if (preg_match('/^[0-9]{16}$/', $header_size_text) !== 1) return false;
-			$header_size = (int) $header_size_text;
-			$file_stat = fstat($hf);
-			if ($header_size < 44 || !is_array($file_stat) || $header_size > (int) ($file_stat["size"] ?? 0)) return false;
-			$format_size = $header_size - 44;
-			$dat_format = fread($hf, $format_size);
-			return is_string($dat_format)
-				&& strlen($dat_format) === $format_size
-				&& trim($dat_format) === $format_txt;
-		} finally {
-			@flock($hf, LOCK_UN);
-			@fclose($hf);
-		}
 	}
 
 	private static function normalize_format_text(string $source): string {

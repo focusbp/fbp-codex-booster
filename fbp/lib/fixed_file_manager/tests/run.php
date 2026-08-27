@@ -159,27 +159,23 @@ try {
 	$ffm->close();
 	ffm_test_assert(!is_file($root . "/data/sample.dat.idx.dirty"), "rebuild did not clear dirty state");
 
-	// Read-only preflight must use shared mode only when no format conversion is needed.
+	// Read-only open must validate the format after ordered locking and request a writable reopen when needed.
 	$readonly_root = $roots[] = ffm_test_root("readonly-format");
 	$readonly_fmt = "id,24,N\nname,60,T\n";
 	$ffm = ffm_test_open($readonly_root, $readonly_fmt);
 	$readonly_row = ["name" => "preserved"];
 	$ffm->insert($readonly_row);
 	$ffm->close();
-	ffm_test_assert(
-		fixed_file_manager::can_open_read_only("sample", $readonly_root . "/data", $readonly_root . "/fmt"),
-		"matching format was not eligible for read-only open"
-	);
+	$GLOBALS["lock_class_arr"] = [];
+	$readonly = new fixed_file_manager("sample", $readonly_root . "/data", $readonly_root . "/fmt", ["read_only" => true]);
+	ffm_test_same("preserved", $readonly->get(1)["name"] ?? null, "matching read-only open lost data");
+	$readonly->close();
 	file_put_contents($readonly_root . "/fmt/sample.fmt", "id,24,N\nname,60,T\nmemo,80,T\n");
-	ffm_test_assert(
-		!fixed_file_manager::can_open_read_only("sample", $readonly_root . "/data", $readonly_root . "/fmt"),
-		"format conversion requirement was not detected"
-	);
 	$GLOBALS["lock_class_arr"] = [];
 	$format_exception = false;
 	try {
 		new fixed_file_manager("sample", $readonly_root . "/data", $readonly_root . "/fmt", ["read_only" => true]);
-	} catch (fixed_file_manager_read_only_format_change_required $e) {
+	} catch (fixed_file_manager_read_only_writable_open_required $e) {
 		$format_exception = true;
 	}
 	ffm_test_assert($format_exception, "read-only format mismatch did not request writable fallback");
@@ -187,18 +183,18 @@ try {
 	$ffm = ffm_test_open($readonly_root, "id,24,N\nname,60,T\nmemo,80,T\n");
 	ffm_test_same("preserved", $ffm->get(1)["name"] ?? null, "writable format fallback lost data");
 	$ffm->close();
-	ffm_test_assert(
-		fixed_file_manager::can_open_read_only("sample", $readonly_root . "/data", $readonly_root . "/fmt"),
-		"converted format was not eligible for read-only open"
-	);
-	$readonly_dat = $readonly_root . "/data/sample.dat";
-	$readonly_bytes = file_get_contents($readonly_dat);
-	file_put_contents($readonly_dat, substr_replace($readonly_bytes, "9999999999999999", 28, 16));
-	ffm_test_assert(
-		!fixed_file_manager::can_open_read_only("sample", $readonly_root . "/data", $readonly_root . "/fmt"),
-		"invalid header size was accepted for read-only open"
-	);
-	file_put_contents($readonly_dat, $readonly_bytes);
+
+	$readonly_create_root = $roots[] = ffm_test_root("readonly-create");
+	file_put_contents($readonly_create_root . "/fmt/sample.fmt", $readonly_fmt);
+	$GLOBALS["lock_class_arr"] = [];
+	$create_exception = false;
+	try {
+		new fixed_file_manager("sample", $readonly_create_root . "/data", $readonly_create_root . "/fmt", ["read_only" => true]);
+	} catch (fixed_file_manager_read_only_writable_open_required $e) {
+		$create_exception = true;
+	}
+	ffm_test_assert($create_exception, "read-only initial open did not request writable fallback");
+	ffm_test_assert(!is_file($readonly_create_root . "/data/sample.dat"), "read-only initial open created a dat file");
 
 	// Concurrent readers must see the same indexed result without deadlock.
 	if (function_exists("pcntl_fork")) {

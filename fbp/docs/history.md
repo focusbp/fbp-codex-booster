@@ -1,5 +1,8 @@
 # app-framework5 History
 
+## 2026-08-27
+- Removed the standalone blocking read-only preflight lock and routed Standard Screen read-only opens through the existing globally ordered FFM lock path before format validation. Missing data files and format changes now request an ordered writable reopen, and a two-process reverse-order regression test verifies that shared/read-write opens cannot form the former circular wait.
+
 ## 2026-08-14
 - Added opt-in `IDX` fields to fixed file formats, exact-match candidate indexes for `select()` and exact `filter()`, CRUD/change-format index maintenance, and safe full-scan fallback for missing, dirty, or invalid indexes.
 - Added the `db_fields.index_flag` management option and preserved the existing behavior for every field without `IDX`.

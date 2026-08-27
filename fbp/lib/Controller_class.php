@@ -184,12 +184,11 @@ class Controller_class implements Controller {
 
 		$key = $ddir . "/" . $name;
 		if (!isset($this->dbarr[$key])) {
-			$read_only = $this->db_read_only
-				&& fixed_file_manager::can_open_read_only($name, $ddir, $fdir);
+			$read_only = $this->db_read_only;
 			try {
 				$ffm = new fixed_file_manager($name, $ddir, $fdir, ["read_only" => $read_only]);
-			} catch (fixed_file_manager_read_only_format_change_required $e) {
-				// The format may change in the short interval after the read-only preflight.
+			} catch (fixed_file_manager_read_only_writable_open_required $e) {
+				// Initial creation and format conversion require an ordered writable reopen.
 				$ffm = new fixed_file_manager($name, $ddir, $fdir);
 			}
 			$ffm->set_controller($this);

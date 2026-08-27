@@ -22,6 +22,42 @@ function standard_read_only_remove(string $dir): void {
 	rmdir($dir);
 }
 
+function standard_read_only_real_controller(string $root, bool $read_only): Controller_class {
+	$dirs = new class($root) {
+		public string $datadir;
+		private string $root;
+
+		function __construct(string $root) {
+			$this->root = $root;
+			$this->datadir = $root . "/data";
+		}
+
+		function get_class_dir(string $class): string {
+			return $this->root . "/classes/" . $class;
+		}
+	};
+	$reflection = new ReflectionClass(Controller_class::class);
+	$ctl = $reflection->newInstanceWithoutConstructor();
+	$reflection->getProperty("dirs")->setValue($ctl, $dirs);
+	$reflection->getProperty("class")->setValue($ctl, "common");
+	$reflection->getProperty("dbarr")->setValue($ctl, []);
+	$reflection->getProperty("db_read_only")->setValue($ctl, false);
+	if ($read_only) {
+		standard_read_only_assert($ctl->set_db_read_only(true), "controller could not enter read-only mode");
+	}
+	return $ctl;
+}
+
+function standard_read_only_wait_for_file(string $path): void {
+	$deadline = microtime(true) + 3;
+	while (!is_file($path)) {
+		if (microtime(true) >= $deadline) {
+			throw new RuntimeException("timed out waiting for barrier: " . basename($path));
+		}
+		usleep(10000);
+	}
+}
+
 class standard_read_only_test_controller extends Controller_class {
 	private $test_dbs;
 	public $assigned = [];
@@ -101,6 +137,83 @@ try {
 	if (isset($screen_fields) && $screen_fields instanceof fixed_file_manager) $screen_fields->close();
 	if (isset($db_fields) && $db_fields instanceof fixed_file_manager) $db_fields->close();
 	standard_read_only_remove($root);
+}
+
+// A read-only reverse-order open must enter the normal lock ordering before it waits.
+if (function_exists("pcntl_fork") && function_exists("posix_kill")) {
+	$lock_root = sys_get_temp_dir() . "/standard-screen-lock-order-" . bin2hex(random_bytes(5));
+	try {
+		mkdir($lock_root . "/data/common", 0777, true);
+		mkdir($lock_root . "/classes/common/fmt", 0777, true);
+		$lock_fmt = "id,24,N\nname,60,T\n";
+		foreach (["a_table", "z_table"] as $table) {
+			file_put_contents($lock_root . "/classes/common/fmt/" . $table . ".fmt", $lock_fmt);
+			$GLOBALS["lock_class_arr"] = [];
+			$seed = new fixed_file_manager($table, $lock_root . "/data/common", $lock_root . "/classes/common/fmt");
+			$seed->close();
+		}
+
+		$reader_ready = $lock_root . "/reader.ready";
+		$writer_ready = $lock_root . "/writer.ready";
+		$reader_pid = pcntl_fork();
+		if ($reader_pid === 0) {
+			try {
+				$GLOBALS["lock_class_arr"] = [];
+				$reader = standard_read_only_real_controller($lock_root, true);
+				$reader->db("z_table", "common");
+				file_put_contents($reader_ready, "1");
+				standard_read_only_wait_for_file($writer_ready);
+				$reader->db("a_table", "common");
+				$reader->close_all_db();
+				exit(0);
+			} catch (Throwable $e) {
+				fwrite(STDERR, $e->getMessage() . "\n");
+				exit(1);
+			}
+		}
+		standard_read_only_assert($reader_pid > 0, "reader fork failed");
+
+		$writer_pid = pcntl_fork();
+		if ($writer_pid === 0) {
+			try {
+				$GLOBALS["lock_class_arr"] = [];
+				$writer = standard_read_only_real_controller($lock_root, false);
+				$writer->db("a_table", "common");
+				file_put_contents($writer_ready, "1");
+				standard_read_only_wait_for_file($reader_ready);
+				$writer->db("z_table", "common");
+				$writer->close_all_db();
+				exit(0);
+			} catch (Throwable $e) {
+				fwrite(STDERR, $e->getMessage() . "\n");
+				exit(1);
+			}
+		}
+		standard_read_only_assert($writer_pid > 0, "writer fork failed");
+
+		$pending = [$reader_pid => true, $writer_pid => true];
+		$deadline = microtime(true) + 5;
+		while (!empty($pending) && microtime(true) < $deadline) {
+			foreach (array_keys($pending) as $pid) {
+				$result = pcntl_waitpid($pid, $status, WNOHANG);
+				if ($result === $pid) {
+					unset($pending[$pid]);
+					standard_read_only_assert(
+						pcntl_wifexited($status) && pcntl_wexitstatus($status) === 0,
+						"ordered lock child failed"
+					);
+				}
+			}
+			if (!empty($pending)) usleep(20000);
+		}
+		if (!empty($pending)) {
+			foreach (array_keys($pending) as $pid) posix_kill($pid, SIGKILL);
+			foreach (array_keys($pending) as $pid) pcntl_waitpid($pid, $status);
+			throw new RuntimeException("read-only reverse-order open deadlocked");
+		}
+	} finally {
+		standard_read_only_remove($lock_root);
+	}
 }
 
 echo "standard screen read-only routing test passed\n";
