@@ -1,6 +1,6 @@
 ---
 name: fbp-mcp-server
-description: Build and maintain the single MCP Server and function registry for an FBP app, including tools/list, tools/call, OAuth subjects, mcp_functions, and deterministic mcp_<function_name> classes.
+description: Build and maintain the single MCP Server and function registry for an FBP app, including tools/list, tools/call, OAuth subjects, mcp_functions, and deterministic MCP function classes.
 ---
 
 # fbp-mcp-server
@@ -75,6 +75,22 @@ class mcp_task_list implements McpFunctionInterface {
 
 Use JSON Schema and runtime validation together. Prefer `McpInputValidator`. For FBP numeric date fields, convert validated dates to timestamps before storage and format them back for responses.
 
+### PHP to JSON Schema Serialization
+
+Validate the JSON representation, not only the PHP array. PHP encodes an empty array as `[]`, but JSON Schema keywords such as `properties`, `$defs`, `patternProperties`, and `dependentSchemas` require JSON objects. A function class may use an empty PHP array as its internal empty property map:
+
+```php
+return [
+	"type" => "object",
+	"properties" => [],
+	"additionalProperties" => false,
+];
+```
+
+The MCP Server owns the JSON boundary. Its schema normalization must serialize an empty property map as `{}` and must not turn an explicitly supplied object back into `[]`. Fix this centrally in the framework; do not add per-app casts as the primary solution. Keep array-valued keywords such as `required`, `oneOf`, `anyOf`, and `allOf` as JSON arrays.
+
+Framework regression coverage for schema normalization must include both a no-argument function and a function with named arguments, and assert their serialized JSON types rather than comparing only PHP values.
+
 ## Registry
 
 `mcp_functions` stores:
@@ -139,9 +155,10 @@ For images, put normalized content in `data.mcp_content_images` with `mime_type`
 3. Run `mcp_function_apply` in dry-run mode, then apply.
 4. Render `mcp_manage::page`; confirm there is one server and every function is `ready`.
 5. Call `tools/list`; verify names, input schemas, output schemas, annotations, and scopes.
-6. Call at least one read function and one safe write function through OAuth when available.
-7. Confirm `mcp_call_logs` records function name and subject.
-8. Verify token revocation and custom subject hooks when those paths changed.
+6. Inspect the serialized JSON for every returned tool. Object-valued schema keywords must encode as `{}`, never `[]`; in particular, every `inputSchema.properties` must have JSON type `object`. Do not stop after validating the first tool because one invalid descriptor can make the client reject the complete tool list.
+7. Call at least one read function and one safe write function through OAuth when available.
+8. Confirm `mcp_call_logs` records function name and subject.
+9. Verify token revocation and custom subject hooks when those paths changed.
 
 For local read-only handler checks, `mcp_server::cli_function_check` is guarded by `CLI_APP_CALL` and may be invoked through `fbp-cli`.
 

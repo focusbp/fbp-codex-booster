@@ -731,8 +731,10 @@ class mcp_server {
 		if (($schema["type"] ?? "") !== "object") {
 			$schema["type"] = "object";
 		}
-		if (!isset($schema["properties"]) || !is_array($schema["properties"])) {
-			$schema["properties"] = [];
+		if (!isset($schema["properties"]) || (!is_array($schema["properties"]) && !is_object($schema["properties"]))) {
+			$schema["properties"] = new stdClass();
+		} elseif (is_array($schema["properties"]) && count($schema["properties"]) === 0) {
+			$schema["properties"] = new stdClass();
 		}
 		if (!isset($schema["required"]) || !is_array($schema["required"])) {
 			$schema["required"] = [];
