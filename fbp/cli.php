@@ -60,6 +60,7 @@ include("lib/I18nSimple.php");
 include("interface/CodegenActionInterface.php");
 include("interface/McpSubjectInterface.php");
 include("interface/McpActionInterface.php");
+include("interface/McpFunctionInterface.php");
 include("interface/linebot/linebot.php");
 include("lib/linebot/Linebot_class.php");
 include("lib/fixed_file_manager/fixed_file_manager.php");
@@ -1021,6 +1022,112 @@ function cli_mcp_normalize_tool_specs(array $data): array {
 		return [$data];
 	}
 	return [];
+}
+
+function cli_mcp_validate_function_class(Dirs $dir, string $function_name): string {
+	if (!McpFunctionLoader::validateName($function_name)) {
+		return "function_name must start with a lowercase letter and use lowercase letters, numbers, or underscore.";
+	}
+	$class_name = McpFunctionLoader::className($function_name);
+	if (!class_exists($class_name, false)) {
+		try {
+			include_once($dir->get_class_dir($class_name) . "/" . $class_name . ".php");
+		} catch (Throwable $e) {
+			return "function class not found: " . $class_name;
+		}
+	}
+	if (!class_exists($class_name, false)) {
+		return "function class not found: " . $class_name;
+	}
+	if (!in_array("McpFunctionInterface", class_implements($class_name), true)) {
+		return "function class must implement McpFunctionInterface: " . $class_name;
+	}
+	return "";
+}
+
+function cli_mcp_apply_functions(Dirs $dir, array $data): array {
+	$dry_run = array_key_exists("dry_run", $data) ? (bool) $data["dry_run"] : true;
+	$specs = isset($data["functions"]) && is_array($data["functions"])
+		? array_values($data["functions"])
+		: (isset($data["function_name"]) ? [$data] : []);
+	$errors = [];
+	$results = [];
+	$plans = [];
+	$seen = [];
+	$ffm_functions = cli_mcp_db($dir, "mcp_functions");
+
+	if (count($specs) === 0) {
+		$errors[] = "Missing functions in --json.";
+	}
+	foreach ($specs as $index => $spec) {
+		if (!is_array($spec)) {
+			$errors[] = "functions[" . $index . "] must be an object.";
+			continue;
+		}
+		$name = trim((string) ($spec["function_name"] ?? ($spec["name"] ?? "")));
+		if (isset($seen[$name])) {
+			$errors[] = "Duplicate function in spec: " . $name;
+			continue;
+		}
+		$seen[$name] = true;
+		$class_error = cli_mcp_validate_function_class($dir, $name);
+		if ($class_error !== "") {
+			$errors[] = "functions[" . $index . "]: " . $class_error;
+			continue;
+		}
+		$existing = [];
+		foreach ($ffm_functions->select("function_name", $name) as $row) {
+			$existing = $row;
+			break;
+		}
+		$handler_config = $spec["handler_config"] ?? ($existing["handler_config"] ?? "");
+		if (is_array($handler_config)) {
+			$handler_config = json_encode($handler_config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+		}
+		$handler_config = trim((string) $handler_config);
+		if ($handler_config !== "" && json_decode($handler_config, true) === null && json_last_error() !== JSON_ERROR_NONE) {
+			$errors[] = "functions[" . $index . "]: handler_config must be valid JSON.";
+			continue;
+		}
+		$now = time();
+		$row = $existing;
+		$row["enabled"] = cli_mcp_bool01($spec["enabled"] ?? ($existing["enabled"] ?? null), (int) ($existing["enabled"] ?? 1));
+		$row["function_name"] = $name;
+		$row["title"] = trim((string) ($spec["title"] ?? ($existing["title"] ?? $name)));
+		$row["description"] = trim((string) ($spec["description"] ?? ($existing["description"] ?? "")));
+		$row["required_scope"] = trim((string) ($spec["required_scope"] ?? ($existing["required_scope"] ?? "mcp.read")));
+		$row["requires_confirmation"] = cli_mcp_bool01($spec["requires_confirmation"] ?? ($existing["requires_confirmation"] ?? null), (int) ($existing["requires_confirmation"] ?? 0));
+		$row["read_only"] = cli_mcp_bool01($spec["read_only"] ?? ($existing["read_only"] ?? null), (int) ($existing["read_only"] ?? 1));
+		$row["destructive"] = cli_mcp_bool01($spec["destructive"] ?? ($existing["destructive"] ?? null), (int) ($existing["destructive"] ?? 0));
+		$row["handler_config"] = $handler_config;
+		$row["updated_at"] = $now;
+		$existing_id = (int) ($existing["id"] ?? 0);
+		if ($existing_id <= 0) {
+			$list = $ffm_functions->getall("sort", SORT_DESC);
+			$row["sort"] = count($list) === 0 ? 0 : (int) ($list[0]["sort"] ?? 0) + 1;
+			$row["created_at"] = $now;
+		}
+		$plans[] = ["row" => $row, "existing_id" => $existing_id];
+		$results[] = [
+			"function_name" => $name,
+			"class_name" => McpFunctionLoader::className($name),
+			"action" => $existing_id > 0 ? "update" : "create",
+			"id" => $existing_id > 0 ? $existing_id : null,
+			"ready_status" => (int) $row["enabled"] === 1 ? "ready" : "disabled",
+		];
+	}
+	if (count($errors) > 0 || $dry_run) {
+		return ["ok" => count($errors) === 0, "dry_run" => true, "items" => $results, "errors" => $errors];
+	}
+	foreach ($plans as $i => $plan) {
+		if ($plan["existing_id"] > 0) {
+			$ffm_functions->update($plan["row"]);
+			$results[$i]["id"] = $plan["existing_id"];
+		} else {
+			$results[$i]["id"] = (int) $ffm_functions->insert($plan["row"]);
+		}
+	}
+	return ["ok" => true, "dry_run" => false, "items" => $results, "errors" => []];
 }
 
 function cli_mcp_apply_tools(Dirs $dir, $ffm_db_admin, $ffm_db_fields_admin, array $data): array {
@@ -2767,6 +2874,16 @@ if ($command === "email_format_validate") {
 	exit(0);
 }
 
+if ($command === "mcp_function_apply") {
+	[$ok, $err, $data] = cli_get_json_arg($argv);
+	if (!$ok) {
+		fwrite(STDERR, $err . "\n");
+		exit(1);
+	}
+	$out = cli_mcp_apply_functions($dir, $data);
+	cli_output_json($out, $out["ok"] ? 0 : 1);
+}
+
 if ($command === "mcp_tool_apply") {
 	[$ok, $err, $data] = cli_get_json_arg($argv);
 	if (!$ok) {
@@ -3612,6 +3729,6 @@ if ($command === "db_schema") {
 	exit(0);
 }
 
-fwrite(STDERR, "Usage: php cli.php db_schema | setting_get | setting_edit --json='{}' | app_call --json='{}' | app_check --json='{}' | db_additionals_list | db_additionals_add --json='{}' | db_additionals_edit --json='{}' | db_additionals_delete --json='{}' | db_additionals_generate --json='{\"id\":1}' | db_tables_list | db_tables_add --json='{}' | db_tables_edit --json='{}' | db_tables_delete --json='{}' | db_fields_list [--json='{\"db_id\":1}'] | db_fields_add --json='{}' | db_fields_edit --json='{}' | db_fields_delete --json='{}' | screen_fields_list --json='{\"tb_name\":\"xxx\",\"screen_name\":\"list\"}' | standard_screen_check --json='{\"tb_name\":\"xxx\"}' | screen_fields_add --json='{}' | screen_fields_edit --json='{}' | screen_fields_delete --json='{}' | cron_list [--json='{\"id\":1}'] | cron_add --json='{}' | cron_edit --json='{}' | cron_delete --json='{}' | webhook_rule_list [--json='{\"id\":1}'] | webhook_rule_add --json='{}' | webhook_rule_edit --json='{}' | webhook_rule_delete --json='{\"id\":1}' | embed_app_list [--json='{\"id\":1}'] | embed_app_add --json='{}' | embed_app_edit --json='{}' | embed_app_delete --json='{\"id\":1}' | email_format_list [--json='{\"id\":1}'] | email_format_get --json='{\"id\":1}' | email_format_add --json='{}' | email_format_edit --json='{}' | email_format_delete --json='{\"id\":1}' | email_format_validate --json='{\"id\":1}' | mcp_tool_apply --json='{}'\n");
+fwrite(STDERR, "Usage: php cli.php db_schema | setting_get | setting_edit --json='{}' | app_call --json='{}' | app_check --json='{}' | db_additionals_list | db_additionals_add --json='{}' | db_additionals_edit --json='{}' | db_additionals_delete --json='{}' | db_additionals_generate --json='{\"id\":1}' | db_tables_list | db_tables_add --json='{}' | db_tables_edit --json='{}' | db_tables_delete --json='{}' | db_fields_list [--json='{\"db_id\":1}'] | db_fields_add --json='{}' | db_fields_edit --json='{}' | db_fields_delete --json='{}' | screen_fields_list --json='{\"tb_name\":\"xxx\",\"screen_name\":\"list\"}' | standard_screen_check --json='{\"tb_name\":\"xxx\"}' | screen_fields_add --json='{}' | screen_fields_edit --json='{}' | screen_fields_delete --json='{}' | cron_list [--json='{\"id\":1}'] | cron_add --json='{}' | cron_edit --json='{}' | cron_delete --json='{}' | webhook_rule_list [--json='{\"id\":1}'] | webhook_rule_add --json='{}' | webhook_rule_edit --json='{}' | webhook_rule_delete --json='{\"id\":1}' | embed_app_list [--json='{\"id\":1}'] | embed_app_add --json='{}' | embed_app_edit --json='{}' | embed_app_delete --json='{\"id\":1}' | email_format_list [--json='{\"id\":1}'] | email_format_get --json='{\"id\":1}' | email_format_add --json='{}' | email_format_edit --json='{}' | email_format_delete --json='{\"id\":1}' | email_format_validate --json='{\"id\":1}' | mcp_function_apply --json='{}' | mcp_tool_apply --json='{}'\n");
 fwrite(STDERR, "app_call/app_check: windowcodeを固定する場合、session_id未指定時はwindowcode由来の有効なsession_idを自動使用します。session_idに使える文字は英数字・'-'・','です。\n");
 exit(1);

@@ -19,6 +19,7 @@ class ReleaseManager {
 	private $db_file_copy_list = [
 	    "mcp_manage" => [
 	        "mcp_server_config.dat",
+	        "mcp_functions.dat",
 	        "mcp_tools.dat",
 	        "mcp_tool_fields.dat",
 	    ],

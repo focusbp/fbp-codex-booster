@@ -396,25 +396,18 @@
 					<table class="setting_detail_table setting_readonly_table">
 						<thead>
 							<tr>
-								<th style="width:18%;">{t key="mcp_manage.server_key"}</th>
 								<th>{t key="common.title"}</th>
 								<th style="width:12%;">{t key="common.status"}</th>
 								<th style="width:12%;">{t key="mcp_manage.auth_mode"}</th>
 								<th style="width:18%;">{t key="mcp_manage.subject_type"}</th>
-								<th style="width:8%;">Tool</th>
+								<th style="width:10%;">Function</th>
 								<th style="width:14%;"></th>
 							</tr>
 						</thead>
 						<tbody>
 							{foreach $mcp_servers_info as $server}
 								<tr>
-									<td>
-										<div class="setting_readonly_value">{$server.server_key|escape}</div>
-										{if $server.description|default:'' != ''}
-											<div style="font-size:11px;color:#6b7280;line-height:1.4;">{$server.description|escape|nl2br nofilter}</div>
-										{/if}
-									</td>
-									<td><div class="setting_readonly_value">{$server.title|escape}</div></td>
+									<td><div class="setting_readonly_value">{$server.title|escape}</div>{if $server.description|default:'' != ''}<div style="font-size:11px;color:#6b7280;line-height:1.4;">{$server.description|escape|nl2br nofilter}</div>{/if}</td>
 									<td><div class="setting_readonly_value">{$server.status|escape}</div></td>
 									<td><div class="setting_readonly_value">{$server.auth_mode|escape}</div></td>
 									<td>
@@ -423,7 +416,7 @@
 											<div style="font-size:11px;color:#6b7280;">{$server.subject_provider_class|escape}</div>
 										{/if}
 									</td>
-									<td><div class="setting_readonly_value">{$server.tool_count|default:0|escape}</div></td>
+									<td><div class="setting_readonly_value">{$server.function_count|default:0|escape}</div></td>
 									<td>
 										<button class="ajax-link" data-class="setting" data-function="mcp_server_detail" data-server_id="{$server.id|escape}">URL</button>
 									</td>

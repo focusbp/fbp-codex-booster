@@ -3,7 +3,6 @@
 	<table class="custom_events_table">
 		<tbody>
 			<tr><td style="width:30%;">{t key="common.status"}</td><td>{html_options name="enabled" options=$enabled_opt selected=$server.enabled}</td></tr>
-			<tr><td>{t key="mcp_manage.server_key"}</td><td><input type="text" name="server_key" value="{$server.server_key|escape}"><p class="error_message error_server_key"></p></td></tr>
 			<tr><td>{t key="common.title"}</td><td><input type="text" name="title" value="{$server.title|escape}"><p class="error_message error_title"></p></td></tr>
 			<tr><td>{t key="common.description"}</td><td><textarea name="description" style="height:80px;">{$server.description|escape}</textarea></td></tr>
 			<tr><td>{t key="mcp_manage.auth_mode"}</td><td>{html_options name="auth_mode" options=$auth_mode_opt selected=$server.auth_mode}<p class="error_message error_auth_mode"></p></td></tr>

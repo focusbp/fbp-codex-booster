@@ -3,6 +3,7 @@
 class mcp_server {
 
 	private $ffm_server;
+	private $ffm_functions;
 	private $ffm_tools;
 	private $ffm_fields;
 	private $ffm_logs;
@@ -12,6 +13,7 @@ class mcp_server {
 	function __construct(Controller $ctl) {
 		$ctl->set_check_login(false);
 		$this->ffm_server = $ctl->db("mcp_server_config", "mcp_manage");
+		$this->ffm_functions = $ctl->db("mcp_functions", "mcp_manage");
 		$this->ffm_tools = $ctl->db("mcp_tools", "mcp_manage");
 		$this->ffm_fields = $ctl->db("mcp_tool_fields", "mcp_manage");
 		$this->ffm_logs = $ctl->db("mcp_call_logs", "mcp_manage");
@@ -58,6 +60,27 @@ class mcp_server {
 			"title" => (string) ($server["title"] ?? "FBP MCP Server"),
 			"auth_mode" => (string) ($server["auth_mode"] ?? "oauth2"),
 		]);
+	}
+
+	function cli_function_check(Controller $ctl) {
+		if (!defined("CLI_APP_CALL") || CLI_APP_CALL !== true) {
+			throw new Exception("CLI only.");
+		}
+		$name = trim((string) ($ctl->POST("function_name") ?? ""));
+		$function = $this->find_function_by_name($name);
+		if ($function === null || !$this->is_function_ready($function, $ctl)) {
+			throw new Exception("MCP function is not available: " . $name);
+		}
+		$handler = McpFunctionLoader::load($name, $ctl);
+		$result = [
+			"function_name" => $name,
+			"class_name" => McpFunctionLoader::className($name),
+			"input_schema" => $handler->getInputSchema($ctl, $function),
+			"output_schema" => $handler->getOutputSchema($ctl, $function),
+			"result" => $handler->execute($ctl, new McpFunctionRequest($function, is_array($ctl->POST("arguments")) ? $ctl->POST("arguments") : [], null))->toStructuredContent(),
+		];
+		echo json_encode(["ok" => true, "mcp_function" => $result], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+		$ctl->stop_res = true;
 	}
 
 	function oauth_protected_resource(Controller $ctl) {
@@ -247,6 +270,18 @@ class mcp_server {
 	}
 
 	private function build_tool_descriptors(Controller $ctl, array $server): array {
+		$functions = $this->registered_functions();
+		if (count($functions) > 0) {
+			$tools = [];
+			foreach ($functions as $function) {
+				if (!$this->is_function_ready($function, $ctl)) {
+					continue;
+				}
+				$tools[] = $this->build_function_descriptor($ctl, $server, $function);
+			}
+			return $tools;
+		}
+
 		$tools = [];
 		foreach ($this->ffm_tools->select("server_id", $server["id"], true, "AND", "sort", SORT_ASC) as $tool) {
 			if (!$this->is_tool_ready($tool, $ctl)) {
@@ -255,6 +290,33 @@ class mcp_server {
 			$tools[] = $this->build_tool_descriptor($ctl, $server, $tool);
 		}
 		return $tools;
+	}
+
+	private function build_function_descriptor(Controller $ctl, array $server, array $function): array {
+		$name = (string) ($function["function_name"] ?? "");
+		$handler = McpFunctionLoader::load($name, $ctl);
+		$descriptor = [
+			"name" => $name,
+			"title" => (string) ($function["title"] ?? $name),
+			"description" => (string) ($function["description"] ?? ""),
+			"inputSchema" => $this->normalize_input_schema($handler->getInputSchema($ctl, $function)),
+			"annotations" => [
+				"readOnlyHint" => (int) ($function["read_only"] ?? 0) === 1,
+				"destructiveHint" => (int) ($function["destructive"] ?? 0) === 1,
+				"openWorldHint" => false,
+			],
+		];
+		$output_schema = $handler->getOutputSchema($ctl, $function);
+		if (count($output_schema) > 0) {
+			$descriptor["outputSchema"] = $output_schema;
+		}
+		$scope = $this->tool_scope($server, $function);
+		if ((string) ($server["auth_mode"] ?? "oauth2") === "noauth") {
+			$descriptor["securitySchemes"] = [["type" => "noauth"]];
+		} else {
+			$descriptor["securitySchemes"] = [["type" => "oauth2", "scopes" => $this->split_scopes($scope)]];
+		}
+		return $descriptor;
 	}
 
 	private function build_tool_descriptor(Controller $ctl, array $server, array $tool): array {
@@ -285,6 +347,14 @@ class mcp_server {
 	private function handle_tool_call(Controller $ctl, array $server, array $params): array {
 		$name = (string) ($params["name"] ?? "");
 		$args = is_array($params["arguments"] ?? null) ? $params["arguments"] : [];
+		if (count($this->registered_functions()) > 0) {
+			$function = $this->find_function_by_name($name);
+			if ($function === null || !$this->is_function_ready($function, $ctl)) {
+				return $this->tool_error("Tool is not available.");
+			}
+			return $this->handle_function_call($ctl, $server, $function, $args);
+		}
+
 		$tool = $this->find_tool_by_name((int) $server["id"], $name);
 		if ($tool === null || !$this->is_tool_ready($tool, $ctl)) {
 			return $this->tool_error("Tool is not available.");
@@ -308,6 +378,29 @@ class mcp_server {
 			];
 		} catch (Throwable $e) {
 			$this->log_call($server, $tool, $subject, "tools/call", $args, "error", $e->getMessage());
+			return $this->tool_error($e->getMessage());
+		}
+	}
+
+	private function handle_function_call(Controller $ctl, array $server, array $function, array $args): array {
+		$auth = $this->authorize_tool_call($ctl, $server, $function);
+		if (!$auth["ok"]) {
+			return $this->tool_auth_error($ctl, $server, $auth["error"]);
+		}
+		$subject = $this->subject_from_row($auth);
+		try {
+			if ((int) ($function["requires_confirmation"] ?? 0) === 1 && empty($args["confirm"])) {
+				throw new Exception("This tool requires confirm=true.");
+			}
+			$handler = McpFunctionLoader::load((string) ($function["function_name"] ?? ""), $ctl);
+			$result = $handler->execute($ctl, new McpFunctionRequest($function, $args, $subject))->toStructuredContent();
+			$this->log_call($server, $function, $subject, "tools/call", $args, "ok", "");
+			return [
+				"content" => $this->tool_content_from_result($result),
+				"structuredContent" => $result,
+			];
+		} catch (Throwable $e) {
+			$this->log_call($server, $function, $subject, "tools/call", $args, "error", $e->getMessage());
 			return $this->tool_error($e->getMessage());
 		}
 	}
@@ -959,7 +1052,7 @@ class mcp_server {
 	}
 
 	private function current_server(Controller $ctl): array {
-		return $this->get_server($this->request_server_key($ctl));
+		return $this->get_server();
 	}
 
 	private function request_server_key(Controller $ctl): string {
@@ -1033,23 +1126,19 @@ class mcp_server {
 	}
 
 	private function get_server(string $server_key = "default"): array {
-		$server_key = $this->normalize_server_key($server_key);
-		if ($server_key === "") {
-			$server_key = "default";
-		}
-		foreach ($this->ffm_server->select("server_key", $server_key) as $server) {
-			return $server;
-		}
-		if ($server_key === "default") {
-			$list = $this->ffm_server->getall("sort", SORT_ASC);
-			if (count($list) > 0) {
-				return $list[0];
+		$list = $this->ffm_server->getall("sort", SORT_ASC);
+		if (count($list) > 0) {
+			foreach ($list as $server) {
+				if ((string) ($server["server_key"] ?? "") === "default") {
+					return $server;
+				}
 			}
+			return $list[0];
 		}
 		return [
 			"id" => 0,
 			"enabled" => 0,
-			"server_key" => $server_key,
+			"server_key" => "default",
 			"title" => "FBP MCP Server",
 			"description" => "",
 			"auth_mode" => "oauth2",
@@ -1150,6 +1239,29 @@ class mcp_server {
 			return $tool;
 		}
 		return null;
+	}
+
+	private function registered_functions(): array {
+		return $this->ffm_functions->getall("sort", SORT_ASC);
+	}
+
+	private function find_function_by_name(string $name): ?array {
+		foreach ($this->ffm_functions->select("function_name", $name) as $function) {
+			return $function;
+		}
+		return null;
+	}
+
+	private function is_function_ready(array $function, ?Controller $ctl = null): bool {
+		if ((int) ($function["enabled"] ?? 0) !== 1) {
+			return false;
+		}
+		try {
+			McpFunctionLoader::load((string) ($function["function_name"] ?? ""), $ctl);
+			return true;
+		} catch (Throwable $e) {
+			return false;
+		}
 	}
 
 	private function is_tool_ready(array $tool, ?Controller $ctl = null): bool {
@@ -1564,7 +1676,10 @@ class mcp_server {
 		foreach ($this->split_scopes((string) ($server["default_scope"] ?? "")) as $scope) {
 			$scopes[$scope] = true;
 		}
-		$tools = $server_id > 0 ? $this->ffm_tools->select("server_id", $server_id) : [];
+		$tools = $this->registered_functions();
+		if (count($tools) === 0) {
+			$tools = $server_id > 0 ? $this->ffm_tools->select("server_id", $server_id) : [];
+		}
 		foreach ($tools as $tool) {
 			foreach ($this->split_scopes((string) ($tool["required_scope"] ?? "")) as $scope) {
 				$scopes[$scope] = true;
@@ -1764,7 +1879,7 @@ class mcp_server {
 			"subject_id" => $subject instanceof McpSubject ? $subject->id() : 0,
 			"subject_label" => $subject instanceof McpSubject ? $subject->label() : "",
 			"method" => $method,
-			"tool_name" => (string) ($tool["tool_name"] ?? ""),
+			"tool_name" => (string) ($tool["function_name"] ?? ($tool["tool_name"] ?? "")),
 			"request_json" => $request_json,
 			"result_status" => $status,
 			"error_message" => $error,
@@ -1807,11 +1922,6 @@ class mcp_server {
 	}
 
 	private function oauth_issuer(Controller $ctl, ?array $server = null): string {
-		$server = $server ?? $this->current_server($ctl);
-		$server_key = (string) ($server["server_key"] ?? "default");
-		if ($server_key !== "" && $server_key !== "default") {
-			return $this->mcp_url($ctl, "oauth_authorization_server", $server);
-		}
 		return $this->app_base_url($ctl);
 	}
 
@@ -1832,16 +1942,7 @@ class mcp_server {
 	}
 
 	private function mcp_url(Controller $ctl, string $function, array $server): string {
-		$params = [];
-		$server_key = (string) ($server["server_key"] ?? "default");
-		if ($server_key !== "" && $server_key !== "default") {
-			$params["server"] = $server_key;
-		}
-		$url = $ctl->get_APP_URL("mcp_server", $function);
-		if (count($params) === 0) {
-			return $url;
-		}
-		return $url . (strpos($url, "?") === false ? "?" : "&") . http_build_query($params);
+		return $ctl->get_APP_URL("mcp_server", $function);
 	}
 
 	private function app_base_url(Controller $ctl): string {

@@ -1,9 +1,5 @@
 <table class="setting_detail_table setting_readonly_table">
 	<tr>
-		<th style="width:28%;">{t key="mcp_manage.server_key"}</th>
-		<td><div class="setting_readonly_value">{$mcp_server.server_key|escape}</div></td>
-	</tr>
-	<tr>
 		<th>{t key="common.title"}</th>
 		<td><div class="setting_readonly_value">{$mcp_server.title|escape}</div></td>
 	</tr>

@@ -1,272 +1,167 @@
 ---
 name: fbp-mcp-server
-description: Build and maintain FBP MCP Server features, including OAuth authorization, MCP Tool registration, App Action tools, subject provider selection between FBP users and custom public-service users, and MCP-specific login separation.
+description: Build and maintain the single MCP Server and function registry for an FBP app, including tools/list, tools/call, OAuth subjects, mcp_functions, and deterministic mcp_<function_name> classes.
 ---
 
 # fbp-mcp-server
 
-Use this skill when adding or changing FBP MCP Server behavior, exposing Note CRUD or App Action tools to MCP clients, or connecting MCP OAuth to a user model other than FBP admin users.
+Use this Skill for new or migrated FBP MCP features. One FBP app exposes one MCP Server endpoint and any number of registered functions.
 
-## Core Model
+## Canonical Model
 
-- `mcp_server` handles OAuth and JSON-RPC endpoints.
-- `mcp_manage` manages MCP servers, tools, OAuth tokens, and call logs.
-- Note CRUD tools are configured records. App Action tools are PHP classes implementing `McpActionInterface`.
-- The authenticated actor is a `McpSubject`, not always an FBP `user` row.
-- Existing FBP-admin behavior is represented by `subject_type=fbp_user`.
-- Public-service or app-specific members use `subject_type=custom` with `subject_provider_class`.
+- Each project/app has exactly one MCP Server.
+- Publish the endpoint without a server selector: `mcp_server*rpc`.
+- Use the MCP standard methods `tools/list` and `tools/call`. Do not invent protocol methods such as `list_functions` or `execute_function`.
+- Store registry metadata in `mcp_functions`.
+- Put input/output schema and execution logic in the function class.
+- Derive the PHP class from the function name. Do not register an editable class name.
 
-## Subject Interfaces
+Legacy `mcp_tools`, `mcp_tool_fields`, Note CRUD, App Action, multiple `mcp_server_config` rows, and `?server=<server_key>` URLs are migration compatibility only. Do not use them for new implementations.
 
-Use `fbp/interface/McpSubjectInterface.php`.
+## Function and Class Naming
 
-- `McpSubject` contains `type`, `id`, `label`, and optional FBP `user_id`.
-- `McpSubjectProviderInterface` is server-facing. It resolves the current MCP authorization subject, builds the login URL, validates token subjects, formats labels, and receives authorize/revoke hooks.
-- `McpLoginHandlerInterface` is service-facing. It keeps MCP login separate from ordinary public-site login, authenticates credentials, manages the MCP session key, and normalizes return URLs.
-- `McpFbpUserSubjectProvider` is the default provider for existing FBP admin users.
-
-Keep public-page login and MCP login separate even when they use the same member table. Use separate session keys and separate return URL handling so ChatGPT or another MCP client does not accidentally inherit an ordinary browser login.
-
-## External MCP Endpoint URLs
-
-When exposing a non-default MCP Server to external MCP clients, publish the endpoint with a normal query string:
+The function name must match:
 
 ```text
-https://example.com/mcp_server*rpc?server=<server_key>
+^[a-z][a-z0-9_]*$
 ```
 
-Do not publish `mcp_server*rpc&server=<server_key>` as the primary external URL. FBP internal links commonly use `/<class>*<function>&key=value`, but OAuth MCP clients such as ChatGPT may treat the endpoint as a resource URL and later pass it through the OAuth `resource` parameter. In that flow, the `&server=...` part can be interpreted as an OAuth query parameter and dropped from the resource, causing authorization to fall back to the default MCP Server and `fbp_user` subject.
+The framework deterministically derives:
 
-MCP Server routing should continue to accept both forms for backward compatibility, but OAuth metadata and user-facing MCP endpoint displays should prefer `?server=...` for non-default servers. Verify the full external flow after changes:
+```text
+function: task_list
+class:    mcp_task_list
+file:     classes/app/mcp_task_list/mcp_task_list.php
+```
 
-- unauthenticated `mcp_server*rpc?server=<server_key>` returns `WWW-Authenticate` with `resource_metadata=...oauth_protected_resource?server=<server_key>`;
-- protected-resource metadata returns `resource=...mcp_server*rpc?server=<server_key>`;
-- authorization-server metadata returns `authorization_endpoint=...mcp_server*authorize?server=<server_key>`;
-- an authorize request with `resource=...mcp_server*rpc?server=<server_key>` resolves the custom subject provider instead of the default `fbp_user` provider.
+`McpFunctionLoader` validates and resolves this rule at registration and execution time. Never add an `action_class`-style override.
 
-## Server Configuration
+## Function Contract
 
-`mcp_server_config` supports these subject fields:
-
-- `subject_type`: `fbp_user` or `custom`.
-- `subject_provider_class`: required when `subject_type=custom`; empty for `fbp_user`.
-
-OAuth-related tables store subject fields for audit and filtering:
-
-- `mcp_oauth_auth_codes.subject_type`
-- `mcp_oauth_auth_codes.subject_id`
-- `mcp_oauth_auth_codes.subject_label`
-- `mcp_oauth_tokens.subject_type`
-- `mcp_oauth_tokens.subject_id`
-- `mcp_oauth_tokens.subject_label`
-- `mcp_call_logs.subject_type`
-- `mcp_call_logs.subject_id`
-- `mcp_call_logs.subject_label`
-
-Keep `user_id` for backward compatibility and FBP-admin ownership. For custom subjects, set `user_id` only when there is a meaningful related FBP user; otherwise leave it empty.
-
-## Custom Subject Provider Pattern
-
-Create an app class that implements `McpSubjectProviderInterface`.
+Implement `McpFunctionInterface` from `fbp/interface/McpFunctionInterface.php`.
 
 ```php
-class fishing_mcp_subject_provider implements McpSubjectProviderInterface {
-	public function subjectType(): string {
-		return "fishing_member";
+class mcp_task_list implements McpFunctionInterface {
+	public function getInputSchema(Controller $ctl, array $function): array {
+		return [
+			"type" => "object",
+			"properties" => [
+				"limit" => McpInputValidator::integerSchema("Maximum rows.", [
+					"minimum" => 1,
+					"maximum" => 100,
+				]),
+			],
+			"additionalProperties" => false,
+		];
 	}
 
-	public function currentSubject(Controller $ctl, array $server): ?McpSubject {
-		$member_id = (int) ($_SESSION["fishing_mcp_member_id"] ?? 0);
-		if ($member_id <= 0) {
-			return null;
-		}
-		$member = $ctl->db("fishing_member", "fishing_member")->get($member_id);
-		if (!$member || (int) ($member["deleted"] ?? 0) === 1) {
-			return null;
-		}
-		return new McpSubject($this->subjectType(), (int) $member["id"], (string) $member["name"]);
+	public function getOutputSchema(Controller $ctl, array $function): array {
+		return ["type" => "object", "additionalProperties" => true];
 	}
 
-	public function loginUrl(Controller $ctl, array $server, string $returnUrl): string {
-		$_SESSION["fishing_mcp_return_url"] = $returnUrl;
-		return $ctl->get_APP_URL("fishing_mcp_login", "login");
-	}
-
-	public function subjectLabel(Controller $ctl, McpSubject $subject): string {
-		return $subject->label();
-	}
-
-	public function validateSubject(Controller $ctl, array $server, McpSubject $subject): bool {
-		$member = $ctl->db("fishing_member", "fishing_member")->get($subject->id());
-		return (bool) $member && (int) ($member["deleted"] ?? 0) !== 1;
-	}
-
-	public function onAuthorizeConfirmed(Controller $ctl, array $server, McpSubject $subject, array $oauthParams, string $scope): void {
-	}
-
-	public function onTokenRevoked(Controller $ctl, array $server, McpSubject $subject, array $tokenRow): void {
+	public function execute(Controller $ctl, McpFunctionRequest $request): McpActionResult {
+		$limit = McpInputValidator::integer($request, "limit", [
+			"default" => 20,
+			"minimum" => 1,
+			"maximum" => 100,
+		]);
+		return McpFunctionResult::success("Tasks retrieved.", [
+			"items" => [],
+			"count" => 0,
+		]);
 	}
 }
 ```
 
-Use a separate login class for MCP-specific screens and sessions. If you implement a reusable login handler, implement `McpLoginHandlerInterface` and call it from the login class.
+Use JSON Schema and runtime validation together. Prefer `McpInputValidator`. For FBP numeric date fields, convert validated dates to timestamps before storage and format them back for responses.
 
-## App Action Tool Usage
+## Registry
 
-`McpActionRequest` exposes the resolved subject:
+`mcp_functions` stores:
 
-```php
-$subject = $request->subject();
-$member_id = $request->subjectId();
-$subject_type = $request->subjectType();
+- `enabled`
+- `function_name`
+- `title`
+- `description`
+- `required_scope`
+- `requires_confirmation`
+- `read_only`
+- `destructive`
+- `sort`
+- optional JSON `handler_config`
+- timestamps
+
+Do not store input/output schemas or PHP class names in the registry.
+
+Register through the web-side CLI after syncing the class:
+
+```bash
+php fbp/cli.php mcp_function_apply --json-file spec.json
 ```
 
-For custom-member services, every App Action must filter data by `subjectId()` or a service-owned membership relation. Do not trust client-supplied member IDs for ownership.
-
-When a Note CRUD tool is too broad for per-member access control, prefer an App Action tool that applies explicit member filtering.
-
-## App Action CRUD Pattern
-
-For member-owned service data, prefer a single App Action tool with explicit CRUD operations and owner checks.
-
-- `list`: accepts optional filters such as `limit` and `query`; always filters by the authenticated owner; returns `items` and `count`.
-- `create_item`: validates required fields; sets owner fields from `McpActionRequest::subjectId()` or the resolved service member; returns `id` and the created `item`.
-- `update_item`: requires `item_id`; verifies ownership before updating; updates only arguments that are present; returns `id` and the updated `item`.
-- `delete_item`: requires `item_id` and `confirm=true`; verifies ownership before deleting; returns `id` and a delete summary such as `deleted=true`.
-
-Do not accept ownership fields such as `member_id`, `user_id`, or `parent_id` from MCP clients. Resolve them server-side from the MCP subject.
-
-If a delete affects related data, handle that explicitly in the operation. Either delete child rows, clear references, or reject the delete with a clear `ToolError`; do not leave accidental orphan rows.
-
-## Optional External Enrichment
-
-When an App Action uses an external API to enrich a create or update operation, keep the primary operation separate from the enrichment step.
-
-- If enrichment is optional, do not fail the primary create/update just because the external API failed. Save the primary record and return the enrichment failure in the result.
-- If enrichment is required for the operation to be meaningful, validate that requirement up front and fail with a clear `ToolError`.
-- Store only normalized fields needed by the app. Do not store raw API responses by default.
-- Store enough source metadata to explain or reproduce the enrichment, such as `external_source`, `external_code`, `external_name`, latitude/longitude, or retrieved timestamp.
-- Never hard-code API keys, trial keys, endpoint secrets, or production endpoints in Skills, samples, or project docs. Load credentials from app settings, environment variables, or another approved configuration source.
-
-Return enrichment status in a machine-readable shape so MCP clients can decide whether to retry, ask the user, or proceed:
-
-```php
-[
-	"item" => $item,
-	"enrichment" => [
-		"status" => "success", // success, skipped, failed
-		"source" => "external_service_name",
-		"message" => "External data applied.",
-		"external_code" => $external_code,
-	],
-]
-```
-
-Use `status=skipped` when required inputs for enrichment were not supplied. Use `status=failed` when inputs were supplied but the external API could not be used. Keep the message concise and safe to show to an MCP client.
-
-## Image and Chart Results
-
-For App Action tools that return generated images, put MCP-displayable images in `data.mcp_content_images`. The MCP server converts each item into a formal MCP image content block:
-
-```php
-"mcp_content_images" => [[
-	"mime_type" => "image/png",
-	"data_base64" => $png_base64,
-]],
-```
-
-The converted tool result content uses:
-
-```json
-{"type":"image","data":"<base64>","mimeType":"image/png"}
-```
-
-Use base64 image data without a `data:image/...;base64,` prefix for `data_base64`. Prefer PNG for broad client compatibility. Keep `svg`, `svg_data_uri`, or `png_data_uri` only as structured supplemental data for compatibility, debugging, or reuse; do not rely on data URIs as the primary MCP image display path.
-
-When the same result includes chartable structured data, also return normalized arrays and chart metadata in structured content. A useful pattern is:
-
-- `hourly_heights`: normalized data rows, such as `time` and `height_cm`.
-- `chart`: simple app-neutral chart metadata and data.
-- `chart_widget_spec`: a widget-ready chart spec when the client supports it.
-
-Do not remove existing SVG/PNG fields when adding structured chart data; add new keys for compatibility.
-
-MCP image content handling and ChatGPT rendering behavior may change. If images or charts stop rendering, verify the current official MCP specification and OpenAI/ChatGPT Apps SDK documentation before adding app-specific workarounds.
-
-## Input Validation
-
-For App Action tools, define JSON Schema hints and runtime validation together. JSON Schema helps MCP clients choose the right shape, but runtime validation is still required because clients can send ambiguous strings, memo text, units, or mixed date/time values.
-
-Use `McpInputValidator` from `McpActionInterface.php` for common MCP argument patterns:
-
-```php
-"started_at" => McpInputValidator::timeSchema("Start time."),
-"trip_date" => McpInputValidator::dateSchema("Trip date."),
-"count" => McpInputValidator::integerSchema("Count.", ["minimum" => 0]),
-```
-
-```php
-$started_at = McpInputValidator::time($request, "started_at");
-$trip_date = McpInputValidator::date($request, "trip_date");
-$count = McpInputValidator::integer($request, "count", ["default" => 1, "minimum" => 0]);
-```
-
-FBP `date` fields are stored as numeric timestamps in fixed-file data. When an MCP App Action writes to an FBP `date` field, do not store the validated `YYYY-MM-DD` string directly. Convert it to a timestamp for storage, and convert it back to `YYYY-MM-DD` in MCP responses. If `YYYY-MM-DD` is written directly to an `N` field, only the leading year may be retained.
-
-```php
-$trip_date = McpInputValidator::date($request, "trip_date");
-$row["trip_date"] = strtotime($trip_date . " 00:00:00");
-
-// In MCP response:
-$item["trip_date"] = !empty($row["trip_date"]) ? date("Y-m-d", (int) $row["trip_date"]) : "";
-```
-
-Supported validators:
-
-- `time`: accepts and normalizes `HH:MM`; rejects dates, ranges, and memo text.
-- `date`: accepts and normalizes `YYYY-MM-DD`; rejects datetime and relative words.
-- `yearMonth`: accepts and normalizes `YYYY-MM`; rejects day values.
-- `integer`: accepts integer values or numeric strings without units; supports `minimum`, `maximum`, `default`, and `required`.
-- `decimal`: accepts decimal values or numeric strings without units; supports `minimum`, `maximum`, `default`, and `required`.
-- `enum`: restricts values and can normalize aliases.
-- `string`: handles required strings and optional `maxLength`.
-
-Validation failures throw `ToolError: ...` messages through the normal MCP tool error path. Prefer clear messages that tell the client the exact field and format. Do not silently move invalid values into memo fields; fail fast so the MCP client can retry with corrected arguments.
-
-## CLI Registration
-
-MCP tool registration JSON may include subject server settings:
+Dry-run is the default. Set top-level `"dry_run": false` only when applying an authorized change.
 
 ```json
 {
-  "server_key": "service_mcp",
-  "server_config": {
-    "enabled": true,
-    "title": "Service MCP Server",
-    "auth_mode": "oauth2",
-    "subject_type": "custom",
-    "subject_provider_class": "service_mcp_subject_provider"
-  },
-  "tools": []
+  "functions": [
+    {
+      "function_name": "task_list",
+      "title": "List tasks",
+      "description": "List or search tasks.",
+      "required_scope": "mcp.read",
+      "read_only": true
+    }
+  ]
 }
 ```
 
-Use `subject_type=fbp_user` for existing admin-user MCP servers. Use `custom` only after the provider class exists and implements `McpSubjectProviderInterface`.
+## OAuth, Subject, and Ownership
+
+- `mcp_server_config` is a singleton app setting. Keep `server_key=default` internally for compatibility; do not expose it in new URLs or UI.
+- `subject_type=fbp_user` uses `McpFbpUserSubjectProvider`.
+- `subject_type=custom` requires a class implementing `McpSubjectProviderInterface`.
+- Keep MCP login sessions separate from normal public-page login sessions.
+- Use `McpFunctionRequest::subjectId()` and subject-owned relations for authorization.
+- Never trust client-supplied owner IDs when ownership can be resolved from the subject.
+- Apply `required_scope` before execution and log the resolved subject.
+- Use `requires_confirmation` for operations that need explicit confirmation and set `destructive` accurately.
+
+## Results
+
+Return `McpFunctionResult::success()` for ordinary results. `McpActionResult` remains an allowed return type only for migration adapters.
+
+For images, put normalized content in `data.mcp_content_images` with `mime_type` and base64 data. The MCP Server converts it to MCP image content.
 
 ## Verification
 
-1. Run PHP lint for the provider/login/action classes.
-2. Copy framework/app source to the test environment according to local environment rules.
-3. Verify `mcp_server::health`.
-4. Render `mcp_manage::page` and confirm the server shows the expected subject type.
-5. For custom providers, open the OAuth authorize URL from a logged-out MCP browser session and confirm it redirects to the MCP-specific login page.
-6. Complete authorization and confirm `mcp_oauth_tokens` stores the expected `subject_type`, `subject_id`, and `subject_label`.
-7. Call at least one tool and confirm `mcp_call_logs` records the same subject.
-8. Revoke the token and confirm provider revoke hooks do not throw.
+1. Lint each function class and framework MCP file.
+2. Sync framework/app source according to the local environment rules.
+3. Run `mcp_function_apply` in dry-run mode, then apply.
+4. Render `mcp_manage::page`; confirm there is one server and every function is `ready`.
+5. Call `tools/list`; verify names, input schemas, output schemas, annotations, and scopes.
+6. Call at least one read function and one safe write function through OAuth when available.
+7. Confirm `mcp_call_logs` records function name and subject.
+8. Verify token revocation and custom subject hooks when those paths changed.
+
+For local read-only handler checks, `mcp_server::cli_function_check` is guarded by `CLI_APP_CALL` and may be invoked through `fbp-cli`.
+
+## Migration Only
+
+During migration, the runtime may read legacy tools only when `mcp_functions` has no rows. This fallback prevents an unmigrated app from losing its MCP immediately.
+
+For each migrated app:
+
+1. Create deterministic `mcp_<function_name>` classes.
+2. Register all functions in `mcp_functions`.
+3. Verify the single endpoint and OAuth reconnection.
+4. Stop publishing server-key URLs.
+5. Back up and then remove obsolete server/tool rows only after confirming no active client depends on them.
+
+After all apps migrate, remove the legacy registry, multi-server routing, adapters, CLI/scripts, old samples, docs, and Skills. Do not leave old and new approaches as equal choices.
 
 ## Related Skills
 
-- Use `fbp-service-user-management` for public member tables, public account creation, password reset, and service subscriptions.
-- Use `fbp-public-pages` for MCP-specific login screens when they are implemented as public pages.
-- Use `fbp-cli` for `app_call` verification.
-- Use `fbp-db` when adding MCP-related or service-member fields.
+- Use `fbp-cli` for app and handler checks.
+- Use `fbp-db` for registry format/lifecycle work.
+- Use `fbp-service-user-management` for custom service users.
+- Use `fbp-public-pages` for MCP-specific custom login screens.

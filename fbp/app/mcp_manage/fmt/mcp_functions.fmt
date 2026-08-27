@@ -1,0 +1,13 @@
+id,24,N
+enabled,1,N
+function_name,128,T
+title,255,T
+description,2000,T
+required_scope,255,T
+requires_confirmation,1,N
+read_only,1,N
+destructive,1,N
+sort,24,N
+handler_config,4000,T
+created_at,24,N
+updated_at,24,N
