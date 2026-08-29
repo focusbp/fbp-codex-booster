@@ -371,13 +371,13 @@ class mcp_server {
 				throw new Exception("This tool requires confirm=true.");
 			}
 			$result = $this->execute_note_tool($ctl, $tool, $args, $subject);
-			$this->log_call($server, $tool, $subject, "tools/call", $args, "ok", "");
+			$this->safe_log_call($server, $tool, $subject, "tools/call", $args, "ok", "");
 			return [
 				"content" => $this->tool_content_from_result($result),
 				"structuredContent" => $result,
 			];
 		} catch (Throwable $e) {
-			$this->log_call($server, $tool, $subject, "tools/call", $args, "error", $e->getMessage());
+			$this->safe_log_call($server, $tool, $subject, "tools/call", $args, "error", $e->getMessage());
 			return $this->tool_error($e->getMessage());
 		}
 	}
@@ -394,13 +394,13 @@ class mcp_server {
 			}
 			$handler = McpFunctionLoader::load((string) ($function["function_name"] ?? ""), $ctl);
 			$result = $handler->execute($ctl, new McpFunctionRequest($function, $args, $subject))->toStructuredContent();
-			$this->log_call($server, $function, $subject, "tools/call", $args, "ok", "");
+			$this->safe_log_call($server, $function, $subject, "tools/call", $args, "ok", "");
 			return [
 				"content" => $this->tool_content_from_result($result),
 				"structuredContent" => $result,
 			];
 		} catch (Throwable $e) {
-			$this->log_call($server, $function, $subject, "tools/call", $args, "error", $e->getMessage());
+			$this->safe_log_call($server, $function, $subject, "tools/call", $args, "error", $e->getMessage());
 			return $this->tool_error($e->getMessage());
 		}
 	}
@@ -1888,6 +1888,18 @@ class mcp_server {
 			"created_at" => time(),
 		];
 		$this->ffm_logs->insert($row);
+	}
+
+	/**
+	 * Tool execution must always return an MCP response even if an integration
+	 * has closed a Controller-managed FFM handle while calling an external API.
+	 */
+	private function safe_log_call(array $server, array $tool, ?McpSubject $subject, string $method, array $request, string $status, string $error): void {
+		try {
+			$this->log_call($server, $tool, $subject, $method, $request, $status, $error);
+		} catch (Throwable $e) {
+			error_log("MCP call log failure: " . $e->getMessage());
+		}
 	}
 
 	private function tool_error(string $message): array {
