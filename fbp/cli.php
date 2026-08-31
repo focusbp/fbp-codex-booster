@@ -2885,13 +2885,7 @@ if ($command === "mcp_function_apply") {
 }
 
 if ($command === "mcp_tool_apply") {
-	[$ok, $err, $data] = cli_get_json_arg($argv);
-	if (!$ok) {
-		fwrite(STDERR, $err . "\n");
-		exit(1);
-	}
-	$out = cli_mcp_apply_tools($dir, $ffm_db_admin, $ffm_db_fields_admin, $data);
-	cli_output_json($out, $out["ok"] ? 0 : 1);
+	cli_output_json(["ok" => false, "error" => "mcp_tool_apply is no longer supported. Register a deterministic mcp_<function_name> class through mcp_function_apply."], 1);
 }
 
 if ($command === "constant_array_list") {

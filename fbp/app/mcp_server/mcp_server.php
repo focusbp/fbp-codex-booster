@@ -1,11 +1,11 @@
 <?php
 
 class mcp_server {
+	private const FUNCTION_LIST_TOOL = "function_list";
+	private const FUNCTION_CALL_TOOL = "function_call";
 
 	private $ffm_server;
 	private $ffm_functions;
-	private $ffm_tools;
-	private $ffm_fields;
 	private $ffm_logs;
 	private $ffm_auth_codes;
 	private $ffm_tokens;
@@ -14,8 +14,6 @@ class mcp_server {
 		$ctl->set_check_login(false);
 		$this->ffm_server = $ctl->db("mcp_server_config", "mcp_manage");
 		$this->ffm_functions = $ctl->db("mcp_functions", "mcp_manage");
-		$this->ffm_tools = $ctl->db("mcp_tools", "mcp_manage");
-		$this->ffm_fields = $ctl->db("mcp_tool_fields", "mcp_manage");
 		$this->ffm_logs = $ctl->db("mcp_call_logs", "mcp_manage");
 		$this->ffm_auth_codes = $ctl->db("mcp_oauth_auth_codes", "mcp_manage");
 		$this->ffm_tokens = $ctl->db("mcp_oauth_tokens", "mcp_manage");
@@ -270,26 +268,46 @@ class mcp_server {
 	}
 
 	private function build_tool_descriptors(Controller $ctl, array $server): array {
-		$functions = $this->registered_functions();
-		if (count($functions) > 0) {
-			$tools = [];
-			foreach ($functions as $function) {
-				if (!$this->is_function_ready($function, $ctl)) {
-					continue;
-				}
-				$tools[] = $this->build_function_descriptor($ctl, $server, $function);
-			}
-			return $tools;
-		}
+		return [
+			$this->build_function_list_descriptor($server),
+			$this->build_function_call_descriptor($server),
+		];
+	}
 
-		$tools = [];
-		foreach ($this->ffm_tools->select("server_id", $server["id"], true, "AND", "sort", SORT_ASC) as $tool) {
-			if (!$this->is_tool_ready($tool, $ctl)) {
-				continue;
-			}
-			$tools[] = $this->build_tool_descriptor($ctl, $server, $tool);
+	private function build_function_list_descriptor(array $server): array {
+		return $this->gateway_descriptor($server, self::FUNCTION_LIST_TOOL, "List available functions", "List the registered application functions available to the authenticated subject, including their input and output schemas.", [
+			"type" => "object",
+			"properties" => [],
+			"additionalProperties" => false,
+		]);
+	}
+
+	private function build_function_call_descriptor(array $server): array {
+		return $this->gateway_descriptor($server, self::FUNCTION_CALL_TOOL, "Call an application function", "Call one function returned by function_list. The framework enforces that function's scope, confirmation requirement, schema validation, and audit logging.", [
+			"type" => "object",
+			"properties" => [
+				"function_name" => ["type" => "string", "pattern" => "^[a-z][a-z0-9_]*$", "description" => "Name returned by function_list."],
+				"arguments" => ["type" => "object", "description" => "Arguments validated against the selected function schema.", "additionalProperties" => true],
+			],
+			"required" => ["function_name", "arguments"],
+			"additionalProperties" => false,
+		]);
+	}
+
+	private function gateway_descriptor(array $server, string $name, string $title, string $description, array $input_schema): array {
+		$descriptor = [
+			"name" => $name,
+			"title" => $title,
+			"description" => $description,
+			"inputSchema" => $this->normalize_input_schema($input_schema),
+			"annotations" => ["readOnlyHint" => $name === self::FUNCTION_LIST_TOOL, "destructiveHint" => false, "openWorldHint" => false],
+		];
+		if ((string) ($server["auth_mode"] ?? "oauth2") === "noauth") {
+			$descriptor["securitySchemes"] = [["type" => "noauth"]];
+		} else {
+			$descriptor["securitySchemes"] = [["type" => "oauth2", "scopes" => $this->split_scopes((string) ($server["default_scope"] ?? ""))]];
 		}
-		return $tools;
+		return $descriptor;
 	}
 
 	private function build_function_descriptor(Controller $ctl, array $server, array $function): array {
@@ -347,39 +365,31 @@ class mcp_server {
 	private function handle_tool_call(Controller $ctl, array $server, array $params): array {
 		$name = (string) ($params["name"] ?? "");
 		$args = is_array($params["arguments"] ?? null) ? $params["arguments"] : [];
-		if (count($this->registered_functions()) > 0) {
-			$function = $this->find_function_by_name($name);
-			if ($function === null || !$this->is_function_ready($function, $ctl)) {
-				return $this->tool_error("Tool is not available.");
-			}
-			return $this->handle_function_call($ctl, $server, $function, $args);
-		}
+		if ($name === self::FUNCTION_LIST_TOOL) return $this->handle_function_list($ctl, $server);
+		if ($name === self::FUNCTION_CALL_TOOL) return $this->handle_gateway_function_call($ctl, $server, $args);
+		return $this->tool_error("Tool is not available.");
+	}
 
-		$tool = $this->find_tool_by_name((int) $server["id"], $name);
-		if ($tool === null || !$this->is_tool_ready($tool, $ctl)) {
-			return $this->tool_error("Tool is not available.");
+	private function handle_function_list(Controller $ctl, array $server): array {
+		$auth = $this->authorize_scope($ctl, $server, "mcp.read");
+		if (!$auth["ok"]) return $this->tool_auth_error($ctl, $server, $auth["error"]);
+		$functions = [];
+		foreach ($this->registered_functions() as $function) {
+			if (!$this->is_function_ready($function, $ctl)) continue;
+			if ((string) ($server["auth_mode"] ?? "oauth2") !== "noauth" && !$this->scope_allows((string) ($auth["scope"] ?? ""), $this->tool_scope($server, $function))) continue;
+			$functions[] = $this->build_function_descriptor($ctl, $server, $function);
 		}
-		$auth = $this->authorize_tool_call($ctl, $server, $tool);
-		if (!$auth["ok"]) {
-			return $this->tool_auth_error($ctl, $server, $auth["error"]);
-		}
+		$result = ["functions" => $functions, "count" => count($functions)];
+		return ["content" => [["type" => "text", "text" => count($functions) . " function(s) available."]], "structuredContent" => $result];
+	}
 
-		$subject = $this->subject_from_row($auth);
-		$user_id = $subject instanceof McpSubject ? $subject->userId() : 0;
-		try {
-			if ((int) ($tool["requires_confirmation"] ?? 0) === 1 && empty($args["confirm"])) {
-				throw new Exception("This tool requires confirm=true.");
-			}
-			$result = $this->execute_note_tool($ctl, $tool, $args, $subject);
-			$this->safe_log_call($server, $tool, $subject, "tools/call", $args, "ok", "");
-			return [
-				"content" => $this->tool_content_from_result($result),
-				"structuredContent" => $result,
-			];
-		} catch (Throwable $e) {
-			$this->safe_log_call($server, $tool, $subject, "tools/call", $args, "error", $e->getMessage());
-			return $this->tool_error($e->getMessage());
-		}
+	private function handle_gateway_function_call(Controller $ctl, array $server, array $args): array {
+		$name = trim((string) ($args["function_name"] ?? ""));
+		$arguments = $args["arguments"] ?? null;
+		if (!McpFunctionLoader::validateName($name) || !is_array($arguments)) return $this->tool_error("function_name and arguments object are required.");
+		$function = $this->find_function_by_name($name);
+		if ($function === null || !$this->is_function_ready($function, $ctl)) return $this->tool_error("Function is not available.");
+		return $this->handle_function_call($ctl, $server, $function, $arguments);
 	}
 
 	private function handle_function_call(Controller $ctl, array $server, array $function, array $args): array {
@@ -901,6 +911,10 @@ class mcp_server {
 	}
 
 	private function authorize_tool_call(Controller $ctl, array $server, array $tool): array {
+		return $this->authorize_scope($ctl, $server, $this->tool_scope($server, $tool));
+	}
+
+	private function authorize_scope(Controller $ctl, array $server, string $required_scope): array {
 		if ((string) ($server["auth_mode"] ?? "oauth2") === "noauth") {
 			return ["ok" => true, "user_id" => 0, "subject_type" => "anonymous", "subject_id" => 0, "subject_label" => "", "scope" => ""];
 		}
@@ -912,7 +926,6 @@ class mcp_server {
 		if ($token_row === null) {
 			return ["ok" => false, "error" => "invalid_access_token"];
 		}
-		$required_scope = $this->tool_scope($server, $tool);
 		if (!$this->scope_allows((string) ($token_row["scope"] ?? ""), $required_scope)) {
 			return ["ok" => false, "error" => "insufficient_scope"];
 		}
@@ -1674,16 +1687,11 @@ class mcp_server {
 	private function supported_scopes(?array $server = null): array {
 		$scopes = [];
 		$server = $server ?? $this->get_server();
-		$server_id = (int) ($server["id"] ?? 0);
 		foreach ($this->split_scopes((string) ($server["default_scope"] ?? "")) as $scope) {
 			$scopes[$scope] = true;
 		}
-		$tools = $this->registered_functions();
-		if (count($tools) === 0) {
-			$tools = $server_id > 0 ? $this->ffm_tools->select("server_id", $server_id) : [];
-		}
-		foreach ($tools as $tool) {
-			foreach ($this->split_scopes((string) ($tool["required_scope"] ?? "")) as $scope) {
+		foreach ($this->registered_functions() as $function) {
+			foreach ($this->split_scopes((string) ($function["required_scope"] ?? "")) as $scope) {
 				$scopes[$scope] = true;
 			}
 		}

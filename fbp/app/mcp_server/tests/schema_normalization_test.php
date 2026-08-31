@@ -41,4 +41,17 @@ $explicitObject = $normalize->invoke($server, [
 $explicitJson = json_decode(json_encode($explicitObject, JSON_THROW_ON_ERROR), false, 512, JSON_THROW_ON_ERROR);
 assert_true($explicitJson->properties instanceof stdClass, 'An explicit properties object must be preserved.');
 
+$listDescriptor = $reflection->getMethod('build_function_list_descriptor')->invoke($server, [
+	'auth_mode' => 'oauth2',
+	'default_scope' => 'mcp.read mcp.write',
+]);
+$callDescriptor = $reflection->getMethod('build_function_call_descriptor')->invoke($server, [
+	'auth_mode' => 'oauth2',
+	'default_scope' => 'mcp.read mcp.write',
+]);
+assert_true($listDescriptor['name'] === 'function_list', 'The public function catalog Tool must have a fixed name.');
+assert_true($callDescriptor['name'] === 'function_call', 'The public function dispatcher Tool must have a fixed name.');
+assert_true($listDescriptor['inputSchema']['properties'] instanceof stdClass, 'The function_list properties must serialize as an object.');
+assert_true($callDescriptor['inputSchema']['required'] === ['function_name', 'arguments'], 'The function_call contract must require a name and arguments.');
+
 echo "schema_normalization_test: OK\n";

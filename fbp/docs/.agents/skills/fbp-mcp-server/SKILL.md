@@ -11,12 +11,12 @@ Use this Skill for new or migrated FBP MCP features. One FBP app exposes one MCP
 
 - Each project/app has exactly one MCP Server.
 - Publish the endpoint without a server selector: `mcp_server*rpc`.
-- Use the MCP standard methods `tools/list` and `tools/call`. Do not invent protocol methods such as `list_functions` or `execute_function`.
+- Use the MCP standard methods `tools/list` and `tools/call`. `tools/list` always publishes only the framework-owned `function_list` and `function_call` Tools; do not publish app functions directly or invent protocol methods such as `list_functions` or `execute_function`.
 - Store registry metadata in `mcp_functions`.
 - Put input/output schema and execution logic in the function class.
 - Derive the PHP class from the function name. Do not register an editable class name.
 
-Legacy `mcp_tools`, `mcp_tool_fields`, Note CRUD, App Action, multiple `mcp_server_config` rows, and `?server=<server_key>` URLs are migration compatibility only. Do not use them for new implementations.
+Legacy `mcp_tools`, `mcp_tool_fields`, Note CRUD, App Action, multiple `mcp_server_config` rows, and `?server=<server_key>` URLs are not MCP execution paths. Do not use them for new implementations.
 
 ## Function and Class Naming
 
@@ -155,26 +155,16 @@ For images, put normalized content in `data.mcp_content_images` with `mime_type`
 3. Run `mcp_function_apply` in dry-run mode, then apply.
 4. Render `mcp_manage::page`; confirm there is one server and every function is `ready`.
 5. Call `tools/list`; verify names, input schemas, output schemas, annotations, and scopes.
-6. Inspect the serialized JSON for every returned tool. Object-valued schema keywords must encode as `{}`, never `[]`; in particular, every `inputSchema.properties` must have JSON type `object`. Do not stop after validating the first tool because one invalid descriptor can make the client reject the complete tool list.
-7. Call at least one read function and one safe write function through OAuth when available.
+6. Inspect the serialized JSON for the two returned framework Tools. Object-valued schema keywords must encode as `{}`, never `[]`; in particular, every `inputSchema.properties` must have JSON type `object`. Then call `function_list` and inspect every returned internal function descriptor.
+7. Call at least one read function and one safe write function through `function_call` and OAuth when available.
 8. Confirm `mcp_call_logs` records function name and subject.
 9. Verify token revocation and custom subject hooks when those paths changed.
 
 For local read-only handler checks, `mcp_server::cli_function_check` is guarded by `CLI_APP_CALL` and may be invoked through `fbp-cli`.
 
-## Migration Only
+## Legacy Tool Policy
 
-During migration, the runtime may read legacy tools only when `mcp_functions` has no rows. This fallback prevents an unmigrated app from losing its MCP immediately.
-
-For each migrated app:
-
-1. Create deterministic `mcp_<function_name>` classes.
-2. Register all functions in `mcp_functions`.
-3. Verify the single endpoint and OAuth reconnection.
-4. Stop publishing server-key URLs.
-5. Back up and then remove obsolete server/tool rows only after confirming no active client depends on them.
-
-After all apps migrate, remove the legacy registry, multi-server routing, adapters, CLI/scripts, old samples, docs, and Skills. Do not leave old and new approaches as equal choices.
+`mcp_tools`, Note CRUD, and App Action are unsupported for MCP. Every app function must be a deterministic `mcp_<function_name>` class registered in `mcp_functions`.
 
 ## Related Skills
 

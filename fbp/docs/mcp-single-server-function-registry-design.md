@@ -32,7 +32,7 @@
 - `tools/list`: 有効なMCP関数をTool定義として返す。
 - `tools/call`: Tool名からMCP関数を解決して実行する。
 
-`list_functions` と `execute_function` という汎用Toolを新設して2 Toolだけを公開する方式は採用しない。各MCP関数を個別のToolとして公開し、関数ごとの `inputSchema`、`outputSchema`、説明、scope、安全性情報をMCPクライアントへ渡す。
+`tools/list` が公開するToolは、フレームワーク固定の `function_list` と `function_call` の2件だけとする。アプリ固有関数は直接Toolとして公開しない。`function_list` が認可済みの関数ごとの `inputSchema`、`outputSchema`、説明、scope、安全性情報を返し、`function_call` が関数名とargumentsを受けて内部ディスパッチする。
 
 ### 3.3 内部構成
 
@@ -40,8 +40,9 @@
 MCP endpoint
   -> OAuth・Subject解決
   -> Function Registry
-  -> Tool descriptor生成（tools/list）
-  -> Function Dispatcher（tools/call）
+  -> 固定Tool descriptor生成（tools/list: function_list / function_call）
+  -> Function Catalog（function_list）
+  -> Function Dispatcher（function_call）
        -> scope確認
        -> 確認必須判定
        -> 入力検証
@@ -190,25 +191,26 @@ interface McpFunctionInterface {
 
 `McpFunctionResult` はテキスト、`structuredContent`、画像などのMCP contentを共通形式へ変換できるものとする。
 
-既存の `McpActionInterface`、`McpActionRequest`、`McpActionResult` から移行可能な責務は再利用する。新旧インターフェイスの継承・互換Adapterの要否は実装設計で決定する。
+`McpActionResult` は結果の共通形式として再利用できるが、`McpActionInterface` とApp ActionはMCPの公開・実行経路に使用しない。
 
 ## 8. 関数解決と検証
 
 ### 8.1 `tools/list`
 
-1. `mcp_functions` を `sort` 順で取得する。
-2. `enabled=1` の関数だけを対象にする。
-3. `function_name` から `mcp_<function_name>` を組み立てる。
-4. 対応するクラスファイルを読み込む。
-5. `McpFunctionInterface` 実装を確認する。
-6. クラスから `inputSchema` と `outputSchema` を取得する。
-7. レジストリの説明、scope、安全性情報と合わせてMCP Tool descriptorを返す。
+1. `tools/list` は常に固定2 Toolだけを返す。`mcp_functions` の内容によって外部Tool数は変化しない。
+2. `function_list` は `mcp_functions` を `sort` 順で取得する。
+3. `enabled=1` の関数だけを対象にする。
+4. `function_name` から `mcp_<function_name>` を組み立てる。
+5. 対応するクラスファイルを読み込む。
+6. `McpFunctionInterface` 実装を確認する。
+7. クラスから `inputSchema` と `outputSchema` を取得する。
+8. レジストリの説明、scope、安全性情報と合わせて関数記述子を返す。
 
 準備不良の関数を黙って公開しない。管理画面では具体的な不備を表示し、MCP側では利用可能な関数だけを返す。
 
 ### 8.2 `tools/call`
 
-1. Tool名と完全一致する有効な関数レコードを取得する。
+1. `function_call` の `function_name` と完全一致する有効な関数レコードを取得する。
 2. OAuth tokenとsubjectを検証する。
 3. 関数に必要なscopeを検証する。
 4. `requires_confirmation=1` の場合は `confirm=true` を要求する。
@@ -290,15 +292,7 @@ task_comment_create
 
 ## 12. 既存データからの移行
 
-実装時は段階移行を基本とする。
-
-1. 単一Server設定と `mcp_functions` を追加する。
-2. 旧 `mcp_tools` を新しい関数レコードへ変換する。
-3. App Actionは、新しい命名規則のクラスへ移すか互換Adapterを用意する。
-4. 旧 `server_key` 付きendpointを一定期間だけ互換受信する。
-5. 新しい単一endpointでOAuth再接続を案内する。
-6. 旧複数Server管理UIを停止する。
-7. 移行確認後にServer別設定と不要な `server_id` 依存を整理する。
+既存アプリの移行では、旧 `mcp_tools` とApp Actionをすべて決定的な `mcp_<function_name>` クラスと `mcp_functions` の関数レコードへ置き換える。旧Toolは公開・実行しない。
 
 OAuth tokenのresourceと旧Server設定の関係が変わるため、既存tokenの自動付け替えは前提にしない。安全性を優先し、再認証を基本案とする。
 
@@ -379,7 +373,7 @@ Skillには最低限、次を記載する。
 - `mcp_server_config` の複数行管理、Server追加・削除・選択の管理UI
 - `mcp_tools.server_id` など、Server別Tool登録を前提とするデータ項目と処理
 - 任意の `action_class` を登録する旧App Action命名・解決方法
-- `McpActionInterface` を正本とする古い実装例
+- `McpActionInterface` をMCP実行に使う古い実装例
 - 旧endpoint URLを掲載するdocs、画面文言、サンプル、テストデータ
 - 複数Server対応や旧Tool登録を前提とするCLI・ローカル補助Skill・スクリプト
 - app-soshikikaikakuに残る旧タスク管理MCPクラスと旧登録データ
@@ -423,7 +417,7 @@ Skill更新後は、少なくとも次を確認する。
 - `mcp_server_config` は単一設定として再利用し、管理UIとruntimeから複数Serverを選択できないようにした。
 - 新規レジストリ `mcp_functions` を追加し、`server_id` とPHPクラス名は持たせない。
 - 新規実装は `McpFunctionInterface` と `McpFunctionResult` を使う。旧 `McpActionResult` は移行Adapterの戻り値として許容する。
-- `mcp_functions` が1件以上あるアプリでは新レジストリだけを公開し、0件の未移行アプリに限って旧 `mcp_tools` を読む。
+- `tools/list` は全アプリで固定の `function_list` / `function_call` だけを公開し、旧 `mcp_tools` は読まない。
 - 正規URLから `server` / `server_key` を除外した。旧URL・旧CLI・旧データは全アプリ移行完了まで互換として保持する。
 - `app-soshikikaikaku` のタスク管理は9関数へ移行済み。既存OAuth token、旧Server・Toolデータの物理削除は、接続切替確認後の整理工程で行う。
 - MCP protocol versionの更新は本変更に含めず、既存値を維持した。
