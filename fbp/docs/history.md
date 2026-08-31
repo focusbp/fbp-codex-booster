@@ -1,6 +1,9 @@
 # app-framework5 History
 
 ## 2026-08-31
+- Added output schemas to the fixed public MCP `function_list` and `function_call` Tools. The catalog result explicitly returns `functions` and `count`; the dispatcher accepts the selected internal function's structured object result.
+
+## 2026-08-31
 - Fixed the public MCP tool surface to `function_list` and `function_call`. Registered `mcp_<function_name>` classes remain an authenticated internal function catalog, while legacy `mcp_tools`, Note CRUD, and App Action registrations are no longer executable or publishable through MCP.
 
 ## 2026-08-27

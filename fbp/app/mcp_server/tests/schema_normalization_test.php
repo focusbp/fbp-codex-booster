@@ -53,5 +53,7 @@ assert_true($listDescriptor['name'] === 'function_list', 'The public function ca
 assert_true($callDescriptor['name'] === 'function_call', 'The public function dispatcher Tool must have a fixed name.');
 assert_true($listDescriptor['inputSchema']['properties'] instanceof stdClass, 'The function_list properties must serialize as an object.');
 assert_true($callDescriptor['inputSchema']['required'] === ['function_name', 'arguments'], 'The function_call contract must require a name and arguments.');
+assert_true($listDescriptor['outputSchema']['required'] === ['functions', 'count'], 'The function_list output schema must describe its catalog result.');
+assert_true($callDescriptor['outputSchema']['type'] === 'object', 'The function_call output schema must accept the selected function result.');
 
 echo "schema_normalization_test: OK\n";

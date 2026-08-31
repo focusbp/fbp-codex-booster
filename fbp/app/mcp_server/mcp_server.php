@@ -279,6 +279,14 @@ class mcp_server {
 			"type" => "object",
 			"properties" => [],
 			"additionalProperties" => false,
+		], [
+			"type" => "object",
+			"properties" => [
+				"functions" => ["type" => "array", "items" => ["type" => "object", "additionalProperties" => true]],
+				"count" => ["type" => "integer", "minimum" => 0],
+			],
+			"required" => ["functions", "count"],
+			"additionalProperties" => false,
 		]);
 	}
 
@@ -291,15 +299,16 @@ class mcp_server {
 			],
 			"required" => ["function_name", "arguments"],
 			"additionalProperties" => false,
-		]);
+		], ["type" => "object", "additionalProperties" => true]);
 	}
 
-	private function gateway_descriptor(array $server, string $name, string $title, string $description, array $input_schema): array {
+	private function gateway_descriptor(array $server, string $name, string $title, string $description, array $input_schema, array $output_schema): array {
 		$descriptor = [
 			"name" => $name,
 			"title" => $title,
 			"description" => $description,
 			"inputSchema" => $this->normalize_input_schema($input_schema),
+			"outputSchema" => $this->normalize_input_schema($output_schema),
 			"annotations" => ["readOnlyHint" => $name === self::FUNCTION_LIST_TOOL, "destructiveHint" => false, "openWorldHint" => false],
 		];
 		if ((string) ($server["auth_mode"] ?? "oauth2") === "noauth") {
