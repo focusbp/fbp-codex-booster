@@ -11,6 +11,11 @@ class release_api {
 		$ctl->set_check_login(false);
 	}
 
+	function capabilities(Controller $ctl) {
+		if ($ctl->verify_release_api_request() !== true) exit;
+		$this->respond_json(["ok" => true, "deploy_email_templates" => true]);
+	}
+
 	function upload(Controller $ctl) {
 		$setting = $ctl->get_setting();
 		$release_api_key = (string) ($setting["release_api_key"] ?? "");

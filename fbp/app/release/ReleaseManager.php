@@ -77,6 +77,7 @@ class ReleaseManager {
 	}
 
 	function create_release_zip_from_info(array $info): string {
+		$info["deploy_email_templates"] = $this->deployEmailTemplates($info);
 		$this->releaseInfo = $info;
 		$zip = new ZipArchive();
 
@@ -103,6 +104,7 @@ class ReleaseManager {
 		}
 
 		foreach ($this->db_copy_list as $f) {
+			if ($f === "email_format" && !$this->deployEmailTemplates($this->releaseInfo)) continue;
 			try {
 				$files = new RecursiveIteratorIterator(
 					new RecursiveDirectoryIterator("$this->datadir/$f"),
@@ -162,7 +164,8 @@ class ReleaseManager {
 				throw new Exception("Release file type is invalid.");
 			}
 
-			$zip->deleteName('info.json');
+			$info["deploy_email_templates"] = $this->deployEmailTemplates($info);
+			$this->releaseInfo = $info;
 			return $info;
 		} finally {
 			$zip->close();
@@ -175,6 +178,10 @@ class ReleaseManager {
 			throw new Exception($ctl->t("release.validation.cannot_open_file", ["file" => basename($zipFile)]));
 		}
 
+		$metadata = $zip->getFromName("info.json");
+		$info = $metadata === false ? [] : json_decode($metadata, true);
+		if (!is_array($info)) throw new RuntimeException("Invalid release metadata.");
+		$deployEmail = $this->deployEmailTemplates($info);
 		$stageDir = $this->createReleaseStageDirectory();
 		try {
 			$rootEntries = $this->extractReleaseZipToDirectory($zip, $ctl, $zipFile, $stageDir);
@@ -183,6 +190,7 @@ class ReleaseManager {
 			}
 			$this->deployStagedDirectory($stageDir . "/app", $this->appdir, $ctl, $zipFile, false);
 			foreach ($this->db_copy_list as $f) {
+				if ($f === "email_format" && !$deployEmail) continue;
 				$this->deployStagedDirectory($stageDir . "/data/$f", "$this->datadir/$f", $ctl, $zipFile, false);
 			}
 			$this->deployStagedDirectory($stageDir . "/data/public_pages/assets", $this->public_assets_dir, $ctl, $zipFile, true);
@@ -341,7 +349,7 @@ class ReleaseManager {
 		$rootEntries = [];
 		for ($i = 0; $i < $zip->numFiles; $i++) {
 			$filename = $zip->getNameIndex($i);
-			if (!is_string($filename) || $filename === "" || $this->isExcludedArchivePath($filename)) {
+			if (!is_string($filename) || $filename === "" || $filename === "info.json" || $this->isExcludedArchivePath($filename)) {
 				continue;
 			}
 			if (strpos($filename, "project_root/") === 0) {
@@ -437,6 +445,14 @@ class ReleaseManager {
 	private function isExcludedArchivePath(string $relativePath): bool {
 		$path = ltrim(str_replace("\\", "/", $relativePath), "/");
 		return $path === "log/ffm" || strpos($path, "log/ffm/") === 0;
+	}
+
+	private function deployEmailTemplates(array $info): bool {
+		if (!array_key_exists("deploy_email_templates", $info)) return true;
+		$value = $info["deploy_email_templates"];
+		if (in_array($value, [true, 1, "1"], true)) return true;
+		if (in_array($value, [false, 0, "0"], true)) return false;
+		throw new RuntimeException("Invalid deploy_email_templates flag.");
 	}
 
 	private function endsWith(string $haystack, string $needle): bool {
