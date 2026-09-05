@@ -328,6 +328,9 @@ interface ctl_fw {
 	 * @return array The list of constant array names.
 	 */
 	function get_all_constant_array_names($emptydata = false, $include_table_field = true);
+
+	/** Assign all template constant values and colors using a single bulk snapshot. */
+	function assign_all_constant_arrays(): void;
 	
 	/**
 	 * Retrieves a constant array.

@@ -3808,6 +3808,59 @@ class Controller_class implements Controller {
 		$ffm_values->insert($v);
 	}
 
+	/** Load the template constants in two scans, without a cross-request cache. */
+	function assign_all_constant_arrays(): void {
+		$definitions = $this->db("constant_array", "constant_array")->getall();
+		$names = [];
+		$definition_ids = [];
+		$table_fields_entry = null;
+		foreach ($definitions as $key => $definition) {
+			$name = $definition["array_name"];
+			// select(array_name) chooses the newest matching definition, even for legacy duplicates.
+			$match_name = trim((string) $name);
+			if (!array_key_exists($match_name, $definition_ids)) {
+				$definition_ids[$match_name] = $definition["id"];
+			}
+			if ($name === "table_fields") {
+				$table_fields_entry = [$key, $name];
+			} else {
+				$names[$key] = $name;
+			}
+		}
+		if ($table_fields_entry !== null) {
+			$names[$table_fields_entry[0]] = $table_fields_entry[1];
+		}
+
+		$values_by_id = [];
+		$colors_by_id = [];
+		if ($names !== []) {
+			// getall and select use the same sort/tie ordering. Group after sorting.
+			$rows = $this->db("values", "constant_array")->getall("sort", SORT_ASC);
+			foreach ($rows as $row) {
+				$id = $row["constant_array_id"];
+				$values_by_id[$id][$row["key"]] = $row["value"];
+				if ($row["color"]) {
+					$colors_by_id[$id][$row["key"]] = $row["color"];
+				}
+			}
+		}
+
+		$this->smarty->assign("constant_array_name", $names);
+		foreach ($names as $name) {
+			if (startsWith($name, "table/")) {
+				// Keep legacy dynamic table references live; they are not constant values.
+				$values = $this->get_constant_array($name, false);
+				$colors = $this->get_constant_array_color($name);
+			} else {
+				$id = $definition_ids[$name] ?? null;
+				$values = $id !== null ? ($values_by_id[$id] ?? []) : [];
+				$colors = $id !== null ? ($colors_by_id[$id] ?? []) : [];
+			}
+			$this->smarty->assign($name, $values);
+			$this->smarty->assign($name . "_colors", $colors);
+		}
+	}
+
 	function get_all_constant_array_names($emptydata = false, $include_table_field = true) {
 		$constant_array_names = [];
 		if ($emptydata) {

@@ -1689,14 +1689,7 @@ function cli_app_call_execute(array $data, Dirs $dir, Smarty $smarty) {
 	$ctl->assign("ctl", $ctl);
 
 	cli_close_all_db();
-	$constant_names = $ctl->get_all_constant_array_names(false, false);
-	$smarty->assign("constant_array_name", $constant_names);
-	foreach ($constant_names as $arr_name) {
-		$constant_values = $ctl->get_constant_array($arr_name, false);
-		$smarty->assign($arr_name, $constant_values);
-		$constant_colors = $ctl->get_constant_array_color($arr_name);
-		$smarty->assign($arr_name . "_colors", $constant_colors);
-	}
+	$ctl->assign_all_constant_arrays();
 	$ctl->close_all_db();
 
 	$appobj = cli_get_class_object($ctl, $class, $dir);

@@ -406,15 +406,7 @@ try{
 	}
 
 	// 選択肢の自動セット（Table情報以外）
-	$constant_names = $ctl->get_all_constant_array_names(false,false);
-	$smarty->assign("constant_array_name",$constant_names);
-	foreach ($constant_names as $key => $arr_name) {
-	    $constant_values = $ctl->get_constant_array($arr_name,false);
-	    $smarty->assign($arr_name , $constant_values );
-
-	    $constant_colors = $ctl->get_constant_array_color($arr_name);
-	    $smarty->assign($arr_name. "_colors" , $constant_colors );
-	}
+	$ctl->assign_all_constant_arrays();
 	
 	// 設定の読み込みなどで使用したDBを開放
 	$ctl->close_all_db();
