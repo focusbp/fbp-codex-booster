@@ -32,6 +32,13 @@ $pdf->addTable($table, [
 ```
 - 右寄せが効かないときは、まず `columnalign` というキー名になっているかを確認する。
 
+## Code 39 barcode
+
+- `addCode39($code, ["x" => 8, "y" => 10, "width" => 44, "height" => 7.3, "wide_ratio" => 2, "show_text" => false])` specifies bar width and height in mm.
+- `width` must be positive and measures the first bar's left edge to the last bar's right edge. Quiet zones and printed code text are excluded; reserve quiet zones in the surrounding layout.
+- `width` takes precedence over `baseline`. If omitted, the existing `baseline` behavior is preserved.
+- With `barcode_align => "R"` and an explicit width, `x` is the last bar's right edge.
+
 ## constraints
 - ユーザーからの印刷機能の実装は、HTMLの印刷ではなく必ずフレームワークのPDF出力機能を使用する。
 - 文字化け・画像パス・ページ崩れを優先チェックする。

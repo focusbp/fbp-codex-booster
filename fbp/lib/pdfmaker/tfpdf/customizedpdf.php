@@ -605,14 +605,24 @@ class CustomizedPDF extends tFPDF {
 	/*
 	 * Code 39
 	 */
-	function Code39($xpos, $ypos, $code, $baseline=0.5, $height=5, $align = 'L', $show_text = true, $wide_ratio = 3.0){
+	function Code39($xpos, $ypos, $code, $baseline=0.5, $height=5, $align = 'L', $show_text = true, $wide_ratio = 3.0, $width = null){
 
 		$wide_ratio = (float) $wide_ratio;
 		if ($wide_ratio <= 1.0) {
 			$wide_ratio = 3.0;
 		}
 		$wide = $baseline;
-		$narrow = $baseline / $wide_ratio;
+		if ($width !== null) {
+			$width = (float) $width;
+			if (!is_finite($width) || $width <= 0) {
+				throw new InvalidArgumentException("Code39 width must be a positive number in mm.");
+			}
+			// Every character has three wide and six narrow elements. Include
+			// start/stop characters and only the gaps between characters.
+			$characters = strlen($code) + 2;
+			$wide = $width / (3 * $characters + (7 * $characters - 1) / $wide_ratio);
+		}
+		$narrow = $wide / $wide_ratio;
 		$gap = $narrow;
 
 		$barChar['0'] = 'nnnwwnwnn';
@@ -677,6 +687,10 @@ class CustomizedPDF extends tFPDF {
 				}
 			}
 			$lineWidth += $gap;
+		}
+		if ($width !== null) {
+			// Explicit width anchors the last visible bar at the right edge.
+			$lineWidth = $width;
 		}
 		
 		/*
