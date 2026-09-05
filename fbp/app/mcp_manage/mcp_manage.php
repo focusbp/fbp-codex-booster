@@ -174,13 +174,14 @@ class mcp_manage {
 		$setting = $ctl->get_setting();
 		$title = trim((string) ($setting["system_name"] ?? "")) ?: "FBP MCP Server";
 		$now = time();
-		$id = (int) $this->ffm_server->insert([
+		$record = [
 			"enabled" => 0, "server_key" => "default", "title" => $title,
 			"description" => "MCP server for this FBP app.", "auth_mode" => "oauth2",
 			"subject_type" => "fbp_user", "subject_provider_class" => "",
 			"default_scope" => "mcp.read mcp.write", "sort" => 0,
 			"created_at" => $now, "updated_at" => $now,
-		]);
+		];
+		$id = (int) $this->ffm_server->insert($record);
 		return $this->ffm_server->get($id);
 	}
 

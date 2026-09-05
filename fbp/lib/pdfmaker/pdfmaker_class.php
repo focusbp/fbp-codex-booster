@@ -141,8 +141,9 @@ class pdfmaker_class {
 	/**
 	 * Add a Code 39 barcode.
 	 *
-	 * Layout accepts x, y, baseline (bar width), height, barcode_align
-	 * (L or R), and show_text (whether to print the human-readable code).
+	 * Layout accepts x, y, baseline (wide element width), wide_ratio,
+	 * height, barcode_align (L or R), and show_text (whether to print the
+	 * human-readable code).
 	 */
 	function addCode39($code, $layout = []) {
 		$layout["align"] = "BC39";
@@ -671,10 +672,11 @@ class pdfmaker_class {
 					$x = isset($set["x"]) ? (float) $set["x"] : $pdf->GetX();
 					$y = isset($set["y"]) ? (float) $set["y"] : $pdf->GetY();
 					$baseline = isset($set["baseline"]) ? (float) $set["baseline"] : 0.5;
+					$wide_ratio = isset($set["wide_ratio"]) ? (float) $set["wide_ratio"] : 3.0;
 					$height = isset($set["height"]) ? (float) $set["height"] : 5.0;
 					$barcode_align = strtoupper((string) ($set["barcode_align"] ?? "L"));
 					$show_text = !isset($set["show_text"]) || $set["show_text"] !== false;
-					$pdf->Code39($x, $y, $code, $baseline, $height, $barcode_align === "R" ? "R" : "L", $show_text);
+					$pdf->Code39($x, $y, $code, $baseline, $height, $barcode_align === "R" ? "R" : "L", $show_text, $wide_ratio);
 				}
 				$previous_data="barcode";
 			} else if ($set["align"] == "RECT") {

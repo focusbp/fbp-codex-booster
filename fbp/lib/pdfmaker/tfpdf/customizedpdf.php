@@ -605,10 +605,14 @@ class CustomizedPDF extends tFPDF {
 	/*
 	 * Code 39
 	 */
-	function Code39($xpos, $ypos, $code, $baseline=0.5, $height=5, $align = 'L', $show_text = true){
+	function Code39($xpos, $ypos, $code, $baseline=0.5, $height=5, $align = 'L', $show_text = true, $wide_ratio = 3.0){
 
+		$wide_ratio = (float) $wide_ratio;
+		if ($wide_ratio <= 1.0) {
+			$wide_ratio = 3.0;
+		}
 		$wide = $baseline;
-		$narrow = $baseline / 3 ; 
+		$narrow = $baseline / $wide_ratio;
 		$gap = $narrow;
 
 		$barChar['0'] = 'nnnwwnwnn';

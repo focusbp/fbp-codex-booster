@@ -492,7 +492,25 @@ class db_exe {
 		if ($this->is_show_search_id_enabled()) {
 			array_unshift($fields, $this->build_search_id_field());
 		}
-		return $fields;
+		return $this->append_search_extension_fields($ctl, $fields);
+	}
+
+	private function append_search_extension_fields(Controller $ctl, array $fields): array {
+		$class_name = $this->table_name . "_search_extension";
+		$file_path = $ctl->dirs->appdir_user . "/" . $class_name . "/" . $class_name . ".php";
+		if (!is_file($file_path)) {
+			return $fields;
+		}
+		require_once $file_path;
+		if (!class_exists($class_name)) {
+			return $fields;
+		}
+		$extension = new $class_name();
+		if (!method_exists($extension, "append_search_fields")) {
+			return $fields;
+		}
+		$extended = $extension->append_search_fields($ctl, $fields);
+		return is_array($extended) ? $extended : $fields;
 	}
 
 	private function get_visibility_filter(Controller $ctl) {
@@ -610,8 +628,9 @@ class db_exe {
 		}
 		if ($this->is_show_search_id_enabled()) {
 			array_unshift($assigned, $this->build_search_id_field());
-			$ctl->assign($group_name, $assigned);
 		}
+		$assigned = $this->append_search_extension_fields($ctl, $assigned);
+		$ctl->assign($group_name, $assigned);
 		return $assigned;
 	}
 
@@ -622,6 +641,14 @@ class db_exe {
 		foreach ($fields as $field) {
 			$name = $field["parameter_name"] ?? "";
 			if ($name === "") {
+				continue;
+			}
+			if (($field["search_filter_type"] ?? "") === "not_zero") {
+				if ((string) ($session[$name] ?? "") === "exclude") {
+					$search_field_list[] = (string) ($field["search_target_field"] ?? "");
+					$search_values[] = 0;
+					$search_match_patterns[] = ">";
+				}
 				continue;
 			}
 			$type = $field["type"] ?? "";

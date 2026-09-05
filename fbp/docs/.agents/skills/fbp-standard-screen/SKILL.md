@@ -50,6 +50,14 @@ description: Build, maintain, or adjust FBP Standard Screen note management usin
 - ログインユーザー、所属、ロールなどで閲覧範囲を制限する用途には使わない。利用者が解除できない条件は `<ノート名>_visibility_filter` に置く。
 - 設定後は `screen_fields_list` で `search_default_value`（日付・日時は `search_default_from` / `search_default_to`）を確認し、新しいセッションで `db_exe/page` を呼んで初期選択を確認する。続けて `standard_screen_check` を実行する。
 
+## app-owned search extensions
+
+- `screen_fields` だけでは表せない検索条件（例: 金額が0円以外）には、対象テーブル名へ `_search_extension` を付けた app 側クラスを使える。対象テーブルが `example_notes` なら、`classes/app/example_notes_search_extension/example_notes_search_extension.php` に `example_notes_search_extension` を定義する。
+- 拡張クラスは `append_search_fields(Controller $ctl, array $fields): array` を実装し、既存の `$fields` へ検索項目定義を追加して返す。拡張クラスがないテーブルの検索動作は変わらない。
+- 追加項目は `parameter_name`、`parameter_title`、`type`、`options`、必要なら `search_default_value` を持たせる。画面表示、検索セッション保存、一覧更新の経路は標準検索と共通になる。
+- 比較演算が必要な場合は、framework が提供する `search_filter_type` を指定する。現時点では `not_zero` が利用でき、`search_target_field` に指定した数値項目へ `> 0` 条件を追加する。対象項目名は app の信頼できるソースコード内に固定し、利用者入力を渡さない。
+- 新しい共通演算子を追加する場合は、app 固有の条件分岐を `db_exe` へ書かず、意味が汎用的であることを確認したうえで `search_filter_type` として実装する。追加した演算子、対象値、未指定時の挙動をこのSkillへ追記する。
+
 ## db_additionals workflow
 1. `db_additionals` は Standard Screen 側の拡張として扱う。新規 Original Screen の代替として使わない。
 2. まず `screen_fields` や標準機能で足りるか確認する。
