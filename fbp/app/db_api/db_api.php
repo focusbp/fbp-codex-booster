@@ -454,7 +454,7 @@ class db_api {
 				continue;
 			}
 			$parts = explode(",", $line);
-			if (count($parts) !== 3) {
+			if (count($parts) !== 3 && !(count($parts) === 4 && trim($parts[3]) === "IDX")) {
 				$this->respond_error(500, "invalid_fmt", "fmt file is invalid", [
 					"fmt_path" => $fmt_path,
 					"line" => $line,
@@ -464,6 +464,7 @@ class db_api {
 				"name" => (string) $parts[0],
 				"size" => (int) $parts[1],
 				"type" => (string) $parts[2],
+				"indexed" => count($parts) === 4 && trim($parts[0]) !== "id",
 			];
 		}
 		return $fields;

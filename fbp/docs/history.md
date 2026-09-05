@@ -1,5 +1,8 @@
 # app-framework5 History
 
+## 2026-09-06
+- Fixed DB API `describe` rejecting valid four-column FFM definitions with `IDX`. Responses now include `indexed`, matching FFM behavior (including the implicit ID index exception), while invalid options remain rejected.
+
 ## 2026-08-31
 - Added output schemas to the fixed public MCP `function_list` and `function_call` Tools. The catalog result explicitly returns `functions` and `count`; the dispatcher accepts the selected internal function's structured object result.
 
