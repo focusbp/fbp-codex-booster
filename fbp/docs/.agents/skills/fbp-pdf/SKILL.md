@@ -39,6 +39,29 @@ $pdf->addTable($table, [
 - `width` takes precedence over `baseline`. If omitted, the existing `baseline` behavior is preserved.
 - With `barcode_align => "R"` and an explicit width, `x` is the last bar's right edge.
 
+## Fixed text boxes
+
+Use `addTextBox()` for text that must stay inside an absolute rectangle:
+
+```php
+$pdf->addTextBox($memo, [
+    "x" => 10, "y" => 29.5, "width" => 40, "height" => 6, // mm
+    "fontsize" => 5, "fontname" => "gothic", // font size in pt
+    "lineheight" => 2, "padding" => 0, // mm; padding applies to all four sides
+    "align" => "L", "valign" => "top", "overflow" => "ellipsis",
+]);
+```
+
+- Pass the full text; do not pre-wrap by character count. The box measures glyph widths in the selected font and wraps Japanese/Latin text, preserving explicit newlines. `wrap => false` disables automatic wrapping.
+- `x`, `y`, positive `width` and `height` are required. Padding must leave a positive inner rectangle. Unlike `addText()`, no implicit cell padding is added.
+- `align`: `L`/`C`/`R`; `valign`: `top`/`middle`/`bottom`.
+- `overflow`: `clip` (default, hides everything outside the inner rectangle), `ellipsis` (whole lines with a final ellipsis), `shrink` (reduce the font), or `error` (throw `OverflowException` before drawing the box).
+- `clip` with `complete_lines => true` omits vertically incomplete lines; horizontal overflow is still clipped.
+- `shrink` uses `min_fontsize` (default the smaller of 6pt and the starting size). At that limit, `shrink_overflow` selects `ellipsis` (default), `clip`, or `error`.
+- `lineheight` is the baseline advance at the starting font size and scales during shrinking. It must accommodate the selected font's ascent/descent; omitted values are calculated from the font size and metrics.
+- A box does not advance the flow cursor or automatically add pages. Subsequent fields retain their positions. Explicit `addPage()` still works. All modes apply a PDF clipping rectangle as a final containment guard.
+- Existing `addText()` behavior is unchanged. Deploy the supporting framework before deploying an app that calls this API.
+
 ## constraints
 - ユーザーからの印刷機能の実装は、HTMLの印刷ではなく必ずフレームワークのPDF出力機能を使用する。
 - 文字化け・画像パス・ページ崩れを優先チェックする。

@@ -70,6 +70,19 @@ class pdfmaker_class {
 		$this->blank = false;
 	}
 
+	/** Fixed rectangle; see TextBox for overflow, padding and alignment options. */
+	function addTextBox($text, $layout = []) {
+		$layout["text_box"] = true;
+		if ($this->newpage) {
+			$layout["newpage"] = true;
+			$this->newpage = false;
+		}
+		$this->parameter[$this->c] = $layout;
+		$this->body[$this->c] = $this->remove_utf8_emoji((string) $text);
+		$this->c++;
+		$this->blank = false;
+	}
+
 	function addTable($table_array, $layout = []) {
 		
 		foreach($table_array as $keyr=>$r){
@@ -397,6 +410,8 @@ class pdfmaker_class {
 		// 入力データ処理
 		//--------------
 		for ($c = 1; $c <= count($parameter); $c++) {
+			$cursorX = $pdf->GetX();
+			$cursorY = $pdf->GetY();
 
 				// パラメーターをセット
 				$set = $this->setParameter($pdf, $parameter[$c], $default);
@@ -410,7 +425,13 @@ class pdfmaker_class {
 			//-----------------
 			// 描画
 			//-----------------
-			if ($set["align"] == "H") {
+			if (!empty($parameter[$c]["text_box"])) {
+				$box = $parameter[$c];
+				$box["fontsize"] = $set["fontsize"];
+				$pdf->TextBox((string) ($body[$c] ?? ""), $box);
+				$pdf->SetXY($cursorX, $cursorY);
+				$previous_data = "text_box";
+			} else if ($set["align"] == "H") {
 				//---------
 				// 表
 				//---------

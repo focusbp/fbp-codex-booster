@@ -602,9 +602,117 @@ class CustomizedPDF extends tFPDF {
 	}
 
 	
-	/*
-	 * Code 39
-	 */
+	/** Fixed text rectangle in mm. Does not advance the cursor or add pages. */
+	function TextBox($text, array $layout): void {
+		foreach (["x", "y", "width", "height"] as $key) {
+			if (!isset($layout[$key]) || !is_numeric($layout[$key]) || !is_finite((float) $layout[$key])) {
+				throw new InvalidArgumentException("TextBox requires a finite $key in mm.");
+			}
+		}
+		$x = (float) $layout["x"];
+		$y = (float) $layout["y"];
+		$w = (float) $layout["width"];
+		$h = (float) $layout["height"];
+		$padding = (float) ($layout["padding"] ?? 0);
+		$size = (float) ($layout["fontsize"] ?? $this->FontSizePt);
+		$minimum = (float) ($layout["min_fontsize"] ?? min(6, $size));
+		$overflow = $layout["overflow"] ?? "clip";
+		$fallback = $layout["shrink_overflow"] ?? "ellipsis";
+		$align = strtoupper($layout["align"] ?? "L");
+		$valign = $layout["valign"] ?? "top";
+		if (!is_finite($padding) || !is_finite($size) || !is_finite($minimum) || $padding < 0 || $w <= 2*$padding || $h <= 2*$padding || $size <= 0 || $minimum <= 0 || $minimum > $size
+			|| !in_array($overflow, ["clip", "ellipsis", "shrink", "error"], true)
+			|| !in_array($fallback, ["clip", "ellipsis", "error"], true)
+			|| !in_array($align, ["L", "C", "R"], true)
+			|| !in_array($valign, ["top", "middle", "bottom"], true)) {
+			throw new InvalidArgumentException("Invalid TextBox dimensions or layout options.");
+		}
+		$innerWidth = $w - 2*$padding;
+		$innerHeight = $h - 2*$padding;
+		$originalSize = $this->FontSizePt;
+		// Use the selected font's actual ascent/descent to reserve each line.
+		$ascent = max(0, (float) ($this->CurrentFont['desc']['Ascent'] ?? 880)) / 1000;
+		$descent = abs((float) ($this->CurrentFont['desc']['Descent'] ?? -120)) / 1000;
+		$fontHeight = max(1, $ascent + $descent);
+		$baseLineHeight = (float) ($layout["lineheight"] ?? max(1.2, $fontHeight) * $size / $this->k);
+		if (!is_finite($baseLineHeight) || $baseLineHeight < $fontHeight * $size / $this->k) {
+			throw new InvalidArgumentException("TextBox lineheight must accommodate the font height.");
+		}
+		$text = str_replace(["\r\n", "\r", "\t"], ["\n", "\n", "    "], (string) $text);
+		$wrap = ($layout["wrap"] ?? true) !== false;
+		try {
+			$measure = function ($fontSize) use ($text, $wrap, $innerWidth, $baseLineHeight, $size, $fontHeight, $innerHeight) {
+				$this->SetFontSize($fontSize);
+				$lines = [];
+				foreach (explode("\n", $text) as $paragraph) {
+					$line = "";
+					foreach (preg_split('//u', $paragraph, -1, PREG_SPLIT_NO_EMPTY) as $char) {
+						if ($wrap && $line !== "" && $this->GetStringWidth($line . $char) > $innerWidth + 0.000001) {
+							$lines[] = $line;
+							$line = "";
+						}
+						$line .= $char;
+					}
+					$lines[] = $line;
+				}
+				$advance = $baseLineHeight * $fontSize / $size;
+				$glyphHeight = $fontHeight * $fontSize / $this->k;
+				$height = (count($lines)-1)*$advance + $glyphHeight;
+				$fits = $height <= $innerHeight + 0.000001;
+				foreach ($lines as $line) $fits = $fits && $this->GetStringWidth($line) <= $innerWidth + 0.000001;
+				return [$lines, $advance, $glyphHeight, $height, $fits];
+			};
+			$result = $measure($size);
+			if (!$result[4] && $overflow === "shrink") {
+				$low = $minimum;
+				$high = $size;
+				if ($measure($low)[4]) {
+					for ($i=0; $i<20; $i++) {
+						$mid = ($low+$high)/2;
+						if ($measure($mid)[4]) $low=$mid; else $high=$mid;
+					}
+				}
+				$size = floor($low*100)/100;
+				$size = max($minimum, $size);
+				$result = $measure($size);
+				$overflow = $fallback;
+			}
+			[$lines, $advance, $glyphHeight, $height, $fits] = $result;
+			if (!$fits && $overflow === "error") throw new OverflowException("Text does not fit in TextBox.");
+			if (!$fits && ($overflow === "ellipsis" || !empty($layout["complete_lines"]))) {
+				$capacity = max(0, (int) floor(($innerHeight-$glyphHeight+0.000001)/$advance)+1);
+				$truncated = count($lines) > $capacity;
+				$lines = array_slice($lines, 0, $capacity);
+				if ($overflow === "ellipsis") {
+					foreach ($lines as $i => &$line) {
+						if ($this->GetStringWidth($line) > $innerWidth || ($truncated && $i === count($lines)-1)) {
+							while ($line !== "" && $this->GetStringWidth($line . "…") > $innerWidth) $line = mb_substr($line, 0, -1, "UTF-8");
+							$line = $this->GetStringWidth("…") <= $innerWidth ? $line . "…" : "";
+						}
+					}
+					unset($line);
+				}
+				$height = empty($lines) ? 0 : (count($lines)-1)*$advance+$glyphHeight;
+			}
+			$offset = max(0, $innerHeight-$height);
+			$top = $y+$padding+($valign === "middle" ? $offset/2 : ($valign === "bottom" ? $offset : 0));
+			// Clip all modes as a final containment guard, including glyph overhang.
+			$this->_out(sprintf('q %.5F %.5F %.5F %.5F re W n', ($x+$padding)*$this->k, ($this->h-$y-$padding)*$this->k, $innerWidth*$this->k, -$innerHeight*$this->k));
+			try {
+				foreach ($lines as $i => $line) {
+					if ($i*$advance >= $innerHeight) break;
+					$space = $innerWidth-$this->GetStringWidth($line);
+					$left = $x+$padding+($align === "C" ? $space/2 : ($align === "R" ? $space : 0));
+					$this->Text($left, $top+$i*$advance+$ascent*$size/$this->k, $line);
+				}
+			} finally {
+				$this->_out('Q');
+			}
+		} finally {
+			$this->SetFontSize($originalSize);
+		}
+	}
+
 	function Code39($xpos, $ypos, $code, $baseline=0.5, $height=5, $align = 'L', $show_text = true, $wide_ratio = 3.0, $width = null){
 
 		$wide_ratio = (float) $wide_ratio;
