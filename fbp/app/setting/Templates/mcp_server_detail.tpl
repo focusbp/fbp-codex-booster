@@ -24,14 +24,4 @@
 		<th>{t key="setting.mcp_endpoint_url"}</th>
 		<td><div class="setting_readonly_value setting_url_value">{$mcp_server.endpoint_url|escape}</div></td>
 	</tr>
-	<tr>
-		<th>{t key="setting.mcp_oauth_urls"}</th>
-		<td>
-			<div class="setting_readonly_value setting_url_value">
-				authorization: {$mcp_server.authorization_url|escape}<br>
-				token: {$mcp_server.token_url|escape}<br>
-				resource metadata: {$mcp_server.resource_metadata_url|escape}
-			</div>
-		</td>
-	</tr>
 </table>

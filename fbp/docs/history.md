@@ -1,5 +1,8 @@
 # app-framework5 History
 
+## 2026-09-07
+- Removed the OAuth URLs row from the setting screen's MCP Server URL dialog. The MCP endpoint remains visible; OAuth behavior is unchanged.
+
 ## 2026-09-06
 - Replaced Web and CLI template constant preloading with one definition scan and one sorted value scan, grouping values and colors in memory. Preserves name/assignment order, table_fields-last behavior, legacy duplicates and text keys, empty colors, and live table references without persistent caching. Regression fixtures compare all assignments against the old loop; a 54-set/331-value fixture reduced preload time from roughly 200–330ms to 2ms.
 
