@@ -751,5 +751,7 @@
   "screen_debug_log.context_not_found": "画面情報が取得できませんでした。再表示してください。",
   "screen_debug_log.captured": "お問い合わせ番号: {code}",
   "screen_debug_log.screen_id": "画面ID",
-  "screen_debug_log.copy_screen_id": "画面IDをコピー"
+  "screen_debug_log.copy_screen_id": "画面IDをコピー",
+  "setting.mcp_status_save": "保存する",
+  "setting.mcp_status_invalid": "有効または無効を選択してください。"
 }

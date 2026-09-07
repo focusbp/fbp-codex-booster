@@ -751,5 +751,7 @@
   "screen_debug_log.context_not_found": "Screen information could not be retrieved. Please reload the screen.",
   "screen_debug_log.captured": "Inquiry ID: {code}",
   "screen_debug_log.screen_id": "Screen ID",
-  "screen_debug_log.copy_screen_id": "Copy screen ID"
+  "screen_debug_log.copy_screen_id": "Copy screen ID",
+  "setting.mcp_status_save": "Save",
+  "setting.mcp_status_invalid": "Select enabled or disabled."
 }

@@ -396,6 +396,33 @@ class setting {
 		$ctl->show_multi_dialog("setting_mcp_server_detail_" . (int) $server["id"], "mcp_server_detail.tpl", "MCP Server", 760, true, true);
 	}
 
+	function mcp_server_status_save(Controller $ctl) {
+		$enabled = $ctl->POST()["enabled"] ?? null;
+		if (!in_array($enabled, [0, 1, "0", "1"], true)) {
+			$ctl->res_error_message("enabled", $ctl->t("setting.mcp_status_invalid"));
+			return;
+		}
+		$server = $this->get_mcp_servers_info($ctl)[0];
+		$id = (int) $server["id"];
+		$ffm = $ctl->db("mcp_server_config", "mcp_manage");
+		if ($id > 0) {
+			$record = ["id" => $id, "enabled" => (int) $enabled, "updated_at" => time()];
+			$ffm->update($record);
+		} else {
+			$record = [
+				"enabled" => (int) $enabled, "server_key" => "default",
+				"title" => $server["title"], "description" => "",
+				"auth_mode" => "oauth2", "subject_type" => "fbp_user",
+				"subject_provider_class" => "", "default_scope" => "mcp.read mcp.write",
+				"sort" => 0, "created_at" => time(), "updated_at" => time(),
+			];
+			$ffm->insert($record);
+		}
+		$ctl->close_multi_dialog("setting_mcp_server_detail_" . $id);
+		$ctl->show_notification_text($ctl->t("setting.notification.saved"));
+		$ctl->invoke("mcp_server_detail", [], "setting");
+	}
+
 	private function get_mcp_server_info(Controller $ctl): array {
 		$base_url = $this->get_mcp_base_url($ctl);
 		return [
@@ -418,7 +445,8 @@ class setting {
 			$default["id"] = 0;
 			$default["subject_type"] = "fbp_user";
 			$default["subject_provider_class"] = "";
-			$default["enabled"] = 1;
+			$default["enabled"] = 0;
+			$default["status"] = $ctl->t("common.disabled");
 			$default["function_count"] = count($ffm_functions->getall());
 			return [$default];
 		}
