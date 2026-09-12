@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . "/../../lib/SingleRecordScreen.php";
+
 
 class db_additionals {
 	
@@ -7,6 +9,24 @@ class db_additionals {
 	private $button_type_opt = [0=>"Text",1=>"Icon(Google Material Icons)"];
 	private $show_button_opt = [0=>"Show",1=>"Hide"];
 	private $window="db_additionals";
+
+    private function table_setting(Controller $ctl, string $name): array {
+        return $ctl->db('db', 'db')->select('tb_name', $name)[0] ?? [];
+    }
+
+    private function validate_place(Controller $ctl, array $button): bool {
+        if (!SingleRecordScreen::allows_button($this->table_setting($ctl, (string) ($button['tb_name'] ?? '')), $button['place'] ?? 0)) {
+            $ctl->res_error_message('place', $ctl->t('db.single.top_buttons_only'));
+            return false;
+        }
+        return true;
+    }
+
+    private function assign_single_tables(Controller $ctl, array $tables): void {
+        $ctl->assign('single_record_tables_json', json_encode(array_values(array_map(
+            fn($table) => (string) $table['tb_name'], array_filter($tables, [SingleRecordScreen::class, 'is_single'])
+        )), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT));
+    }
 
 	private function get_target_area(Controller $ctl): string {
 		$post = $ctl->POST();
@@ -38,6 +58,9 @@ class db_additionals {
 		$post = $ctl->POST();
 		$tb_name = trim((string) ($post["tb_name"] ?? ""));
 		$target_area = $this->get_target_area($ctl);
+        if (SingleRecordScreen::is_single($this->table_setting($ctl, $tb_name))) {
+            $ctl->assign('place_opt', [0 => $this->place_opt[0]]);
+        }
 		$reload_db_id = (int) ($post["reload_db_id"] ?? 0);
 
 		if ($tb_name !== "") {
@@ -102,6 +125,7 @@ class db_additionals {
 			}
 			$database_names[$tb_name] = $tb_name;
 		}
+		$this->assign_single_tables($ctl, $database_list);
 		$ctl->assign("database_names", $database_names);
 		$ctl->assign("post",$post);
 
@@ -112,6 +136,7 @@ class db_additionals {
 	function add_exe(Controller $ctl) {
 
 		$post = $ctl->POST();
+		$this->validate_place($ctl, $post);
 		$class_name = trim((string)($post["class_name"] ?? ""));
 		$function_name = trim((string)($post["function_name"] ?? ""));
 
@@ -196,6 +221,7 @@ class db_additionals {
 			}
 			$database_names[$tb_name] = $tb_name;
 		}
+		$this->assign_single_tables($ctl, $database_list);
 		$ctl->assign("database_names", $database_names);
 
 		$ctl->show_multi_dialog($this->window . "edit", "edit.tpl", $ctl->t("db_additionals.dialog.edit"), 1000);
@@ -208,6 +234,7 @@ class db_additionals {
 		if (!is_array($current)) {
 			$current = [];
 		}
+		$this->validate_place($ctl, $post);
 		$class_name = trim((string)($post["class_name"] ?? ""));
 		$function_name = trim((string)($post["function_name"] ?? ""));
 
@@ -356,6 +383,18 @@ class db_additionals {
 		if ($groups_json !== "") {
 			$groups = json_decode($groups_json, true);
 			if (is_array($groups)) {
+                foreach ($groups as $place => $ids) {
+                    if (!is_array($ids)) { continue; }
+                    foreach ($ids as $id) {
+                        $button = $ctl->db('additionals')->get((int) $id);
+                        if (!$button) { continue; }
+                        $button['place'] = $place;
+                        if (!$this->validate_place($ctl, $button)) {
+                            $ctl->show_notification_text($ctl->t('db.single.top_buttons_only'));
+                            return;
+                        }
+                    }
+                }
 				foreach ($groups as $place => $ids) {
 					if (!is_array($ids)) {
 						continue;

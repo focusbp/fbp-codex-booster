@@ -127,7 +127,7 @@
   "db.sort_order": "Sort Order",
   "db.side_panel_width": "Side Panel Width",
   "db.dialog_width": "Dialog Width",
-  "db.list_type": "List Type",
+  "db.list_type": "Screen Pattern",
   "db.side_panel_list_type": "Side Panel List Type",
   "db.horizontal_scroll": "Horizontal Scroll",
   "db.show_id_on_list": "Show ID on the list",
@@ -753,5 +753,15 @@
   "screen_debug_log.screen_id": "Screen ID",
   "screen_debug_log.copy_screen_id": "Copy screen ID",
   "setting.mcp_status_save": "Save",
-  "setting.mcp_status_invalid": "Select enabled or disabled."
+  "setting.mcp_status_invalid": "Select enabled or disabled.",
+  "db.single.label": "Single Record",
+  "db.single.standard_only": "Single Record requires Standard Screen.",
+  "db.single.parent_not_supported": "Single Record cannot have a parent note.",
+  "db.single.multiple_records": "More than one record exists. Single Record requires at most one record.",
+  "db.single.top_buttons_only": "Single Record only supports top buttons. Remove existing row and side panel buttons first.",
+  "db.single.operation_not_supported": "This operation is not available for Single Record.",
+  "db.single.fields_required": "Configure the fields to edit.",
+  "db.single.saved": "Saved",
+  "db.single.unavailable": "This note cannot be displayed. Check the data and access permissions.",
+  "db.single.fields_label": "Single record fields"
 }

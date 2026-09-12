@@ -18,7 +18,7 @@ description: Manage the FBP DB lifecycle from CLI-based table/field design throu
    - `.fmt` の直接編集は、DB管理外の固定fmtを扱う場合だけに限定する。
 3. 新規ノート画面は、まず `screen_build_type=Standard Screen` にする。ユーザーが「Original Screen指定」と明示した場合、または標準画面で実現できない業務UIが必要な場合だけ `Original Screen` を選ぶ。
 4. `screen_build_type=Original Screen` なら `screen_fields` を前提にせず、同じ作業内で `<tb_name>_original_management` 実装へ進む。
-5. `screen_build_type=Standard Screen` のときだけ、`screen_fields` を `list/add/edit/delete/search`（必要なら `list_on_side`）へ反映。サイドパネルの項目・幅・親子導線は `fbp-side-panel` に従う。
+5. 単一レコード（`list_type=3`）は `fbp-standard-screen` の「単一レコードの場合の画面パターン」に従い、`edit` だけを設定する。それ以外で `screen_build_type=Standard Screen` のときだけ、`screen_fields` を `list/add/edit/delete/search`（必要なら `list_on_side`）へ反映。サイドパネルの項目・幅・親子導線は `fbp-side-panel` に従う。
 6. `data_*` で実データ確認。
 
 ## definition release and runtime lifecycle
@@ -57,7 +57,7 @@ description: Manage the FBP DB lifecycle from CLI-based table/field design throu
 - 新規テーブル作成時は、原則 `screen_build_type=Standard Screen` を選ぶ。
 - `Original Screen` は、ユーザーが「Original Screen指定」と明示した場合、または標準の `list/add/edit/delete/search/list_on_side`、`db_additionals`、`post_action_class` では足りない業務UIが必要な場合だけ選ぶ。
 - 標準CRUDノート、取込確認用ノート、一時的なデータ管理ノート、MCP Note CRUD と共通化したいノートは `Standard Screen` を選び、`screen_fields` を `list/add/edit/delete/search/list_on_side` に反映する。
-- `list_type` は `Standard Screen` の一覧パターン、または `Original Screen` 実装時の補助設定として扱う。画面構築方式そのものを `list_type` に混ぜない。
+- `list_type` は `Standard Screen` の画面パターン（0: 検索＋一覧、1: 手動ソート、2: カレンダー、3: 単一レコード）、または `Original Screen` 実装時の補助設定として扱う。画面構築方式そのものを `list_type` に混ぜない。
 - 新規テーブル作成時、`sort` 項目で手動並び替えを運用するテーブルは、`一覧タイプ` を `Manual Sort` に設定する。
 - CLI では `db_tables_add` / `db_tables_edit` の `list_type=1` を使う。
 - 手動並び替えを行うテーブルでは、`sort` 項目を追加または維持し、`sortkey=sort` と `list_type=1` を揃える。

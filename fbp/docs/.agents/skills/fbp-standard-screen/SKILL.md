@@ -1,6 +1,6 @@
 ---
 name: fbp-standard-screen
-description: Build, maintain, or adjust FBP Standard Screen note management using screen_fields, db_additionals, post_action_class, and helper-first patterns. This is the default for new CRUD-style note screens unless Original Screen is explicitly requested or required.
+description: Build, maintain, or adjust FBP Standard Screen note management using screen_fields, db_additionals, post_action_class, and helper-first patterns, including single-record settings screens. This is the default for new CRUD-style note screens unless Original Screen is explicitly requested or required.
 ---
 
 # fbp-standard-screen
@@ -25,6 +25,17 @@ description: Build, maintain, or adjust FBP Standard Screen note management usin
 6. 保存時の共通副作用は、画面専用処理ではなく対象ノートの `post_action_class` に寄せ、Standard Screen、Original Screen、MCP Server の Note CRUD で同じ動きにする。
 7. 標準の編集・削除導線を独自化する場合は、対象 screen の `screen_fields` を空にして標準アイコンを非表示にし、`db_additionals` の行ボタンで専用クラス・専用ダイアログを実装する。
 8. `screen_fields` 登録・変更後は必ず `standard_screen_check` を実行し、フラグの選択式化、内部項目/ raw ID の露出、空の画面定義を確認する。
+
+## 単一レコードの場合の画面パターン
+
+- 設定のように同じデータ保存単位で１件だけ扱うノートは、`screen_build_type=0`（Standard Screen）、`list_type=3`（単一レコード）を使う。管理UIでは「画面パターン」から選ぶ。
+- メニューから開くと、メイン画面に編集フォームと「保存」を表示する。画面項目は `screen_fields` の `edit` だけ設定し、初回登録と更新で共通利用する。通常の `list/add/delete/search/list_on_side` 登録は不要。
+- ０件なら項目の初期値を表示し、初回保存で作成する。画面表示だけではレコードを作らない。１件なら既存IDで更新するため、`id=1` を前提にしない。
+- 保存成功時は Notification に「保存しました」と表示し、保存後の内容をメイン画面に表示する。検証エラーではフォームを維持し、成功通知を出さない。ファイル保存と `post_action_class` は標準経路を使い、フックの操作種別は初回 `add`、更新 `edit`。
+- 上部ボタンは `db_additionals` の `place=0` で追加する。行ボタン・サイドパネルボタン（`place=1/2/3`）は設定不可。上部ボタンにレコードIDや未保存フォーム値は自動送信しない。
+- 親を持たない共有設定用ノートが対象。ユーザー別・親別に１件持つ用途には使わない。親ノート設定、２件以上の既存データ、既存の行・サイドパネルボタンがある場合は、このパターンへの変更が拒否される。
+- 標準画面の追加・複製・削除等の直接呼出しは拒否され、同時初回保存はFFMの排他ロック内で１件に保たれる。これは標準画面の制約であり、独自コード、汎用DB API、CLI `data_*` の直接書込みまで制約するものではない。これらから書き込む実装でも１件を維持すること。２件以上を検出した画面は編集・保存を止める。
+- 設定後は `standard_screen_check`、`db_exe/page`、`db_exe/save_single_exe` と `data_list` で確認する。初回保存・更新・入力エラー・保存通知・上部ボタンを確認し、検証で設定レコードを意図せず残さない。
 
 ## default screen_fields policy
 - ユーザーから項目指定がない場合、Standard Screen の `screen_fields` は次の方針で設定する。

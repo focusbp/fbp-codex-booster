@@ -127,7 +127,7 @@
   "db.sort_order": "並び順方向",
   "db.side_panel_width": "サイドパネル幅",
   "db.dialog_width": "ダイアログ幅",
-  "db.list_type": "一覧タイプ",
+  "db.list_type": "画面パターン",
   "db.side_panel_list_type": "サイドパネル一覧タイプ",
   "db.horizontal_scroll": "横スクロール",
   "db.show_id_on_list": "一覧に ID を表示",
@@ -753,5 +753,15 @@
   "screen_debug_log.screen_id": "画面ID",
   "screen_debug_log.copy_screen_id": "画面IDをコピー",
   "setting.mcp_status_save": "保存する",
-  "setting.mcp_status_invalid": "有効または無効を選択してください。"
+  "setting.mcp_status_invalid": "有効または無効を選択してください。",
+  "db.single.label": "単一レコード",
+  "db.single.standard_only": "単一レコードは Standard Screen で利用できます。",
+  "db.single.parent_not_supported": "単一レコードには親ノートを設定できません。",
+  "db.single.multiple_records": "レコードが２件以上あります。単一レコードは１件以下で利用してください。",
+  "db.single.top_buttons_only": "単一レコードでは上部ボタンのみ設定できます。既存の行・サイドパネルボタンを解除してください。",
+  "db.single.operation_not_supported": "単一レコードではこの操作は利用できません。",
+  "db.single.fields_required": "編集する項目を設定してください。",
+  "db.single.saved": "保存しました",
+  "db.single.unavailable": "このノートを表示できません。データまたは閲覧権限を確認してください。",
+  "db.single.fields_label": "単一レコードの編集項目"
 }

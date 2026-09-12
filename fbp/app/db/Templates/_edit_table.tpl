@@ -18,6 +18,7 @@
 		{html_options id="screen_build_type" name="screen_build_type" options=$screen_build_type_opt selected=$data["screen_build_type"]}
 		<p class="lang">{t key="db.parent_table"}</p>
 		{html_options name="parent_tb_id" options=$parents_opt selected=$data["parent_tb_id"]}
+        <p class="error_message">{$errors.parent_tb_id|default:""|escape}</p>
 		<div class="standard-screen-only-fields">
 			<p class="lang">{t key="db.cascade_delete"}</p>
 			{html_options name="cascade_delete_flag" options=$cascade_delete_flag_opt selected=$data["cascade_delete_flag"]}
@@ -56,6 +57,7 @@
 			<input type="text" name="edit_width" value="{$data["edit_width"]}">
 			<p class="lang">{t key="db.list_type"}</p>
 			{html_options id="list_type" name="list_type" options=$list_type_opt selected=$data["list_type"]}
+            <p class="error_message">{$errors.list_type|default:""|escape}</p>
 			<p class="lang">{t key="db.side_panel_list_type"}</p>
 			{html_options id="side_list_type" name="side_list_type" options=$side_list_type_opt selected=$data["side_list_type"]}
 			<p class="lang">{t key="db.horizontal_scroll"}</p>
@@ -96,13 +98,17 @@
 						return;
 					}
 					let list_type = $("#list_type").val();
+                    let single = list_type == 3;
+                    let unused = $("#side_list_type, #horizontal_scroll, #show_id, #show_search_id, #show_duplicate, input[name='edit_width']");
+                    unused.prop('disabled', single).toggle(!single);
+                    unused.prev('p').toggle(!single);
 					if (list_type == 0) {
 					$("#sortkey").prop('disabled', false);
 					$("#sort_order").prop('disabled', false);
 				} else if (list_type == 1) {
 					$("#sortkey").prop('disabled', true);
 					$("#sort_order").prop('disabled', true);
-				} else if (list_type == 2) {
+				} else if (list_type == 2 || list_type == 3) {
 					$("#sortkey").prop('disabled', true);
 					$("#sort_order").prop('disabled', true);
 				}

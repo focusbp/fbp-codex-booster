@@ -1,6 +1,6 @@
 ---
 name: fbp-dialog
-description: Implement FBP dialog-based UI flows with ajax-link/invoke-function, validation, and error rendering rules.
+description: Implement FBP dialog-based UI flows with ajax-link/invoke-function, validation, error rendering rules, and reusable URL sharing/copy templates.
 ---
 
 # fbp-dialog
@@ -80,3 +80,31 @@ private function normalize_datetime_to_timestamp($value): int
 - DB画像の `<img>` には原則 `max-width:500px;` を付け、縦サイズは固定しない。`height` / `max-height` で縦横比を崩さない。
 - 固定バー上の非ajaxボタン（例: `type="button"`）をJSで扱う場合、`.multi_dialog` スコープで要素取得してイベントを張る。
 - `ajax-link` でフォーム値をPOSTする画面は、テンプレート全体を `<form onsubmit="return false;">...</form>` で囲み、対象入力の `error_*` 要素を必ず配置する。
+
+
+## URL表示・コピーのダイアログ
+
+URLを表示して共有・コピーする管理画面では、[assets/share_url.tpl](assets/share_url.tpl) をコピーして使える。URLそのものをクリック可能にし、右端にコピーアイコンを置くパターン。
+
+- 長いURLは折り返して全文表示する。横スクロール・省略表示にせず、別の「URLを開く」リンクは重複して置かない。
+- コピーはアイコンのみで、`title` / `aria-label` を付ける。成功時はチェックアイコンと `role="status"` のメッセージを表示し、失敗時はURLを選択して手動コピーを案内する。
+- ボタン背景・成功メッセージは `--fbp-framework-primary-color`、ボタン文字は `--fbp-framework-primary-text-color` を使用し、管理画面の色設定に連動させる。独自の濃紺・緑などで固定しない。
+- 表示専用のURLとコピーの組み合わせなので、フォーム入力部品の横に実行ボタンを置かないルールの対象外。POSTする入力項目や `<form>` は不要。
+- 専用CSS・JSはテンプレート内の `{literal}` に同梱。ダイアログの再表示時に本文と一緒に反映し、JSのイベントは名前空間付き `off` / `on` で重複を避ける。
+- テンプレートは固定バー・タブを持たない専用ダイアログ用。余白・空の固定バーの調整はこのパターンを含むダイアログに限定しているため、フォームや固定バーのあるダイアログにそのまま埋め込まない。
+
+組み込み例（アプリ側で権限と対象レコードの検証を済ませてから表示）:
+
+```php
+// assets/share_url.tpl を対象クラスの Templates/share_url.tpl へコピーする。
+$ctl->assign('share_url', $ctl->get_APP_URL('public_pages', 'meeting', [
+    'id' => $ctl->encrypt($meeting['id']),
+]));
+$ctl->assign('share_url_help', 'このURLを共有すると、申込み画面を案内できます。');
+$ctl->assign('share_url_open_label', '申込み画面を開く');
+$ctl->show_multi_dialog('share-url', 'share_url.tpl', '申込みURL', 680);
+```
+
+URL生成先・説明・リンクのラベル・タイトルは用途に合わせる。`share_url` はアプリが生成・検証したHTTP(S) URLを渡す（HTMLエスケープだけでは危険なスキームを拒否できない）。テンプレートはアプリ固有のID・接続先を持たない。
+
+検証は、長いURLの折り返し、狭い画面での横はみ出しなし、URLクリックで別タブ表示、クリップボードの全文一致、コピー拒否時の案内、管理画面のテーマ色との一致を確認する。

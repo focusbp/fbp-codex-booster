@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . "/../../lib/SingleRecordScreen.php";
+
 
 class db_exe {
 	private const READ_ONLY_FUNCTIONS = [
@@ -17,6 +19,7 @@ class db_exe {
 	private $window_name;
 	private $title;
 	private $access_denied = false;
+	private $request_function = "";
 
 	public static function is_read_only_function(string $function_name): bool {
 		return in_array($function_name, self::READ_ONLY_FUNCTIONS, true);
@@ -113,6 +116,7 @@ class db_exe {
 		}
 
 		$function_name = $post_function !== "" ? $post_function : $get_function;
+		$this->request_function = $function_name;
 		if (self::is_read_only_function($function_name)) {
 			$ctl->set_db_read_only(true);
 		}
@@ -212,7 +216,7 @@ class db_exe {
 		$side_type = isset($this->db_setting["side_list_type"]) ? (int)$this->db_setting["side_list_type"] : 0;
 		if ($side_type === 0) {
 			$main_type = isset($this->db_setting["list_type"]) ? (int)$this->db_setting["list_type"] : 0;
-			return ($main_type === 0) ? 1 : 2;
+			return ($main_type === 0 || $main_type === 3) ? 1 : 2;
 		}
 		return ($side_type === 1) ? 1 : 2;
 	}
@@ -544,6 +548,12 @@ class db_exe {
 	}
 
 	private function can_execute(Controller $ctl): bool {
+        if (SingleRecordScreen::is_single($this->db_setting)) {
+            if (!empty($this->db_setting['parent_tb_id']) || !in_array($this->request_function, ['page', 'reload', 'save_single_exe'], true)) {
+                $ctl->show_notification_text($ctl->t('db.single.operation_not_supported'));
+                return false;
+            }
+        }
 		if (!$this->access_denied) {
 			return true;
 		}
@@ -711,6 +721,11 @@ class db_exe {
 			return;
 		}
 		
+        if (SingleRecordScreen::is_single($this->db_setting)) {
+            $this->show_single_record($ctl);
+            return;
+        }
+
 		if($this->db_setting["list_type"] == 0){
 			//List Type is "Search and Table"
 			$search = $ctl->get_session("search_" . $this->table_name);
@@ -763,6 +778,89 @@ class db_exe {
 		// Show HTML
 		$ctl->show_main_area("index.tpl", $this->title);
 	}
+
+    private function single_record(Controller $ctl): ?array {
+        $rows = SingleRecordScreen::rows($this->ffm);
+        if (count($rows) > 1) {
+            $ctl->show_notification_text($ctl->t('db.single.multiple_records'));
+            return null;
+        }
+        $row = $rows[0] ?? [];
+        if ($row) {
+            $names = ['id'];
+            $values = [$row['id']];
+            $patterns = ['='];
+            $this->append_visibility_filter_conditions($ctl, $names, $values, $patterns, 'rows');
+            $last = false;
+            if (!$this->ffm->filter($names, $values, true, 'AND', 'id', SORT_ASC, 1, $last, $patterns)) {
+                $this->deny_table_access($ctl);
+                return null;
+            }
+        }
+        return $row;
+    }
+
+    private function show_single_record(Controller $ctl): void {
+        $row = $this->single_record($ctl);
+        $ctl->assign('single_record_error', $row === null);
+        $ctl->assign_field_settings('group1', $this->table_name, 'edit', false, true);
+        $ctl->assign('row', $row ?: $ctl->get_default_values($this->table_name));
+        $ctl->assign('single_record_has_fields', count($ctl->get_field_list($this->table_name, 'edit')) > 0);
+        $additionals = $ctl->db('additionals', 'db_additionals')->select(['tb_name', 'place'], [$this->table_name, 0], true, 'AND', 'sort', SORT_DESC);
+        $this->add_show_button_class($ctl, $additionals);
+        $ctl->assign('additionals', $additionals);
+        $ctl->show_main_area('single_record.tpl', $this->title);
+    }
+
+    function save_single_exe(Controller $ctl) {
+        if (!$this->can_execute($ctl) || !SingleRecordScreen::is_single($this->db_setting)) {
+            return;
+        }
+        // The writable FFM instance holds its exclusive lock throughout read/check/save.
+        $before = $this->single_record($ctl);
+        if ($before === null) {
+            return;
+        }
+        $fields = $ctl->get_field_list($this->table_name, 'edit');
+        if (!$fields) {
+            $ctl->show_notification_text($ctl->t('db.single.fields_required'));
+            return;
+        }
+        $post = $this->normalize_year_month_post_fields($ctl, 'edit', $ctl->POST());
+        $save = $before ?: $ctl->get_default_values($this->table_name);
+        unset($save['id']);
+        foreach ($fields as $field) {
+            $name = $field['parameter_name'] ?? '';
+            if ($name === '' || in_array($name, ['id', 'parent_id', 'sort', 'created_at', 'updated_at'], true)) {
+                continue;
+            }
+            if (($field['type'] ?? '') === 'checkbox') {
+                $save[$name] = is_array($post[$name] ?? null) ? $post[$name] : [];
+            } elseif (array_key_exists($name, $post) && !in_array($field['type'] ?? '', ['file', 'image'], true)) {
+                $save[$name] = $post[$name];
+            }
+        }
+        if ($before) {
+            $save['id'] = $before['id'];
+        }
+        $ctl->validate($this->table_name, 'edit', $save, !$before);
+        if ($ctl->count_res_error_message() > 0) {
+            return;
+        }
+        if ($before) {
+            $this->ffm->update($save);
+        } else {
+            $this->ffm->insert($save);
+        }
+        $ctl->save_posted_files($this->table_name, $save);
+        $after = $this->ffm->get($save['id']);
+        $this->invoke_post_action_class($ctl, $after, $before ? 'edit' : 'add', null, $before ?: null);
+        if ($ctl->count_res_error_message() > 0) {
+            return;
+        }
+        $this->show_single_record($ctl);
+        $ctl->show_notification_text($ctl->t('db.single.saved'));
+    }
 
 	function search(Controller $ctl){
 		if (!$this->can_execute($ctl)) {

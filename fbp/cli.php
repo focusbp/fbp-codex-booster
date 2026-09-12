@@ -56,6 +56,7 @@ include("lib/ValueFormatter.php");
 include("lib/FrameworkTheme.php");
 include("interface/Controller.php");
 include("lib/Controller_class.php");
+require_once __DIR__ . "/lib/SingleRecordScreen.php";
 include("lib/I18nSimple.php");
 include("interface/CodegenActionInterface.php");
 include("interface/McpSubjectInterface.php");
@@ -2046,6 +2047,9 @@ function cli_standard_screen_check($ffm_db_admin, $ffm_db_fields_admin, $ffm_scr
 		}
 		$checked_tables++;
 		$table_screen_fields = $screen_by_table[$tb_name] ?? [];
+        if (SingleRecordScreen::is_single($table)) {
+            $table_screen_fields = array_values(array_filter($table_screen_fields, fn($field) => ($field['screen_name'] ?? '') === 'edit'));
+        }
 		$count_by_screen = [];
 		foreach ($table_screen_fields as $screen_field_for_count) {
 			$count_screen_name = (string) ($screen_field_for_count["screen_name"] ?? "");
@@ -2054,7 +2058,7 @@ function cli_standard_screen_check($ffm_db_admin, $ffm_db_fields_admin, $ffm_scr
 			}
 			$count_by_screen[$count_screen_name]++;
 		}
-		foreach ($screen_names as $screen_name_for_count) {
+		foreach (SingleRecordScreen::is_single($table) ? array_intersect($screen_names, ["edit"]) : $screen_names as $screen_name_for_count) {
 			if (($count_by_screen[$screen_name_for_count] ?? 0) > 0) {
 				continue;
 			}
@@ -2155,6 +2159,26 @@ function cli_standard_screen_check($ffm_db_admin, $ffm_db_fields_admin, $ffm_scr
 	];
 }
 
+function cli_validate_single_table(Dirs $dir, array $table): void {
+    global $ffm_additionals;
+    $errors = SingleRecordScreen::configuration_errors($table,
+        fn($name) => cli_db($dir, $name),
+        fn($name) => $ffm_additionals->select('tb_name', $name)
+    );
+    if ($errors) {
+        fwrite(STDERR, json_encode(['errors' => $errors], JSON_UNESCAPED_UNICODE) . "\n");
+        exit(1);
+    }
+}
+
+function cli_validate_single_button($ffm_db_admin, array $button): void {
+    $tables = $ffm_db_admin->select('tb_name', $button['tb_name'] ?? '');
+    if (!SingleRecordScreen::allows_button($tables[0] ?? [], $button['place'] ?? 0)) {
+        fwrite(STDERR, "Single Record only supports top buttons (place=0).\n");
+        exit(1);
+    }
+}
+
 if ($command === "db_additionals_list") {
 	$list = $ffm_additionals->getall("id", SORT_DESC);
 	$out = [
@@ -2173,6 +2197,7 @@ if ($command === "db_additionals_add") {
 	if (!isset($data["show_button"])) {
 		$data["show_button"] = 0;
 	}
+	cli_validate_single_button($ffm_db_admin, $data);
 	$id = $ffm_additionals->insert($data);
 	$out = [
 	    "ok" => true,
@@ -2192,6 +2217,7 @@ if ($command === "db_additionals_edit") {
 		fwrite(STDERR, "Missing id in --json\n");
 		exit(1);
 	}
+	cli_validate_single_button($ffm_db_admin, array_replace($ffm_additionals->get((int) $data["id"]) ?: [], $data));
 	$ffm_additionals->update($data);
 	$out = [
 	    "ok" => true,
@@ -3116,6 +3142,7 @@ if ($command === "db_tables_add") {
 	if (!isset($data["show_menu"]) || $data["show_menu"] === "") {
 		$data["show_menu"] = 1;
 	}
+	cli_validate_single_table($dir, $data);
 	$id = $ffm_db_admin->insert($data);
 	$parent_id_field_added = cli_ensure_parent_id_field($ffm_db_admin, $ffm_db_fields_admin, (int) $id);
 	cli_make_table_format($dir, $ffm_db_admin, $ffm_db_fields_admin, $ffm_constant_array, $ffm_values);
@@ -3138,6 +3165,7 @@ if ($command === "db_tables_edit") {
 		fwrite(STDERR, "Missing id in --json\n");
 		exit(1);
 	}
+	cli_validate_single_table($dir, array_replace($ffm_db_admin->get((int) $data["id"]) ?: [], $data));
 	$ffm_db_admin->update($data);
 	$parent_id_field_added = cli_ensure_parent_id_field($ffm_db_admin, $ffm_db_fields_admin, (int) $data["id"]);
 	cli_make_table_format($dir, $ffm_db_admin, $ffm_db_fields_admin, $ffm_constant_array, $ffm_values);

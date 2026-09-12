@@ -1,5 +1,9 @@
 # app-framework5 History
 
+## 2026-09-10
+- Added the Standard Screen single-record pattern (`list_type=3`): a main-area form using edit fields, insert-on-first-save, updates to the existing ID, and a success Notification. Retains standard validation, uploads, and post-action hooks; rejects multiple records and standard list/duplicate/delete/child operations.
+- Supports top buttons only (`place=0`), enforced in button settings, CLI, and drag placement. Pattern conversion rejects parent notes, multiple records, and incompatible buttons. Updated screen-pattern labels, edit-field configuration, the Standard Screen checker, and reusable Skill guidance. Verified concurrent saves, invalid inputs, direct-operation guards, conversion checks, and browser save/notification/top-button behavior. Generic DB writes remain outside the screen-level singleton constraint.
+
 ## 2026-09-07
 - Added an enabled/disabled selector and save button to the setting screen's MCP Server URL dialog. Saving validates the state and changes only enabled/updated_at on existing records; other server settings remain read-only. Missing configurations display disabled and are initialized only on save. Verified both states, rejected invalid input, preserved other fields, and restored the test state.
 - Removed the OAuth URLs row from the setting screen's MCP Server URL dialog. The MCP endpoint remains visible; OAuth behavior is unchanged.

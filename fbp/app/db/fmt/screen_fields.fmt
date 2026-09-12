@@ -7,3 +7,4 @@ sort,24,T
 search_default_value,255,T
 search_default_from,255,T
 search_default_to,255,T
+no_wrap,1,N

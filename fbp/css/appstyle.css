@@ -2191,6 +2191,10 @@ input[type="time"] {
 	word-break: break-all;
 }
 
+.row_value_no_wrap {
+	white-space: nowrap;
+}
+
 .item_viewer_dropdown_badge {
 	display: inline-block;
 	white-space: nowrap;

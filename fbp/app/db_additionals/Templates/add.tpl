@@ -1,5 +1,5 @@
 <div style="display: block;overflow: hidden;">
-	<form>
+	<form id="additional_form_{$timestamp}">
 		<input type="hidden" name="target_area" value="{$post.target_area|default:''}">
 		<input type="hidden" name="reload_db_id" value="{$post.reload_db_id|default:0}">
 
@@ -56,6 +56,7 @@
 			</button>
 		</div>
 
+	{include file="_single_record_places.tpl"}
 	</form>
 
 

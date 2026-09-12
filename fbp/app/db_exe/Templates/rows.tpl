@@ -11,7 +11,7 @@
 		{foreach $group1 as $field}
 		<td class="row_style">
 			<span class="row_title">{$field["parameter_title"]}</span>
-			<span class="row_value">{include file="{$base_template_dir}/__item_viewer.tpl"}</span>
+			<span class="row_value{if $field.no_wrap} row_value_no_wrap{/if}">{include file="{$base_template_dir}/__item_viewer.tpl"}</span>
 		</td>
 		{/foreach}
 		{foreach $child_tables as $c}

@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . "/../../lib/SingleRecordScreen.php";
+
 class db {
 
 	private $fmt_db;
@@ -91,7 +93,8 @@ class db {
 	private $list_type_opt = [
 	    0 => "Search and Table",
 	    1 => "Manual Sort",
-	    2 => "Weekly Calendar"
+	    2 => "Weekly Calendar",
+	    3 => "Single Record"
 	];
 	private $screen_build_type_opt = [
 	    0 => "Standard Screen",
@@ -213,6 +216,7 @@ class db {
 		$ctl->assign("menu_visibility_opt", $this->menu_visibility_opt);
 		$ctl->assign("sort_order_opt", $this->sort_order_opt);
 		$ctl->assign("screen_build_type_opt", $this->screen_build_type_opt);
+		$this->list_type_opt[3] = $ctl->t("db.single.label");
 		$ctl->assign("list_type_opt", $this->list_type_opt);
 		$ctl->assign("side_list_type_opt", $this->side_list_type_opt);
 		$ctl->assign("horizontal_scroll_opt", $this->get_horizontal_scroll_options($ctl));
@@ -369,8 +373,22 @@ class db {
 			}
 		}
 
-		return $errors;
-	}
+        $current = !empty($post_id) ? ($this->fmt_db->get((int) $post_id) ?: []) : [];
+        $table = array_replace($current, $post);
+        // Original Screen hides the pattern control and resets it on save.
+        if ((int) ($post['screen_build_type'] ?? 0) === 1 && !array_key_exists('list_type', $post)) {
+            $table['list_type'] = 0;
+        }
+        if (!$errors) {
+            foreach (SingleRecordScreen::configuration_errors($table,
+                fn($name) => $ctl->db($name),
+                fn($name) => $ctl->db('additionals', 'db_additionals')->select('tb_name', $name)
+            ) as $field => $key) {
+                $errors[$field] = $ctl->t($key);
+            }
+        }
+        return $errors;
+    }
 
 	//view edit page
 	function edit(Controller $ctl) {
@@ -479,7 +497,7 @@ class db {
 
 		// デフォルトのスクリーンを全て入れる
 		$s = 0;
-		foreach ($this->default_screen_list as $name) {
+		foreach (SingleRecordScreen::is_single($data) ? ["edit"] : $this->default_screen_list as $name) {
 			$flg = true;
 			foreach ($screen_list as $screen_row) {
 				if ($name == $screen_row["screen_name"]) {
@@ -500,8 +518,8 @@ class db {
 		// 再取得
 		$screen_list = $this->fmt_screen->select("tb_name", $data["tb_name"], true, "AND", "id", SORT_ASC);
 		foreach ($screen_list as $key => $val) {
-			if ($val["screen_name"] != "create_account") { // create_accountは廃止 20250930 中間
-				$screen_opt[$val["id"]] = $val["screen_name"];
+			if ($val["screen_name"] != "create_account" && (!SingleRecordScreen::is_single($data) || $val["screen_name"] === "edit")) { // create_accountは廃止 20250930 中間
+				$screen_opt[$val["id"]] = SingleRecordScreen::is_single($data) ? $ctl->t("db.single.fields_label") : $val["screen_name"];
 			}
 		}
 		$ctl->assign("screen_opt", $screen_opt);
@@ -632,6 +650,15 @@ class db {
 		foreach ($_POST as $key => $value) {
 			$data[$key] = $value;
 		}
+
+        $errors = $this->validate_db_data($ctl, $data, 'edit');
+        if ($errors) {
+            foreach ($errors as $field => $message) {
+                $ctl->res_error_message($field, $message);
+            }
+            $ctl->show_notification_text(implode("\n", $errors));
+            return;
+        }
 
 		// Scopeがユーザーの場合、api_user_id を追加する
 		if (($post["api_scope"] ?? "") == "user") {

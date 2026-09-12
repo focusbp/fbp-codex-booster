@@ -4144,6 +4144,9 @@ class Controller_class implements Controller {
 				$arr["search_default_from"] = $sf["search_default_from"] ?? "";
 				$arr["search_default_to"] = $sf["search_default_to"] ?? "";
 			}
+			if ($flg == "screen" && $screen_name == "list") {
+				$arr["no_wrap"] = (int) ($sf["no_wrap"] ?? 0);
+			}
 			$arr["is_table_dropdown"] = startsWith($constant_array_name, "table/");
 			$arr["options"] = $option_arr;
 			$arr["colors"] = $option_color;

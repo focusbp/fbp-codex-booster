@@ -125,7 +125,7 @@
   "db.sort_order": "排序方向",
   "db.side_panel_width": "侧边面板宽度",
   "db.dialog_width": "对话框宽度",
-  "db.list_type": "列表类型",
+  "db.list_type": "画面模式",
   "db.side_panel_list_type": "侧边面板列表类型",
   "db.horizontal_scroll": "横向滚动",
   "db.show_id_on_list": "在列表中显示 ID",
@@ -649,5 +649,15 @@
   "orders_picker_test.show_all": "全部显示",
   "orders_picker_test.large_dropdown": "Large Dropdown",
   "orders_picker_test.large_dropdown_description": "后显示一个拥有 10 个以上选项的下拉框，并确认带搜索的筛选行为。",
-  "orders_picker_test.unselected": "未选择"
+  "orders_picker_test.unselected": "未选择",
+  "db.single.label": "单条记录",
+  "db.single.standard_only": "单条记录需要使用 Standard Screen。",
+  "db.single.parent_not_supported": "单条记录不能设置父笔记。",
+  "db.single.multiple_records": "存在多条记录。单条记录最多只能有一条记录。",
+  "db.single.top_buttons_only": "单条记录仅支持顶部按钮。请先移除行按钮和侧面板按钮。",
+  "db.single.operation_not_supported": "单条记录不支持此操作。",
+  "db.single.fields_required": "请设置编辑项目。",
+  "db.single.saved": "已保存",
+  "db.single.unavailable": "无法显示此笔记。请检查数据和访问权限。",
+  "db.single.fields_label": "单条记录编辑项目"
 }
