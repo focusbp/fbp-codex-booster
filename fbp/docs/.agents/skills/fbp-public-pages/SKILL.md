@@ -46,7 +46,7 @@ description: Build and operate public_pages with login-free entry points, secure
 - `minimal` は FBP Ajax / dialog / Screen Log アイコンに必要な共通assetsを維持しつつ、管理画面向け `appstyle.css` を読み込まない。フォーム部品は裸に見えない最低限を `publicsite_minimal.css` が保証し、ボタン、カード、ページ幅、背景、ブランド色、業務画面ごとの密度などは各公開アプリ側CSSで明示する。
 - `publicsite_minimal.css` は、公開側Ajaxで使う共通部品とフォームの薄い土台だけを持つ。対象は Screen Log、`multi_dialog`、エラー表示、通知、公開側フォームの明示クラス、helper 出力の `.field_edit`、ダウンロード進捗、文字数カウンタ、datepicker周辺、`fbp-original-select`、`year_month_picker_panel` とし、管理画面向けの広い `button` / `form` / `table` / 見出しCSSは入れない。
 - フレームワークの `appstyle.css` で Ajax 共通部品、dialog、Screen Log、datepicker、original select、download、notification、wordcounter などを変更する場合は、同じ変更が `publicsite_minimal.css` にも必要か必ず確認する。公開側 minimal で使う部品なら、広い管理画面CSSをコピーせず、対象コンポーネントの最小CSSだけを `publicsite_minimal.css` に反映する。
-- 公開側でプレーンテキストを改行表示する場合は `{$value|escape|nl2br}` を使う。この値には改行文字を保存し、`<br>` / `<br/>` を入力・保存しない。前者は `nl2br` で安全に改行となる一方、後者は `escape` により文字列として表示される。HTMLを許可する要件では、無条件の `nofilter` ではなく用途に応じて安全な許可形式（例: markdown）を選ぶ。
+- 公開側でプレーンテキストを改行表示する場合は `{$value|public_text nofilter}` を使う。`public_text` は既存データの `<br>` / `<br/>` を改行文字へ正規化し、残りのHTMLをエスケープしてから改行を表示する。`nofilter` はこの修飾子が安全なHTMLへ変換済みの出力にだけ付ける。HTMLを許可する要件では、無条件の `nofilter` ではなく用途に応じて安全な許可形式（例: markdown）を選ぶ。
 - 既存互換の通常 `show_public_pages()` では `appstyle.css` が読み込まれる。管理画面向けの広い `button` / icon / `.listbutton` 系CSSが公開側UIに干渉する場合があるため、新規UIは `minimal` へ寄せ、公開アプリ側のCSSで色・余白・角丸・アイコンサイズを明示して設計する。
 
 ## public minimal forms
