@@ -78,6 +78,7 @@ class ReleaseManager {
 
 	function create_release_zip_from_info(array $info): string {
 		$info["deploy_email_templates"] = $this->deployEmailTemplates($info);
+		$info["deploy_db_definitions"] = $this->deployDbDefinitions($info);
 		$this->releaseInfo = $info;
 		$zip = new ZipArchive();
 
@@ -105,6 +106,7 @@ class ReleaseManager {
 
 		foreach ($this->db_copy_list as $f) {
 			if ($f === "email_format" && !$this->deployEmailTemplates($this->releaseInfo)) continue;
+			if ($f === "db" && !$this->deployDbDefinitions($this->releaseInfo)) continue;
 			try {
 				$files = new RecursiveIteratorIterator(
 					new RecursiveDirectoryIterator("$this->datadir/$f"),
@@ -123,7 +125,9 @@ class ReleaseManager {
 		}
 
 		$this->addSelectedDataFilesToZip($zip);
-		$this->addCommonFormatFilesToZip($zip);
+		if ($this->deployDbDefinitions($this->releaseInfo)) {
+			$this->addCommonFormatFilesToZip($zip);
+		}
 		$this->addDirectoryFilesToZip($zip, $this->public_assets_dir);
 		$this->addRootFilesToZip($zip);
 		$zip->close();
@@ -165,6 +169,7 @@ class ReleaseManager {
 			}
 
 			$info["deploy_email_templates"] = $this->deployEmailTemplates($info);
+			$info["deploy_db_definitions"] = $this->deployDbDefinitions($info);
 			$this->releaseInfo = $info;
 			return $info;
 		} finally {
@@ -182,6 +187,7 @@ class ReleaseManager {
 		$info = $metadata === false ? [] : json_decode($metadata, true);
 		if (!is_array($info)) throw new RuntimeException("Invalid release metadata.");
 		$deployEmail = $this->deployEmailTemplates($info);
+		$deployDbDefinitions = $this->deployDbDefinitions($info);
 		$stageDir = $this->createReleaseStageDirectory();
 		try {
 			$rootEntries = $this->extractReleaseZipToDirectory($zip, $ctl, $zipFile, $stageDir);
@@ -191,10 +197,13 @@ class ReleaseManager {
 			$this->deployStagedDirectory($stageDir . "/app", $this->appdir, $ctl, $zipFile, false);
 			foreach ($this->db_copy_list as $f) {
 				if ($f === "email_format" && !$deployEmail) continue;
+				if ($f === "db" && !$deployDbDefinitions) continue;
 				$this->deployStagedDirectory($stageDir . "/data/$f", "$this->datadir/$f", $ctl, $zipFile, false);
 			}
 			$this->deployStagedDirectory($stageDir . "/data/public_pages/assets", $this->public_assets_dir, $ctl, $zipFile, true);
-			$this->copyStagedDirectoryFiles($stageDir . "/data/_common/fmt", $this->datadir . "/_common/fmt");
+			if ($deployDbDefinitions) {
+				$this->copyStagedDirectoryFiles($stageDir . "/data/_common/fmt", $this->datadir . "/_common/fmt");
+			}
 			$this->copyStagedDirectoryFiles($stageDir . "/data/mcp_manage", $this->datadir . "/mcp_manage");
 			$this->deleteDirectory($this->datadir . "/templates_c");
 			$this->extractRootFiles($zip, $ctl, $zipFile, $rootEntries);
@@ -453,6 +462,14 @@ class ReleaseManager {
 		if (in_array($value, [true, 1, "1"], true)) return true;
 		if (in_array($value, [false, 0, "0"], true)) return false;
 		throw new RuntimeException("Invalid deploy_email_templates flag.");
+	}
+
+	private function deployDbDefinitions(array $info): bool {
+		if (!array_key_exists("deploy_db_definitions", $info)) return true;
+		$value = $info["deploy_db_definitions"];
+		if (in_array($value, [true, 1, "1"], true)) return true;
+		if (in_array($value, [false, 0, "0"], true)) return false;
+		throw new RuntimeException("Invalid deploy_db_definitions flag.");
 	}
 
 	private function endsWith(string $haystack, string $needle): bool {

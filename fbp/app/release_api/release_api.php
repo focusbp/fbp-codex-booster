@@ -13,7 +13,7 @@ class release_api {
 
 	function capabilities(Controller $ctl) {
 		if ($ctl->verify_release_api_request() !== true) exit;
-		$this->respond_json(["ok" => true, "deploy_email_templates" => true]);
+		$this->respond_json(["ok" => true, "deploy_email_templates" => true, "deploy_db_definitions" => true]);
 	}
 
 	function upload(Controller $ctl) {
