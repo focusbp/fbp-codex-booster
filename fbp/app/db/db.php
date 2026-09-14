@@ -1392,6 +1392,76 @@ class db {
 		}
 	}
 
+	/** Safe programmatic schema API used by trusted integrations such as MCP. */
+	function mcp_schema_create_table(Controller $ctl, array $input): array {
+		$name = trim((string) ($input['tb_name'] ?? ''));
+		$title = trim((string) ($input['title'] ?? $input['menu_name'] ?? ''));
+		if (!preg_match('/^[a-z][a-z0-9_]*$/', $name)) throw new InvalidArgumentException('tb_name must be a lowercase identifier.');
+		if ($title === '') throw new InvalidArgumentException('title is required.');
+		if (!empty($this->fmt_db->select('tb_name', $name))) throw new InvalidArgumentException('Table already exists.');
+		$row = [
+			'tb_name' => $name, 'menu_name' => $title, 'show_menu' => 1,
+			'screen_build_type' => 0, 'list_type' => 0, 'sortkey' => 'id', 'sort_order' => 4,
+			'list_width' => 800, 'edit_width' => 800, 'side_list_type' => 0, 'horizontal_scroll' => 0,
+		];
+		$id = (int) $this->fmt_db->insert($row);
+		$this->make_table_format($ctl);
+		return $this->fmt_db->get($id) ?: [];
+	}
+
+	function mcp_schema_update_table(Controller $ctl, int $id, array $input): array {
+		$row = $this->fmt_db->get($id);
+		if (!is_array($row)) throw new InvalidArgumentException('Table not found.');
+		foreach (['menu_name', 'show_menu', 'list_width', 'edit_width'] as $key) if (array_key_exists($key, $input)) $row[$key] = $input[$key];
+		if (trim((string) ($row['menu_name'] ?? '')) === '') throw new InvalidArgumentException('title is required.');
+		$row['show_menu'] = !empty($row['show_menu']) ? 1 : 0;
+		foreach (['list_width', 'edit_width'] as $key) $row[$key] = max(600, min(1200, (int) ($row[$key] ?? 800)));
+		$this->fmt_db->update($row); $this->make_table_format($ctl);
+		return $this->fmt_db->get($id) ?: [];
+	}
+
+	function mcp_schema_delete_table(Controller $ctl, int $id): void {
+		$row = $this->fmt_db->get($id);
+		if (!is_array($row)) throw new InvalidArgumentException('Table not found.');
+		$name = (string) ($row['tb_name'] ?? '');
+		$this->fmt_db->delete($id);
+		foreach ($this->fmt_db_fields->select('db_id', $id) as $field) $this->fmt_db_fields->delete($field['id']);
+		foreach ($this->fmt_screen_fields->select('tb_name', $name) as $field) $this->fmt_screen_fields->delete($field['id']);
+		$this->make_table_format($ctl);
+	}
+
+	function mcp_schema_create_field(Controller $ctl, int $db_id, array $input): array {
+		if (!is_array($this->fmt_db->get($db_id))) throw new InvalidArgumentException('Table not found.');
+		$name = trim((string) ($input['parameter_name'] ?? ''));
+		$title = trim((string) ($input['parameter_title'] ?? ''));
+		$type = trim((string) ($input['type'] ?? 'text'));
+		if (!preg_match('/^[a-z][a-z0-9_]*$/', $name) || $name === 'id') throw new InvalidArgumentException('parameter_name must be a lowercase identifier other than id.');
+		if ($title === '' || !isset($this->type_opt[$type])) throw new InvalidArgumentException('A title and supported type are required.');
+		if (!empty($this->fmt_db_fields->select(['db_id', 'parameter_name'], [$db_id, $name]))) throw new InvalidArgumentException('Field already exists.');
+		$sort = 0; foreach ($this->fmt_db_fields->select('db_id', $db_id) as $field) $sort = max($sort, (int) ($field['sort'] ?? 0) + 1);
+		$row = ['db_id' => $db_id, 'parameter_name' => $name, 'parameter_title' => $title, 'type' => $type, 'length' => $this->default_field_length($type), 'validation' => !empty($input['required']) ? 1 : 0, 'sort' => $sort];
+		$id = (int) $this->fmt_db_fields->insert($row); $this->make_table_format($ctl);
+		return $this->fmt_db_fields->get($id) ?: [];
+	}
+
+	function mcp_schema_update_field(Controller $ctl, int $id, array $input): array {
+		$row = $this->fmt_db_fields->get($id);
+		if (!is_array($row)) throw new InvalidArgumentException('Field not found.');
+		if (array_key_exists('parameter_title', $input)) $row['parameter_title'] = trim((string) $input['parameter_title']);
+		if (array_key_exists('required', $input)) $row['validation'] = !empty($input['required']) ? 1 : 0;
+		if (trim((string) ($row['parameter_title'] ?? '')) === '') throw new InvalidArgumentException('title is required.');
+		$this->fmt_db_fields->update($row); $this->make_table_format($ctl);
+		return $this->fmt_db_fields->get($id) ?: [];
+	}
+
+	function mcp_schema_delete_field(Controller $ctl, int $id): void {
+		$row = $this->fmt_db_fields->get($id);
+		if (!is_array($row)) throw new InvalidArgumentException('Field not found.');
+		$this->fmt_db_fields->delete($id);
+		foreach ($this->fmt_screen_fields->select('db_fields_id', $id) as $screen) $this->fmt_screen_fields->delete($screen['id']);
+		$this->make_table_format($ctl);
+	}
+
 	function view_image(Controller $ctl) {
 		$image_file = $ctl->GET("file");
 		$ctl->res_saved_image($image_file);
