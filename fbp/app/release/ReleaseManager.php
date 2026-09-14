@@ -106,7 +106,7 @@ class ReleaseManager {
 
 		foreach ($this->db_copy_list as $f) {
 			if ($f === "email_format" && !$this->deployEmailTemplates($this->releaseInfo)) continue;
-			if ($f === "db" && !$this->deployDbDefinitions($this->releaseInfo)) continue;
+			if ($this->isDbDefinitionDataSet($f) && !$this->deployDbDefinitions($this->releaseInfo)) continue;
 			try {
 				$files = new RecursiveIteratorIterator(
 					new RecursiveDirectoryIterator("$this->datadir/$f"),
@@ -197,7 +197,7 @@ class ReleaseManager {
 			$this->deployStagedDirectory($stageDir . "/app", $this->appdir, $ctl, $zipFile, false);
 			foreach ($this->db_copy_list as $f) {
 				if ($f === "email_format" && !$deployEmail) continue;
-				if ($f === "db" && !$deployDbDefinitions) continue;
+				if ($this->isDbDefinitionDataSet($f) && !$deployDbDefinitions) continue;
 				$this->deployStagedDirectory($stageDir . "/data/$f", "$this->datadir/$f", $ctl, $zipFile, false);
 			}
 			$this->deployStagedDirectory($stageDir . "/data/public_pages/assets", $this->public_assets_dir, $ctl, $zipFile, true);
@@ -470,6 +470,10 @@ class ReleaseManager {
 		if (in_array($value, [true, 1, "1"], true)) return true;
 		if (in_array($value, [false, 0, "0"], true)) return false;
 		throw new RuntimeException("Invalid deploy_db_definitions flag.");
+	}
+
+	private function isDbDefinitionDataSet(string $dataSet): bool {
+		return in_array($dataSet, ["db", "db_additionals", "constant_array"], true);
 	}
 
 	private function endsWith(string $haystack, string $needle): bool {
