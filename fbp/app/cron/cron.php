@@ -68,31 +68,46 @@ class cron {
 		// Disable the time limit (script can run indefinitely)
 		set_time_limit(0);
 		
-		$d = $this->ffm_cron->get($id);
-		
-		$class_name = $d["class_name"];
-		$function_name = $d["function_name"];
+		try {
+			$d = $this->ffm_cron->get($id);
+			if (empty($d)) {
+				return;
+			}
+			$error = null;
+			try {
+				$class_name = $d["class_name"];
+				$function_name = $d["function_name"];
+				$ctl->set_class($class_name);
+				$obj = getClassObject($ctl, $class_name, new Dirs());
+				$formatter = $ctl->create_ValueFormatter();
+				$obj->$function_name($ctl);
+				$last_log = $formatter->format_datetime(time()) . " " . $ctl->t("cron.exec_success");
+			} catch (Throwable $e) {
+				$error = $e;
+				$last_log = get_class($e) . ": " . $e->getMessage()
+					. "\n" . $e->getFile() . ":" . $e->getLine() . "\n" . $e->getTraceAsString();
+			}
 
-		$ctl->set_class($class_name);
-
-		$obj = getClassObject($ctl, $class_name, new Dirs());
-
-		// Execute
-		$formatter = $ctl->create_ValueFormatter();
-		try{
-			$obj->$function_name($ctl);
-			$d["last_log"] = $formatter->format_datetime(time()) . " " . $ctl->t("cron.exec_success");
-		}catch(Exception $e){
-			$d["last_log"] = $e->getTraceAsString();
+			// The job may have closed all DBs. Use Controller's cache/ordered FFM constructor.
+			// Keep the existing pre-execution lock lifetime; do not introduce a separate lock.
+			$this->ffm_cron = $ctl->db("cron", "cron");
+			if (!empty($this->ffm_cron->get($id))) {
+				// Only update the log, preserving edits made while the job was running.
+				$this->ffm_cron->update([
+					"id" => $id,
+					"last_log" => mb_strcut($last_log, 0, 1000, "UTF-8"),
+				]);
+			}
+			if ($error !== null) {
+				// Let app.php report the original failure to ServerError after saving the log.
+				throw $error;
+			}
+			if ($ctl->POST("_call_from") == "appcon") {
+				$ctl->ajax("cron", "page");
+			}
+		} finally {
+			$ctl->close_db_by_ffm($this->ffm_cron);
 		}
-		$this->ffm_cron->update($d);
-
-		
-		if($ctl->POST("_call_from") == "appcon"){
-			$ctl->ajax("cron","page");
-		}
-		
-		$this->ffm_cron->close();
 	}
 	
 	

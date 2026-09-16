@@ -1,5 +1,8 @@
 # app-framework5 History
 
+## 2026-09-16
+- Fixed cron execution-log writes after jobs close Controller-managed databases (ServerError #270/#277/#278). Cron retains its existing initial lock lifetime, reacquires the database through Controller and ordered FFM construction when needed, updates only the log of an existing job, and closes through Controller. Throwable failures are logged within the field byte limit and rethrown for ServerError reporting. Isolated real-FFM tests cover normal execution, closed connections, concurrent setting changes/deletion, exceptions, and reverse-order two-process lock acquisition. No standalone lock or automatic retry was added.
+
 ## 2026-09-10
 - Added the Standard Screen single-record pattern (`list_type=3`): a main-area form using edit fields, insert-on-first-save, updates to the existing ID, and a success Notification. Retains standard validation, uploads, and post-action hooks; rejects multiple records and standard list/duplicate/delete/child operations.
 - Supports top buttons only (`place=0`), enforced in button settings, CLI, and drag placement. Pattern conversion rejects parent notes, multiple records, and incompatible buttons. Updated screen-pattern labels, edit-field configuration, the Standard Screen checker, and reusable Skill guidance. Verified concurrent saves, invalid inputs, direct-operation guards, conversion checks, and browser save/notification/top-button behavior. Generic DB writes remain outside the screen-level singleton constraint.
