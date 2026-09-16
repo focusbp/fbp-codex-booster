@@ -58,6 +58,7 @@ class setting {
 		$ctl->assign("arr_force_testmode", $this->arr_force_testmode);
 		$ctl->assign("arr_show_menu", $this->arr_show_menu);
 		$ctl->assign("arr_ssl",$this->arr_ssl);
+		$ctl->assign("arr_app_url_protocol", [0 => $ctl->t("setting.app_url_protocol.auto"), 1 => $ctl->t("setting.app_url_protocol.https"), 2 => $ctl->t("setting.app_url_protocol.http")]);
 		$ctl->assign("arr_flg_show_lang_on_chat",$this->arr_flg_show_lang_on_chat);
 		$ctl->assign("arr_show_developer_panel",$this->arr_show_developer_panel);
 		$this->arr_error_report_level = [

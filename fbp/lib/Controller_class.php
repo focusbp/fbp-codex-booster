@@ -4684,16 +4684,13 @@ class Controller_class implements Controller {
 	 * @return string
 	 */
 	function get_APP_URL($class = null, $function = null, $params = null, $options = []) {
-		$force_https = false;
-
-		// スキーム判定
-		if ($force_https) {
+		$protocol = (string) ($this->get_setting()["app_url_protocol"] ?? "0");
+		$scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https" : "http";
+		if ($protocol === "1") {
 			$scheme = "https";
-		} else {
-			$scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https" : "http";
+		} elseif ($protocol === "2") {
+			$scheme = "http";
 		}
-
-
 
 		// ホスト名（例: example.com）
 		$host = $_SERVER['HTTP_HOST'] ?? '';

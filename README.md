@@ -73,6 +73,19 @@ Use these prompts to have Codex generate working sample apps from the bundled
 skills and assets. Start with the customer sample, then add more samples as
 needed.
 
+### PDF Display and Download
+
+```text
+Use fbp-app-samples and fbp-pdf to create the PDF Delivery sample.
+Use the bundled pdf-delivery assets and installer in a clean app.
+Prefer ajax-link -> show_pdf() for preview; demonstrate direct PDF download
+with save_pdf() -> res_saved_file() separately. Keep only fictional fixed data.
+Verify both actual buttons using Playwright on desktop and mobile, including
+PDF parsing and invoice contents. CLI success alone is not PDF verification.
+When extending the sample, update its assets, manifest, reference, installer,
+browser verification and this Make Samples prompt; keep it independent of live apps.
+```
+
 ### Customer Management
 
 Copy the whole block below and paste it into Codex:

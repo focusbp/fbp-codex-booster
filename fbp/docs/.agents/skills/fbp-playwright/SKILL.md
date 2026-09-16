@@ -172,5 +172,18 @@ const { chromium } = require("playwright");
 
 ## Verification
 
+### PDF verification
+
+PDFの新規実装・修正時は、Playwrightで実際の画面のボタン／リンクをクリックし、PDF取得まで確認する。CLIの `ok:true`、リンクの存在、ダイアログが開くこと、スクリーンショットだけでは完了としない。
+
+- 基本の `show_pdf()` 方式: `ajax-link` をクリックし、PDF表示ダイアログと、その中のiframeまたは保存リンクから返るPDFを確認する。最初のAjax応答はJSONで正常。後続のPDF応答を検証する。
+- 直接方式: `res_saved_file()` 等へ進む実リンクをクリックする。クリック前にdownload／popup／responseの待受を登録する。`download` イベントだけに限定せず、別タブやiframeにPDFが表示される場合も扱う。
+- HTTP応答は成功ステータスと `Content-Type: application/pdf` を確認し、取得ファイルは先頭の `%PDF-` とPDF解析で検証する。`pdftotext` 等で金額・件名・宛名等の期待値を確認する。JSON・HTMLを `.pdf` 名で保存したものは失敗にする。
+- 既存 `apppdf.php` のスマートフォン保存に限り `application/x-download` も許容する。実際のdownloadイベントから保存したファイルを解析し、Content-Typeだけで成功判定しない。
+- PCと対象スマートフォン表示を確認する。認証付き帳票ではセッション切れ・権限不一致で帳票を返さないことも確認する。スマートフォン模擬だけでLINEアプリ固有の動作確認済みとはしない。
+- 検証用ファイルは指定の一時出力先に保存する。実行できない場合は理由と未検証範囲を報告する。
+
+再利用可能な2方式の実装とブラウザーテストは `../fbp-app-samples/references/pdf-delivery.md` を参照。
+
 After running, inspect the image with `view_image` when visual quality matters. Include the
 absolute screenshot path and the key measured metrics in the final response.

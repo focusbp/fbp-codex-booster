@@ -40,6 +40,7 @@ viewport_public,255,T
 currency,255,T
 project_release_code,255,T
 ssl,1,N
+app_url_protocol,1,N
 flg_show_lang_on_chat,1,N
 default_class_name,255,T
 show_menu_homepage,1,N

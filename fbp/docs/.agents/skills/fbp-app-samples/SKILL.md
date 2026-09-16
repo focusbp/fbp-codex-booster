@@ -13,6 +13,8 @@ When creating a new reusable sample from an existing app or feature, read `refer
 
 ## Samples
 
+- **PDF Delivery**: `show_pdf()` による表示を基本とし、必要に応じた `res_saved_file()` の直接ダウンロードも示す、DB不要の固定帳票サンプル。`references/pdf-delivery.md`、`assets/pdf-delivery/`、`scripts/install_pdf_delivery.php` と `scripts/verify_pdf_delivery.cjs` を参照する。
+
 - **Event Registration**: A no-external-service event registration sample with admin event session management, a participants side panel with add/delete/status actions, a public registration page, and an admin dialog that shows the public registration URL.
   - Read `references/event-registration.md` for flow and implementation scope.
   - Read `references/event-registration-db.md` for note/table structure.

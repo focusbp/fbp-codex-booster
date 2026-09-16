@@ -526,6 +526,7 @@ function cli_initial_project_setup(Dirs $dir, array $data): array {
 	$setting["locale_code"] = $locale_code;
 	$setting["project_release_code"] = $project_release_code;
 	$setting["timezone"] = $timezone;
+	$setting["app_url_protocol"] = in_array((string) ($data["app_url_protocol"] ?? "0"), ["0", "1", "2"], true) ? (int) ($data["app_url_protocol"] ?? 0) : 0;
 	if ($api_key !== "") {
 		$setting["api_key"] = $api_key;
 	}

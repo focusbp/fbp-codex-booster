@@ -137,6 +137,11 @@
 							<td>{html_options name="ssl" options=$arr_ssl selected=$setting.ssl}</td>
 						</tr>
 						<tr>
+							<th>{t key="setting.app_url_protocol"}</th>
+							<td>{t key="setting.app_url_protocol.label"}</td>
+							<td>{html_options name="app_url_protocol" options=$arr_app_url_protocol selected=$setting.app_url_protocol|default:0}<br><small>{t key="setting.app_url_protocol.help"}</small></td>
+						</tr>
+						<tr>
 							<th>{t key="setting.default_class_name_in_url"}</th>
 							<td>{t key="setting.default_class"}</td>
 							<td><input type="text" name="default_class_name" value="{$setting.default_class_name}"></td>

@@ -12,7 +12,7 @@ Create a small, reusable sample that Codex can install or adapt in a clean FBP a
 - Keep the minimum complete workflow that proves the sample pattern.
 - Remove customer-specific business rules, identifiers, statuses, text, permissions, credentials, endpoints, local paths, and one-off compatibility code.
 - Keep integration stubs only when they teach the reusable pattern.
-- Prefer Original Screen for management screens unless the sample is specifically about legacy Standard Screen behavior.
+- Prefer Standard Screen for management screens. Use Original Screen only when Standard Screen, including screen_fields, db_additionals, and post_action_class, cannot satisfy the required behavior.
 - Prefer normal FBP helpers and existing skills over copied bespoke UI code.
 - Do not make the sample depend on a live app, database, task, or server configuration.
 

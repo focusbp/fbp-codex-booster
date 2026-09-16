@@ -13,13 +13,15 @@ description: Implement and test PDF generation flows in FBP, including modern tp
 ## workflow
 1. 出力要件とデータ取得元を確定。
 2. PDFクラスを実装（必要なら画像処理含む）。
-3. `db_additional` 起点の場合は、まず `show_multi_dialog()` で確認ダイアログを表示する。
-4. ダイアログ内の「ダウンロード」ボタンは `download-link` を使い、PDF生成関数を直接呼ぶ。
-5. PDF用 `download-link` には原則 `data-open_new_tab="true"` を付ける。
-6. `app_call` のファイル出力指定で生成テスト。
-7. 保存ファイルと内容を確認。
+3. 基本は `ajax-link` → `show_pdf()` でPDF表示ダイアログを開く。直接ダウンロードが必要な場合は `save_pdf()` + `res_saved_file()` などPDF本体を返す処理を使う。
+4. 直接ダウンロードには `download-link`（原則 `data-open_new_tab="true"`）を使う。LINE内ブラウザー向けは `fbp-public-pages` に従ってGETリンクを使う。
+5. 再利用サンプルは `../fbp-app-samples/references/pdf-delivery.md` と `../fbp-app-samples/assets/pdf-delivery/` を参照する。
+6. CLIで応答・生成内容を補助確認する。`app_call` の `ok:true`、保存先が `.pdf`、ダイアログJSONが返ることだけではPDF取得成功と判定しない。
+7. PDFの新規実装・修正時は `fbp-playwright` に従い、Playwrightで実ボタンからPDF取得まで検証する。表示方式はダイアログとその後のPDF応答、直接方式はダウンロードまたは別タブのPDF応答を確認する。
+8. 取得したPDFのContent-Type（HTTP応答）、`%PDF-`、PDF解析と期待する金額・件名等を確認する。対象導線のPC・スマートフォンと、認証付き帳票のセッション切れ・権限不一致も確認する。ブラウザー検証できない場合は未検証範囲と理由を報告し、CLIだけで完了扱いにしない。
 
 ## table samples
+- 既存 `apppdf.php` のスマートフォン保存は `application/x-download` を返す場合がある。この既知の経路だけ許容し、取得した実ファイルのPDF解析と内容確認は省略しない。
 - `addTable()` の列幅指定は `columnsize`、列ごとの寄せ指定は `columnalign` を使う。`aligns` ではない。
 - `columnsize` は `%` 扱いなので合計 `100` にする。
 - 数値列を右寄せしたい場合の例:
@@ -66,7 +68,8 @@ $pdf->addTextBox($memo, [
 - ユーザーからの印刷機能の実装は、HTMLの印刷ではなく必ずフレームワークのPDF出力機能を使用する。
 - 文字化け・画像パス・ページ崩れを優先チェックする。
 - PDF本文で日付/日時/年月を PHP 直書きする場合は `$ctl->create_ValueFormatter()` を使う。HTML 表示 helper の代替としては使わない。
-- PDFダウンロード導線に `ajax-link` は使わない（ダウンロードデータを扱えないため）。
+- `show_pdf()` の入口は `ajax-link` を使う。`show_pdf()` はダイアログJSONを返すため、通常リンクや `download-link` から直接呼ばない。
+- PDF本体を直接返す関数の入口には `ajax-link` を使わない（ダウンロードデータを扱えないため）。
 - `download-link` の `data-class` は明示的に実クラス名を指定する（`{$class}` 依存を避ける）。
 - PDFダウンロードの `download-link` は `data-open_new_tab="true"` を基本とする。例外時は理由を実装コメントかPR説明に残す。
 - `addTable` の `columnsize` は合計 `100` にする（%指定として扱うため）。

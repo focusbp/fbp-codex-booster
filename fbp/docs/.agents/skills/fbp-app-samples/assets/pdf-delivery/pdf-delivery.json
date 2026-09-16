@@ -1,0 +1,7 @@
+{
+  "name": "pdf-delivery",
+  "files": ["public_pages/public_pages.php", "public_pages/Templates/page.tpl", "public_pages/Templates/invoice.tpl"],
+  "entry": {"class": "public_pages", "function": "page"},
+  "tables": [],
+  "external_services": []
+}

@@ -1,5 +1,8 @@
 # app-framework5 History
 
+## 2026-09-17
+- Added the WEB tab’s get_APP_URL protocol override below SSL: 0 preserves request-based detection, 1 forces HTTPS, and 2 forces HTTP. Missing values preserve existing behavior. Initial project setup accepts this setting with default 0; system setting data remains outside app releases. Verified protocol combinations, existing URL/query formats, setting form rendering and HTTPS URL generation in the test wizard.
+
 ## 2026-09-16
 - Fixed cron execution-log writes after jobs close Controller-managed databases (ServerError #270/#277/#278). Cron retains its existing initial lock lifetime, reacquires the database through Controller and ordered FFM construction when needed, updates only the log of an existing job, and closes through Controller. Throwable failures are logged within the field byte limit and rethrown for ServerError reporting. Isolated real-FFM tests cover normal execution, closed connections, concurrent setting changes/deletion, exceptions, and reverse-order two-process lock acquisition. No standalone lock or automatic retry was added.
 
