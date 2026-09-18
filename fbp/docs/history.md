@@ -1,5 +1,9 @@
 # app-framework5 History
 
+## 2026-09-18 Mobile header
+- At widths up to 700px, the management header hides the app title, tagline and login user name, placing the existing password-change and logout controls at the right of the menu bar. Controls remain single instances with their existing actions and 44px touch targets. The mobile bar measures 57px high; desktop presentation returns above the breakpoint.
+- Verified 320/375/700px alignment and 701/1280px desktop restoration in a touch-enabled browser, plus menu opening/closing, password dialog opening and logout back to the login form. No JavaScript errors; source and test files match.
+
 ## 2026-09-18
 - Standard Screen search/list and manual-sort main lists now use labeled cards at viewport widths up to 700px. Search fields and date ranges stack vertically; long values and action buttons wrap. Mobile cards override horizontal-scroll settings. Desktop tables, calendar/single-record screens and child side panels retain their existing layout. Sortable clones its drag helper so cell widths do not persist after resizing.
 - Original searchable selects now size entirely through CSS, without copying the source select's inline or computed width. Custom widths belong on the field container or wrapper. Date/time/color/year-month panel widths moved from JavaScript markup to viewport-constrained CSS in both management and public styles; geolocation feedback follows its container through CSS. Internal picker controls and popup positioning retain their functional dimensions/JavaScript.

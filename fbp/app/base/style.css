@@ -575,6 +575,60 @@ button.logout-icon {
 	cursor: pointer;
 }
 
+/* Keep the menu and existing account controls in a single mobile bar. */
+@media (max-width: 700px) {
+	body {
+		min-width: 0;
+	}
+	.logoarea {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
+		height: auto;
+		min-height: 56px;
+		padding: 6px 10px;
+	}
+	.logoarea .topbar_brand,
+	.logoarea .topbar-login-user-name {
+		display: none !important;
+	}
+	.logoarea .topbar_left_area {
+		float: none;
+		min-width: 0;
+	}
+	.logoarea #left-sidebar-show-btn {
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
+		margin: 0;
+	}
+	.logoarea .topbar_infomation_area {
+		display: flex;
+		flex-direction: row-reverse;
+		align-items: center;
+		gap: 4px;
+		margin-left: auto;
+		flex-shrink: 0;
+	}
+	.logoarea .logout-icon {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		float: none;
+		width: 44px;
+		height: 44px;
+		margin: 0;
+		padding: 0;
+	}
+	.logoarea .logout-icon .material-symbols-outlined {
+		width: auto;
+		margin: 0;
+		font-size: 30px;
+		line-height: 1;
+	}
+}
+
 .ui-sortable tr {
 	background: #fff;
 }
