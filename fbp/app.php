@@ -25,7 +25,8 @@ function prohibit_url_check(): void {
 	}
 }
 
-ini_set('display_errors', 1);
+// Keep PHP diagnostics in server logs, never in HTTP responses.
+ini_set('display_errors', '0');
 error_reporting(E_ALL & ~E_NOTICE);
 mb_internal_encoding("UTF-8");
 
@@ -543,13 +544,11 @@ try{
 		$report_result = report_bootstrap_error($e, $class, $function);
 	}
 
-	$error = format_exception_for_display($e);
-	$error_text = format_exception_for_text($e);
-	show_error($error, $report_result, get_server_error_public_url(), $error_text);
+	show_error($report_result, get_server_error_public_url());
 }
 
-function show_error($error, $report_result = [], $public_url = "", $error_text = ""){
-	$html = build_system_error_html($error, $report_result, $public_url, $error_text);
+function show_error($report_result = [], $public_url = ""){
+	$html = build_system_error_html($report_result, $public_url);
 	if(($_POST["_call_from"] ?? "") == "appcon"){
 		$md = [];
 		$md["dialog_name"] = system_error_t("system_error.dialog_title");
@@ -571,7 +570,7 @@ function show_error($error, $report_result = [], $public_url = "", $error_text =
 	}	
 }
 
-function build_system_error_html($error, $report_result = [], $public_url = "", $error_text = "") {
+function build_system_error_html($report_result = [], $public_url = "") {
 	$configured = !empty($report_result["configured"]);
 	$reported = !empty($report_result["reported"]);
 	$report_id = isset($report_result["id"]) ? (int) $report_result["id"] : null;
@@ -590,7 +589,7 @@ function build_system_error_html($error, $report_result = [], $public_url = "", 
 		$detail .= system_error_t("system_error.detail.tail");
 	}
 
-	$text = $error_text !== "" ? $error_text : trim(strip_tags($error));
+	// Only public status information belongs in this response.
 	$html = "<div class=\"error\" style=\"line-height:1.8;padding:12px 8px 4px;max-width:800px;margin:0 auto;margin-top:20px;\">";
 	$html .= "<div style=\"padding-top:18px;\">";
 	$html .= "<div style=\"display:flex;align-items:flex-start;gap:28px;\">";
@@ -612,44 +611,11 @@ function build_system_error_html($error, $report_result = [], $public_url = "", 
 		$html .= "</div>";
 	}
 	$html .= "</div>";
-	$html .= "<div style=\"margin-top:" . ($configured ? "20px" : "6px") . ";\">";
-	if ($configured) {
-		$toggle_show = htmlspecialchars(system_error_t("system_error.detail_toggle_show"));
-		$toggle_hide = htmlspecialchars(system_error_t("system_error.detail_toggle_hide"));
-		$html .= "<button type=\"button\" onclick=\"var box=this.nextElementSibling; if(box){ var open=(box.style.display==='block'); box.style.display=open?'none':'block'; this.innerText=open?'".$toggle_show."':'".$toggle_hide."'; }\" style=\"padding:0;border:none;background:none;color:#475467;font-size:12px;cursor:pointer;text-decoration:underline;\">" . $toggle_show . "</button>";
-		$html .= "<textarea readonly style=\"display:none;width:100%;min-height:180px;margin-top:12px;font-size:10px;line-height:1.5;box-sizing:border-box;\">" . htmlspecialchars($text) . "</textarea>";
-	} else {
-		$html .= "<textarea readonly style=\"display:block;width:100%;min-height:180px;margin-top:0;font-size:10px;line-height:1.5;box-sizing:border-box;\">" . htmlspecialchars($text) . "</textarea>";
-	}
-	$html .= "</div>";
 	$html .= "</div>";
 	$html .= "</div>";
 	$html .= "</div>";
 	$html .= "</div>";
 	return $html;
-}
-
-function format_exception_for_display(Throwable $e) {
-	$trace = $e->getTraceAsString();
-	$trace_lines = explode("\n", $trace);
-	$formatted_trace = "";
-
-	foreach ($trace_lines as $line) {
-		$formatted_trace .= "<p style=\"margin-top:10px;\">" . htmlspecialchars($line) . "</p>";
-	}
-
-	$message = htmlspecialchars($e->getMessage()) . "<br />";
-	$message .= "<p><strong>" . htmlspecialchars(get_class($e)) . "</strong></p>";
-	$message .= "<p>" . htmlspecialchars($e->getFile()) . ":" . (int) $e->getLine() . "</p>";
-	return $message . $formatted_trace;
-}
-
-function format_exception_for_text(Throwable $e) {
-	$text = (string) $e->getMessage() . "\n";
-	$text .= get_class($e) . "\n";
-	$text .= $e->getFile() . ":" . (int) $e->getLine() . "\n";
-	$text .= $e->getTraceAsString();
-	return trim($text);
 }
 
 function report_bootstrap_error(Throwable $e, $class, $function) {

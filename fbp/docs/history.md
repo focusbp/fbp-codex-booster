@@ -1,5 +1,9 @@
 # app-framework5 History
 
+## 2026-09-18 Error response privacy
+- Removed exception messages, internal paths, stack traces and detail controls from shared page/Ajax and PDF error responses, including report failure and unconfigured reporting. Error IDs, status links and management-side reporting remain available; PHP display_errors is disabled in both entrypoints.
+- Verified PHP syntax, nine response scenarios, and browser rendering/status-link navigation using the synchronized test code.
+
 ## 2026-09-18 Mobile header
 - At widths up to 700px, the management header hides the app title, tagline and login user name, placing the existing password-change and logout controls at the right of the menu bar. Controls remain single instances with their existing actions and 44px touch targets. The mobile bar measures 57px high; desktop presentation returns above the breakpoint.
 - Verified 320/375/700px alignment and 701/1280px desktop restoration in a touch-enabled browser, plus menu opening/closing, password dialog opening and logout back to the login form. No JavaScript errors; source and test files match.
