@@ -147,6 +147,13 @@ The installer inserts these three demo records with generated FBP IDs:
 
 ## Verification
 
+Use the CLI checks below as supporting checks. For new PDF UI/download features or changes to dialog design, retrieval, or access paths, also follow
+`fbp-pdf` and `fbp-playwright`: click the actual list/detail PDF buttons in Playwright,
+capture the download or PDF response, parse the file, and verify the expected customer
+fields. For new flows check desktop and supported mobile; for existing flows check affected branches only. Content, calculation, or document-layout changes without retrieval impact require generated-file verification, not another Playwright run. These sample buttons return PDF
+directly; do not change their handlers to `show_pdf()` without also changing the entry
+to Ajax dialog display. CLI success alone does not complete verification of a new or changed browser flow. If required browser verification cannot run, report the reason and the unverified scope.
+
 Run these after the installer:
 
 ```bash

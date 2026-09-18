@@ -10,6 +10,11 @@ description: Implement temporary-file creation and cleanup in FBP apps with Cont
 Use `$ctl->get_temp_dir()` for temporary files created during an FBP request. Do not use
 `sys_get_temp_dir()`, a hard-coded `/tmp`, or an app-relative path assembled in the app class.
 
+This applies to general working files created by app code. Framework managed-file APIs such as
+`save_pdf()` and `res_saved_file()` use their designated upload storage; keep that API contract
+instead of moving those files to `get_temp_dir()`. Remove transient managed files through
+`delete_saved_file()` after the response, including shutdown cleanup when the response exits.
+
 `get_temp_dir()` returns PHP's default temporary directory when `open_basedir` is not set. When
 `open_basedir` is set, it returns the writable app-root `tmp` directory (`fbp/../tmp`). It creates
 the app directory when missing and throws when the resolved directory is not writable.

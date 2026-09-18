@@ -1,5 +1,30 @@
 <?php
 
+// セッション・ライブラリ・DB の初期化前に既知の探索 URL を拒否する。
+prohibit_url_check();
+
+function prohibit_url_check(): void {
+	// クエリは判定しない。先頭が // でもホスト名として解釈しない。
+	$path = rawurldecode(explode('?', (string) ($_SERVER['REQUEST_URI'] ?? ''), 2)[0]);
+	// パスのセグメント単位で限定し、通常のクラス名や部分一致を巻き込まない。
+	$rules = [
+		'#/(?:_next|\.next)(?:/|$)#i' => "Nice try. We don't use Next.js. Bye!",
+	];
+	foreach ($rules as $pattern => $message) {
+		if (preg_match($pattern, $path) !== 1) {
+			continue;
+		}
+		http_response_code(403);
+		ini_set('default_charset', '');
+		header('Content-Type: text/plain');
+		header('Cache-Control: no-store');
+		if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'HEAD') {
+			echo $message;
+		}
+		exit;
+	}
+}
+
 ini_set('display_errors', 1);
 error_reporting(E_ALL & ~E_NOTICE);
 mb_internal_encoding("UTF-8");

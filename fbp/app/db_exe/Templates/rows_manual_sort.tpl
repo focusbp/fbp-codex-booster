@@ -3,7 +3,7 @@
 <tbody id="manual_sort{$db_id}">
 {foreach $rows as $row}
 	<tr id="{$row["id"]}" class="active_indicator db_exe_selectable_row" data-db-id="{$db_id}" data-row-id="{$row.id}">
-		<td>
+		<td class="db_exe_sort_cell">
 			{if $manual_sort_search_active != true}
 			<span><span class="material-symbols-outlined handle">swap_vert</span></span>
 			{/if}
@@ -75,11 +75,15 @@
             ui.placeholder.height(ui.helper.outerHeight());
         },
         helper: function(event, ui){
-			// adjust placeholder td width to original td width
-			ui.children().each(function(){
-				$(this).width($(this).width());
-			});
-			return ui;
+			// Freeze only the desktop helper, never the original cells: resizing
+			// after a drag must still switch between table and mobile card layout.
+			var helper = ui.clone();
+			if (!window.matchMedia("(max-width: 700px)").matches) {
+				helper.children().each(function(index){
+					$(this).width(ui.children().eq(index).width());
+				});
+			}
+			return helper;
 		},
         update: function(){
             var log = $(this).sortable("toArray");

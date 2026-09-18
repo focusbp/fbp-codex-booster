@@ -48,14 +48,16 @@ Reusable FBP sample for a mall-style ecommerce app where the only public entry i
 
 ## Management Screens
 
-Use Original Screen for all management screens.
+Use Standard Screen for management screens. Configure screen_fields, db_additionals, and post_action_class first; use Original Screen only where these cannot satisfy the required behavior, and record that reason for the affected screen.
 
-- `shop_original_management`: shop profile, status, shipping fee, Square settings/connection.
-- `product_original_management`: product, images, variants, status, category, type-specific form fields.
-- `product_category_original_management`: manual sort category list.
-- `line_member_original_management`: member list and edit.
-- `customer_order_original_management`: orders, shipped datetime, shipping slip number, details, receipt/order PDF if needed.
-- `mall_inquiry_original_management`: inquiry handling.
+- `shop`: shop profile, status, shipping fee, Square settings/connection.
+- `product`: product, images, variants, status, category, type-specific form fields.
+- `product_category`: manual sort category list.
+- `line_member`: member list and edit.
+- `customer_order`: orders, shipped datetime, shipping slip number, details, receipt/order PDF if needed.
+- `mall_inquiry`: inquiry handling.
+
+These are note names, not mandatory Original Screen classes. Add a table-specific original_management class only for a screen that requires Original Screen.
 
 ## Starter Code
 
@@ -85,4 +87,4 @@ The starter code is intentionally partial. It provides the generic LINE-entry me
 - Use `shop.shipping_fee` once per order.
 - Label variant prices as tax-included when the app stores/display prices as final charged amounts.
 - Use "shipped datetime" wording for shipment processing time. Do not label it as delivery/arrival datetime unless the app stores a separate arrival date.
-- Use Original Screen for management screens. This sample intentionally does not provide copied admin screen code because screen fields and customer-specific controls should be generated from the target app's note definitions.
+- Follow the Standard Screen-first policy above. This sample intentionally does not provide copied admin screen code; generate screen fields and required controls from the target app's note definitions.

@@ -88,6 +88,8 @@
 .public-field input[type="url"],
 .public-field select,
 .public-field textarea {
+	max-width: 100%;
+	min-width: 0;
 	box-sizing: border-box;
 	width: 100%;
 	min-height: 42px;
@@ -156,6 +158,7 @@
 .public-form .field_edit input[type="url"],
 .public-form .field_edit select,
 .public-form .field_edit textarea {
+	min-width: 0;
 	box-sizing: border-box;
 	width: 100%;
 	min-height: 42px;
@@ -711,6 +714,9 @@
 }
 
 .fbp-original-select-wrap {
+	width: 100%;
+	max-width: 100%;
+	min-width: 0;
 	display: inline-block;
 	vertical-align: top;
 }
@@ -765,13 +771,48 @@ button.fbp-original-select-button:hover,
 
 .fbp-original-select-panel {
 	z-index: 999999;
-	min-width: 280px;
-	max-width: 360px;
+	min-width: min(280px, calc(100vw - 16px));
+	max-width: min(360px, calc(100vw - 16px));
 	padding: 12px;
 	border: 1px solid #cbd5e1;
 	border-radius: 10px;
 	background: #fff;
 	box-shadow: 0 10px 30px rgba(15, 23, 42, 0.18);
+}
+
+.fbp-original-datepicker-panel {
+	width: 372px;
+	max-width: calc(100vw - 16px);
+	box-sizing: border-box;
+}
+
+.fbp-original-datepicker-prev,
+.fbp-original-datepicker-next {
+	padding: 8px;
+}
+
+.fbp-original-datepicker-panel .fbp-original-datepicker-day {
+	margin: 0;
+}
+
+.fbp-original-time-panel {
+	min-width: min(260px, calc(100vw - 16px));
+	max-width: min(320px, calc(100vw - 16px));
+	box-sizing: border-box;
+}
+
+.fbp-original-colorpicker-panel {
+	width: 286px;
+	max-width: calc(100vw - 16px);
+	box-sizing: border-box;
+}
+
+.glocation-error,
+.glocation-success {
+	width: 100%;
+	max-width: 100%;
+	box-sizing: border-box;
+	overflow-wrap: anywhere;
 }
 
 .fbp-original-select-toolbar {
@@ -859,7 +900,9 @@ button.fbp-original-select-option:hover,
 .year_month_picker_panel {
 	position: fixed;
 	z-index: 10;
-	width: 210px;
+	width: 260px;
+	max-width: calc(100vw - 16px);
+	box-sizing: border-box;
 	overflow: visible;
 	padding: 5px;
 	border: 2px solid #e4f1ff;

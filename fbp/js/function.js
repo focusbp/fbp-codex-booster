@@ -664,18 +664,6 @@ function destroy_original_searchable_select($select) {
 	$select.removeData("originalSearchableSelectInitialized");
 }
 
-function get_original_searchable_select_width($select) {
-	var inlineWidth = $select[0].style.width;
-	if (inlineWidth && inlineWidth !== "") {
-		return inlineWidth;
-	}
-	var computedWidth = $select.css("width");
-	if (computedWidth && computedWidth !== "0px" && computedWidth !== "auto") {
-		return computedWidth;
-	}
-	return "100%";
-}
-
 function ensure_original_searchable_select($select) {
 	if ($select.prop("multiple") || $select.children().length < 3) {
 		destroy_original_searchable_select($select);
@@ -686,9 +674,8 @@ function ensure_original_searchable_select($select) {
 		return;
 	}
 
-	var wrapWidth = get_original_searchable_select_width($select);
+	// The wrapper follows its field container through CSS, just like text inputs.
 	var $wrap = $('<div class="fbp-original-select-wrap"></div>');
-	$wrap.css("width", wrapWidth);
 	var $button = $(
 		'<button type="button" class="fbp-original-select-button">' +
 			'<span class="fbp-original-select-label"></span>' +
@@ -754,7 +741,7 @@ function open_original_colorpicker_panel(input) {
 	var hsv = rgb_to_hsv(rgb);
 	var draftHex = rgb_to_hex(rgb);
 	var panel = $(
-		'<div class="fbp-original-colorpicker-panel" style="background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 10px 30px rgba(15,23,42,0.18);padding:14px;min-width:286px;max-width:286px;">' +
+		'<div class="fbp-original-colorpicker-panel" style="background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 10px 30px rgba(15,23,42,0.18);padding:14px;">' +
 			'<div style="display:flex;gap:12px;align-items:flex-start;">' +
 				'<div class="fbp-original-colorpicker-sv" style="position:relative;width:180px;height:180px;border-radius:8px;overflow:hidden;cursor:crosshair;background:red;">' +
 					'<div style="position:absolute;inset:0;background:linear-gradient(to right,#fff 0%,rgba(255,255,255,0) 100%);"></div>' +
@@ -908,7 +895,7 @@ function open_original_time_picker_panel(input) {
 			'</div>';
 	}
 	var panel = $(
-		'<div class="fbp-original-time-panel" style="background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 10px 30px rgba(15,23,42,0.18);padding:14px;min-width:260px;max-width:320px;">' +
+		'<div class="fbp-original-time-panel" style="background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 10px 30px rgba(15,23,42,0.18);padding:14px;">' +
 			minuteStepSelector +
 			'<div style="display:flex;gap:10px;align-items:end;margin-bottom:12px;">' +
 				'<div style="flex:1;">' +
@@ -1029,7 +1016,7 @@ function open_original_datepicker_panel(input) {
 		}).format(new Date(Date.UTC(2000, monthIndex, 1))));
 	}
 	var weekdayNames = get_locale_weekday_names(locale);
-	var panel = $('<div class="fbp-original-datepicker-panel" style="background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 10px 30px rgba(15,23,42,0.18);padding:14px;min-width:372px;max-width:372px;"></div>');
+	var panel = $('<div class="fbp-original-datepicker-panel" style="background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 10px 30px rgba(15,23,42,0.18);padding:14px;"></div>');
 
 	function renderCalendar() {
 		panel.empty();
@@ -1183,7 +1170,7 @@ function open_original_datepicker_panel(input) {
 				$(".selectorclose").remove();
 
 				var html = '';
-				html += '<div class="year_month_picker_panel" style="background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 10px 30px rgba(15,23,42,0.18);padding:14px;min-width:260px;">';
+				html += '<div class="year_month_picker_panel" style="background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 10px 30px rgba(15,23,42,0.18);padding:14px;">';
 				html += '<div style="display:flex;gap:10px;align-items:end;margin-bottom:12px;">';
 				html += '<div style="flex:1;">';
 				html += '<div style="font-size:12px;color:#64748b;margin-bottom:4px;">' + escapeHtml(get_client_localized_text("year_month_year")) + '</div>';
@@ -5326,7 +5313,6 @@ $(document).on('click', '.fr_email_veriry_main_div', function () {
 
 function get_geometry_location(address_tag, textbox) {
 	address_tag.css("transition", "0.4s");
-	var atwidth = address_tag.width() + 20;
 	var address = address_tag.val();
 	var color = address_tag.css("color");
 	geocoder = new google.maps.Geocoder();
@@ -5338,7 +5324,7 @@ function get_geometry_location(address_tag, textbox) {
 
 			$('.glocation-error').remove();
 			$('.glocation-success').remove();
-			var locnotify = $("<p class='glocation-success' style='width:" + atwidth + "px;'>Successed to get geometry location!</p>").insertAfter(address_tag);
+			var locnotify = $("<p class='glocation-success'>Successed to get geometry location!</p>").insertAfter(address_tag);
 
 			setTimeout(function () {
 				locnotify.css("display", "none");
@@ -5348,7 +5334,7 @@ function get_geometry_location(address_tag, textbox) {
 			$('.glocation-error').remove();
 			$('.glocation-success').remove();
 
-			var locnotify = $("<p class='glocation-error' style='width:" + atwidth + "px;'>Failed to get geometry.location</p>").insertAfter(address_tag);
+			var locnotify = $("<p class='glocation-error'>Failed to get geometry.location</p>").insertAfter(address_tag);
 
 			setTimeout(function () {
 				locnotify.css("display", "none");

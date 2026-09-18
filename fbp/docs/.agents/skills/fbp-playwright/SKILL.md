@@ -1,11 +1,24 @@
 ---
 name: fbp-playwright
-description: Verify FBP application screens with Playwright browser automation. Use when Codex needs to take screenshots, inspect DOM/layout metrics, login to an FBP test app, reproduce UI interactions, or debug visual behavior in a browser without re-discovering local Playwright setup.
+description: Verify new FBP screens and user operations, visual changes, and changed browser interactions with Playwright. Use for layout checks, UI reproduction, and download flows; do not run routinely for content-only or backend-only changes without browser impact.
 ---
 
 # fbp-playwright
 
 ## Core rule
+
+### When to run
+
+変更したファイルの種類ではなく、利用者の画面・操作への影響で判断する。
+
+- 新規の画面・ユーザー操作を追加した場合は、Playwrightで入口から完了までの代表的な操作を確認する。
+- 位置・色・大きさ・レスポンシブ対応などのデザイン変更は、影響する画面をPlaywrightで確認する。
+- ボタン、画面遷移、別タブ、ダウンロードなどの操作経路を変更した場合は、その実操作を確認する。
+- 計算・データ変更でも、結果によってボタンの表示や遷移先などが変わる場合は、影響する操作を確認する。
+- 画面を持たないAPI・バッチ、画面操作に影響しない計算・保存・検索条件・DB定義は、CLIや処理テストを基本にする。
+- 文言・帳票の住所や金額など内容だけの変更は出力内容を確認し、原則Playwrightは不要。文言変更で折返しや配置に影響する場合は見た目も確認する。
+- Skill・手順書だけの変更は差分・整合性を確認する。明示的なブラウザー検証依頼やブラウザー固有の不具合調査は、その依頼に従う。
+- 確認は変更箇所と直接影響する範囲に絞る。毎回全機能・全端末・全異常系を実行しない。検証後に対象コード・設定が変わっておらず、新たな懸念もなければ同じ検証を繰り返さない。低影響の見た目変更をユーザーが確認済みなら、その確認を採用する。
 
 Use `~/scripts/playwright_node.sh` as the Playwright entrypoint. Do not start with raw
 `node`, `npx playwright test`, or `@playwright/test`; this environment may only have the
@@ -174,13 +187,13 @@ const { chromium } = require("playwright");
 
 ### PDF verification
 
-PDFの新規実装・修正時は、Playwrightで実際の画面のボタン／リンクをクリックし、PDF取得まで確認する。CLIの `ok:true`、リンクの存在、ダイアログが開くこと、スクリーンショットだけでは完了としない。
+PDFの新規の表示・取得機能、表示ダイアログのデザイン、取得・認証経路を変更した場合は、Playwrightで実際の画面のボタン／リンクをクリックし、PDF取得まで確認する。この場合、CLIの `ok:true`、リンクの存在、ダイアログが開くこと、スクリーンショットだけでは完了としない。既存PDFの記載内容・計算・帳票内レイアウトだけの変更は、取得経路に影響しなければ生成ファイルの内容・見た目の確認でよく、Playwrightの再実行は不要。
 
 - 基本の `show_pdf()` 方式: `ajax-link` をクリックし、PDF表示ダイアログと、その中のiframeまたは保存リンクから返るPDFを確認する。最初のAjax応答はJSONで正常。後続のPDF応答を検証する。
 - 直接方式: `res_saved_file()` 等へ進む実リンクをクリックする。クリック前にdownload／popup／responseの待受を登録する。`download` イベントだけに限定せず、別タブやiframeにPDFが表示される場合も扱う。
 - HTTP応答は成功ステータスと `Content-Type: application/pdf` を確認し、取得ファイルは先頭の `%PDF-` とPDF解析で検証する。`pdftotext` 等で金額・件名・宛名等の期待値を確認する。JSON・HTMLを `.pdf` 名で保存したものは失敗にする。
 - 既存 `apppdf.php` のスマートフォン保存に限り `application/x-download` も許容する。実際のdownloadイベントから保存したファイルを解析し、Content-Typeだけで成功判定しない。
-- PCと対象スマートフォン表示を確認する。認証付き帳票ではセッション切れ・権限不一致で帳票を返さないことも確認する。スマートフォン模擬だけでLINEアプリ固有の動作確認済みとはしない。
+- 新規の取得経路では対象のPC・スマートフォン表示を確認する。既存経路の変更は影響する端末・分岐に絞る。認証経路の新設・変更ではセッション切れ・権限不一致で帳票を返さないことも確認する。スマートフォン模擬だけでLINEアプリ固有の動作確認済みとはしない。
 - 検証用ファイルは指定の一時出力先に保存する。実行できない場合は理由と未検証範囲を報告する。
 
 再利用可能な2方式の実装とブラウザーテストは `../fbp-app-samples/references/pdf-delivery.md` を参照。

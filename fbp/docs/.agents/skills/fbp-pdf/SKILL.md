@@ -17,8 +17,8 @@ description: Implement and test PDF generation flows in FBP, including modern tp
 4. 直接ダウンロードには `download-link`（原則 `data-open_new_tab="true"`）を使う。LINE内ブラウザー向けは `fbp-public-pages` に従ってGETリンクを使う。
 5. 再利用サンプルは `../fbp-app-samples/references/pdf-delivery.md` と `../fbp-app-samples/assets/pdf-delivery/` を参照する。
 6. CLIで応答・生成内容を補助確認する。`app_call` の `ok:true`、保存先が `.pdf`、ダイアログJSONが返ることだけではPDF取得成功と判定しない。
-7. PDFの新規実装・修正時は `fbp-playwright` に従い、Playwrightで実ボタンからPDF取得まで検証する。表示方式はダイアログとその後のPDF応答、直接方式はダウンロードまたは別タブのPDF応答を確認する。
-8. 取得したPDFのContent-Type（HTTP応答）、`%PDF-`、PDF解析と期待する金額・件名等を確認する。対象導線のPC・スマートフォンと、認証付き帳票のセッション切れ・権限不一致も確認する。ブラウザー検証できない場合は未検証範囲と理由を報告し、CLIだけで完了扱いにしない。
+7. 新規のPDF表示・取得機能、表示ダイアログのデザイン、取得・認証経路を変更した場合は `fbp-playwright` に従い、実ボタンからPDF取得まで検証する。表示方式はダイアログとその後のPDF応答、直接方式はダウンロードまたは別タブのPDF応答を確認する。既存帳票の内容・計算・帳票内レイアウトだけの変更で取得経路に影響しない場合は、生成ファイルの内容・見た目を確認し、Playwrightの再実行は不要。
+8. 生成・取得したPDFの `%PDF-`、PDF解析と期待する金額・件名等を確認する。HTTP経路を検証する場合はContent-Typeも確認する。新規経路は対象のPC・スマートフォン、既存変更は影響する端末・分岐に絞る。認証経路の新設・変更時はセッション切れ・権限不一致も確認する。Playwrightが必要な変更で実行できない場合は未検証範囲と理由を報告し、CLIだけで完了扱いにしない。
 
 ## table samples
 - 既存 `apppdf.php` のスマートフォン保存は `application/x-download` を返す場合がある。この既知の経路だけ許容し、取得した実ファイルのPDF解析と内容確認は省略しない。
@@ -74,4 +74,4 @@ $pdf->addTextBox($memo, [
 - PDFダウンロードの `download-link` は `data-open_new_tab="true"` を基本とする。例外時は理由を実装コメントかPR説明に残す。
 - `addTable` の `columnsize` は合計 `100` にする（%指定として扱うため）。
 - `addText()` などで安易に `bold => true` を使わない。既定フォントでは `Undefined font` になることがあるため、太字が必要な場合は `migmix-1p-bold` など登録済みの太字フォントを `fontname` で明示する。
-- PDF生成や `pdfunite` / `zip` など外部コマンド連携で一時ファイルを作る場合、`sys_get_temp_dir()` を前提にしない。本番アプリユーザーで `tempnam(sys_get_temp_dir(), ...)` が失敗することがあるため、一時ファイルもアプリユーザーが書き込み可能なアップロードディレクトリ配下に作成する。
+- PDF生成や `pdfunite` / `zip` などでアプリ独自の作業ファイルを作る場合は `fbp-temp-files` に従い `$ctl->get_temp_dir()` を使う。`save_pdf()` / `res_saved_file()` の管理ファイルは各API所定のアップロード領域を使い、一時用途なら応答後・例外時・exit時に削除する。保存先をアプリ側で固定パスにしない。

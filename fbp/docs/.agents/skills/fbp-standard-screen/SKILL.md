@@ -52,6 +52,13 @@ description: Build, maintain, or adjust FBP Standard Screen note management usin
 - file/image 項目は業務上入力・確認が必要な場合だけ `add` / `edit` に入れる。`list` では原則避け、必要なら代表画像など最小限にする。
 - checkbox 項目は配列値として扱う。表示・保存の副作用は `post_action_class` へ寄せ、画面ごとの手書き処理に閉じ込めない。
 
+## responsive list layout
+
+- 「検索＋一覧」「マニュアルソート」のメイン一覧は、画面幅700px以下で1件ごとのカードに切り替わる。既存の `row_title` / `row_value` を使い、検索条件は1列、日付・日時の範囲は上下に並べる。
+- PC表示は表形式を維持する。スマホでは横スクロール設定よりカード表示を優先し、長文と行ボタンを折り返す。週次カレンダー・単一レコード・子ノートのサイドパネルにはカード用CSSを適用しない。
+- フィールドの幅はCSSで管理する。`fbp-original-select-wrap` は親幅に追従し、元のselectのインライン幅や計算済み幅をJavaScriptでコピーしない。幅の個別指定が必要なら、フィールドのコンテナまたはラッパーをCSSで指定する。
+- 並び替え中の列幅固定はPCのドラッグ用複製要素だけに行い、元の行に幅を残さない。
+
 ## search default values
 
 - 固定の検索初期値は、ノート項目そのものの `default_value` ではなく、`search` の `screen_fields` にある項目設定から設定する。管理UIでは検索項目行の歯車ボタンを使う。

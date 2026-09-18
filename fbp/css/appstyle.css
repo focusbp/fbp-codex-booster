@@ -50,6 +50,8 @@ i {
 
 
 input[type="text"],input[type="email"],input[type="url"],input[type="tel"],input[type="search"],input[type="password"],input[type="number"] {
+	max-width: 100%;
+	min-width: 0;
 	width:100%;
 	border: 3px #dfdfdf solid;
 	padding:6px;
@@ -71,6 +73,8 @@ input[type="radio"] {
 }
 
 select {
+	max-width: 100%;
+	min-width: 0;
 	line-height:30px;
 	width:100%;
 	border: 3px #dfdfdf solid;
@@ -80,6 +84,8 @@ select {
 }
 
 textarea {
+	max-width: 100%;
+	min-width: 0;
 	width:100%;
 	border: 3px #dfdfdf solid;
 	padding:5px;
@@ -1101,6 +1107,9 @@ section {
 }
 
 .fbp-original-select-wrap {
+	width: 100%;
+	max-width: 100%;
+	min-width: 0;
 	display: inline-block;
 	vertical-align: top;
 }
@@ -1157,9 +1166,36 @@ button.fbp-original-select-button:hover,
 	border-radius: 10px;
 	box-shadow: 0 10px 30px rgba(15,23,42,0.18);
 	padding: 12px;
-	min-width: 280px;
-	max-width: 360px;
+	min-width: min(280px, calc(100vw - 16px));
+	max-width: min(360px, calc(100vw - 16px));
 	z-index: 999999;
+}
+
+.fbp-original-datepicker-panel {
+	width: 372px;
+	max-width: calc(100vw - 16px);
+	box-sizing: border-box;
+}
+
+.fbp-original-datepicker-prev,
+.fbp-original-datepicker-next {
+	padding: 8px;
+}
+
+.fbp-original-datepicker-panel .fbp-original-datepicker-day {
+	margin: 0;
+}
+
+.fbp-original-time-panel {
+	min-width: min(260px, calc(100vw - 16px));
+	max-width: min(320px, calc(100vw - 16px));
+	box-sizing: border-box;
+}
+
+.fbp-original-colorpicker-panel {
+	width: 286px;
+	max-width: calc(100vw - 16px);
+	box-sizing: border-box;
 }
 
 .fbp-original-select-toolbar {
@@ -1250,7 +1286,9 @@ button.fbp-original-select-option:hover,
 
 .year_month_picker_panel {
 	position: fixed;
-    width: 210px;
+    width: 260px;
+	max-width: calc(100vw - 16px);
+	box-sizing: border-box;
     background-color: #c0cfff;
     z-index: 10;
     box-shadow: 3px 3px 3px #CCC;
@@ -1563,6 +1601,14 @@ form p {
 
 }
 
+.glocation-error,
+.glocation-success {
+	width: 100%;
+	max-width: 100%;
+	box-sizing: border-box;
+	overflow-wrap: anywhere;
+}
+
 .glocation-error {
 	margin: 0;
 	background: red;
@@ -1720,6 +1766,118 @@ form p {
 
 .search_form_flex .search_form_item.field_type_date {
 	width:40%;
+}
+
+/* Standard Screen search/list and manual sort: one record per mobile card.
+ * The page marker limits the shell/search overrides to these two patterns. */
+@media (max-width: 700px) {
+	body:has(#work_area .db_exe_responsive_list) {
+		min-width: 0;
+	}
+	body:has(#work_area .db_exe_responsive_list) .content {
+		display: block;
+		width: 100%;
+		min-width: 0;
+		padding: 10px;
+	}
+	#work_area:has(.db_exe_responsive_list) {
+		min-width: 0;
+		max-width: 100%;
+	}
+	#work_area:has(.db_exe_responsive_list) .search_form_item {
+		width: 100%;
+		min-width: 0;
+	}
+	#work_area:has(.db_exe_responsive_list) .search_date_range,
+	#work_area:has(.db_exe_responsive_list) .search_datetime_range {
+		flex-direction: column;
+		align-items: stretch !important;
+	}
+	#work_area:has(.db_exe_responsive_list) #main_table {
+		max-width: 100%;
+		overflow-x: visible;
+		padding-bottom: 0;
+	}
+	#work_area:has(.db_exe_responsive_list) .main_table_horizontal_scroll_fixed {
+		display: none !important;
+	}
+	#main_table.main_table_horizontal_scroll .db_exe_main_table,
+	#main_table .db_exe_main_table,
+	#main_table .db_exe_main_table > tbody,
+	#main_table .db_exe_main_table > tbody > tr {
+		display: block;
+		width: 100%;
+		min-width: 0;
+		box-sizing: border-box;
+	}
+	#main_table .db_exe_main_table {
+		border: 0;
+	}
+	#main_table .db_exe_main_table > tbody > tr {
+		margin-bottom: 12px;
+		border: 1px solid #d9e2ec;
+		border-radius: 6px;
+		overflow: hidden;
+	}
+	#main_table .db_exe_main_table > tbody > tr > td {
+		display: grid;
+		grid-template-columns: 86px minmax(0, 1fr);
+		align-items: start;
+		gap: 10px;
+		width: 100%;
+		min-width: 0;
+		padding: 10px;
+		border: 0;
+		border-top: 1px solid #edf2f7;
+	}
+	#main_table .db_exe_main_table > tbody > tr > td:first-child {
+		border-top: 0;
+	}
+	#main_table .db_exe_main_table .row_title {
+		color: #64748b;
+		font-weight: 700;
+		line-height: 1.5;
+		overflow-wrap: anywhere;
+	}
+	#main_table .db_exe_main_table .row_value {
+		min-width: 0;
+		line-height: 1.5;
+		white-space: normal;
+		overflow-wrap: anywhere;
+	}
+	#main_table .db_exe_main_table .row_value p {
+		padding: 0;
+	}
+	#main_table .db_exe_main_table .item_viewer_dropdown_badge {
+		max-width: 100%;
+		white-space: normal;
+	}
+	#main_table .db_exe_main_table .db_exe_action_cell,
+	#main_table .db_exe_main_table .db_exe_sort_cell {
+		display: block;
+	}
+	#main_table .db_exe_action_buttons {
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+	#main_table .db_exe_action_buttons > * {
+		margin: 0 !important;
+		min-width: 38px;
+		min-height: 38px;
+		max-width: 100%;
+		overflow-wrap: anywhere;
+	}
+	#main_table .db_exe_sort_cell .handle {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 38px;
+		min-height: 38px;
+	}
+	#main_table .db_exe_sort_cell:not(:has(.handle)),
+	#main_table .db_exe_action_cell:not(:has(.db_exe_action_buttons > *)) {
+		display: none;
+	}
 }
 
 .search_left {

@@ -6,7 +6,7 @@
 	</div>
 {/if}
 
-<div class="db_exe_page_context" data-db-id="{$db_id}" data-tb-name="{$tb_name|escape}" data-class="{$class|escape}">
+<div class="db_exe_page_context db_exe_responsive_list" data-db-id="{$db_id}" data-tb-name="{$tb_name|escape}" data-class="{$class|escape}">
 	<div style="float:right;margin-bottom: 8px;">
 
 		{if $flg_add_button}
