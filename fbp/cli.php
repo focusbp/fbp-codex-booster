@@ -527,6 +527,7 @@ function cli_initial_project_setup(Dirs $dir, array $data): array {
 	$setting["project_release_code"] = $project_release_code;
 	$setting["timezone"] = $timezone;
 	$setting["app_url_protocol"] = in_array((string) ($data["app_url_protocol"] ?? "0"), ["0", "1", "2"], true) ? (int) ($data["app_url_protocol"] ?? 0) : 0;
+	$setting["standard_screen_responsive"] = fbp_normalize_standard_screen_responsive($data["standard_screen_responsive"] ?? null);
 	if ($api_key !== "") {
 		$setting["api_key"] = $api_key;
 	}
@@ -2326,6 +2327,7 @@ if ($command === "setting_edit") {
 	}
 	$setting = fbp_normalize_framework_theme_setting($setting);
 	$setting["id"] = 1;
+	$setting["standard_screen_responsive"] = fbp_normalize_standard_screen_responsive($setting["standard_screen_responsive"] ?? null);
 	$ffm_setting->update($setting);
 
 	$out = [

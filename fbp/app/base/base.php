@@ -70,6 +70,7 @@ class base {
 		$ctl->assign("js_class_list", $js_class_list);
 		
 		$setting = $ctl->get_setting();
+		$ctl->assign("standard_screen_responsive", fbp_normalize_standard_screen_responsive($setting["standard_screen_responsive"] ?? null));
 		$project_portal_url = $this->normalize_external_url($setting["project_portal_url"] ?? "");
 		$ctl->assign("setting",$setting);
 		$ctl->assign("project_portal_url", $project_portal_url);

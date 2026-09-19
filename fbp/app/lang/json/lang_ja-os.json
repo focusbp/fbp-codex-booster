@@ -1,4 +1,8 @@
 {
+  "setting.standard_screen_responsive": "標準画面レスポンシブ",
+  "setting.standard_screen_responsive.responsive": "0:レスポンシブ",
+  "setting.standard_screen_responsive.desktop": "1:パソコン",
+  "setting.standard_screen_responsive.help": "管理画面の一覧・検索欄・ヘッダーの表示を切り替えます。パソコンでは狭い画面でも表形式を維持します。保存後の再読込で反映されます。",
   "base.empty_state.no_items": "表示できるメニューがあらへん。",
   "base.menu.project_portal": "プロジェクトポータル",
   "base.menu.bcp_export": "BCP Export",

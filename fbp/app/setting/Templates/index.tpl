@@ -193,6 +193,10 @@
 							</td>
 						</tr>
 						<tr>
+							<th>{t key="setting.standard_screen_responsive"}</th>
+							<td colspan="2">{html_options name="standard_screen_responsive" options=$arr_standard_screen_responsive selected=$standard_screen_responsive}<br><small>{t key="setting.standard_screen_responsive.help"}</small></td>
+						</tr>
+						<tr>
 							<th rowspan="2">{t key="setting.viewport"}</th>
 							<td>{t key="setting.management_side"}</td>
 							<td><input type="text" name="viewport_base" value="{$setting.viewport_base}"></td>

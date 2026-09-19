@@ -6,6 +6,7 @@
  */
 
 include_once (__DIR__ . "/../../lib/FrameworkTheme.php");
+require_once __DIR__ . "/../../lib/StandardScreenLayout.php";
 
 class setting {
 
@@ -58,6 +59,7 @@ class setting {
 		$ctl->assign("arr_force_testmode", $this->arr_force_testmode);
 		$ctl->assign("arr_show_menu", $this->arr_show_menu);
 		$ctl->assign("arr_ssl",$this->arr_ssl);
+		$ctl->assign("arr_standard_screen_responsive", [0 => $ctl->t("setting.standard_screen_responsive.responsive"), 1 => $ctl->t("setting.standard_screen_responsive.desktop")]);
 		$ctl->assign("arr_app_url_protocol", [0 => $ctl->t("setting.app_url_protocol.auto"), 1 => $ctl->t("setting.app_url_protocol.https"), 2 => $ctl->t("setting.app_url_protocol.http")]);
 		$ctl->assign("arr_flg_show_lang_on_chat",$this->arr_flg_show_lang_on_chat);
 		$ctl->assign("arr_show_developer_panel",$this->arr_show_developer_panel);
@@ -219,6 +221,7 @@ class setting {
 		$setting = fbp_normalize_framework_theme_setting($setting);
 		$setting["project_portal_url"] = $this->normalize_project_portal_url($setting["project_portal_url"] ?? "");
 		$setting["error_report_level"] = $this->normalize_error_report_level($setting["error_report_level"] ?? "");
+		$setting["standard_screen_responsive"] = fbp_normalize_standard_screen_responsive($setting["standard_screen_responsive"] ?? null);
 		
 		
 		$this->ffm->update($setting);
@@ -378,6 +381,7 @@ class setting {
 		}
 
 		$ctl->assign("setting", $setting);
+		$ctl->assign("standard_screen_responsive", fbp_normalize_standard_screen_responsive($setting["standard_screen_responsive"] ?? null));
 		$ctl->assign("masked_setting", $this->mask_sensitive_setting($setting));
 		$ctl->assign("line_webhook_url", $ctl->get_APP_URL("webhook_line", "receive"));
 		$ctl->assign("mcp_server_info", $this->get_mcp_server_info($ctl));

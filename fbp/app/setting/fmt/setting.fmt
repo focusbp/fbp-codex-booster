@@ -36,6 +36,7 @@ chatgpt_api_key,255,T
 chatgpt_api_url,255,T
 chatgpt_api_model,255,T
 viewport_base,255,T
+standard_screen_responsive,1,N
 viewport_public,255,T
 currency,255,T
 project_release_code,255,T

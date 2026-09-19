@@ -1771,55 +1771,55 @@ form p {
 /* Standard Screen search/list and manual sort: one record per mobile card.
  * The page marker limits the shell/search overrides to these two patterns. */
 @media (max-width: 700px) {
-	body:has(#work_area .db_exe_responsive_list) {
+	body.fbp-standard-responsive:has(#work_area .db_exe_responsive_list) {
 		min-width: 0;
 	}
-	body:has(#work_area .db_exe_responsive_list) .content {
+	body.fbp-standard-responsive:has(#work_area .db_exe_responsive_list) .content {
 		display: block;
 		width: 100%;
 		min-width: 0;
 		padding: 10px;
 	}
-	#work_area:has(.db_exe_responsive_list) {
+	body.fbp-standard-responsive #work_area:has(.db_exe_responsive_list) {
 		min-width: 0;
 		max-width: 100%;
 	}
-	#work_area:has(.db_exe_responsive_list) .search_form_item {
+	body.fbp-standard-responsive #work_area:has(.db_exe_responsive_list) .search_form_item {
 		width: 100%;
 		min-width: 0;
 	}
-	#work_area:has(.db_exe_responsive_list) .search_date_range,
-	#work_area:has(.db_exe_responsive_list) .search_datetime_range {
+	body.fbp-standard-responsive #work_area:has(.db_exe_responsive_list) .search_date_range,
+	body.fbp-standard-responsive #work_area:has(.db_exe_responsive_list) .search_datetime_range {
 		flex-direction: column;
 		align-items: stretch !important;
 	}
-	#work_area:has(.db_exe_responsive_list) #main_table {
+	body.fbp-standard-responsive #work_area:has(.db_exe_responsive_list) #main_table {
 		max-width: 100%;
 		overflow-x: visible;
 		padding-bottom: 0;
 	}
-	#work_area:has(.db_exe_responsive_list) .main_table_horizontal_scroll_fixed {
+	body.fbp-standard-responsive #work_area:has(.db_exe_responsive_list) .main_table_horizontal_scroll_fixed {
 		display: none !important;
 	}
-	#main_table.main_table_horizontal_scroll .db_exe_main_table,
-	#main_table .db_exe_main_table,
-	#main_table .db_exe_main_table > tbody,
-	#main_table .db_exe_main_table > tbody > tr {
+	body.fbp-standard-responsive #main_table.main_table_horizontal_scroll .db_exe_main_table,
+	body.fbp-standard-responsive #main_table .db_exe_main_table,
+	body.fbp-standard-responsive #main_table .db_exe_main_table > tbody,
+	body.fbp-standard-responsive #main_table .db_exe_main_table > tbody > tr {
 		display: block;
 		width: 100%;
 		min-width: 0;
 		box-sizing: border-box;
 	}
-	#main_table .db_exe_main_table {
+	body.fbp-standard-responsive #main_table .db_exe_main_table {
 		border: 0;
 	}
-	#main_table .db_exe_main_table > tbody > tr {
+	body.fbp-standard-responsive #main_table .db_exe_main_table > tbody > tr {
 		margin-bottom: 12px;
 		border: 1px solid #d9e2ec;
 		border-radius: 6px;
 		overflow: hidden;
 	}
-	#main_table .db_exe_main_table > tbody > tr > td {
+	body.fbp-standard-responsive #main_table .db_exe_main_table > tbody > tr > td {
 		display: grid;
 		grid-template-columns: 86px minmax(0, 1fr);
 		align-items: start;
@@ -1830,52 +1830,52 @@ form p {
 		border: 0;
 		border-top: 1px solid #edf2f7;
 	}
-	#main_table .db_exe_main_table > tbody > tr > td:first-child {
+	body.fbp-standard-responsive #main_table .db_exe_main_table > tbody > tr > td:first-child {
 		border-top: 0;
 	}
-	#main_table .db_exe_main_table .row_title {
+	body.fbp-standard-responsive #main_table .db_exe_main_table .row_title {
 		color: #64748b;
 		font-weight: 700;
 		line-height: 1.5;
 		overflow-wrap: anywhere;
 	}
-	#main_table .db_exe_main_table .row_value {
+	body.fbp-standard-responsive #main_table .db_exe_main_table .row_value {
 		min-width: 0;
 		line-height: 1.5;
 		white-space: normal;
 		overflow-wrap: anywhere;
 	}
-	#main_table .db_exe_main_table .row_value p {
+	body.fbp-standard-responsive #main_table .db_exe_main_table .row_value p {
 		padding: 0;
 	}
-	#main_table .db_exe_main_table .item_viewer_dropdown_badge {
+	body.fbp-standard-responsive #main_table .db_exe_main_table .item_viewer_dropdown_badge {
 		max-width: 100%;
 		white-space: normal;
 	}
-	#main_table .db_exe_main_table .db_exe_action_cell,
-	#main_table .db_exe_main_table .db_exe_sort_cell {
+	body.fbp-standard-responsive #main_table .db_exe_main_table .db_exe_action_cell,
+	body.fbp-standard-responsive #main_table .db_exe_main_table .db_exe_sort_cell {
 		display: block;
 	}
-	#main_table .db_exe_action_buttons {
+	body.fbp-standard-responsive #main_table .db_exe_action_buttons {
 		flex-wrap: wrap;
 		gap: 8px;
 	}
-	#main_table .db_exe_action_buttons > * {
+	body.fbp-standard-responsive #main_table .db_exe_action_buttons > * {
 		margin: 0 !important;
 		min-width: 38px;
 		min-height: 38px;
 		max-width: 100%;
 		overflow-wrap: anywhere;
 	}
-	#main_table .db_exe_sort_cell .handle {
+	body.fbp-standard-responsive #main_table .db_exe_sort_cell .handle {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
 		min-width: 38px;
 		min-height: 38px;
 	}
-	#main_table .db_exe_sort_cell:not(:has(.handle)),
-	#main_table .db_exe_action_cell:not(:has(.db_exe_action_buttons > *)) {
+	body.fbp-standard-responsive #main_table .db_exe_sort_cell:not(:has(.handle)),
+	body.fbp-standard-responsive #main_table .db_exe_action_cell:not(:has(.db_exe_action_buttons > *)) {
 		display: none;
 	}
 }

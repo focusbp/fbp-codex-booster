@@ -577,10 +577,10 @@ button.logout-icon {
 
 /* Keep the menu and existing account controls in a single mobile bar. */
 @media (max-width: 700px) {
-	body {
+	body.fbp-standard-responsive {
 		min-width: 0;
 	}
-	.logoarea {
+	body.fbp-standard-responsive .logoarea {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -589,21 +589,21 @@ button.logout-icon {
 		min-height: 56px;
 		padding: 6px 10px;
 	}
-	.logoarea .topbar_brand,
-	.logoarea .topbar-login-user-name {
+	body.fbp-standard-responsive .logoarea .topbar_brand,
+	body.fbp-standard-responsive .logoarea .topbar-login-user-name {
 		display: none !important;
 	}
-	.logoarea .topbar_left_area {
+	body.fbp-standard-responsive .logoarea .topbar_left_area {
 		float: none;
 		min-width: 0;
 	}
-	.logoarea #left-sidebar-show-btn {
+	body.fbp-standard-responsive .logoarea #left-sidebar-show-btn {
 		display: inline-flex;
 		align-items: center;
 		min-height: 44px;
 		margin: 0;
 	}
-	.logoarea .topbar_infomation_area {
+	body.fbp-standard-responsive .logoarea .topbar_infomation_area {
 		display: flex;
 		flex-direction: row-reverse;
 		align-items: center;
@@ -611,7 +611,7 @@ button.logout-icon {
 		margin-left: auto;
 		flex-shrink: 0;
 	}
-	.logoarea .logout-icon {
+	body.fbp-standard-responsive .logoarea .logout-icon {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
@@ -621,7 +621,7 @@ button.logout-icon {
 		margin: 0;
 		padding: 0;
 	}
-	.logoarea .logout-icon .material-symbols-outlined {
+	body.fbp-standard-responsive .logoarea .logout-icon .material-symbols-outlined {
 		width: auto;
 		margin: 0;
 		font-size: 30px;

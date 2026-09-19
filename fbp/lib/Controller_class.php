@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . "/PollingSecurity.php";
+require_once __DIR__ . "/StandardScreenLayout.php";
 
 class Controller_class implements Controller {
 

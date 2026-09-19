@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 	{include file="{$base_template_dir}/header.tpl"}
-	<body>
+	<body class="{if $standard_screen_responsive == 1}fbp-standard-desktop{else}fbp-standard-responsive{/if}">
 		{include file="topbar.tpl"}
 		<article>
 

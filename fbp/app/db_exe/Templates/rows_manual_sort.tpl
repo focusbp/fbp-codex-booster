@@ -78,7 +78,7 @@
 			// Freeze only the desktop helper, never the original cells: resizing
 			// after a drag must still switch between table and mobile card layout.
 			var helper = ui.clone();
-			if (!window.matchMedia("(max-width: 700px)").matches) {
+			if (ui.css("display") === "table-row") {
 				helper.children().each(function(index){
 					$(this).width(ui.children().eq(index).width());
 				});
