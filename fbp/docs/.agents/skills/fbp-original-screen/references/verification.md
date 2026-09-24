@@ -22,6 +22,7 @@
 - `apply_filter` が `reloadarea` で一覧領域だけ返す
 - 追加 / 更新 / 削除後に `data_get` / `data_list` で反映が見える
 - `res_error_message()` を使う項目には対応する `error_項目名` がある
+- レスポンシブ対応時は [responsive-layout.md](responsive-layout.md) の表示モード・境界幅・Ajax再描画の確認も行う。CLI成功だけでスマホ表示の検証済みとしない。
 
 ## caution
 

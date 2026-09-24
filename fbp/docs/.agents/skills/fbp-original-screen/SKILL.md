@@ -1,6 +1,6 @@
 ---
 name: fbp-original-screen
-description: Build custom note management screens only when explicitly requested or when Standard Screen is insufficient, using screen_build_type Original Screen and the table-specific original_management run class, with reusable CRUD, sort, calendar, and side-panel patterns plus CLI verification.
+description: Build custom note management screens when requested or Standard Screen is insufficient, and maintain existing custom screens including responsive layouts. Provides Original Screen routing, reusable CRUD, sort, calendar, side-panel and mobile list templates, and verification guidance.
 ---
 
 # fbp-original-screen
@@ -11,9 +11,12 @@ description: Build custom note management screens only when explicitly requested
 - 標準画面の `検索 / マニュアルソート / カレンダー` では足りず、自由度の高い管理画面を作りたい
 - ノートの `screen_build_type` を `Original Screen` にして、`<tb_name>_original_management/run` を呼びたい
 - 一覧 / 追加 / 編集 / 削除 / 部分更新の管理画面パターンを再利用したい
+- 既存の独自管理画面（従来の独自クラスを含む）のスマホ表示を調整したい
 - Original Screenサイドパネルの詳細設計は `fbp-side-panel` も使う
 
 ## workflow
+既存の独自画面の表示調整では、現在のクラス・入口・業務処理を維持し、下記の新規作成／画面種別移行手順を機械的に実行しない。レスポンシブ対応は `references/responsive-layout.md` へ進む。
+
 1. まず `Standard Screen`、`screen_fields`、`db_additionals`、`post_action_class` で実現できない理由を確認する。ユーザーが「Original Screen指定」と明示している場合はその指定を優先する。
 2. 既存移行なら先に `references/migration-standard-to-original.md` で棚卸し対象を洗い出す。
 3. 対象ノートの `screen_build_type` を `Original Screen` にする。
@@ -29,6 +32,13 @@ description: Build custom note management screens only when explicitly requested
 - 呼び出し関数は固定で `run`
 - framework 側から `db_id` や検索条件は自動注入されない前提で作る
 - 親ノートから開く子サイドパネルを Original Screen 化する場合は、同じクラスに public `rows_child(Controller $ctl)` を実装する。詳細は `fbp-side-panel` を使う
+
+## responsive layout
+- スマホ表示の相談では対象の画面種別を先に確認する。標準画面なら `fbp-standard-screen` に従い「標準画面レスポンシブ」設定で対応する。このSkillの個別CSSを標準画面へ追加しない。
+- 標準画面と同じCSS方針（表示モード、700px以下の項目名付きカード、検索1列、長文・操作の折返し）を基本にする。実装前に [references/responsive-layout.md](references/responsive-layout.md) を読む。
+- 独自画面の本文へ標準画面用CSSは自動適用されない。専用マーカーで範囲を限定し、`body.fbp-standard-responsive` の条件下で適用する。`パソコン` 設定も尊重する。
+- 再利用元は実運用版CRUDの [list.tpl](assets/sample_note_original_management/Templates/list.tpl)、[list_area.tpl](assets/sample_note_original_management/Templates/list_area.tpl)、[responsive_style.tpl](assets/sample_note_original_management/Templates/responsive_style.tpl)。CSSはtpl内の `{literal}` で保持する。
+- スマホ表示調整だけを理由に標準画面への移行や業務処理の作り直しを行わない。カレンダー・サイドパネルにはメイン一覧用カードCSSを適用しない。
 
 ## constraints
 - 新規制作の基本方針は Standard Screen とする。Original Screen は明示指定、または標準画面では不足する部分に限定する。
@@ -52,6 +62,7 @@ description: Build custom note management screens only when explicitly requested
 - 子ノート変更時に親ノートの集計情報を再計算するなど、Noteデータに対する共通副作用は Original Screen 専用処理に閉じ込めず、対象ノートの `post_action_class` に実装する。Standard Screen、Original Screen、MCP Server の Note CRUD で共通化できることが主なメリット。サイドパネル内操作の副作用判断は `fbp-side-panel` も確認する。
 
 ## references
+- レスポンシブ方針・既存独自画面への適用: [references/responsive-layout.md](references/responsive-layout.md)
 - Standard からの移行手順: `references/migration-standard-to-original.md`
 - 棚卸しチェックリスト: `references/migration-inventory-checklist.md`
 - `db_additionals` / `post_action_class` 移行: `references/migration-db_additionals-post_action_class.md`

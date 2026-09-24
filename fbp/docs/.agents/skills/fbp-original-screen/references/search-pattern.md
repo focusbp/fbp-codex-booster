@@ -34,75 +34,18 @@ Use the same structure as `db_exe` so framework JS can bind auto-submit:
 
 ## Five-Column Field Layout
 
-For compact operational screens, search items should wrap after 5 items per row unless the design needs a different density.
+For compact operational screens, use up to 5 fields per row. In responsive mode,
+reduce to 4 / 3 / 2 columns as space narrows, then **one column at 700px and below**.
+Keep desktop mode in its desktop layout.
 
-```smarty
-<style>
-    .example-page #example_filter_form {
-        display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 8px 12px;
-        align-items: end;
-    }
-    .example-page #example_filter_form > [class^="field_"] {
-        min-width: 0;
-    }
-    .example-page #example_filter_form .field_edit input,
-    .example-page #example_filter_form .field_edit select {
-        box-sizing: border-box;
-        max-width: 100%;
-        width: 100%;
-    }
-    .example-page .original_search_panel_body {
-        display: flex;
-        gap: 12px;
-        align-items: flex-end;
-    }
-    .example-page .search_right {
-        display: flex;
-        justify-content: flex-end;
-        align-items: flex-end;
-        flex: 0 0 auto;
-        margin-left: auto;
-        min-width: 0;
-    }
-    .example-page .search_right .button_link {
-        float: none !important;
-        white-space: nowrap;
-    }
-    @media (max-width: 1280px) {
-        .example-page #example_filter_form {
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-        }
-    }
-    @media (max-width: 1024px) {
-        .example-page #example_filter_form {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-    }
-    @media (max-width: 760px) {
-        .example-page #example_filter_form {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-    }
-    @media (max-width: 520px) {
-        .example-page #example_filter_form {
-            grid-template-columns: 1fr;
-        }
-        .example-page .original_search_panel_body {
-            flex-direction: column;
-            align-items: stretch;
-        }
-        .example-page .search_right {
-            width: 100%;
-        }
-        .example-page .search_right .button_link {
-            width: 100%;
-        }
-    }
-</style>
-```
+Use the maintained [responsive_style.tpl](../assets/sample_note_original_management/Templates/responsive_style.tpl)
+with the `original_screen_responsive_page` marker instead of copying a second set of
+breakpoints here. It scopes the search grid and list cards to the same page and gates
+mobile rules on `body.fbp-standard-responsive`. CSS inside the tpl is wrapped in
+`{literal}`. See [responsive-layout.md](responsive-layout.md) for integration and checks.
 
-- Keep the hidden `.search_right` outside the grid form so it does not consume one of the 5 slots.
-- Preserve `screen_fields(search)` order when the search fields are expected to match `db_exe`.
-- If a required default is needed, set it in the server-side default filter before rendering.
+- Wrap each search field in `.search_form_item`; use `.search_date_range` or
+  `.search_datetime_range` for range pairs so both ends stack on mobile.
+- Keep the hidden `.search_right` outside the grid form so it does not consume a slot.
+- Preserve `screen_fields(search)` order when the fields should match `db_exe`.
+- If a required default is needed, set it in the server-side filter before rendering.

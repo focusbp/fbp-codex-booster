@@ -17,6 +17,7 @@ classes/app/<tb_name>_original_management/
 └── Templates/
     ├── list.tpl
     ├── list_area.tpl
+    ├── responsive_style.tpl
     ├── add.tpl
     ├── edit.tpl
     └── delete_confirm.tpl
@@ -38,10 +39,10 @@ classes/app/<tb_name>_original_management/
 - 画面内検索はセッション保持にしてもよい
 - 検索フォーム自体は固定し、一覧だけ更新する
 - 検索ボックスは `db_exe` に寄せた `search_box + search_form_flex + hidden search_right button` 構成を標準にする
-- 検索項目は最大5項目/行のグリッドにし、狭い画面では 4 / 3 / 2 / 1 項目へ折り返す
+- 検索項目は最大5項目/行のグリッドにし、レスポンシブ設定では 4 / 3 / 2 項目へ折り返し、700px以下は1列にする。画面種別と表示モードの扱いは [responsive-layout.md](responsive-layout.md) に従う
 - 一覧を月などの必須条件で絞って全件表示する画面では、`ajax-auto` を使わず一括表示してよい
 - 汎用一覧で件数が多いときは、初期表示 10 件 + `ajax-auto` による 10 件ずつの段階表示を検討する
-- 一覧はテーブル見出しより、`row_style` を使ったカード風の横並び行を優先する
+- 一覧は `row_style` と `row_title` / `row_value` を使う。PCでは表形式、レスポンシブ設定の700px以下では1レコード1カードにする。実運用版サンプルの3つの一覧tplを組として流用する
 - 一覧テーブルは `width:100%` にし、行操作セルはPC表示で `display:table-cell` に戻して `listbutton + material-symbols-outlined` を右端に揃える。削除だけ赤にする
 - 追加 / 編集ダイアログの項目間は `db_exe` に合わせて `margin-top:10px` を標準にする
 - ダイアログ本文や詳細内の追加入力フォームは縦積みにし、保存・追加ボタンをフォーム部品の横に置かない。ボタンは入力部品の下で右寄せにする

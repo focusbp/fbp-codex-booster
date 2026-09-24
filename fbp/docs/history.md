@@ -1,5 +1,9 @@
 # app-framework5 History
 
+## 2026-09-25 管理画面のレスポンシブSkill
+- スマホ表示相談では画面種別を確認し、標準画面は「標準画面レスポンシブ」設定と共通機能で対応する方針を明記。独自画面には同じ700px境界・項目名付きカード・検索1列・表示モード尊重の方針と、範囲を限定したtplサンプルを追加した。
+- Skill検証、Smartyによる空／データあり一覧の描画、共通CSSを使ったブラウザーfixtureの320／375／700／701／1280px・両表示モード・幅変更後の復元を確認。案件への適用とは分けて扱う。
+
 ## 2026-09-24 Unused React assets
 - Removed the unused React, React DOM, React Flow, JSX runtime shim and React Flow CSS assets, plus their five shared-template references. Existing framework and app source searches found no dependent implementation; other frontend libraries remain unchanged.
 - Verified source/runtime synchronization and absence of remaining runtime React references. Browser checks against the local runtime covered login-form Ajax rendering and public-form required-field validation without saving records: zero React requests, JavaScript exceptions or HTTP errors. Authenticated management screens were not verified because framework login credentials were unavailable.
