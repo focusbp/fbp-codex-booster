@@ -4,10 +4,6 @@
 <script src="js/chart.min.js"></script>
 <script src="js/js.cookie.js"></script>
 <script src="js/player.js"></script>
-<script src="js/react.production.min.js"></script>
-<script src="js/react-dom.production.min.js"></script>
-<script src="js/react-jsx-runtime-shim.js"></script>
-<script src="js/reactflow.min.js"></script>
 
 <!-- SQUARE -->
 {if $testserver }

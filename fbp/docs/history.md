@@ -1,5 +1,9 @@
 # app-framework5 History
 
+## 2026-09-24 Unused React assets
+- Removed the unused React, React DOM, React Flow, JSX runtime shim and React Flow CSS assets, plus their five shared-template references. Existing framework and app source searches found no dependent implementation; other frontend libraries remain unchanged.
+- Verified source/runtime synchronization and absence of remaining runtime React references. Browser checks against the local runtime covered login-form Ajax rendering and public-form required-field validation without saving records: zero React requests, JavaScript exceptions or HTTP errors. Authenticated management screens were not verified because framework login credentials were unavailable.
+
 ## 2026-09-19 Standard Screen display mode
 - Added the WEB panel's 「標準画面レスポンシブ」 selector: 0 keeps responsive lists/search/header; 1 preserves desktop tables/search/header and the 800px management minimum width on narrow screens. Missing/invalid values default to 0. Existing viewport settings and shared input controls remain intact; the shared header choice also applies while viewing custom management screens.
 - Normalized setting saves, CLI edits and initial setup consistently. Gated mobile CSS by the management body's display mode and made manual-sort helper sizing follow the actual table/card layout.
