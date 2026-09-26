@@ -1,5 +1,9 @@
 # app-framework5 History
 
+## 2026-09-27 Scoped integration settings
+- Added a signed/CLI settings endpoint for seven service groups, secret-free registration state, test-derived external-key catalog, scoped set/clear and idempotent apply receipts. No provider connection or credential preflight checks. Existing storage formats remain unchanged.
+- Masked system-setting secrets in operation logs and excluded raw setting snapshots. Environment-specific queue/receipt data is excluded from release archives. Verified real test-runtime storage, isolation, retry/conflict handling and consuming application's worker/UI flows. Test environments synchronized; no production release.
+
 ## 2026-09-26 External integration keys
 - Production framework release `2f512cd` completed on all selected servers (57 application entries). Nine relevant distribution-source files matched local SHA-256 on each server. Includes the Standard Screen ID-prefix feature. Individual application screen operation after deployment was not rechecked.
 - Added a system-settings tab immediately after Vimeo for app-owned API credentials/settings: unique case-sensitive key, display title and values up to 8,192 bytes. Server-side `get_external_key` / `require_external_key` provide lossless reads; saved values are never repopulated in management forms, and blank edits preserve the current value.

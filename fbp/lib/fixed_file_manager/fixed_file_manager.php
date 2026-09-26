@@ -2804,7 +2804,10 @@ class fixed_file_manager implements FFM {
 	}
 
 	private function snapshot_dat_file(string $operation): array {
-		if ($this->filename === "external_keys" && basename(rtrim($this->datadir, "/")) === "external_keys") {
+		if (basename(rtrim($this->datadir, "/")) === "project_integration") {
+			return ["created" => false, "reason" => "transient_settings_payload"];
+		}
+		if (in_array($this->filename, ["external_keys", "setting"], true) && basename(rtrim($this->datadir, "/")) === $this->filename) {
 			return ["created" => false, "reason" => "sensitive_values"];
 		}
 		if (!is_file($this->path_dat)) {
@@ -2939,6 +2942,22 @@ class fixed_file_manager implements FFM {
 			return null;
 		}
 		unset($row["_id_enc"]);
+		if ($this->filename === "items" && basename(rtrim($this->datadir, "/")) === "project_integration" && isset($row["document"])) {
+			if (str_starts_with((string)($row["key"] ?? ""), "@")) {
+				$row["document"] = "[masked]";
+				return $row;
+			}
+			$document = json_decode($row["document"], true);
+			if (is_array($document) && isset($document["envelope"])) {
+				unset($document["envelope"]);
+				$row["document"] = json_encode($document, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+			}
+		}
+		if ($this->filename === "setting" && basename(rtrim($this->datadir, "/")) === "setting") {
+			foreach (["smtp_password","chatgpt_api_key","line_accesstoken","line_channel_secret","square_access_token","square_application_secret","api_key_map","vimeo_access_token","vimeo_client_secret","secret","iv","api_key","api_secret","release_api_key","release_api_secret"] as $field) {
+				if (array_key_exists($field, $row)) $row[$field] = "[masked]";
+			}
+		}
 		if ($this->filename === "external_keys" && basename(rtrim($this->datadir, "/")) === "external_keys") {
 			if (array_key_exists("value", $row)) $row["value"] = "[masked]";
 		}

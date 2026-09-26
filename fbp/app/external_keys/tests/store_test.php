@@ -47,6 +47,16 @@ $releasePolicy = $releaseReflection->newInstanceWithoutConstructor();
 check($excluded->invoke($releasePolicy, 'data/external_keys/external_keys.dat'), 'Ignore secret data in older release archives');
 check($excluded->invoke($releasePolicy, 'data/external_keys/backup.dat'), 'Ignore entire secret data directory on receive');
 check(!$excluded->invoke($releasePolicy, 'data/constant_array/constant_array.dat'), 'Unrelated release data remains eligible');
+check($excluded->invoke($releasePolicy, 'data/project_integration/items.dat'), 'Do not deploy queued settings to another environment');
+check($excluded->invoke($releasePolicy, 'data/integration_settings/receipts.dat'), 'Apply receipts remain environment-local');
+$settingsDb = new fixed_file_manager('setting', $root . '/classes/data/setting', __DIR__ . '/../../setting/fmt');
+$settingRow = ['smtp_password'=>'fixture-smtp-secret','chatgpt_api_key'=>'fixture-ai-secret'];
+$settingsDb->insert($settingRow);
+$settingLog = file_get_contents($root . '/classes/log/ffm/' . date('Ymd') . '.jsonl');
+check(!str_contains($settingLog, 'fixture-smtp-secret') && !str_contains($settingLog, 'fixture-ai-secret'), 'Settings secrets omitted from operation log');
+$snapshotMethod = (new ReflectionClass($settingsDb))->getMethod('snapshot_dat_file');
+check(!$snapshotMethod->invoke($settingsDb, 'test')['created'], 'Settings secret snapshot omitted');
+$settingsDb->close();
 require_once __DIR__ . '/../../../interface/Controller.php';
 require_once __DIR__ . '/../../../lib/Controller_class.php';
 class ExternalKeyTestController extends Controller_class {

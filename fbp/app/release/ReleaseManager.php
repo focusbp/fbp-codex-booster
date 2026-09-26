@@ -454,7 +454,9 @@ class ReleaseManager {
 	private function isExcludedArchivePath(string $relativePath): bool {
 		$path = ltrim(str_replace("\\", "/", $relativePath), "/");
 		return $path === "log/ffm" || strpos($path, "log/ffm/") === 0
-			|| $path === "data/external_keys" || strpos($path, "data/external_keys/") === 0;
+			|| $path === "data/external_keys" || strpos($path, "data/external_keys/") === 0
+			|| $path === "data/integration_settings" || strpos($path, "data/integration_settings/") === 0
+			|| $path === "data/project_integration" || strpos($path, "data/project_integration/") === 0;
 	}
 
 	private function deployEmailTemplates(array $info): bool {
