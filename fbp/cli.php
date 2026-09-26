@@ -2300,6 +2300,38 @@ if ($command === "setting_get") {
 	exit(0);
 }
 
+if ($command === "setting_regenerate_files") {
+	[$ok, $err, $data] = cli_get_json_arg($argv);
+	if (!$ok) {
+		fwrite(STDERR, $err . "\n");
+		exit(1);
+	}
+	try {
+		if (array_diff(array_keys($data), ["htaccess_subpath"])) {
+			throw new InvalidArgumentException("Only htaccess_subpath is supported.");
+		}
+		$subpath = null;
+		if (array_key_exists("htaccess_subpath", $data)) {
+			if (!is_string($data["htaccess_subpath"])) {
+				throw new InvalidArgumentException("htaccess_subpath must be a string.");
+			}
+			$subpath = $data["htaccess_subpath"];
+		}
+		cli_close_all_db();
+		require_once __DIR__ . "/app/setting/setting.php";
+		$ctl = new Controller_class("setting", $smarty);
+		$handler = new setting($ctl);
+		$values = $handler->api_get_setting($ctl);
+		if (empty($values)) {
+			throw new RuntimeException("setting row(1) was not found");
+		}
+		$files = $handler->regenerate_setting_files($ctl, $values, $subpath);
+		cli_output_json(["ok" => true, "files" => $files], 0);
+	} catch (Throwable $e) {
+		cli_output_json(["ok" => false, "error" => $e->getMessage()], 1);
+	}
+}
+
 if ($command === "setting_edit") {
 	[$ok, $err, $data] = cli_get_json_arg($argv);
 	if (!$ok) {
@@ -3747,6 +3779,6 @@ if ($command === "db_schema") {
 	exit(0);
 }
 
-fwrite(STDERR, "Usage: php cli.php db_schema | setting_get | setting_edit --json='{}' | app_call --json='{}' | app_check --json='{}' | db_additionals_list | db_additionals_add --json='{}' | db_additionals_edit --json='{}' | db_additionals_delete --json='{}' | db_additionals_generate --json='{\"id\":1}' | db_tables_list | db_tables_add --json='{}' | db_tables_edit --json='{}' | db_tables_delete --json='{}' | db_fields_list [--json='{\"db_id\":1}'] | db_fields_add --json='{}' | db_fields_edit --json='{}' | db_fields_delete --json='{}' | screen_fields_list --json='{\"tb_name\":\"xxx\",\"screen_name\":\"list\"}' | standard_screen_check --json='{\"tb_name\":\"xxx\"}' | screen_fields_add --json='{}' | screen_fields_edit --json='{}' | screen_fields_delete --json='{}' | cron_list [--json='{\"id\":1}'] | cron_add --json='{}' | cron_edit --json='{}' | cron_delete --json='{}' | webhook_rule_list [--json='{\"id\":1}'] | webhook_rule_add --json='{}' | webhook_rule_edit --json='{}' | webhook_rule_delete --json='{\"id\":1}' | embed_app_list [--json='{\"id\":1}'] | embed_app_add --json='{}' | embed_app_edit --json='{}' | embed_app_delete --json='{\"id\":1}' | email_format_list [--json='{\"id\":1}'] | email_format_get --json='{\"id\":1}' | email_format_add --json='{}' | email_format_edit --json='{}' | email_format_delete --json='{\"id\":1}' | email_format_validate --json='{\"id\":1}' | mcp_function_apply --json='{}' | mcp_tool_apply --json='{}'\n");
+fwrite(STDERR, "Usage: php cli.php db_schema | setting_get | setting_regenerate_files --json='{}' | setting_edit --json='{}' | app_call --json='{}' | app_check --json='{}' | db_additionals_list | db_additionals_add --json='{}' | db_additionals_edit --json='{}' | db_additionals_delete --json='{}' | db_additionals_generate --json='{\"id\":1}' | db_tables_list | db_tables_add --json='{}' | db_tables_edit --json='{}' | db_tables_delete --json='{}' | db_fields_list [--json='{\"db_id\":1}'] | db_fields_add --json='{}' | db_fields_edit --json='{}' | db_fields_delete --json='{}' | screen_fields_list --json='{\"tb_name\":\"xxx\",\"screen_name\":\"list\"}' | standard_screen_check --json='{\"tb_name\":\"xxx\"}' | screen_fields_add --json='{}' | screen_fields_edit --json='{}' | screen_fields_delete --json='{}' | cron_list [--json='{\"id\":1}'] | cron_add --json='{}' | cron_edit --json='{}' | cron_delete --json='{}' | webhook_rule_list [--json='{\"id\":1}'] | webhook_rule_add --json='{}' | webhook_rule_edit --json='{}' | webhook_rule_delete --json='{\"id\":1}' | embed_app_list [--json='{\"id\":1}'] | embed_app_add --json='{}' | embed_app_edit --json='{}' | embed_app_delete --json='{\"id\":1}' | email_format_list [--json='{\"id\":1}'] | email_format_get --json='{\"id\":1}' | email_format_add --json='{}' | email_format_edit --json='{}' | email_format_delete --json='{\"id\":1}' | email_format_validate --json='{\"id\":1}' | mcp_function_apply --json='{}' | mcp_tool_apply --json='{}'\n");
 fwrite(STDERR, "app_call/app_check: windowcodeを固定する場合、session_id未指定時はwindowcode由来の有効なsession_idを自動使用します。session_idに使える文字は英数字・'-'・','です。\n");
 exit(1);

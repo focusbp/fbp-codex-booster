@@ -28,9 +28,10 @@ description: Build and operate public_pages with login-free entry points, secure
 - 公開ページで棒グラフを表示する場合、指定がない限り棒の `backgroundColor` と `borderColor` は同じ色にする。輪郭だけ濃い色にすると意図せず古い印象になりやすい。
 
 ## public downloads
-- 公開側でも、LINE Bot関係ではない通常導線のダウンロードは `download-link` を基本にしてよい。
+- PDFの新規取得・リンク切れ・認証エラーの修正では `fbp-pdf` の「サンプル適用」を必須とする。公開PDFの直接取得はサンプルのGETリンクとPDF本体応答を使う。通常遷移の失敗時はHTML案内を返し、`show_notification_text()` のAjax用JSONを返さない。
+- PDF以外の公開側ダウンロードでは、LINE Bot関係ではない通常導線に `download-link` を基本にしてよい。
 - LINE Botで送るURL、LINEメッセージから開く公開ページ、LINE内ブラウザでの利用が主目的のダウンロードは `<a href>` でGETのダウンロードURLを開く。XHR/blob経由ではなく、ブラウザに実URLの `Content-Type` / `Content-Disposition` を直接見せる。
-- 実ファイル応答は特別な要件がない限り独自header実装を作らず、`$ctl->res_saved_file($stored, $download_name)` を使う。
+- 保存済みファイルの応答は特別な要件がない限り独自header実装を作らず、`$ctl->res_saved_file($stored, $download_name)` を使う。オブジェクトで生成するPDFは `fbp-pdf` に従い `$pdf->download_pdf($filename)` に保存・応答・削除を任せる。
 - ダウンロードURLは文字列連結せず、`$ctl->get_APP_URL("<class>", "file_download", ["code" => $code, "download" => "1"])` のように生成する。LINE側の古い判定を避けたい場合は `download=1` などの明示パラメータを付ける。
 - サンプルコードは `fbp-csv-media` の `download links` を参照する。
 

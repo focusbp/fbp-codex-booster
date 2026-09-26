@@ -338,6 +338,55 @@ article {
 	transform: translateY(-1px);
 }
 
+.base-empty-main-grid {
+	align-items: start;
+}
+
+.base-project-portal-item {
+	min-width: 0;
+}
+
+.base-project-portal-guide {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-width: 0;
+	margin: 0px 0 16px;
+}
+
+.base-project-portal-guide img {
+	display: block;
+	flex: 0 0 72px;
+	width: 72px;
+	height: 84px;
+	object-fit: contain;
+}
+
+.base-project-portal-guide .base-project-portal-bubble {
+	position: relative;
+	flex: 1;
+	min-width: 0;
+	margin: 0;
+	padding: 11px 12px;
+	border-radius: 12px;
+	background: #eaf5ff;
+	color: #264d68;
+	font-size: 12px;
+	line-height: 1.8;
+	overflow-wrap: anywhere;
+}
+
+.base-project-portal-bubble::before {
+	content: "";
+	position: absolute;
+	top: calc(50% - 8px);
+	left: -8px;
+	width: 9px;
+	height: 16px;
+	background: #eaf5ff;
+	clip-path: polygon(100% 0, 100% 100%, 0 50%);
+}
+
 .base-empty-main-card-accent {
 	background: linear-gradient(120deg, #0b4f99 0%, #1567c4 42%, #0b4f99 100%);
 	background-size: 220% 220%;

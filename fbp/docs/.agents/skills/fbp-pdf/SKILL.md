@@ -1,6 +1,6 @@
 ---
 name: fbp-pdf
-description: Implement and test PDF generation flows in FBP, including modern tpl-less patterns and media inclusion.
+description: Implement and repair FBP PDF display/download flows by applying the bundled delivery sample, including authenticated public invoices, broken download links, tpl-less generation, and media inclusion.
 ---
 
 # fbp-pdf
@@ -13,12 +13,36 @@ description: Implement and test PDF generation flows in FBP, including modern tp
 ## workflow
 1. 出力要件とデータ取得元を確定。
 2. PDFクラスを実装（必要なら画像処理含む）。
-3. 基本は `ajax-link` → `show_pdf()` でPDF表示ダイアログを開く。直接ダウンロードが必要な場合は `save_pdf()` + `res_saved_file()` などPDF本体を返す処理を使う。
-4. 直接ダウンロードには `download-link`（原則 `data-open_new_tab="true"`）を使う。LINE内ブラウザー向けは `fbp-public-pages` に従ってGETリンクを使う。
-5. 再利用サンプルは `../fbp-app-samples/references/pdf-delivery.md` と `../fbp-app-samples/assets/pdf-delivery/` を参照する。
+3. 基本は `ajax-link` → Controllerの `show_pdf()` でPDF表示ダイアログを開く。`create_pdfmaker()` で組み立てた帳票の直接取得は `$pdf->download_pdf($filename)` を使う。tpl方式の直接取得では Controllerの `save_pdf()` + `res_saved_file()` を使う。
+4. 新規または取得経路の修正では、下記「サンプル適用」を必ず実施する。公開側の直接取得はサンプルの通常GETリンクを標準とする。管理画面などPOSTが必要な場合は `download-link`（原則 `data-open_new_tab="true"`）を使い、理由を記録する。
+5. 認証付き帳票は、本人確認・対象帳票・発行可否を表示時と取得時の両方で確認する。正常系だけでなく、サンプルの認証・異常系の検証を適用する。
 6. CLIで応答・生成内容を補助確認する。`app_call` の `ok:true`、保存先が `.pdf`、ダイアログJSONが返ることだけではPDF取得成功と判定しない。
 7. 新規のPDF表示・取得機能、表示ダイアログのデザイン、取得・認証経路を変更した場合は `fbp-playwright` に従い、実ボタンからPDF取得まで検証する。表示方式はダイアログとその後のPDF応答、直接方式はダウンロードまたは別タブのPDF応答を確認する。既存帳票の内容・計算・帳票内レイアウトだけの変更で取得経路に影響しない場合は、生成ファイルの内容・見た目を確認し、Playwrightの再実行は不要。
 8. 生成・取得したPDFの `%PDF-`、PDF解析と期待する金額・件名等を確認する。HTTP経路を検証する場合はContent-Typeも確認する。新規経路は対象のPC・スマートフォン、既存変更は影響する端末・分岐に絞る。認証経路の新設・変更時はセッション切れ・権限不一致も確認する。Playwrightが必要な変更で実行できない場合は未検証範囲と理由を報告し、CLIだけで完了扱いにしない。
+
+## サンプル適用（新規・取得経路の修正で必須）
+
+- `../fbp-app-samples/references/pdf-delivery.md` に加え、`assets/pdf-delivery/public_pages/public_pages.php` と採用する方式の `.tpl`、`scripts/verify_pdf_delivery.cjs` を **fbp-app-samples 配下から実際に読む**。認証付きの場合は `pdf_delivery_access.php` と `scripts/test_pdf_delivery.php` も読む。説明の参照だけで適用済みにしない。
+- 該当方式のコードを出発点としてコピー・適応する。既存 `public_pages` 全体は上書きせず、必要な関数・テンプレートを統合する。取得方式・認証チェック・エラー応答・後片付け・検証を一組で適用する。帳票本文だけの変更には取得経路の移行を要求しない。
+- 認証付き公開帳票は `protected_page` / `protected_download` の方式を使い、本人確認とDB取得のフックを実装する。未実装フックは拒否を維持する。公開固定データ用の `download()` を私有帳票に流用して認証を省略しない。
+- アプリ固有の帳票生成API等で一部を変更する場合も、サンプルとの対応箇所・変更理由・同等性を確認した検証を記録する。「既存実装だから」「一度PDFが開いたから」だけでは方式を維持する理由にしない。サンプルに不足が判明した場合は、案件内だけの独自方式を増やさず、共通サンプルへの改善点を明示する。
+- 不具合修正では変更前の失敗と変更後の成功を同じ操作条件で比較する。再現できない場合、予防的改善と原因修正を区別し、正常PDFを取得できただけで修正完了にしない。未検証のブラウザー・実際のメール入口等を明記する。
+
+## PDFオブジェクトの出力
+
+```php
+$pdf = $ctl->create_pdfmaker();
+$pdf->addText('請求書');
+// 内容を組み立てた後、用途に応じて一つを呼ぶ。
+$pdf->download_pdf('請求書.pdf'); // PDF本体を返し、応答を終了
+// $bytes = $pdf->get_pdf_data(); // ヘッダー・本文を送らずPDFバイナリを取得
+// $pdf->create_pdf();           // 既存互換のブラウザー内表示
+```
+
+- 直接取得の標準は `download_pdf()`。管理ファイルの一意な名前、初回保存領域の作成、PDFヘッダー、キャッシュ抑止、成功・例外・exit時の削除は内部で処理する。アプリ側に出力バッファ・一時保存・削除処理を再実装しない。
+- `get_pdf_data()` はメール添付・複数帳票の加工等に使う。`create_pdf()` を `ob_start()` で捕捉しない。返るバイナリをAjax JSONへ混ぜない。
+- 認証・発行可否の確認は呼び出し前にアプリ側で行う。`download_pdf()` は `Controller::create_pdfmaker()` で作成したオブジェクトで使い、`res_saved_file()` と同じく通常はexitする。
+- 既存の `create_pdf()` と Controllerの `show_pdf()` / `save_pdf()` の動作は維持する。新APIを使うアプリは、対応するフレームワークを先に反映してからリリースする。
 
 ## table samples
 - 既存 `apppdf.php` のスマートフォン保存は `application/x-download` を返す場合がある。この既知の経路だけ許容し、取得した実ファイルのPDF解析と内容確認は省略しない。
@@ -74,4 +98,4 @@ $pdf->addTextBox($memo, [
 - PDFダウンロードの `download-link` は `data-open_new_tab="true"` を基本とする。例外時は理由を実装コメントかPR説明に残す。
 - `addTable` の `columnsize` は合計 `100` にする（%指定として扱うため）。
 - `addText()` などで安易に `bold => true` を使わない。既定フォントでは `Undefined font` になることがあるため、太字が必要な場合は `migmix-1p-bold` など登録済みの太字フォントを `fontname` で明示する。
-- PDF生成や `pdfunite` / `zip` などでアプリ独自の作業ファイルを作る場合は `fbp-temp-files` に従い `$ctl->get_temp_dir()` を使う。`save_pdf()` / `res_saved_file()` の管理ファイルは各API所定のアップロード領域を使い、一時用途なら応答後・例外時・exit時に削除する。保存先をアプリ側で固定パスにしない。
+- PDF生成や `pdfunite` / `zip` などでアプリ独自の作業ファイルを作る場合は `fbp-temp-files` に従い `$ctl->get_temp_dir()` を使う。`save_pdf()` / `res_saved_file()` を直接使う場合、管理ファイルは各API所定のアップロード領域を使い、一時用途なら応答後・例外時・exit時に削除する。`download_pdf()` を使う場合は内部で削除するため、アプリ側の削除処理は不要。保存先をアプリ側で固定パスにしない。

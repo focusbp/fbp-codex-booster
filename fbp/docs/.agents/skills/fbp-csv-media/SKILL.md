@@ -18,7 +18,8 @@ description: Implement and verify CSV upload/download and file/image field flows
 5. `app_call` でCSV出力/アップロードを検証し、`data_list` で反映確認する。
 
 ## download links
-- 管理側と、LINE Bot関係ではない通常の公開側ダウンロードは `download-link` を基本にする。
+- PDFの生成・取得は `fbp-pdf` を正本とし、公開PDFはサンプルのGETリンク、オブジェクトで生成するPDF本体の応答は `$pdf->download_pdf($filename)` を使う。以下の一般ファイル向けルールより優先する。
+- PDF以外の管理側と、LINE Bot関係ではない通常の公開側ダウンロードは `download-link` を基本にする。
 - LINE Botで送るURL、LINEメッセージから開く公開画面、LINE内ブラウザでの利用が主目的の公開側ダウンロードは、通常の `<a href>` でGETのダウンロードURLを開く。LINE内ブラウザではXHR/blob経由より、実URLのレスポンスヘッダを直接見せる方が安定する。
 - 実ファイル応答は特別な理由がない限り独自header実装を作らず、`$ctl->res_saved_file($stored, $download_name)` を使う。`res_saved_file()` はMIME判定、`Content-Disposition`、日本語ファイル名、`X-Content-Type-Options: nosniff` を担う。
 - 独自実装が許されるのは、Range対応、inline表示、外部ストレージのストリーミング、特殊な認証/監査ログなど、`res_saved_file()` では満たせない要件が明確な場合だけ。

@@ -98,6 +98,44 @@ function waitDownload(context) {
         await download.saveAs(direct);
         await verifyPdf(direct);
         console.log(`${label}: preview and direct PDF passed`);
+        if (process.env.PDF_PROTECTED_URL) {
+          await page.goto(process.env.PDF_PROTECTED_URL, { waitUntil: 'domcontentloaded' });
+          const protectedUrl = await page.locator('#pdf-protected-download').getAttribute('href');
+          const second = await context.newPage();
+          await second.goto(process.env.PDF_PROTECTED_URL, { waitUntil: 'domcontentloaded' });
+          assert.notEqual(await second.locator('#pdf-protected-download').getAttribute('href'), protectedUrl);
+          for (const attempt of ['old-tab', 'repeat']) {
+            const [file, response] = await Promise.all([
+              page.waitForEvent('download'),
+              page.waitForResponse(r => r.url() === new URL(protectedUrl, page.url()).href),
+              page.locator('#pdf-protected-download').click()]);
+            assert.ok(response.ok());
+            assert.match(response.headers()['content-type'] || '', /^application\/pdf(;|$)/i);
+            assert.match(response.headers()['cache-control'] || '', /no-store/);
+            assert.equal(await file.failure(), null);
+            const destination = path.join(out, `${label}-protected-${attempt}.pdf`);
+            await file.saveAs(destination);
+            await verifyPdf(destination);
+          }
+          const invalid = new URL(protectedUrl, page.url());
+          invalid.searchParams.set('code', 'invalid');
+          const denied = await page.goto(invalid.href);
+          assert.equal(denied.status(), 403);
+          assert.match(denied.headers()['content-type'] || '', /^text\/html/);
+          await page.getByRole('heading', { name: '帳票を取得できません' }).waitFor();
+          // Basic-auth access to the test gateway is retained; app session is not.
+          const anonymousOptions = { ...options };
+          delete anonymousOptions.storageState;
+          const anonymous = await browser.newContext(anonymousOptions);
+          try {
+            const other = await anonymous.newPage();
+            const denied = await other.goto(new URL(protectedUrl, process.env.PDF_PROTECTED_URL).href);
+            assert.equal(denied.status(), 403);
+            assert.match(denied.headers()['content-type'] || '', /^text\/html/);
+            await other.getByRole('heading', { name: '帳票を取得できません' }).waitFor();
+          } finally { await anonymous.close(); }
+          console.log(`${label}: protected old-tab/repeat PDF and invalid-code/other-session denial passed`);
+        }
       } finally { await context.close(); }
     }
   } finally { await browser.close(); }

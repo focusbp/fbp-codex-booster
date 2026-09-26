@@ -1422,8 +1422,8 @@ function Output($name='', $dest='')
 			fclose($f);
 			break;
 		case 'S':
-			// Return as a string
-			return $this->buffer;
+			// This fork stores PDF bytes in hf, not the legacy buffer property.
+			return $this->string_buffer();
 		default:
 			$this->Error('Incorrect output destination: '.$dest);
 	}

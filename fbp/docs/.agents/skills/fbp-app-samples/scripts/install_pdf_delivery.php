@@ -17,4 +17,4 @@ foreach ($manifest['files'] as $file) {
     }
     if (!copy($assets . '/' . $file, $destination)) { throw new RuntimeException('Copy failed: ' . $file); }
 }
-echo "Installed PDF Delivery (3 files). Open public_pages/page and run the Playwright verification.\n";
+echo 'Installed PDF Delivery (' . count($manifest['files']) . " files). Open public_pages/page and run the Playwright verification. Protected routes deny access until the authentication/data hooks are adapted.\n";

@@ -1,8 +1,31 @@
 # app-framework5 History
 
+## 2026-09-26 PDF object output APIs
+- Audited PDF, public-page, sample, browser-check, temporary-file and CSV/media Skills together. Clarified that public PDF GET delivery and object `download_pdf()` take precedence over generic file-download rules; application cleanup applies only when directly managing saved files. All six Skill validators passed.
+- Added `pdfmaker_class::get_pdf_data()` for binary data without response output and `download_pdf()` for an attachment response with managed-file creation, complete-write checks, private/no-store headers and cleanup on failure/exit. Existing `create_pdf()` inline behavior is preserved. Fixed tFPDF string output to read its actual stream buffer instead of the obsolete empty string property.
+- Updated the PDF sample and Skills to use the object download API. Verified real PDF parsing/two pages, repeated generation, inline equivalence, HTTP header/output silence, partial-save/send failures, concurrent downloads and exit cleanup; existing text-box tests also passed. Chromium desktop/mobile-width sample preview/download and the consuming app's invoice/receipt downloads passed. The app PDFs match prior text and rendered pixels. Test environments synchronized; production not released. Deploy the supporting framework before apps that call the new API.
+
+## 2026-09-26 PDF delivery sample and required application
+- Added a session-bound per-page download-grant sample with current identity/record/issuance rechecks, fail-closed authentication hooks, HTML denial pages, and managed-file initialization/cleanup. PDF/public-page Skills now require reading and adapting the actual delivery assets and distinguishing an unreproduced preventive change from a verified bug fix.
+- Verified 49 contract checks, installation/overwrite refusal, CLI responses, and isolated Chromium desktop/mobile-width PDF retrieval, multiple tabs/documents, expiry, changed ownership, revoked issuance, logout and recovery. Parsed PDFs and confirmed cleanup after download exit; Safari/LINE-device behavior remains outside this verification. No customer app or production release was changed.
+
+## 2026-09-25 Project portal robot guidance
+- Added the existing Jean Lafitte image and a speech bubble directly below the Project Portal link in both the home menu and side menu. Japanese copy: 「プロジェクトサポートからシステムのご質問・変更依頼ができます。」. The visible menu and setting labels use 「プロジェクトサポート」 (Project Support); internal keys remain unchanged. The guide follows portal-link visibility and uses a framework-owned static image with Japanese/English translations.
+- Verified the authenticated framework test screen at 1280px and 390px: home and side-menu placement, image loading, preserved external-link attributes, no horizontal overflow or JavaScript errors. Test environment synchronized; production not released.
+
 ## 2026-09-25 管理画面のレスポンシブSkill
 - スマホ表示相談では画面種別を確認し、標準画面は「標準画面レスポンシブ」設定と共通機能で対応する方針を明記。独自画面には同じ700px境界・項目名付きカード・検索1列・表示モード尊重の方針と、範囲を限定したtplサンプルを追加した。
 - Skill検証、Smartyによる空／データあり一覧の描画、共通CSSを使ったブラウザーfixtureの320／375／700／701／1280px・両表示モード・幅変更後の復元を確認。案件への適用とは分けて扱う。
+
+## 2026-09-24 Authenticated framework test access
+- Retrieved framework test-access metadata from the production management API's DB-free special case and verified browser login, management-page rendering, side-menu loading, settings-page Ajax rendering and logout. The settings menu link was outside the automation viewport, so settings rendering was checked through the existing frontend `appcon` path. No setting values or user records were changed.
+- The authenticated flow completed with zero HTTP errors, JavaScript exceptions or React asset requests. This completes the previously unavailable management-screen smoke check after React removal and test-routing repair.
+
+## 2026-09-24 Framework test routing and CLI regeneration
+- The framework test entrypoint returned Apache 404 while another app on the same gateway returned 200; direct loopback access reproduced the framework-only failure. The generated root `.htaccess` used relative `fbp` as its subpath, producing `fbp/fbp` rewrites, and exactly matched the shared template with that incorrect input.
+- Reproduced the incorrect subpath calculation with `SCRIPT_NAME=fbp/cli.php` in `setting::regenerate_setting_files()`. The observed file predated React removal; the specific historical writer was not established. CLI regeneration now preserves the existing valid URL prefix instead of interpreting filesystem paths as URLs; ambiguous or invalid prefixes fail before either generated file is written. Web saves continue to derive the prefix from the request's framework entrypoint.
+- Added `setting_regenerate_files` with optional `htaccess_subpath` to explicitly repair routing without changing setting values; an empty string selects the site root. Repaired the framework test routing through this command and verified that relative and absolute CLI invocations retain the repaired prefix, invalid arguments leave it unchanged, and settings are preserved.
+- PHP syntax, 23 URL-prefix regression cases and the generated-file write regression passed. Browser verification of the direct PHP entrypoint, root and login route returned HTTP 200 and rendered the Ajax login form. The public form and required-field Ajax validation also passed, with zero HTTP or JavaScript errors and no records saved. Runtime files match source; this fix has not been released to production.
 
 ## 2026-09-24 Unused React assets
 - Removed the unused React, React DOM, React Flow, JSX runtime shim and React Flow CSS assets, plus their five shared-template references. Existing framework and app source searches found no dependent implementation; other frontend libraries remain unchanged.

@@ -5,6 +5,7 @@
 				<h3>{$section.title|escape}</h3>
 				<div class="base-empty-main-grid">
 					{foreach $section.items as $item}
+						{if !empty($item.project_portal_guide)}<div class="base-project-portal-item">{/if}
 						{if $item.type|default:'ajax' == 'external'}
 						<a
 							class="base-empty-main-card{if $item.badge|default:'' != ''} base-empty-main-card-accent{/if}"
@@ -18,6 +19,7 @@
 								<span class="base-empty-main-card-badge">{$item.badge|escape}</span>
 							{/if}
 						</a>
+						{if !empty($item.project_portal_guide)}{include file="project_portal_guide.tpl"}{/if}
 						{else}
 						<button
 							type="button"
@@ -34,6 +36,7 @@
 							{/if}
 						</button>
 						{/if}
+						{if !empty($item.project_portal_guide)}</div>{/if}
 					{/foreach}
 				</div>
 			</section>

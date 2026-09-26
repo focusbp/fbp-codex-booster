@@ -229,15 +229,18 @@ class setting {
 		return $setting;
 	}
 
-	function regenerate_setting_files(Controller $ctl, array $setting): array {
-		$scriptName = (string) ($_SERVER["SCRIPT_NAME"] ?? "");
-		$directoryPath = pathinfo($scriptName, PATHINFO_DIRNAME);
-		if (endsWith($directoryPath, "/fbp")) {
-			$directoryPath = substr($directoryPath, 0, strlen($directoryPath) - 4);
+	function regenerate_setting_files(Controller $ctl, array $setting, ?string $htaccess_subpath = null): array {
+		$htaccess_path = dirname(__FILE__) . "/../../../.htaccess";
+		$existing_htaccess = is_file($htaccess_path) ? file_get_contents($htaccess_path) : "";
+		if ($existing_htaccess === false) {
+			throw new RuntimeException("Failed to read .htaccess.");
 		}
-		if ($directoryPath === "/" || $directoryPath === ".") {
-			$directoryPath = "";
-		}
+		$directoryPath = self::resolve_htaccess_subpath(
+			(string) ($_SERVER["SCRIPT_NAME"] ?? ""),
+			PHP_SAPI === "cli",
+			$existing_htaccess,
+			$htaccess_subpath
+		);
 
 		$template = file_get_contents(dirname(__FILE__) . "/Templates/htaccess.tpl");
 		$template = str_replace('{$class}', $setting["rewrite_rule_root"], $template);
@@ -249,7 +252,6 @@ class setting {
 		} else {
 			$template = str_replace('{$ssl}', "", $template);
 		}
-		$htaccess_path = dirname(__FILE__) . "/../../../.htaccess";
 		$this->write_generated_file($htaccess_path, $template, ".htaccess");
 
 		$robots_path = dirname(__FILE__) . "/../../../robots.txt";
@@ -259,6 +261,32 @@ class setting {
 			"htaccess" => is_file($htaccess_path),
 			"robots" => is_file($robots_path),
 		];
+	}
+
+	private static function resolve_htaccess_subpath(string $script_name, bool $is_cli, string $existing_htaccess, ?string $explicit_subpath = null): string {
+		if ($explicit_subpath !== null) {
+			if (!$is_cli) {
+				throw new RuntimeException("An explicit htaccess_subpath is only supported by CLI.");
+			}
+			$subpath = $explicit_subpath;
+		} elseif ($is_cli) {
+			// CLI SCRIPT_NAME is a filesystem path, never the deployed URL prefix.
+			if (preg_match_all('~^RewriteRule[\t ]+\\^\\$[\t ]+(\\S*)/fbp/app\\.php\\?[^\\r\\n]*~m', $existing_htaccess, $matches) !== 1) {
+				throw new RuntimeException("Cannot determine the URL subpath; use setting_regenerate_files with htaccess_subpath.");
+			}
+			$subpath = $matches[1][0];
+		} else {
+			if (preg_match('~^(/.*)?/fbp/[^/]+\\.php$~D', $script_name, $matches) !== 1) {
+				throw new RuntimeException("Cannot determine the URL subpath from SCRIPT_NAME.");
+			}
+			$subpath = $matches[1] ?? "";
+		}
+		$subpath = rtrim($subpath, "/");
+		if ($subpath !== "" && (preg_match('~^(?:/[A-Za-z0-9._-]+)+$~D', $subpath) !== 1
+			|| in_array(".", explode("/", $subpath), true) || in_array("..", explode("/", $subpath), true))) {
+			throw new RuntimeException("Invalid htaccess_subpath; provide an absolute URL path or an empty string for the site root.");
+		}
+		return $subpath;
 	}
 
 	private function write_generated_file(string $path, string $contents, string $label): void {

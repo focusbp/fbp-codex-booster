@@ -313,6 +313,7 @@ class base {
 
 		if ($can_show_project_portal) {
 			$admin_items[] = [
+				"project_portal_guide" => true,
 				"type" => "external",
 				"label" => $ctl->t("base.menu.project_portal"),
 				"url" => $project_portal_url,

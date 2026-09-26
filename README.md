@@ -79,9 +79,14 @@ needed.
 Use fbp-app-samples and fbp-pdf to create the PDF Delivery sample.
 Use the bundled pdf-delivery assets and installer in a clean app.
 Prefer ajax-link -> show_pdf() for preview; demonstrate direct PDF download
-with save_pdf() -> res_saved_file() separately. Keep only fictional fixed data.
+with create_pdfmaker() -> download_pdf() separately. Use get_pdf_data() when
+binary PDF data is needed; do not capture create_pdf() output. Keep only fictional fixed data.
 Verify both actual buttons using Playwright on desktop and mobile, including
 PDF parsing and invoice contents. CLI success alone is not PDF verification.
+For private documents, adapt the bundled protected_page/protected_download hooks
+to real authentication and current record permissions; keep them denied until
+implemented. Apply the sample code, not just its description. Verify multiple
+tabs, expired sessions/grants, changed ownership and revoked issuance as well.
 When extending the sample, update its assets, manifest, reference, installer,
 browser verification and this Make Samples prompt; keep it independent of live apps.
 ```

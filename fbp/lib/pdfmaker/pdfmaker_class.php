@@ -179,7 +179,6 @@ class pdfmaker_class {
 	}
 
 	function create_pdf() {
-		$dir = new Dirs();
 		$pdf_filename = "data.pdf";
 		if ($this->ctl instanceof Controller) {
 			$post_filename = (string) ($this->ctl->POST("filename") ?? "");
@@ -192,10 +191,56 @@ class pdfmaker_class {
 				}
 			}
 		}
-		$this->makepdfpage($this->header, $this->parameter, $this->body,
+		$this->render_object($pdf_filename, "I");
+	}
+
+	/** Return the assembled PDF without sending headers or response bytes. */
+	function get_pdf_data(): string {
+		$data = $this->render_object("data.pdf", "S");
+		if (!is_string($data) || strncmp($data, "%PDF-", 5) !== 0) {
+			throw new RuntimeException("PDF generation did not return PDF data");
+		}
+		return $data;
+	}
+
+	/** Download the assembled PDF and end the response, like res_saved_file(). */
+	function download_pdf(string $filename = "document.pdf"): void {
+		if (!($this->ctl instanceof Controller)) {
+			throw new LogicException("download_pdf() requires Controller::create_pdfmaker()");
+		}
+		$ctl = $this->ctl;
+		$data = $this->get_pdf_data();
+		$stored = "pdf_download_" . bin2hex(random_bytes(16)) . ".pdf";
+		$cleanup = static function () use ($ctl, $stored) {
+			if ($ctl->is_saved_file($stored)) $ctl->delete_saved_file($stored);
+		};
+		register_shutdown_function($cleanup);
+		try {
+			// save_file initializes the framework-managed upload directory.
+			$ctl->save_file($stored, $data);
+			$path = $ctl->get_saved_file_path($stored);
+			clearstatcache(true, $path);
+			if (!is_file($path) || filesize($path) !== strlen($data)) {
+				throw new RuntimeException("Could not save the complete PDF for download");
+			}
+			unset($data);
+			header("Cache-Control: private, no-store");
+			header("Pragma: no-cache");
+			header("Referrer-Policy: no-referrer");
+			$ctl->stop_res = true;
+			$ctl->display_flg = true;
+			$ctl->res_saved_file($stored, $filename);
+		} finally {
+			$cleanup();
+		}
+	}
+
+	private function render_object(string $filename, string $destination) {
+		$dir = new Dirs();
+		return $this->makepdfpage($this->header, $this->parameter, $this->body,
 			[$dir->datadir . "/upload/"],
-			$pdf_filename,
-			"I"
+			$filename,
+			$destination
 			,true
 		);
 	}

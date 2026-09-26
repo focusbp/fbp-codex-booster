@@ -14,6 +14,9 @@ This applies to general working files created by app code. Framework managed-fil
 `save_pdf()` and `res_saved_file()` use their designated upload storage; keep that API contract
 instead of moving those files to `get_temp_dir()`. Remove transient managed files through
 `delete_saved_file()` after the response, including shutdown cleanup when the response exits.
+For object-built PDFs, prefer `$pdf->download_pdf($filename)`: the framework owns that
+managed-file lifecycle, so app code must not duplicate buffering, storage or cleanup.
+Use `$pdf->get_pdf_data()` when PDF bytes are needed without a download response.
 
 `get_temp_dir()` returns PHP's default temporary directory when `open_basedir` is not set. When
 `open_basedir` is set, it returns the writable app-root `tmp` directory (`fbp/../tmp`). It creates

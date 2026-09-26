@@ -190,7 +190,7 @@ const { chromium } = require("playwright");
 PDFの新規の表示・取得機能、表示ダイアログのデザイン、取得・認証経路を変更した場合は、Playwrightで実際の画面のボタン／リンクをクリックし、PDF取得まで確認する。この場合、CLIの `ok:true`、リンクの存在、ダイアログが開くこと、スクリーンショットだけでは完了としない。既存PDFの記載内容・計算・帳票内レイアウトだけの変更は、取得経路に影響しなければ生成ファイルの内容・見た目の確認でよく、Playwrightの再実行は不要。
 
 - 基本の `show_pdf()` 方式: `ajax-link` をクリックし、PDF表示ダイアログと、その中のiframeまたは保存リンクから返るPDFを確認する。最初のAjax応答はJSONで正常。後続のPDF応答を検証する。
-- 直接方式: `res_saved_file()` 等へ進む実リンクをクリックする。クリック前にdownload／popup／responseの待受を登録する。`download` イベントだけに限定せず、別タブやiframeにPDFが表示される場合も扱う。
+- 直接方式: PDFオブジェクトの `download_pdf()`（tpl方式では `res_saved_file()`）へ進む実リンクをクリックする。クリック前にdownload／popup／responseの待受を登録する。`download` イベントだけに限定せず、別タブやiframeにPDFが表示される場合も扱う。
 - HTTP応答は成功ステータスと `Content-Type: application/pdf` を確認し、取得ファイルは先頭の `%PDF-` とPDF解析で検証する。`pdftotext` 等で金額・件名・宛名等の期待値を確認する。JSON・HTMLを `.pdf` 名で保存したものは失敗にする。
 - 既存 `apppdf.php` のスマートフォン保存に限り `application/x-download` も許容する。実際のdownloadイベントから保存したファイルを解析し、Content-Typeだけで成功判定しない。
 - 新規の取得経路では対象のPC・スマートフォン表示を確認する。既存経路の変更は影響する端末・分岐に絞る。認証経路の新設・変更ではセッション切れ・権限不一致で帳票を返さないことも確認する。スマートフォン模擬だけでLINEアプリ固有の動作確認済みとはしない。
