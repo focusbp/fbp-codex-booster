@@ -1,5 +1,14 @@
 # app-framework5 History
 
+## 2026-09-26 External integration keys
+- Added a system-settings tab immediately after Vimeo for app-owned API credentials/settings: unique case-sensitive key, display title and values up to 8,192 bytes. Server-side `get_external_key` / `require_external_key` provide lossless reads; saved values are never repopulated in management forms, and blank edits preserve the current value.
+- Records are environment-specific and excluded from release files; incoming older archives containing this data are also ignored. Access follows system-setting permissions, including the app management guard. FFM logs and browser debugging mask values; secret log snapshots are excluded. See `external-keys.md` for usage and storage semantics.
+- Verified 56 storage/API/permission/release-policy checks and Chromium CRUD/search, tab placement and existing setting form ownership. The actual downloaded release excluded the data and fixture value; at 390px the panel measured 342px with no horizontal overflow. Test environment synchronized; production release remains pending.
+
+## 2026-09-26 Standard Screen record identifiers
+- Added optional note setting `identifier_prefix` to the existing list ID display. Search/list and manual-sort rows show `[prefix:id]` when `show_id=1`; empty prefixes preserve numeric IDs. The setting is available in note settings and `db_tables_add/edit`, with shared validation and escaped, non-wrapping output. Other screens retain their existing behavior.
+- Verified both list patterns, unset/cleared/hidden ID behavior, invalid input rejection, management-form save/read-back and standard-screen checks. Chromium checks at 1440px and 390px confirmed the identifier is the first data cell, with no page overflow. Applied `fbpdev` to the consuming app's free-registration list in the test environment. No production release.
+
 ## 2026-09-26 Inline saved media response
 - Added `res_saved_media($filename, $options)` for content-detected image/video/audio delivery with private/no-store by default, optional public caching, single byte ranges and HEAD. Record authorization remains app-owned. Removed the unreleased opt-in saved-file guard from the previous Task 4378 change; existing image/download APIs return to their pre-guard behavior.
 - Verified 33 isolated HTTP checks, 38 app-side access/legacy-entry checks and Chromium MP4 playback/seeking. Framework release 7bb1f49 completed successfully on all selected servers; the three changed runtime files matched the local hashes in each server's distribution source. Direct per-app hash inspection was unavailable with the verification account's permissions.

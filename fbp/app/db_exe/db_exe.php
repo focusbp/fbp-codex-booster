@@ -1039,9 +1039,10 @@ class db_exe {
 		$ctl->assign("flg_delete_button",$flg_delete_button);
 		
 		// ID
-		if($this->db_setting["show_id"]==1){
-			$ctl->assign("show_id",true);
-		}
+		$ctl->assign("show_id", (int) ($this->db_setting["show_id"] ?? 0) === 1);
+		require_once __DIR__ . '/../../lib/RecordIdentifier.php';
+		$identifier_prefix = $this->db_setting['identifier_prefix'] ?? '';
+		$ctl->assign('identifier_prefix', RecordIdentifier::valid($identifier_prefix) ? $identifier_prefix : '');
 		
 		// Duplicate icon
 		if($this->db_setting["show_duplicate"]==1){

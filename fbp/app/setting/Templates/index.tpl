@@ -5,7 +5,6 @@
 		</div>
 	</div>
 
-	<form id="setting_form" class="setting_form_layout" autocomplete="off">
 		<div id="setting_tabs" style="overflow: hidden; padding-bottom: 20px; margin-top: 10px;">
 			<ul>
 				<li><a href="#setting-tab-general">{t key="setting.tab.system"}</a></li>
@@ -18,7 +17,9 @@
 				<li><a href="#setting-tab-api-auth">{t key="setting.tab.api_hmac"}</a></li>
 				<li><a href="#setting-tab-mcp-server">{t key="setting.tab.mcp_server"}</a></li>
 				<li><a href="#setting-tab-vimeo">{t key="setting.tab.vimeo"}</a></li>
+				<li><a href="#setting-tab-external-keys" invoke-class="external_keys" invoke-function="page">{t key="external_keys.name"}</a></li>
 			</ul>
+			<form id="setting_form" class="setting_form_layout" autocomplete="off">
 
 			<div id="setting-tab-general" class="setting_tab_panel">
 				<div class="setting_tab_inner">
@@ -448,8 +449,9 @@
 				</div>
 			</div>
 
+			</form>
+			<div id="setting-tab-external-keys" class="setting_tab_panel"></div>
 		</div>
-	</form>
 </div>
 
 <script>

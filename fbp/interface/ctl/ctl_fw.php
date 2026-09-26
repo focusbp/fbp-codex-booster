@@ -106,6 +106,9 @@ interface ctl_fw {
 	 * @return mixed Application settings.
 	 */
 	function get_setting();
+	/** App-owned API settings; missing optional keys return null. */
+	function get_external_key(string $key): ?string;
+	function require_external_key(string $key): string;
 	
 	function save_setting($setting);
 

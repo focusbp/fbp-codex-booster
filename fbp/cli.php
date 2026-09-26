@@ -57,6 +57,7 @@ include("lib/FrameworkTheme.php");
 include("interface/Controller.php");
 include("lib/Controller_class.php");
 require_once __DIR__ . "/lib/SingleRecordScreen.php";
+require_once __DIR__ . "/lib/RecordIdentifier.php";
 include("lib/I18nSimple.php");
 include("interface/CodegenActionInterface.php");
 include("interface/McpSubjectInterface.php");
@@ -3178,6 +3179,10 @@ if ($command === "db_tables_add") {
 		$data["show_menu"] = 1;
 	}
 	cli_validate_single_table($dir, $data);
+	if (!RecordIdentifier::valid($data['identifier_prefix'] ?? '')) {
+		fwrite(STDERR, RecordIdentifier::error() . "\n");
+		exit(1);
+	}
 	$id = $ffm_db_admin->insert($data);
 	$parent_id_field_added = cli_ensure_parent_id_field($ffm_db_admin, $ffm_db_fields_admin, (int) $id);
 	cli_make_table_format($dir, $ffm_db_admin, $ffm_db_fields_admin, $ffm_constant_array, $ffm_values);
@@ -3201,6 +3206,10 @@ if ($command === "db_tables_edit") {
 		exit(1);
 	}
 	cli_validate_single_table($dir, array_replace($ffm_db_admin->get((int) $data["id"]) ?: [], $data));
+	if (!RecordIdentifier::valid($data['identifier_prefix'] ?? '')) {
+		fwrite(STDERR, RecordIdentifier::error() . "\n");
+		exit(1);
+	}
 	$ffm_db_admin->update($data);
 	$parent_id_field_added = cli_ensure_parent_id_field($ffm_db_admin, $ffm_db_fields_admin, (int) $data["id"]);
 	cli_make_table_format($dir, $ffm_db_admin, $ffm_db_fields_admin, $ffm_constant_array, $ffm_values);

@@ -64,6 +64,12 @@
 			{html_options id="horizontal_scroll" name="horizontal_scroll" options=$horizontal_scroll_opt selected=$data["horizontal_scroll"]}
 			<p class="lang">{t key="db.show_id_on_list"}</p>
 			{html_options id="show_id" name="show_id" options=$show_id_opt selected=$data["show_id"]}
+			<div class="record_identifier_setting">
+				<p>IDの接頭辞（任意）</p>
+				<input type="text" name="identifier_prefix" maxlength="64" value="{$data.identifier_prefix|default:''|escape}" aria-label="IDの接頭辞">
+				<p class="error_message error_identifier_prefix">{$errors.identifier_prefix|default:''|escape}</p>
+				<p>例：fbpdev → [fbpdev:1234]。一覧にIDを表示する場合に適用します。空欄は通常のID表示です。</p>
+			</div>
 			<p class="lang">{t key="db.show_id_on_search"}</p>
 			{html_options id="show_search_id" name="show_search_id" options=$show_id_opt selected=$data["show_search_id"]}
 			<p class="lang">{t key="db.duplicate_icon"}</p>
@@ -102,6 +108,7 @@
                     let unused = $("#side_list_type, #horizontal_scroll, #show_id, #show_search_id, #show_duplicate, input[name='edit_width']");
                     unused.prop('disabled', single).toggle(!single);
                     unused.prev('p').toggle(!single);
+					$('.record_identifier_setting').toggle(list_type == 0 || list_type == 1);
 					if (list_type == 0) {
 					$("#sortkey").prop('disabled', false);
 					$("#sort_order").prop('disabled', false);

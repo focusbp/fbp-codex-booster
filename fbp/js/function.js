@@ -2165,7 +2165,7 @@ function appcon(url, fd, nextfunction) {
 	fd.forEach((value, key) => {
 		if (key === "class" || key === "function")
 			return;
-		debugarr[key] = value;
+		debugarr[key] = key === "external_key_secret" ? "[masked]" : value;
 	});
 	append_debug_window("POST ----> Server", debugarr, "table");
 

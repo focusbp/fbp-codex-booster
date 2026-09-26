@@ -611,7 +611,7 @@ class Controller_class implements Controller {
 	function set_called_parameters() {
 		$this->called_parameters = [];
 		foreach ($_POST as $key => $val) {
-			if ($key == "class" || $key == "function") {
+			if ($key == "class" || $key == "function" || $key == "external_key_secret") {
 				//
 			} else {
 				$this->called_parameters[$key] = $val;
@@ -1962,6 +1962,18 @@ class Controller_class implements Controller {
 		return rtrim($temp_dir, "/\\");
 	}
 
+	/** Read one app-owned API setting. Never assign the returned secret to a public template. */
+	function get_external_key(string $key): ?string {
+		require_once __DIR__ . '/ExternalKeys.php';
+		return (new ExternalKeys($this->db('external_keys', 'external_keys')))->get($key);
+	}
+
+	function require_external_key(string $key): string {
+		$value = $this->get_external_key($key);
+		if ($value === null || $value === '') throw new RuntimeException('Required external integration key is not configured.');
+		return $value;
+	}
+
 	function get_setting() {
 		$setting = $_SESSION[$this->windowcode]["setting"] ?? null;
 		if (is_array($setting)) {
@@ -2338,6 +2350,7 @@ class Controller_class implements Controller {
 	}
 
 	function authorize_management_access(string $class, string $function): bool {
+		if ($class === "external_keys") return $this->authorize_management_access("setting", $function);
 		$app_guard_result = $this->authorize_with_app_management_access_guard($class, $function);
 		if ($app_guard_result !== null) {
 			return (bool) $app_guard_result;

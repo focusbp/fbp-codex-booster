@@ -2804,6 +2804,9 @@ class fixed_file_manager implements FFM {
 	}
 
 	private function snapshot_dat_file(string $operation): array {
+		if ($this->filename === "external_keys" && basename(rtrim($this->datadir, "/")) === "external_keys") {
+			return ["created" => false, "reason" => "sensitive_values"];
+		}
 		if (!is_file($this->path_dat)) {
 			return [
 				"created" => false,
@@ -2936,6 +2939,9 @@ class fixed_file_manager implements FFM {
 			return null;
 		}
 		unset($row["_id_enc"]);
+		if ($this->filename === "external_keys" && basename(rtrim($this->datadir, "/")) === "external_keys") {
+			if (array_key_exists("value", $row)) $row["value"] = "[masked]";
+		}
 		return $row;
 	}
 

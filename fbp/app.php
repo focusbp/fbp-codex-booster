@@ -532,6 +532,7 @@ try{
 	exit;
 	
 }catch(Throwable $e){
+	unset($_POST["external_key_secret"]);
 	$report_result = [
 		"configured" => false,
 		"reported" => false,

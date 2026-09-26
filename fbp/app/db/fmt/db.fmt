@@ -29,3 +29,4 @@ api_allow_delete,1,N
 show_icon_on_parent_list,1,N
 post_action_class,255,T
 cascade_delete_flag,1,N
+identifier_prefix,64,T

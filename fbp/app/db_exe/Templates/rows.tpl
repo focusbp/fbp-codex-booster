@@ -5,7 +5,7 @@
 		{if $show_id}
 		<td class="row_style">
 			<span class="row_title">ID</span>
-			<span class="row_value row_value_id" style="text-align:right;"><p>{$row.id}</p></span>
+			<span class="row_value row_value_id" style="text-align:right;white-space:nowrap;"><p>{if $identifier_prefix != ''}[{$identifier_prefix|escape}:{$row.id|escape}]{else}{$row.id}{/if}</p></span>
 		</td>	
 		{/if}
 		{foreach $group1 as $field}

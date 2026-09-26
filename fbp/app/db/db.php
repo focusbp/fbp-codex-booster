@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . "/../../lib/SingleRecordScreen.php";
+require_once __DIR__ . "/../../lib/RecordIdentifier.php";
 
 class db {
 
@@ -354,6 +355,9 @@ class db {
 		$errors = [];
 		$tb_name = $post["tb_name"] ?? "";
 		$post_id = $post["id"] ?? null;
+		if (!RecordIdentifier::valid($post['identifier_prefix'] ?? '')) {
+			$errors['identifier_prefix'] = RecordIdentifier::error();
+		}
 
 		if ($tb_name === "") {
 			$errors["tb_name"] = $ctl->t("db.validation.table_name_required");
