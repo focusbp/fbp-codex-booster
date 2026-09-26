@@ -2,7 +2,7 @@
 
 ## 2026-09-26 Inline saved media response
 - Added `res_saved_media($filename, $options)` for content-detected image/video/audio delivery with private/no-store by default, optional public caching, single byte ranges and HEAD. Record authorization remains app-owned. Removed the unreleased opt-in saved-file guard from the previous Task 4378 change; existing image/download APIs return to their pre-guard behavior.
-- Verified isolated HTTP responses and Chromium MP4 playback/seeking. Production release is pending scope confirmation.
+- Verified 33 isolated HTTP checks, 38 app-side access/legacy-entry checks and Chromium MP4 playback/seeking. Framework release 7bb1f49 completed successfully on all selected servers; the three changed runtime files matched the local hashes in each server's distribution source. Direct per-app hash inspection was unavailable with the verification account's permissions.
 
 ## 2026-09-26 Admin PDF delivery sample
 - Added standalone fictional single/bulk invoice assets, manifest, overwrite-refusing installer and a browser verifier. Management login remains enabled; the sample rejects empty/unknown selections with HTML and uses object `download_pdf()` output. PDF Skills and README now point to actual reusable assets instead of an inline example.
