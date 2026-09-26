@@ -119,4 +119,4 @@ description: Build, maintain, or adjust FBP Standard Screen note management usin
 - `screen_fields` 登録前に、日付項目のDB型が `date` になっていることを確認する。
 - `screen_fields` 登録後は、`standard_screen_check --json='{"tb_name":"<tb_name>"}'` を実行し、必要に応じて `db_exe/page` / `rows` やブラウザ確認も行う。有効状態項目が選択式になっていること、`sort` が通常の list/add/edit/search に出ていないこと、Manual Sort が必要なテーブルでは `list_type=Manual Sort` になっていることを確認する。
 - `standard_screen_check` の `empty_screen_fields` は警告扱い。意図的に空にしている画面なら無視してよいが、必要な `screen_fields` の登録漏れがないか確認する。
-- PDF生成を `db_additionals` ボタンから実行する場合は、いったんダイアログを表示し、ダイアログ内 `download-link` でダウンロードさせる（`ajax-link` でPDFダウンロードは不可）。
+- PDF生成は `fbp-pdf` の管理側標準に従う。`db_additionals` ボタン → `show_multi_dialog()` → ダイアログ内 `download-link` でPOST → `create_pdfmaker()` で帳票を組み立て → `download_pdf()` で返す。新規に `show_pdf()` のテンプレート方式を選ばず、`ajax-link` でPDF本体を取得しない。

@@ -1,21 +1,26 @@
 # PDF Delivery
 
-PDFの基本方式は Controllerの `show_pdf()` による画面内表示。オブジェクトで組み立てた帳票の直接取得は `$pdf->download_pdf()` を使う。tpl方式の直接取得は従来の `save_pdf()` + `res_saved_file()` も利用できる。
+新規PDFは管理側・公開側とも `create_pdfmaker()` のオブジェクトで組み立て、`download_pdf()` で返す。管理側は取得ダイアログ内の `download-link` からPOST、公開側は通常GETリンクを標準とする。Controllerの `show_pdf()` によるテンプレートプレビューと `save_pdf()` + `res_saved_file()` は既存互換用として残す。
 
 | 入口 | 呼び出し先 | 応答 |
 | --- | --- | --- |
-| `ajax-link` の「請求書を表示」 | `preview()` → `show_pdf()` | ダイアログJSON。その後 `apppdf.php` がPDFを返す |
+| 管理側の取得ダイアログ内の `download-link` | POST → オブジェクト生成 → `download_pdf()` | PDF本体 |
+| 既存互換の `ajax-link` の「請求書を表示」 | `preview()` → `show_pdf()` | ダイアログJSON。その後 `apppdf.php` がPDFを返す |
 | 通常リンクの「請求書を直接ダウンロード」 | `download()` → `$pdf->download_pdf()` | PDF本体（内部で `res_saved_file()` を使用） |
 
-`download-link` や通常リンクから `show_pdf()` を直接呼ばない。逆にPDF本体を返す関数を `ajax-link` から呼ばない。公開PDFの直接取得はLINE利用の有無によらずGETリンクを標準とする。管理画面などPOSTが必要な場合は `fbp-pdf` に従って `download-link` を使い、理由を記録する。
+`download-link` や通常リンクから `show_pdf()` を直接呼ばない。逆にPDF本体を返す関数を `ajax-link` から呼ばない。管理側のPOSTと公開側のGETはそれぞれ標準であり、標準から変更する場合に理由を記録する。
 
-## Install
+## 管理側の標準サンプル
+
+独立した [admin-pdf-delivery.md](admin-pdf-delivery.md) と `assets/admin-pdf-delivery/` を使う。PHPクラス・ダイアログテンプレート・manifest・専用インストーラー・実ブラウザー検証を一組で適用する。単票・一括・選択取得、管理ログイン、異常時のHTML応答を含む。以下は公開側のサンプル手順であり、管理側の配置・検証には専用スクリプトを使う。
+
+## 公開サンプルのInstall
 
 `assets/pdf-delivery/` の公開 `page` / `preview` / `download` は固定の架空データのみ。DB定義・外部サービス・認証情報は不要。私有帳票には下記の `protected_page` / `protected_download` を使う。
 
 編集元のクリーンなアプリに `php scripts/install_pdf_delivery.php <app-root>` で配置する。既存 `public_pages` は上書きしない。環境の同期手順で実行環境に反映し、`public_pages/page` を開く。
 
-## 必須の適用単位
+## 公開側の必須の適用単位
 
 説明だけでなく `assets/pdf-delivery/public_pages/public_pages.php`、採用方式のテンプレート、検証スクリプトを読み、該当部分をコピー・適応する。公開直接取得はGETリンク → PDF本体、表示はAjax → ダイアログ → PDFの組を維持する。tplなし帳票は生成オブジェクトの `download_pdf()` を呼び、出力バッファ・保存・削除処理をアプリへコピーしない。認証と正常/異常応答の契約は維持する。
 
@@ -34,7 +39,7 @@ PDFの基本方式は Controllerの `show_pdf()` による画面内表示。オ�
 
 このサンプルの認証付き方式は直接ダウンロード用。認証付きプレビューが必要なら `apppdf.php` 側の権限・失効も確認し、公開固定サンプルの `preview()` をそのまま流用しない。
 
-## Verify
+## 公開サンプルのVerify
 
 - PHP lint、manifest解析、空の一時配置先へのインストールと既存ファイル上書き拒否を確認する。
 - `php scripts/test_pdf_delivery.php` で認証付き経路の拒否・再検証・複数画面保持を確認する。これはモックによる契約テストであり、実ブラウザー検証の代替ではない。保存・削除はフレームワークの `tests/pdfmaker_output_test.php` が実PDF生成、例外、並行取得、exit後の削除を検証する。

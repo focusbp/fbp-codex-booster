@@ -1,5 +1,16 @@
 # app-framework5 History
 
+## 2026-09-26 Inline saved media response
+- Added `res_saved_media($filename, $options)` for content-detected image/video/audio delivery with private/no-store by default, optional public caching, single byte ranges and HEAD. Record authorization remains app-owned. Removed the unreleased opt-in saved-file guard from the previous Task 4378 change; existing image/download APIs return to their pre-guard behavior.
+- Verified isolated HTTP responses and Chromium MP4 playback/seeking. Production release is pending scope confirmation.
+
+## 2026-09-26 Admin PDF delivery sample
+- Added standalone fictional single/bulk invoice assets, manifest, overwrite-refusing installer and a browser verifier. Management login remains enabled; the sample rejects empty/unknown selections with HTML and uses object `download_pdf()` output. PDF Skills and README now point to actual reusable assets instead of an inline example.
+- Verified CLI dialog output, PHP/JS syntax, installation/refusal and Chromium desktop/mobile-width downloads: single A/B, bulk two pages, selected one page, filenames/content, invalid selections and separate-session denial. Parsed all eight PDFs and inspected the rendered sample. Removed the temporary app installation after verification; no production release.
+
+## 2026-09-26 Admin PDF Skill standard
+- Standardized new admin PDF guidance on a download dialog, POST via `download-link`, object construction with `create_pdfmaker()`, and `download_pdf()`. Added a reusable PHP/template example and aligned PDF, app-sample, Standard Screen and browser-verification instructions. Template-based `show_pdf()` remains for compatibility or an explicit preview requirement; content-only maintenance does not force migration.
+
 ## 2026-09-26 PDF object output APIs
 - Audited PDF, public-page, sample, browser-check, temporary-file and CSV/media Skills together. Clarified that public PDF GET delivery and object `download_pdf()` take precedence over generic file-download rules; application cleanup applies only when directly managing saved files. All six Skill validators passed.
 - Added `pdfmaker_class::get_pdf_data()` for binary data without response output and `download_pdf()` for an attachment response with managed-file creation, complete-write checks, private/no-store headers and cleanup on failure/exit. Existing `create_pdf()` inline behavior is preserved. Fixed tFPDF string output to read its actual stream buffer instead of the obsolete empty string property.

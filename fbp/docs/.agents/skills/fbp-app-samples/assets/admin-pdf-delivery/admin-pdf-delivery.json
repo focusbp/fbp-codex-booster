@@ -1,0 +1,7 @@
+{
+  "name": "admin-pdf-delivery",
+  "files": ["pdf_delivery_admin/pdf_delivery_admin.php", "pdf_delivery_admin/Templates/download.tpl", "pdf_delivery_admin/Templates/error.tpl"],
+  "entry": {"class": "pdf_delivery_admin", "function": "run"},
+  "tables": [],
+  "external_services": []
+}

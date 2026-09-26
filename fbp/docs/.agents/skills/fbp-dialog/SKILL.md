@@ -76,7 +76,8 @@ private function normalize_datetime_to_timestamp($value): int
 - Smarty tpl 内の `<style>` では、CSS の `{}` が Smarty 構文として解釈されないように、必ず `{literal}` ... `{/literal}` で CSS 本文を囲む。
 - 確認表示・詳細表示の値描画は `fields_view_direct` を優先し、手書き展開は必要最小限にする。
 - DBに登録された file/image を `<img>` で直接表示する場合、テンプレートから保存パスを直参照せず、表示元クラスに `view_image(Controller $ctl)` などの画像表示関数を必ず実装してそこを通す。
-- 上記の画像表示関数では、受け取った識別子や暗号化pathを検証し、`is_saved_file()` 確認後に `res_saved_image()` を返す。ダウンロード用は別に `download_file()` を用意して `res_saved_file()` を返す。
+- 上記の画像表示関数では、対象レコードの公開状態またはログイン・閲覧権限を確認してから保存名を解決し、`is_saved_file()` 確認後に `res_saved_image()` を返す。非公開画像は第2引数を `false` にして公開キャッシュを無効にする。ダウンロード用は別に `download_file()` を用意して同じ権限確認後に `res_saved_file()` を返す。
+- 公開/認証付き配信の選択、ログイン・本人権限の確認、取得経路の検証は [fbp-media](../fbp-media/SKILL.md) に従う。
 - DB画像の `<img>` には原則 `max-width:500px;` を付け、縦サイズは固定しない。`height` / `max-height` で縦横比を崩さない。
 - 固定バー上の非ajaxボタン（例: `type="button"`）をJSで扱う場合、`.multi_dialog` スコープで要素取得してイベントを張る。
 - `ajax-link` でフォーム値をPOSTする画面は、テンプレート全体を `<form onsubmit="return false;">...</form>` で囲み、対象入力の `error_*` 要素を必ず配置する。

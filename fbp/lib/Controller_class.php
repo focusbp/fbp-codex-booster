@@ -1154,10 +1154,6 @@ class Controller_class implements Controller {
 	}
 
 	function res_saved_image($filename, $cache = true, $maxAge = 3600, $immutable = false) {
-		if ($this->enforce_saved_file_access($filename, "image")) {
-			$cache = false;
-			$immutable = false;
-		}
 
 		session_write_close();
 
@@ -1325,67 +1321,13 @@ class Controller_class implements Controller {
 		return "application/octet-stream";
 	}
 
-	/**
-	 * Optional app policy, including callers that deliberately skip login checks.
-	 * null = existing public behavior; true = authorized private response;
-	 * false, invalid policies and policy failures = deny before output/304.
-	 */
-	private function enforce_saved_file_access($filename, string $operation): bool {
-		$policy_file = $this->dirs->appdir_user . "/saved_file_access_guard/saved_file_access_guard.php";
-		if (!is_file($policy_file)) {
-			return false;
-		}
-
-		$decision = false;
-		try {
-			$filename = (string) $filename;
-			if ($filename === "" || strpos($filename, "\0") !== false || strpos($filename, "\\") !== false
-				|| $filename[0] === "/" || preg_match('#(^|/)\.\.(/|$)#', $filename)) {
-				throw new RuntimeException("Invalid saved file path");
-			}
-			$parts = array_values(array_filter(explode("/", $filename), static function ($part) {
-				return $part !== "" && $part !== ".";
-			}));
-			$normalized = implode("/", $parts);
-			$upload_dir = realpath($this->dirs->datadir . "/upload");
-			$resolved = realpath($this->dirs->datadir . "/upload/" . $normalized);
-			if ($resolved !== false) {
-				if ($upload_dir === false || strpos($resolved, $upload_dir . DIRECTORY_SEPARATOR) !== 0) {
-					throw new RuntimeException("Saved file is outside upload storage");
-				}
-				$normalized = substr($resolved, strlen($upload_dir) + 1);
-			}
-			require_once $policy_file;
-			$policy = new saved_file_access_guard();
-			$decision = $policy->authorize($this, $normalized, $operation);
-		} catch (Throwable $e) {
-			// Never expose policy errors, paths, or file contents to the caller.
-			$decision = false;
-		}
-		if ($decision !== null && $decision !== true) {
-			header_remove("ETag");
-			header_remove("Last-Modified");
-			header_remove("Expires");
-			http_response_code(403);
-			header("Content-Type: text/plain; charset=UTF-8");
-			header("Cache-Control: private, no-store, max-age=0");
-			header("X-Content-Type-Options: nosniff");
-			echo "Forbidden";
-			exit;
-		}
-		if ($decision === true) {
-			header_remove("ETag");
-			header_remove("Last-Modified");
-			header_remove("Expires");
-			header("Cache-Control: private, no-store, max-age=0");
-			header("X-Content-Type-Options: nosniff");
-			return true;
-		}
-		return false;
+	/** Inline image/video/audio delivery. Authorize the record before calling. */
+	function res_saved_media($filename, array $options = []) {
+		require_once __DIR__ . '/SavedMediaResponse.php';
+		SavedMediaResponse::send($this->dirs->datadir . '/upload', (string) $filename, $options);
 	}
 
 	function res_saved_file($filename, $download_name = null) {
-		$this->enforce_saved_file_access($filename, "download");
 		//エラーを非表示
 		//error_reporting(~E_ALL);
 

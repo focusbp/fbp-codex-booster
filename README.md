@@ -78,8 +78,8 @@ needed.
 ```text
 Use fbp-app-samples and fbp-pdf to create the PDF Delivery sample.
 Use the bundled pdf-delivery assets and installer in a clean app.
-Prefer ajax-link -> show_pdf() for preview; demonstrate direct PDF download
-with create_pdfmaker() -> download_pdf() separately. Use get_pdf_data() when
+Use public GET links -> create_pdfmaker() -> download_pdf() for new downloads.
+Keep ajax-link -> show_pdf() as a legacy template preview example. Use get_pdf_data() when
 binary PDF data is needed; do not capture create_pdf() output. Keep only fictional fixed data.
 Verify both actual buttons using Playwright on desktop and mobile, including
 PDF parsing and invoice contents. CLI success alone is not PDF verification.
@@ -89,6 +89,24 @@ implemented. Apply the sample code, not just its description. Verify multiple
 tabs, expired sessions/grants, changed ownership and revoked issuance as well.
 When extending the sample, update its assets, manifest, reference, installer,
 browser verification and this Make Samples prompt; keep it independent of live apps.
+```
+
+### Admin PDF Download
+
+```text
+Use fbp-app-samples and fbp-pdf to create the Admin PDF Delivery sample.
+Read references/admin-pdf-delivery.md and copy the bundled admin-pdf-delivery
+assets using install_admin_pdf_delivery.php into a clean app source.
+Keep the management download-dialog pattern: POST via download-link,
+create_pdfmaker() object construction, then download_pdf(). Use fictional data
+only, preserve management login, and remove customer-specific rules and secrets.
+Keep single, bulk and selected-document downloads together with HTML errors.
+When extending the sample, update its assets, manifest, reference, installer,
+browser verifier and this prompt; do not depend on a live customer app.
+Verify PHP lint, manifest parsing, install/overwrite refusal and CLI dialog
+response, then run verify_admin_pdf_delivery.cjs on desktop/mobile widths.
+Check real downloads, filenames, parsed contents/page counts, empty/invalid
+selection and denial in another session. Never disable login for testing.
 ```
 
 ### Customer Management

@@ -10,10 +10,12 @@ Use this skill when an FBP app needs fixed, non-sensitive system images, QR imag
 ## decision rule
 - Use `classes/app/images/` only for fixed assets that are safe to serve without per-user/per-record authorization.
 - Use DB `type=image` / `type=file` fields, framework upload storage, and normal file/image helpers for dynamic images/files, user uploads, note attachments, product images, generated per-record files, and anything that may need access control.
+- Follow [fbp-media](../fbp-media/SKILL.md) for runtime storage and public/authenticated delivery. Runtime public images also belong in upload storage; being public does not make an image a fixed asset.
 - If the asset contains a secret, token, customer data, private URL, temporary link, or environment-specific value, do not store it in `classes/app/images/`.
 
 ## storage
 - Put fixed app assets under `classes/app/images/`.
+- Place these assets during development and deploy them with the app. Standard framework save APIs cannot write here at runtime; they save under `classes/data/upload/`.
 - Keep feature-class directories for code and templates; do not store shared fixed assets inside `classes/app/<class_name>/` unless the framework helper specifically requires class-local assets.
 - Use stable, descriptive lowercase filenames such as `qr_mall_entry.png` or `invoice_seal.png`.
 - Do not put user uploads, generated per-record files, or runtime output in `classes/app/images/`; keep those in the normal upload/data flow.

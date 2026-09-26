@@ -13,7 +13,9 @@ When creating a new reusable sample from an existing app or feature, read `refer
 
 ## Samples
 
-- **PDF Delivery**: `show_pdf()` による表示、GETからPDFオブジェクトの `download_pdf()` で返す直接取得、認証付き帳票の取得権限・HTMLエラーのサンプル。`references/pdf-delivery.md` と `assets/pdf-delivery/` の採用コードを読み、コピー・適応する。`scripts/install_pdf_delivery.php`、`scripts/test_pdf_delivery.php`、`scripts/verify_pdf_delivery.cjs` で検証する。公開固定帳票はDB不要、認証付き経路は本人確認・DBフックを実装するまで拒否する。保存・削除はフレームワークに任せる。
+- **Admin PDF Delivery**: 管理側の取得ダイアログ → POSTの `download-link` → `create_pdfmaker()` → `download_pdf()` の単票・一括サンプル。`references/admin-pdf-delivery.md` と `assets/admin-pdf-delivery/` の実コードを読み、コピー・適応する。`scripts/install_admin_pdf_delivery.php` で配置し、`scripts/verify_admin_pdf_delivery.cjs` で実取得・PDF内容・不正選択・別セッション拒否を検証する。固定架空データのみ、DB不要、管理ログインを維持する。
+
+- **PDF Delivery (Public)**: 公開側GET → PDFオブジェクトの `download_pdf()`、認証付き取得権限・HTMLエラーのサンプル。`references/pdf-delivery.md` と `assets/pdf-delivery/` の実コードを読み、コピー・適応する。`scripts/install_pdf_delivery.php`、`scripts/test_pdf_delivery.php`、`scripts/verify_pdf_delivery.cjs` を使う。`show_pdf()` のプレビュー資産は既存互換用。認証付き経路は本人確認・DBフック未実装では拒否する。保存・削除はフレームワークに任せる。
 
 - **Event Registration**: A no-external-service event registration sample with admin event session management, a participants side panel with add/delete/status actions, a public registration page, and an admin dialog that shows the public registration URL.
   - Read `references/event-registration.md` for flow and implementation scope.

@@ -11,7 +11,7 @@ description: Implement or maintain Yamato Transport B2送り状 CSV export in FB
 - B2基本レイアウトのCSV列順、出力値、Shift_JIS/CRLF、クール区分を扱う。
 
 ## companion skills
-- `fbp-csv-media`: CSV download実装と検証。
+- `fbp-csv`: CSV download実装と検証。
 - `fbp-db`: `yamato_shipping_setting` のDB/項目追加。
 - `fbp-standard-screen` + `fbp-dialog`: 受注画面上部の `db_additionals` ボタンとプレビューダイアログ。
 - `fbp-cli`: `db_tables_list` / `db_fields_list` / `screen_fields_list` / `app_call` 検証。

@@ -35,6 +35,14 @@ interface ctl_media {
 	function res_saved_image($filename, $cache = true, $maxAge = 3600, $immutable = false);
 
 	/**
+	 * Streams saved image/video/audio inline with GET/HEAD and single byte ranges.
+	 * The calling app must authorize the record before invoking this response.
+	 * @param string $filename Relative saved filename inside upload storage.
+	 * @param array $options cache: bool (default false), max_age: int (default 3600).
+	 */
+	function res_saved_media($filename, array $options = []);
+
+	/**
 	 * Resizes a saved image.
 	 *
 	 * @param string $inputfile The file path of the input image.

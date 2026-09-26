@@ -36,7 +36,7 @@ Read these only if the installer cannot be used or a stage needs manual repair:
 
 - `fbp-db` for DB/note definitions and data commands
 - `fbp-original-screen` for the CRUD management screen
-- `fbp-csv-media` for CSV export/import
+- `fbp-csv` for CSV export/import
 - `fbp-pdf` for PDF output
 - `fbp-cli` for verification commands
 

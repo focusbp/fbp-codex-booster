@@ -33,7 +33,7 @@ description: Build and operate public_pages with login-free entry points, secure
 - LINE Botで送るURL、LINEメッセージから開く公開ページ、LINE内ブラウザでの利用が主目的のダウンロードは `<a href>` でGETのダウンロードURLを開く。XHR/blob経由ではなく、ブラウザに実URLの `Content-Type` / `Content-Disposition` を直接見せる。
 - 保存済みファイルの応答は特別な要件がない限り独自header実装を作らず、`$ctl->res_saved_file($stored, $download_name)` を使う。オブジェクトで生成するPDFは `fbp-pdf` に従い `$pdf->download_pdf($filename)` に保存・応答・削除を任せる。
 - ダウンロードURLは文字列連結せず、`$ctl->get_APP_URL("<class>", "file_download", ["code" => $code, "download" => "1"])` のように生成する。LINE側の古い判定を避けたい場合は `download=1` などの明示パラメータを付ける。
-- サンプルコードは `fbp-csv-media` の `download links` を参照する。
+- サンプルコードは `fbp-media` の `download links` を参照する。
 
 ## LINE message URLs
 - LINE の返信・push・URI action へパラメータ付きURLを送る場合、最初のクエリ区切りは必ず `?` にする。`/public_pages*register&token=...` は送らず、`/public_pages*register?token=...` にする。2個目以降のパラメータは `&` を使う。
