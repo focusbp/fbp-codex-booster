@@ -325,6 +325,12 @@ class OpenAI_class implements \openai\OpenAI {
 	 * 利用料を保存する
 	 */
 	private function store_usage(){
+		// Usage storage belongs to the optional assistants application.
+		// Apps using only the shared client must still receive the API response.
+		if ($this->ctl === null) return;
+		$dirs = $this->ctl->dirs;
+		if (!is_file($dirs->appdir_user . '/assistants/assistants.php')
+			&& !is_file($dirs->appdir_fw . '/assistants/assistants.php')) return;
 		
 		$year = date("Y");
 		$month = date("m");
