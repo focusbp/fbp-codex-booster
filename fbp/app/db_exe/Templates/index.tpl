@@ -50,7 +50,7 @@
 		<div style="display:flex;flex-direction:column;justify-content:center;width:100%;">
 		{if $show_search_box }
 		<div class="search_left">
-			<form id="form_{$timestamp}" class="search_form_flex" data-db-id="{$db_id}" data-tb-name="{$tb_name|escape}">
+			<form id="db_search_form_{$db_id}_{$timestamp}" class="search_form_flex" data-db-id="{$db_id}" data-tb-name="{$tb_name|escape}">
 				<input type="hidden" name="db_id" value="{$db_id}">
 				{foreach $group1 as $field}
 					<div class="search_form_item field_type_{$field.type|escape}" data-parameter-name="{$field.parameter_name|escape}" data-parameter-title="{$field.parameter_title|escape}" data-field-type="{$field.type|escape}">
@@ -65,7 +65,7 @@
 		</div>
 		
 			<div class="search_right" style="display:none;">
-				<button class="ajax-link lang" data-class="{$class}" data-function="search" data-form="form_{$timestamp}" data-db-id="{$db_id}" data-tb-name="{$tb_name|escape}">Search</button>
+				<button class="ajax-link lang" data-class="{$class}" data-function="search" data-form="db_search_form_{$db_id}_{$timestamp}" data-db-id="{$db_id}" data-tb-name="{$tb_name|escape}">Search</button>
 			</div>
 		{else}
 			<p class="lang" style="color:#4ba3ff;margin-left:10px;">{t key="db_exe.search_fields_not_configured"}</p>

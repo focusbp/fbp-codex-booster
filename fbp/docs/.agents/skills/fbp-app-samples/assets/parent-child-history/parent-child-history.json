@@ -1,0 +1,164 @@
+{
+  "version": 1,
+  "sample": "parent-child-history",
+  "files": [
+    "classes/app/sample_contacts_visibility_filter/sample_contacts_visibility_filter.php",
+    "classes/app/sample_contact_history_visibility_filter/sample_contact_history_visibility_filter.php"
+  ],
+  "options": {},
+  "notes": [
+    {
+      "table": {
+        "tb_name": "sample_contacts",
+        "menu_name": "サンプル：顧客",
+        "description": "Reusable workflow sample: sample_contacts",
+        "show_menu": 1,
+        "menu_visibility": 1,
+        "screen_build_type": 0,
+        "list_type": 0,
+        "side_list_type": 0,
+        "parent_tb_id": 0,
+        "show_icon_on_parent_list": 0,
+        "cascade_delete_flag": 0,
+        "list_width": 800,
+        "edit_width": 600,
+        "sortkey": "id",
+        "sort_order": 3,
+        "show_duplicate": 0
+      },
+      "fields": [
+        {
+          "parameter_name": "name",
+          "parameter_title": "顧客名",
+          "type": "text",
+          "length": 300,
+          "validation": 1
+        },
+        {
+          "parameter_name": "contact_name",
+          "parameter_title": "担当者",
+          "type": "text",
+          "length": 300
+        },
+        {
+          "parameter_name": "email",
+          "parameter_title": "メールアドレス",
+          "type": "text",
+          "length": 762,
+          "format_check": "email"
+        },
+        {
+          "parameter_name": "memo",
+          "parameter_title": "備考",
+          "type": "textarea",
+          "length": 1500
+        }
+      ],
+      "screens": {
+        "list": [
+          "name",
+          "contact_name",
+          "email"
+        ],
+        "add": [
+          "name",
+          "contact_name",
+          "email",
+          "memo"
+        ],
+        "edit": [
+          "name",
+          "contact_name",
+          "email",
+          "memo"
+        ],
+        "delete": [
+          "name"
+        ],
+        "search": [
+          "name",
+          "contact_name"
+        ]
+      }
+    },
+    {
+      "table": {
+        "tb_name": "sample_contact_history",
+        "menu_name": "対応履歴",
+        "description": "Reusable workflow sample: sample_contact_history",
+        "show_menu": 0,
+        "menu_visibility": 1,
+        "screen_build_type": 0,
+        "list_type": 0,
+        "side_list_type": 0,
+        "parent_tb_id": 0,
+        "show_icon_on_parent_list": 0,
+        "cascade_delete_flag": 1,
+        "list_width": 800,
+        "edit_width": 600,
+        "sortkey": "id",
+        "sort_order": 3,
+        "show_duplicate": 0
+      },
+      "parent": "sample_contacts",
+      "fields": [
+        {
+          "parameter_name": "contacted_on",
+          "parameter_title": "対応日",
+          "type": "date",
+          "length": 24,
+          "validation": 1
+        },
+        {
+          "parameter_name": "subject",
+          "parameter_title": "件名",
+          "type": "text",
+          "length": 300,
+          "validation": 1
+        },
+        {
+          "parameter_name": "staff",
+          "parameter_title": "担当者",
+          "type": "text",
+          "length": 300
+        },
+        {
+          "parameter_name": "detail",
+          "parameter_title": "内容",
+          "type": "textarea",
+          "length": 3000
+        }
+      ],
+      "screens": {
+        "list": [
+          "contacted_on",
+          "subject",
+          "staff"
+        ],
+        "list_on_side": [
+          "contacted_on",
+          "subject",
+          "staff"
+        ],
+        "add": [
+          "contacted_on",
+          "subject",
+          "staff",
+          "detail"
+        ],
+        "edit": [
+          "contacted_on",
+          "subject",
+          "staff",
+          "detail"
+        ],
+        "delete": [
+          "subject"
+        ],
+        "search": [
+          "subject"
+        ]
+      }
+    }
+  ]
+}

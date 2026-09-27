@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "sample": "public-intake",
+  "files": [
+    "classes/app/sample_public_intake/sample_public_intake.php",
+    "classes/app/sample_public_intake/Templates/form.tpl",
+    "classes/app/sample_public_intake/Templates/confirm.tpl",
+    "classes/app/sample_public_intake/Templates/complete.tpl",
+    "classes/app/sample_public_intake/Templates/head.tpl",
+    "classes/app/sample_intakes_visibility_filter/sample_intakes_visibility_filter.php"
+  ],
+  "options": {
+    "sample_intake_status": [
+      {
+        "key": "0",
+        "value": "未対応",
+        "color": "#64748b"
+      },
+      {
+        "key": "2",
+        "value": "対応済",
+        "color": "#16a34a"
+      }
+    ]
+  },
+  "notes": [
+    {
+      "table": {
+        "tb_name": "sample_intakes",
+        "menu_name": "サンプル：受付",
+        "description": "Reusable workflow sample: sample_intakes",
+        "show_menu": 1,
+        "menu_visibility": 1,
+        "screen_build_type": 0,
+        "list_type": 0,
+        "side_list_type": 0,
+        "parent_tb_id": 0,
+        "show_icon_on_parent_list": 0,
+        "cascade_delete_flag": 0,
+        "list_width": 800,
+        "edit_width": 600,
+        "sortkey": "id",
+        "sort_order": 3,
+        "show_duplicate": 0
+      },
+      "fields": [
+        {
+          "parameter_name": "name",
+          "parameter_title": "お名前",
+          "type": "text",
+          "length": 300,
+          "validation": 1
+        },
+        {
+          "parameter_name": "email",
+          "parameter_title": "メールアドレス",
+          "type": "text",
+          "length": 762,
+          "format_check": "email",
+          "validation": 1
+        },
+        {
+          "parameter_name": "message",
+          "parameter_title": "お問い合わせ内容",
+          "type": "textarea",
+          "length": 3000,
+          "validation": 1
+        },
+        {
+          "parameter_name": "received_at",
+          "parameter_title": "受付日時",
+          "type": "datetime",
+          "length": 24
+        },
+        {
+          "parameter_name": "status",
+          "parameter_title": "対応状況",
+          "type": "dropdown",
+          "length": 24,
+          "constant_array_name": "sample_intake_status"
+        },
+        {
+          "parameter_name": "request_key",
+          "parameter_title": "重複防止キー",
+          "type": "text",
+          "length": 64
+        }
+      ],
+      "screens": {
+        "list": [
+          "received_at",
+          "name",
+          "email",
+          "message",
+          "status"
+        ],
+        "edit": [
+          "status"
+        ],
+        "search": [
+          "name",
+          "status"
+        ]
+      }
+    }
+  ]
+}

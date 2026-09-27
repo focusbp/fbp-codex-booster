@@ -73,6 +73,25 @@ Use these prompts to have Codex generate working sample apps from the bundled
 skills and assets. Start with the customer sample, then add more samples as
 needed.
 
+### Reusable Workflow Features
+
+```text
+Use fbp-app-samples and read references/workflow-samples.md.
+Choose parent-child-history (contacts and a history side panel),
+status-transition (reasoned state changes with history), or
+public-intake (anonymous form, confirmation and admin reception).
+Read the chosen sample reference and DB notes. Apply the bundled code and JSON
+manifest with install_workflow_sample.php: --code-root for source placement,
+then sync source to the test runtime and use --configure-test-root there.
+Do not overwrite existing implementations or insert sample data automatically.
+Adapt fields, names and permissions to requirements; preserve server-side
+validation, management authorization and duplicate/stale request handling.
+Keep external integrations, customer-specific rules and production data out.
+Verify syntax, manifests, isolated tests and relevant real browser operations;
+reuse the browser session and remove only the fixtures created by the test.
+Keep assets, references, shared installer/verifier and this prompt in sync.
+```
+
 ### PDF Display and Download
 
 ```text
