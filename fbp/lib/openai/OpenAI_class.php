@@ -213,7 +213,7 @@ class OpenAI_class implements \openai\OpenAI {
 		$this->ctl->close_all_db();
 		$resp = $this->post('/responses', $request, "Thinking your request: " . $input);
 		
-		// 使用量保存
+		// メモリ上でトークン使用量を集計
 		$this->tokenUsageTracker->addFromResponse($resp);
 		
 		$this->responseId = $this->extractResponseId($resp);
@@ -298,7 +298,7 @@ class OpenAI_class implements \openai\OpenAI {
 			$this->ctl->close_all_db();
 			$resp = $this->post('/responses', $nextReq, "Function: " . implode(",", $names));
 			
-			// 使用量保存
+			// メモリ上でトークン使用量を集計
 			$this->tokenUsageTracker->addFromResponse($resp);
 
 			$this->responseId = $this->extractResponseId($resp);
@@ -314,49 +314,10 @@ class OpenAI_class implements \openai\OpenAI {
 
 		$this->set_status_msg("END");
 		
-		//データベースにusageを記録
-		$this->store_usage();
-
 		// 履歴込みでラップ
 		return new \openai\Response_class($resp);
 	}
 	
-	/**
-	 * 利用料を保存する
-	 */
-	private function store_usage(){
-		// Usage storage belongs to the optional assistants application.
-		// Apps using only the shared client must still receive the API response.
-		if ($this->ctl === null) return;
-		$dirs = $this->ctl->dirs;
-		if (!is_file($dirs->appdir_user . '/assistants/assistants.php')
-			&& !is_file($dirs->appdir_fw . '/assistants/assistants.php')) return;
-		
-		$year = date("Y");
-		$month = date("m");
-		$usage_list = $this->ctl->db("usage","assistants")->select(["year","month"],[$year,$month],true,"AND",null,SORT_DESC,1);
-		if(count($usage_list) == 0){
-			$usage = [
-			    "year" => $year,
-			    "month" => $month,
-			    "in" => 0,
-			    "out" => 0,
-			    "total" => 0,
-			    "count" => 0,
-			];
-			$this->ctl->db("usage","assistants")->insert($usage);
-		}else{
-			$usage = $usage_list[0];
-		}
-		$usage["in"] += $this->getTokenUsageTotals("in");
-		$usage["out"] += $this->getTokenUsageTotals("out");
-		$usage["total"] += $this->getTokenUsageTotals("total");
-		$usage["count"] += 1;
-		$this->ctl->db("usage","assistants")->update($usage);	
-	}
-
-
-
 	private function set_status_msg($msg) {
 		$this->status_manager->set_status($msg);
 	}
