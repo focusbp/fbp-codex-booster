@@ -1,5 +1,9 @@
 # app-framework5 History
 
+## 2026-09-27 顧客管理と履歴管理
+- 専用ビルダーでテスト環境に `crm_customers`（顧客管理（標準）・8項目）と子ノート `crm_history`（履歴管理・6項目）を作成。既存の独自画面「顧客管理」との名前重複を事前検出し、新規標準画面の表示名を区別した。定義は `note-definitions/crm-customers.json` と `note-definitions/crm-history.json`。
+- 子サイドパネル撮影用に架空の顧客を1件登録し、親の検索画面・子サイドパネルを各1枚取得。通常フローの作成後テストは省略。ビルダー成功実行は親12.130秒、子11.573秒。別途、AI検討・名前重複対応・記録を含む経過時間も計測した。本番反映なし。
+
 ## 2026-09-27 Child-note builder workflow
 - Extended dedicated Standard Screen creation guidance to new child notes under an existing independent search/list parent. The definition declares the parent and side-panel fields; an existing parent record is selected for the single screenshot. Normal completion uses preflight and insert acknowledgements, with no data seeding or post-build tests.
 - Standard Screen, DB, CLI, Playwright and Side Panel Skills now share this exception. Builder development verified parent resolution, automatic parent ID fields, cascade/menu/icon settings, failure cases and settled side-panel capture/retry; the temporary child was removed without altering parent records. No production release.

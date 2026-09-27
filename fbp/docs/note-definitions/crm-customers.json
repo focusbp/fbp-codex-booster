@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "note": {
+    "name": "crm_customers",
+    "title": "顧客管理（標準）"
+  },
+  "fields": [
+    {
+      "name": "name",
+      "title": "顧客名",
+      "type": "text",
+      "max_chars": 150,
+      "required": true
+    },
+    {
+      "name": "contact_name",
+      "title": "担当者名",
+      "type": "text",
+      "max_chars": 100
+    },
+    {
+      "name": "email",
+      "title": "メールアドレス",
+      "type": "text",
+      "length": 255,
+      "format_check": "email"
+    },
+    {
+      "name": "phone",
+      "title": "電話番号",
+      "type": "text",
+      "max_chars": 30
+    },
+    {
+      "name": "address",
+      "title": "住所",
+      "type": "text",
+      "max_chars": 200
+    },
+    {
+      "name": "status",
+      "title": "取引状況",
+      "type": "dropdown",
+      "options": {
+        "0": "見込み",
+        "1": "取引中",
+        "2": "休止"
+      }
+    },
+    {
+      "name": "registered_on",
+      "title": "登録日",
+      "type": "date"
+    },
+    {
+      "name": "memo",
+      "title": "メモ",
+      "type": "textarea",
+      "max_chars": 1000
+    }
+  ],
+  "screens": {
+    "list": [
+      "name",
+      "contact_name",
+      "email",
+      "phone",
+      "status"
+    ],
+    "search": [
+      "name",
+      "contact_name",
+      "status"
+    ],
+    "delete": [
+      "name",
+      "contact_name"
+    ]
+  }
+}

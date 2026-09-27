@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "note": {
+    "name": "crm_history",
+    "title": "履歴管理",
+    "parent": "crm_customers",
+    "list_width": 900,
+    "cascade_delete": true
+  },
+  "fields": [
+    {
+      "name": "contact_date",
+      "title": "対応日",
+      "type": "date",
+      "required": true
+    },
+    {
+      "name": "subject",
+      "title": "件名",
+      "type": "text",
+      "max_chars": 150,
+      "required": true
+    },
+    {
+      "name": "method",
+      "title": "対応方法",
+      "type": "dropdown",
+      "options": {
+        "0": "面談",
+        "1": "電話",
+        "2": "メール",
+        "3": "その他"
+      }
+    },
+    {
+      "name": "staff",
+      "title": "対応者",
+      "type": "text",
+      "max_chars": 100
+    },
+    {
+      "name": "result",
+      "title": "対応状況",
+      "type": "dropdown",
+      "options": {
+        "0": "対応中",
+        "1": "完了",
+        "2": "次回対応待ち"
+      }
+    },
+    {
+      "name": "detail",
+      "title": "内容",
+      "type": "textarea",
+      "max_chars": 2000
+    }
+  ],
+  "screens": {
+    "list_on_side": [
+      "contact_date",
+      "subject",
+      "method",
+      "staff",
+      "result"
+    ],
+    "search": [
+      "subject",
+      "method",
+      "result"
+    ],
+    "delete": [
+      "contact_date",
+      "subject"
+    ]
+  }
+}
