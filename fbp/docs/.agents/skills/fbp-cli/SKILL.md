@@ -15,14 +15,14 @@ description: Execute and verify FBP features through cli.php commands including 
 `fbp-standard-screen` の「専用スクリプトによる新規作成」に該当する場合は、そのフローを優先する。作成前チェックと構築、検索画面（子ノートはサイドパネル）のスクリーンショット1枚で完了し、本Skillの通常の初動・作成後確認を重ねない。スクリプトの登録応答による失敗検知は省略しない。既存変更・通常の手作業・本番リリース判断にはこの例外を適用しない。
 
 ## workflow
-1. 初動3点を確認: `db_schema`, `db_tables_list`, `db_additionals_list`。
+1. 既存ノートが特定できる実装探索は、環境にノートからクラス・関数へ辿る参照専用ツールがあれば先に使う（ローカル環境は `local-main.md`）。対象の設定・入口が得られた場合、初動の全件取得を重ねない。それ以外は必要な範囲で `db_schema`, `db_tables_list`, `db_additionals_list` を確認。
 2. 必要なら `cron_list`, `webhook_rule_list`, `embed_app_list` を確認。
 3. 一括投入は「1コマンド1JSON」で実行し、各ステップの必須キーを事前検証してから流す。
 4. 実装後は `app_call` で生レスポンス、`app_check` で期待値検証。
 5. 更新系は `data_get` / `data_list` で結果を確認。
 
 ## quick commands
-- 迷ったら対象アプリの `cli.php` で `db_schema` / `db_tables_list` / `db_additionals_list` をまとめて確認する。
+- ノート起点で解決できない場合は、対象アプリの `cli.php` で必要な `db_schema` / `db_tables_list` / `db_additionals_list` をまとめて確認する。
 - 画面の生レスポンス確認:
   `php <app-root>/fbp/cli.php app_call --json='{"class":"setting","function":"page"}'`
 - 期待値検証:
