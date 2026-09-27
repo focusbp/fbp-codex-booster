@@ -1,5 +1,9 @@
 # app-framework5 History
 
+## 2026-09-27 名刺管理ノート
+- 専用ビルダーでテスト環境に `business_cards`（名刺管理）を作成。氏名・会社名・部署・役職・メールアドレス・電話番号・住所・名刺交換日・メモを登録し、検索＋一覧の標準画面を構築した。定義は `note-definitions/business-cards.json`。
+- 作成前チェックと登録成功、検索画面のスクリーンショット1枚取得で完了。作成後テスト・サンプルデータ投入・本番反映は行っていない。
+
 ## 2026-09-27 Standard Screen builder workflow
 - Standard Screen, DB, CLI and Playwright Skills now prefer the environment's validated create-only builder for supported new search/list notes. Normal completion is strict preflight, configuration creation and one search-screen screenshot; post-build checks and CRUD tests are omitted. Existing-note changes and unsupported features retain the ordinary workflow.
 - Builder development checks cover supported field storage, invalid-input rejection, failure receipts, target collisions and screenshot capture/retry. No framework runtime or production deployment was changed.
