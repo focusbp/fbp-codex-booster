@@ -1,5 +1,9 @@
 # app-framework5 History
 
+## 2026-09-27 Child-note builder workflow
+- Extended dedicated Standard Screen creation guidance to new child notes under an existing independent search/list parent. The definition declares the parent and side-panel fields; an existing parent record is selected for the single screenshot. Normal completion uses preflight and insert acknowledgements, with no data seeding or post-build tests.
+- Standard Screen, DB, CLI, Playwright and Side Panel Skills now share this exception. Builder development verified parent resolution, automatic parent ID fields, cascade/menu/icon settings, failure cases and settled side-panel capture/retry; the temporary child was removed without altering parent records. No production release.
+
 ## 2026-09-27 名刺管理ノート
 - 専用ビルダーでテスト環境に `business_cards`（名刺管理）を作成。氏名・会社名・部署・役職・メールアドレス・電話番号・住所・名刺交換日・メモを登録し、検索＋一覧の標準画面を構築した。定義は `note-definitions/business-cards.json`。
 - 作成前チェックと登録成功、検索画面のスクリーンショット1枚取得で完了。作成後テスト・サンプルデータ投入・本番反映は行っていない。
