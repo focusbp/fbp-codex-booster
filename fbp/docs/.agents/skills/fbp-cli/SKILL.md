@@ -18,8 +18,8 @@ description: Execute and verify FBP features through cli.php commands including 
 1. 既存ノートが特定できる実装探索は、環境にノートからクラス・関数へ辿る参照専用ツールがあれば先に使う（ローカル環境は `local-main.md`）。対象の設定・入口が得られた場合、初動の全件取得を重ねない。それ以外は必要な範囲で `db_schema`, `db_tables_list`, `db_additionals_list` を確認。
 2. 必要なら `cron_list`, `webhook_rule_list`, `embed_app_list` を確認。
 3. 一括投入は「1コマンド1JSON」で実行し、各ステップの必須キーを事前検証してから流す。
-4. 実装後は `app_call` で生レスポンス、`app_check` で期待値検証。
-5. 更新系は `data_get` / `data_list` で結果を確認。
+4. 実装後は変更した結果を確認する最小の方法を選ぶ。`app_call` / `app_check` / 関連する既存テストのすべてを機械的に実行しない。ブラウザ等で同じ期待値を確認済みなら重ねない。
+5. 更新結果が応答や既存検証だけでは分からない場合に `data_get` / `data_list` で必要な項目を確認する。画面操作を変えない内部処理にスクリーンショットを要求しない。
 
 ## quick commands
 - ノート起点で解決できない場合は、対象アプリの `cli.php` で必要な `db_schema` / `db_tables_list` / `db_additionals_list` をまとめて確認する。

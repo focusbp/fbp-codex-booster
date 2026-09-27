@@ -11,6 +11,13 @@ description: Verify new FBP screens and user operations, visual changes, and cha
 
 `fbp-standard-screen` の専用構築フローでは、検索・一覧画面（子ノートは指定した既存親レコードのサイドパネル）のスクリーンショット1枚だけを取得して完了する。以下の代表操作・CRUD・検索・複数端末・追加のブラウザー確認は重ねない。撮影に必要なログイン・対象画面の描画待ちは行う。スクリプト自体の開発・変更時の検証は別扱いとする。
 
+### 検証と証憑の最小単位
+
+- 代表操作1本または変更箇所の目視確認を基本とし、その結果で確認できた内部処理をCLIで重ねて証明しない。認証・権限・決済等を変えた場合は重要な拒否・失敗条件も確認する。
+- 操作確認と画像取得は別。見た目の変更がなければ操作結果の短い説明でよく、画像は必須ではない。見た目変更の画像は影響する状態の1枚を基本とし、全画面・全操作の証憑を作らない。
+- PC/スマホ両方は両対応の新規画面、レスポンシブ、端末依存操作の変更時に確認する。既存の片側だけの修正は影響側に絞る。必要な確認が通ったら終了し、新しい懸念なく追加試験・再撮影をしない。
+- 最終報告の確認内容と結果を基本の証憑とする。画像なしが適切な変更に「画像を撮れない理由」や代替証憑の専用報告を要求しない。単発の軽微な変更で永続テスト・handoffの新設を必須にしない。
+
 ### When to run
 
 変更したファイルの種類ではなく、利用者の画面・操作への影響で判断する。
@@ -62,8 +69,8 @@ const browser = await chromium.launch({
    `PLAYWRIGHT_TEST_BASIC_AUTH_PASSWORD` as `httpCredentials`. Do not substitute the app's FBP
    login ID/password for HTTP Basic authentication, and do not write either credential into a
    script, manifest, doc, or final answer.
-4. Save screenshots under `/home/nakama/Screenshot/<appcode>/`, using clear filenames.
-5. Use `page.screenshot({ path, fullPage: true })` by default.
+4. When images are needed, save them under `/home/nakama/Screenshot/<appcode>/`, using clear filenames.
+5. For required images, use `page.screenshot({ path, fullPage: true })` by default. Operation-only checks need no screenshot.
 6. Always print relevant DOM metrics for layout bugs, such as rendered width, `data-*`
    attributes, `scrollWidth`, and `clientWidth`.
 7. Keep any temporary Playwright script or test output under `~/scripts/tmp/...`, never under
@@ -203,5 +210,5 @@ PDFの新規の表示・取得機能、表示ダイアログのデザイン、�
 
 再利用可能な2方式の実装とブラウザーテストは `../fbp-app-samples/references/pdf-delivery.md` を参照。
 
-After running, inspect the image with `view_image` when visual quality matters. Include the
-absolute screenshot path and the key measured metrics in the final response.
+When visual quality matters, inspect the required image with `view_image`. Report the result
+briefly; include an image path or measured metric only when it helps assess the requested change.
