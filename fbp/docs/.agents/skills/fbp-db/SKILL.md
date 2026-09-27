@@ -11,6 +11,10 @@ description: Manage the FBP DB lifecycle from CLI-based table/field design throu
 - サイドパネル用の `list_width`、親子関係、`list_on_side` を設定する場合は `fbp-side-panel` も使う
 - DB変更時の画面反映漏れを防ぎたい
 
+## 専用構築フローの検証例外
+
+`fbp-standard-screen` の「専用スクリプトによる新規作成」に該当する場合は、そのフローを優先する。作成前チェックと構築、検索画面のスクリーンショット1枚で完了し、本Skillの通常の初動・作成後確認を重ねない。スクリプトの登録応答による失敗検知は省略しない。既存変更・通常の手作業・本番リリース判断にはこの例外を適用しない。
+
 ## workflow
 1. `db_schema` と `db_tables_list` で現状確認。
 2. `db_tables_*` / `db_fields_*` でスキーマ変更。新規ノートでは `screen_build_type` を先に決める。

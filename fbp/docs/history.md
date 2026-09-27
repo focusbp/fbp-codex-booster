@@ -1,5 +1,9 @@
 # app-framework5 History
 
+## 2026-09-27 Standard Screen builder workflow
+- Standard Screen, DB, CLI and Playwright Skills now prefer the environment's validated create-only builder for supported new search/list notes. Normal completion is strict preflight, configuration creation and one search-screen screenshot; post-build checks and CRUD tests are omitted. Existing-note changes and unsupported features retain the ordinary workflow.
+- Builder development checks cover supported field storage, invalid-input rejection, failure receipts, target collisions and screenshot capture/retry. No framework runtime or production deployment was changed.
+
 ## 2026-09-27 Scoped integration settings
 - Added a signed/CLI settings endpoint for seven service groups, secret-free registration state, test-derived external-key catalog, scoped set/clear and idempotent apply receipts. No provider connection or credential preflight checks. Existing storage formats remain unchanged.
 - Masked system-setting secrets in operation logs and excluded raw setting snapshots. Environment-specific queue/receipt data is excluded from release archives. Verified real test-runtime storage, isolation, retry/conflict handling and consuming application's worker/UI flows. Test environments synchronized; no production release.

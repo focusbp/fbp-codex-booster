@@ -10,6 +10,10 @@ description: Execute and verify FBP features through cli.php commands including 
 - `app_call` / `app_check` で画面導線を検証したい
 - `db_*` / `data_*` / `cron_list` 等の状態確認をしたい
 
+## 専用構築フローの検証例外
+
+`fbp-standard-screen` の「専用スクリプトによる新規作成」に該当する場合は、そのフローを優先する。作成前チェックと構築、検索画面のスクリーンショット1枚で完了し、本Skillの通常の初動・作成後確認を重ねない。スクリプトの登録応答による失敗検知は省略しない。既存変更・通常の手作業・本番リリース判断にはこの例外を適用しない。
+
 ## workflow
 1. 初動3点を確認: `db_schema`, `db_tables_list`, `db_additionals_list`。
 2. 必要なら `cron_list`, `webhook_rule_list`, `embed_app_list` を確認。

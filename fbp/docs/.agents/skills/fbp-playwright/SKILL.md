@@ -7,6 +7,10 @@ description: Verify new FBP screens and user operations, visual changes, and cha
 
 ## Core rule
 
+### 専用スクリプトによる標準画面作成
+
+`fbp-standard-screen` の専用構築フローでは、検索・一覧画面のスクリーンショット1枚だけを取得して完了する。以下の代表操作・CRUD・検索・複数端末・追加のブラウザー確認は重ねない。撮影に必要なログイン・対象画面の描画待ちは行う。スクリプト自体の開発・変更時の検証は別扱いとする。
+
 ### When to run
 
 変更したファイルの種類ではなく、利用者の画面・操作への影響で判断する。
