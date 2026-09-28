@@ -19,7 +19,6 @@
 								<span class="base-empty-main-card-badge">{$item.badge|escape}</span>
 							{/if}
 						</a>
-						{if !empty($item.project_portal_guide)}{include file="project_portal_guide.tpl"}{/if}
 						{else}
 						<button
 							type="button"
@@ -36,7 +35,7 @@
 							{/if}
 						</button>
 						{/if}
-						{if !empty($item.project_portal_guide)}</div>{/if}
+						{if !empty($item.project_portal_guide)}{include file="project_portal_guide.tpl"}</div>{/if}
 					{/foreach}
 				</div>
 			</section>

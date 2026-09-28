@@ -313,7 +313,6 @@ class base {
 
 		if ($can_show_project_portal) {
 			$admin_items[] = [
-				"project_portal_guide" => true,
 				"type" => "external",
 				"label" => $ctl->t("base.menu.project_portal"),
 				"url" => $project_portal_url,
@@ -358,6 +357,9 @@ class base {
 				"function" => "page",
 				"attributes" => [],
 			];
+		}
+		if ($can_show_project_portal) {
+			$admin_items[count($admin_items) - 1]["project_portal_guide"] = true;
 		}
 		$ctl->assign("can_show_project_portal", $can_show_project_portal);
 		$ctl->assign("can_show_development_panel", $can_show_development_panel);

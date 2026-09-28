@@ -29,7 +29,6 @@
 		{/if}
 		{if $can_show_project_portal}
 			<a href="{$project_portal_url|escape}" target="_blank" rel="noopener">{$base_menu_i18n.project_portal}</a>
-			{include file="project_portal_guide.tpl"}
 		{/if}
 		{if $can_show_development_panel}
 			<a class="ajax-link lang" data-class="panel" data-function="page">{$base_menu_i18n.development_panel}</a>
@@ -42,6 +41,9 @@
 		{/if}
 		{if $can_show_system_setting}
 			<a class="ajax-link lang" data-class="setting" data-function="page">{$base_menu_i18n.system_setting}</a>
+		{/if}
+		{if $can_show_project_portal}
+			{include file="project_portal_guide.tpl"}
 		{/if}
 
 	</div>
