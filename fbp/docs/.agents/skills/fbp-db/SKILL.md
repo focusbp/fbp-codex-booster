@@ -1,6 +1,6 @@
 ---
 name: fbp-db
-description: Manage the FBP DB lifecycle from CLI-based table/field design through release of DB definitions, automatic production data-file creation and format updates, relations, field length policy, and screen_fields reflection.
+description: Manage the FBP DB lifecycle, schema and screen reflection, and application concurrency using fixed_file_manager. Use for DB design, definition release, exclusive access, duplicate prevention, and deadlock investigation; application-owned flock is prohibited.
 ---
 
 # fbp-db
@@ -10,6 +10,19 @@ description: Manage the FBP DB lifecycle from CLI-based table/field design throu
 - 親子relation、`screen_build_type`、`list_type`、manual sortの設定が必要
 - サイドパネル用の `list_width`、親子関係、`list_on_side` を設定する場合は `fbp-side-panel` も使う
 - DB変更時の画面反映漏れを防ぎたい
+- アプリの排他制御・二重登録防止・デッドロックを実装または調査する
+
+## アプリの排他制御
+
+- アプリコードで独自の `flock()` を実装しない。独自ロックファイルやラッパー経由でも同じ。排他制御は `fixed_file_manager`（通常は `$ctl->db()`）へ統一する。この禁止はアプリ層が対象で、FFM内部のロック実装を削除・置換する指示ではない。
+- 通常のFFMはコンストラクタでDBファイルの排他ロックを取得する。`read_only` は共有ロックなので、判定と更新を排他にする用途には使わない。ロック単位はレコードや店舗IDではなく実際の `.dat` ファイル。同じファイルを使う処理同士で排他になる。
+- FFMはDBファイルをパス順にロックする。順序が逆転する追加オープンでは、保持中のDBロックをいったんすべて解除して順番に取得し直す。独自の `flock` はこの管理外なので、混在させると循環待ちを作る。
+- 判定・更新に使うDBは、関連ヘルパーが開くDBも含めて先にすべて開く。その後に最新データを読み、重複・残数・移行済みなどの判定と更新を行う。DB追加オープン前に読んだ値を、排他中の確定値として使わない。
+- 排他区間中に新しいDBを開く、DBを閉じる・再オープンする、形式変更する経路を残さない。これらが必要なら区間を組み直し、ロック取得後に再読込・再判定する。外部API送信など取り消せない副作用は、単なる再実行で重複しないよう別途設計する。
+- 専用のFFMを排他用に使う場合も、全参加処理が同じ実ファイルを使い、事前オープンと保持期間を揃える。専用FFMを1つ開くだけでは処理全体の排他を保証しない。任意のDBを処理途中で追加できる汎用mutexの代用品とは扱わない。
+- `$ctl->db()` のインスタンスを閉じる場合は `$ctl->close_db_by_ffm()` 等のController APIを使い、FFMを直接閉じない。
+- FFMの排他は複数DB更新のロールバックやクラッシュ時の一括原子性を提供しない。現行のロック待機にも自動タイムアウトを期待しない。必要な要件を満たせない場合は、アプリ独自ロックを追加せず共通FFM側の対応として検討する。
+- 排他に関わる変更では、別プロセスの同時実行で待ち合い・二重登録・更新取りこぼしがないことを確認する。逐次テストだけで排他の検証完了としない。
 
 ## 専用構築フローの検証例外
 
