@@ -19,12 +19,7 @@ description: Configure email_format templates and implement prepared-format emai
 ## attachments
 - 添付ファイルは従来どおり保存パス文字列で指定できる。この場合、メール上の添付名は保存ファイル名（例: `upload_file_17`）になる。
 - メール上の添付ファイル名を指定したい場合は、添付指定を `["path" => "<saved_path>", "name" => "<download_name>"]` にする。複数添付ではこの配列を並べる。
-- 例:
-```php
-$ctl->send_mail_prepared_format($to, "format_key", [
-    ["path" => $saved_path, "name" => "契約書.pdf"],
-]);
-```
+- 添付名指定のコード例は必要時に [references/prepared-attachments.md](references/prepared-attachments.md) を読む。
 - `path` は `classes/data/upload/` 配下の保存パスを指定する。絶対パスやURLは渡さない。
 
 ## constraints

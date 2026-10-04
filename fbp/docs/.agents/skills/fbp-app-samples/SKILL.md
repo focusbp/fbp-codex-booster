@@ -13,6 +13,10 @@ When creating a new reusable sample from an existing app or feature, read `refer
 
 ## Samples
 
+用途別サンプル取得ツールが環境にある場合は、まず必要なコードと関連ファイルの索引を取得する。
+確認状態と正本の変更検知を確認し、未確認の動作を検証済みと扱わない。
+取得後もテンプレート・DB定義などの依存部分を含めて適応する。
+
 - **定番業務機能**: [references/workflow-samples.md](references/workflow-samples.md) から必要な機能を選ぶ。`install_workflow_sample.php` でコード配置とテスト環境の定義登録を分け、データを自動投入しない。
   - **Parent/Child History** (`parent-child-history`): Standard Screenの顧客一覧と対応履歴サイドパネル。[フロー](references/parent-child-history.md)・[DB](references/parent-child-history-db.md)。
   - **Status Transition** (`status-transition`): 理由付き確認、未対応→対応中→完了、状態と履歴の同時更新、古い確認・二重送信の拒否。[フロー](references/status-transition.md)・[DB](references/status-transition-db.md)。
