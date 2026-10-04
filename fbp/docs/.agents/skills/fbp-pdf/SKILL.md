@@ -22,6 +22,8 @@ description: Implement and repair FBP PDF display/download flows by applying the
 
 ## サンプル適用（新規・取得経路の修正で必須）
 
+管理側の実装例取得は、環境に `fbp_example.sh` がある場合は `fbp_example.sh pdf-export` を横断検索より先に使う（配置は環境ルール参照）。テンプレートは `--part download-template` / `--part error-template`、説明は `--part guide`、省略は `--offset` で補う。取得済みの原文範囲は再読不要だが、下記の必要資産・認証・実ボタン検証は省略しない。公開側やツールのない環境では下記の正本を直接読む。
+
 - 管理側では **fbp-app-samples 配下**の `references/admin-pdf-delivery.md`、`assets/admin-pdf-delivery/pdf_delivery_admin/pdf_delivery_admin.php` と `Templates/download.tpl` / `error.tpl`、`scripts/verify_admin_pdf_delivery.cjs` を実際に読む。ダイアログと出力関数を一組でコピー・適応し、固定本文を業務データへ置き換え、取得時の権限確認と実ボタン検証を適用する。配置には `scripts/install_admin_pdf_delivery.php` を使える。
 - 公開側では同referenceに加え、`assets/pdf-delivery/public_pages/public_pages.php` と採用する方式の `.tpl`、`scripts/verify_pdf_delivery.cjs` を **fbp-app-samples 配下から実際に読む**。認証付きの場合は `pdf_delivery_access.php` と `scripts/test_pdf_delivery.php` も読む。説明の参照だけで適用済みにしない。
 - 該当方式のコードを出発点としてコピー・適応する。既存 `public_pages` 全体は上書きせず、必要な関数・テンプレートを統合する。取得方式・認証チェック・エラー応答・後片付け・検証を一組で適用する。帳票本文だけの変更には取得経路の移行を要求しない。

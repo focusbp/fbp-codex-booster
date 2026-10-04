@@ -11,6 +11,8 @@ description: Implement and verify CSV export/import in FBP, including authentica
 - 保存済みの画像・動画・一般ファイルの配信は [fbp-media](../fbp-media/SKILL.md) を使う。
 
 ## workflow
+管理CSV出力の実装例が必要なら、環境に `fbp_example.sh` がある場合は `fbp_example.sh csv-export` を横断検索より先に使う（配置は環境ルール参照）。クラス外枠が必要な場合だけ `--part full-source` を追加する。ない環境では [customers_csv](../fbp-customer-demo/assets/customer-management/classes/app/customers_csv/customers_csv.php) の該当箇所を読む。取得済みの範囲は読み直さず、以下の認証・出力・検証ルールを適用する。この例は出力用であり、CSV取込の例として扱わない。
+
 1. 管理側CSVは通常のログイン認証を通す。クラスの既定の認証を維持し、ダウンロードのために `set_check_login(false)` を追加しない。出力対象のノート・レコード権限も確認する。
 2. CSVダウンロードは `res_csv()` でヘッダ行 + データ行を返す。
 3. CSVアップロードは `fields_form_original type="file"` + `upload_exe` で実装する。入力エラーは `res_error_message()` で返して即 `return` する。
