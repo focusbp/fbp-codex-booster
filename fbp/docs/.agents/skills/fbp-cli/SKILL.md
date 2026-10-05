@@ -22,6 +22,9 @@ description: Execute and verify FBP features through cli.php commands including 
 5. 更新結果が応答や既存検証だけでは分からない場合に `data_get` / `data_list` で必要な項目を確認する。画面操作を変えない内部処理にスクリーンショットを要求しない。
 
 ## quick commands
+- ヘルパー関数単位の入出力確認が必要なら、一時PHPや `php -r` の依存読込みを自作する前に `method_call` を使う。追加検証自体が不要なら実行しない。詳細は [関数単位の確認](references/method-call.md)。
+- private/protected/staticを含む関数の戻り値と期待値:
+  `php <app-root>/fbp/cli.php method_call --json='{"class":"helper","function":"format","args":[3661],"expect":"1.01.01"}'`
 - ノート起点で解決できない場合は、対象アプリの `cli.php` で必要な `db_schema` / `db_tables_list` / `db_additionals_list` をまとめて確認する。
 - 画面の生レスポンス確認:
   `php <app-root>/fbp/cli.php app_call --json='{"class":"setting","function":"page"}'`
