@@ -1,4 +1,6 @@
 {
+  "setting.not_found_page": "404页面",
+  "setting.not_found_page.help": "留空时使用默认404。请指定无需登录、仅显示页面的Class和Function。",
   "base.app_name": "FOCUS 商务平台",
   "base.tagline": "把精力放在更重要的事情上。",
   "base.dev_mode": "开发模式",

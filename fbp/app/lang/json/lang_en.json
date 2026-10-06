@@ -1,4 +1,6 @@
 {
+  "setting.not_found_page": "404 Page",
+  "setting.not_found_page.help": "Leave blank for the default 404. Specify a public, display-only Class and Function.",
   "base.app_name": "FOCUS Business Platform",
   "base.tagline": "Focus on more important things.",
   "base.dev_mode": "DEV MODE",

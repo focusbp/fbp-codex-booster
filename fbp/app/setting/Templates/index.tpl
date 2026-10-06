@@ -133,6 +133,15 @@
 							<td><input type="text" name="rewrite_rule_function" value="{$setting.rewrite_rule_function}"></td>
 						</tr>
 						<tr>
+							<th rowspan="2">{t key="setting.not_found_page"}</th>
+							<td>Class:</td>
+							<td><input type="text" name="not_found_class" value="{$setting.not_found_class|default:''|escape}" placeholder="public_pages"></td>
+						</tr>
+						<tr>
+							<td>Function:</td>
+							<td><input type="text" name="not_found_function" value="{$setting.not_found_function|default:''|escape}" placeholder="not_found"><br><small>{t key="setting.not_found_page.help"}</small></td>
+						</tr>
+						<tr>
 							<th>{t key="setting.ssl_section"}</th>
 							<td>{t key="setting.ssl"}</td>
 							<td>{html_options name="ssl" options=$arr_ssl selected=$setting.ssl}</td>

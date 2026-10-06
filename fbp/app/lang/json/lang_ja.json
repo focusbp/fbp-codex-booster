@@ -1,4 +1,6 @@
 {
+  "setting.not_found_page": "404ページ",
+  "setting.not_found_page.help": "未設定時は標準404。ログイン不要の表示用Class・Functionを指定してください。",
   "base.app_name": "FOCUS Business Platform",
   "base.tagline": "Focus on more important things.",
   "base.dev_mode": "開発モード",

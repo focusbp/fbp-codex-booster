@@ -511,6 +511,40 @@ class Controller_class implements Controller {
 		}
 	}
 
+	/** Display the configured public 404 page and end the HTTP response. */
+	function res_not_found(): void {
+		require_once __DIR__ . '/NotFoundResponse.php';
+		$setting = $this->get_setting();
+		$this->close_all_db();
+		NotFoundResponse::send($setting, function ($class, $function) use ($setting) {
+			$file = $this->dirs->get_class_dir($class) . '/' . $class . '.php';
+			require_once $file;
+			$reflection = new ReflectionClass($class);
+			$method = $reflection->getMethod($function);
+			if (!$reflection->isInstantiable() || !$method->isPublic() || $method->isStatic()
+				|| $method->getNumberOfRequiredParameters() > 1) {
+				throw new RuntimeException('Invalid 404 handler');
+			}
+			$smarty = clone $this->smarty;
+			$target = new self($class, $smarty);
+			$target->set_windowcode($this->get_windowcode());
+			$target->set_session('setting', $setting);
+			$target->set_called_function($function);
+			$target->set_userdir($this->dirs->appdir_user);
+			$target->set_check_login(true);
+			$smarty->assign('_ctl', $target);
+			$smarty->assign('ctl', $target);
+			$constructor = $reflection->getConstructor();
+			$app = $constructor && $constructor->getNumberOfParameters() > 0
+				? $reflection->newInstance($target) : $reflection->newInstance();
+			// Never bypass management authentication, even for a logged-in visitor.
+			if ($target->get_check_login() || $target->flg_stop_executing_function) {
+				throw new RuntimeException('404 handler must be public');
+			}
+			$method->invoke($app, $target);
+		}, (string) ($this->class ?? $_REQUEST['class'] ?? ''));
+	}
+
 	function show_public_pages($contents_template, $header_template = null, $contents_header_template = null, $contents_footer_template = null, $options = array()) {
 		$options = is_array($options) ? $options : array();
 		$css_mode = trim((string) ($options["css_mode"] ?? $options["asset_mode"] ?? $options["header_mode"] ?? ""));

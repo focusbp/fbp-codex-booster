@@ -1,6 +1,8 @@
 id,24,N
 rewrite_rule_root,100,T
 rewrite_rule_function,100,T
+not_found_class,100,T
+not_found_function,100,T
 vimeo_client_id,50,T
 vimeo_client_secret,150,T
 vimeo_access_token,50,T

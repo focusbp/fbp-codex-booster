@@ -1,6 +1,8 @@
 <?php
 
 interface ctl_ui {
+	/** Render the configured public 404 handler and terminate the response. */
+	public function res_not_found(): void;
 
 	/**
 	 * Embeds data into a Smarty template. For example, calling $ctl->assign("name", "Masaru Nakama")

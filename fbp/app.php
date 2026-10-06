@@ -803,9 +803,13 @@ function class_file_exists(string $class, Dirs $dir): bool {
 }
 
 function respond_not_found(): void {
-	header("HTTP/1.1 404 Not Found");
-	header("Content-Type: text/plain; charset=UTF-8");
-	echo "Not Found";
+	global $ctl, $smarty, $setting;
+	if (!($ctl instanceof Controller_class)) {
+		$ctl = new Controller_class(null, $smarty);
+		$ctl->set_windowcode('WID_404');
+		$ctl->set_session('setting', $setting);
+	}
+	$ctl->res_not_found();
 }
 
 function check_url_windowcode(){
