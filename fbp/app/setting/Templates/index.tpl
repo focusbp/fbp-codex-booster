@@ -455,6 +455,9 @@
 							<td><input type="password" name="vimeo_access_token" value="" placeholder="{$masked_setting.vimeo_access_token}"></td>
 						</tr>
 					</table>
+					<div class="setting_tab_actions">
+						<button type="button" class="ajax-link" data-class="setting" data-function="vimeo_connection_test" data-form="setting_form">{t key="setting.vimeo_test"}</button>
+					</div>
 				</div>
 			</div>
 

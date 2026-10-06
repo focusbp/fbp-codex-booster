@@ -568,6 +568,64 @@ class setting {
 		$ctl->show_square_dialog("setting", "pay", $callback_parameter_array);
 	}
 
+
+	function vimeo_connection_test(Controller $ctl) {
+		$setting = $this->ffm->get(1);
+		$token = trim((string) $ctl->POST("vimeo_access_token"));
+		if ($token === "") {
+			$token = trim((string) ($setting["vimeo_access_token"] ?? ""));
+		}
+		if ($token === "") {
+			$ctl->show_notification_text($ctl->t("setting.vimeo_test_missing"));
+			return;
+		}
+		try {
+			$user = $this->request_vimeo_connection_test($token, "/me?fields=uri");
+			if (empty($user["uri"])) {
+				throw new RuntimeException("Invalid user response");
+			}
+			$verified = $this->request_vimeo_connection_test($token, "/oauth/verify");
+			$scope = $verified["scope"] ?? null;
+			if (!is_string($scope)) {
+				throw new RuntimeException("Invalid scope response");
+			}
+			$scopes = preg_split('/[\s,]+/', trim($scope));
+			$ctl->assign("vimeo_permissions", [
+				"upload" => in_array("upload", $scopes, true),
+				"public" => in_array("public", $scopes, true),
+				"private" => in_array("private", $scopes, true),
+			]);
+			$ctl->show_multi_dialog("vimeo_result", "vimeo_result.tpl", $ctl->t("setting.vimeo_test"));
+		} catch (Throwable $e) {
+			$ctl->show_notification_text($ctl->t("setting.vimeo_test_failed") . ": " . $e->getMessage());
+		}
+	}
+
+	private function request_vimeo_connection_test(string $token, string $path): array {
+		$curl = curl_init("https://api.vimeo.com" . $path);
+		curl_setopt_array($curl, [
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_CONNECTTIMEOUT => 10,
+			CURLOPT_TIMEOUT => 30,
+			CURLOPT_HTTPHEADER => ["Authorization: Bearer " . $token, "Accept: application/vnd.vimeo.*+json;version=3.4"],
+		]);
+		$response = curl_exec($curl);
+		$status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+		$errno = curl_errno($curl);
+		curl_close($curl);
+		if ($response === false) {
+			throw new RuntimeException("cURL error (" . $errno . ")");
+		}
+		if ($status < 200 || $status >= 300) {
+			throw new RuntimeException("HTTP " . $status);
+		}
+		$decoded = json_decode($response, true);
+		if (!is_array($decoded) || isset($decoded["error"])) {
+			throw new RuntimeException("Invalid API response");
+		}
+		return $decoded;
+	}
+
 	function openai_connection_test(Controller $ctl) {
 		$setting = $this->ffm->get(1);
 		if (!is_array($setting)) {
