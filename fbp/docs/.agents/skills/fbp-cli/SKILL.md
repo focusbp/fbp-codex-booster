@@ -15,7 +15,7 @@ description: Execute and verify FBP features through cli.php commands including 
 `fbp-standard-screen` の「専用スクリプトによる新規作成」に該当する場合は、そのフローを優先する。作成前チェックと構築、検索画面（子ノートはサイドパネル）のスクリーンショット1枚で完了し、本Skillの通常の初動・作成後確認を重ねない。スクリプトの登録応答による失敗検知は省略しない。既存変更・通常の手作業・本番リリース判断にはこの例外を適用しない。
 
 ## workflow
-1. 既存ノートが特定できる実装探索は、環境にノートからクラス・関数へ辿る参照専用ツールがあれば先に使う（ローカル環境は `local-main.md`）。対象の設定・入口が得られた場合、初動の全件取得を重ねない。それ以外は必要な範囲で `db_schema`, `db_tables_list`, `db_additionals_list` を確認。
+1. 既存ノートが特定できる実装探索は、環境にノートからクラス・関数へ辿る参照専用ツールがあれば先に使う。ノート不明で文言やキーワードから探す場合は、環境に定義・設定・コードの横断検索があれば先に使う（ローカル環境は `local-main.md` の `local-fbp-find`）。対象の設定・入口が得られた場合、初動の全件取得や広範囲検索を重ねない。それらで解決できない範囲だけ `db_schema`, `db_tables_list`, `db_additionals_list` を確認。
 2. 必要なら `cron_list`, `webhook_rule_list`, `embed_app_list` を確認。
 3. 一括投入は「1コマンド1JSON」で実行し、各ステップの必須キーを事前検証してから流す。
 4. 実装後は変更した結果を確認する最小の方法を選ぶ。`app_call` / `app_check` / 関連する既存テストのすべてを機械的に実行しない。ブラウザ等で同じ期待値を確認済みなら重ねない。
@@ -25,7 +25,7 @@ description: Execute and verify FBP features through cli.php commands including 
 - ヘルパー関数単位の入出力確認が必要なら、一時PHPや `php -r` の依存読込みを自作する前に `method_call` を使う。追加検証自体が不要なら実行しない。詳細は [関数単位の確認](references/method-call.md)。
 - private/protected/staticを含む関数の戻り値と期待値:
   `php <app-root>/fbp/cli.php method_call --json='{"class":"helper","function":"format","args":[3661],"expect":"1.01.01"}'`
-- ノート起点で解決できない場合は、対象アプリの `cli.php` で必要な `db_schema` / `db_tables_list` / `db_additionals_list` をまとめて確認する。
+- ノート探索・キーワード横断検索で解決できない範囲は、対象アプリの `cli.php` で必要な `db_schema` / `db_tables_list` / `db_additionals_list` を確認する。
 - 画面の生レスポンス確認:
   `php <app-root>/fbp/cli.php app_call --json='{"class":"setting","function":"page"}'`
 - 期待値検証:
@@ -34,7 +34,8 @@ description: Execute and verify FBP features through cli.php commands including 
   `php <app-root>/fbp/cli.php data_get --json='{"table":"customers","id":1}'`
   `php <app-root>/fbp/cli.php data_list --json='{"table":"customers","max":100}'`
 - HMAC API 経由のデータ更新は、環境固有のクライアント設定に従う。
-- 追加 JSON が必要な場合は、`app_call` / `app_check` の第3引数に `post` / `get` / `files` / `output_file` をそのまま渡す。
+- `fbp_cli_check.sh`ラッパーがある環境では、JSONを `'{...}'`・`--json='{...}'`・`--json '{...}'` の3形式で渡せる。`app_call` / `app_check` / `method_call` は `<class> <function> [追加JSON]` も利用でき、追加JSONに `post` / `get` / `files` / `output_file` 等を渡す。class/functionは位置引数とJSONで重複指定しない。
+- ラッパーの標準画面検査は `standard_screen_check <tb_name>` または `standard_screen_check --json '{"tb_name":"<tb_name>"}'`。ボタン登録等も `db_additionals_add --json '{...}'` 形式に対応する。ラッパーの`--summary`等はコマンド前へ置く。不正JSON・余分な引数は実行前に停止する。CLI本体を直接呼ぶ場合は以下の`--json`形式を使う。
 - ラッパーで足りない CLI はそのまま透過実行できる:
   `php <app-root>/fbp/cli.php cron_list --json='{"id":1}'`
 
