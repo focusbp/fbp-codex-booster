@@ -98,9 +98,12 @@ interface ctl_media {
 	 * @param string $to The recipient's email address.
 	 * @param string $format_key The key to identify the email format.
 	 * @param array|string|null $attachment_files File paths to attach, or attachment specs like ["path" => "...", "name" => "..."]. Optional.
+	 * @param string $default_subject Subject used when the format is created on first use.
+	 * @param string|null $default_template Template file used when the format is created on first use.
+	 * @param array $options sensitive suppresses body logging; throw_on_error reports delivery failures.
 	 * @return void
 	 */
-	function send_mail_prepared_format($to, $format_key, $attachment_files = null);
+	function send_mail_prepared_format($to, $format_key, $attachment_files = null, $default_subject = "", $default_template = null, array $options = []);
 
 	/**
 	 * Retrieves the email body based on the specified format key.

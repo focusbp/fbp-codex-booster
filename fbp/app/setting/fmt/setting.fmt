@@ -13,7 +13,7 @@ square_location_id,100,T
 startup_class1,50,T
 startup_function1,50,T
 smtp_server,255,T
-smtp_port,3,N
+smtp_port,5,N
 smtp_user,255,T
 smtp_password,255,T
 smtp_from,255,T

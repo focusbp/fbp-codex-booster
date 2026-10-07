@@ -2735,7 +2735,7 @@ class Controller_class implements Controller {
 		return $arr;
 	}
 
-	function send_mail_prepared_format($to, $format_key, $attachment_files = null, $default_subject = "", $default_template = null) {
+	function send_mail_prepared_format($to, $format_key, $attachment_files = null, $default_subject = "", $default_template = null, array $options = []) {
 
 		$setting = $this->get_setting();
 		if (empty($setting["smtp_from"])) {
@@ -2765,7 +2765,7 @@ class Controller_class implements Controller {
 
 		$subject = $this->fetch_string($email_format["subject"]);
 		$body = $this->fetch_string($email_format["body"]);
-		$this->send_mail_string(null, $to, $subject, $body, $attachment_files);
+		$this->send_mail_string(null, $to, $subject, $body, $attachment_files, !empty($options["throw_on_error"]), $options);
 	}
 
 	function get_mail_body_prepared_format($format_key) {
@@ -2837,13 +2837,13 @@ class Controller_class implements Controller {
 		return $attachments;
 	}
 
-	function send_mail_string($from, $to, $subject, $body, $attachment_files = null, $throw_on_error = false) {
+	function send_mail_string($from, $to, $subject, $body, $attachment_files = null, $throw_on_error = false, array $options = []) {
 
 		$this->console_log("### MAIL ###");
 		$to_log = is_array($to) ? implode(", ", array_values($to)) : (string) $to;
 		$this->console_log("To:" . $to_log);
 		$this->console_log("Subject:" . $subject);
-		$this->console_log($body);
+		if (empty($options["sensitive"])) $this->console_log($body);
 
 		require_once(dirname(__FILE__) . '/../lib_ext/phpmailer/PHPMailer.php');
 		require_once(dirname(__FILE__) . '/../lib_ext/phpmailer/Exception.php');
