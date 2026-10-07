@@ -2347,6 +2347,8 @@ if ($command === "setting_regenerate_files") {
 		cli_close_all_db();
 		require_once __DIR__ . "/app/setting/setting.php";
 		$ctl = new Controller_class("setting", $smarty);
+		$ctl->set_windowcode("CLI_SETTING_REGENERATE");
+		$_SESSION["CLI_SETTING_REGENERATE"] = [];
 		$handler = new setting($ctl);
 		$values = $handler->api_get_setting($ctl);
 		if (empty($values)) {
