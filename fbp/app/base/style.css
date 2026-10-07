@@ -262,7 +262,14 @@ article {
 
 #menu_area {
 	padding: 0 10px 10px 10px;
-	overflow-y: unset;
+	position: sticky;
+	top: 0;
+	max-height: 100vh;
+	max-height: 100dvh;
+	box-sizing: border-box;
+	overflow-y: auto;
+	overflow-x: hidden;
+	overscroll-behavior: contain;
 	transition: margin-left 0.5s;
 	width: 300px !important;
 	float:left;

@@ -5674,3 +5674,15 @@ function finalizePolling(timeout_handler_class, timeout_handler_function) {
 $(document).on('mousemove keydown click touchstart', function () {
 	polling_startTime = Date.now(); //タイムアウトを更新
 });
+
+// Keep the persistent management menu within the visible viewport.
+function adjust_management_menu_height() {
+    var menu = document.getElementById("menu_area");
+    if (!menu) return;
+    var top = Math.max(0, menu.getBoundingClientRect().top);
+    menu.style.maxHeight = Math.max(0, window.innerHeight - top) + "px";
+}
+$(function () {
+    adjust_management_menu_height();
+    $(window).on("resize.managementMenu scroll.managementMenu", adjust_management_menu_height);
+});
