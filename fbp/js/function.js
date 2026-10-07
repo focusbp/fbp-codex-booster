@@ -5682,6 +5682,7 @@ function adjust_management_menu_height() {
     if (!menu) return;
     var top = Math.max(0, menu.getBoundingClientRect().top);
     menu.style.maxHeight = Math.max(0, window.innerHeight - top) + "px";
+    menu.style.height = menu.style.maxHeight;
     update_menu_scroll_border(menu);
 }
 $(function () {
