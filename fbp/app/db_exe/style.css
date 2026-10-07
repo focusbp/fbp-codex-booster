@@ -226,3 +226,26 @@ tr{
 .row_value_id {
 	white-space: nowrap;
 }
+
+.calendar_day_navigation, .calendar_action_label { display: none; }
+@media (max-width: 767px) {
+	.calendar_search_form .search_form_item { width: 100%; min-width: 0; box-sizing: border-box; }
+	.calendar_search_form .search_date_range, .calendar_search_form .search_datetime_range { flex-direction: column; align-items: stretch !important; }
+	#calendar_area .calendar_week_navigation { display: none; }
+	.calendar_day_navigation { display: flex; gap: 8px; clear: both; padding-top: 10px; }
+	.calendar_day_navigation button { min-height: 44px; flex: 1; }
+	#calendar_area .timezone_area { float: none; margin-top: 8px; }
+	#calendar_area .calendar_datepicker_area { float: none; margin: 10px 0; width: auto; }
+	#calendar_area .calendar .calendar_day_bar { display: none; }
+	#calendar_area .calendar .calendar_selected_day { display: block; width: 100% !important; min-width: 0; }
+	#calendar_area .calendar_box { padding: 8px; min-height: 36px; }
+	.calendar_box .task { padding: 12px; border-radius: 10px; margin: 6px 0; overflow-wrap: anywhere; }
+	.calendar_box .task .controlbox, .calendar_box .task:hover .controlbox {
+		height: auto; display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;
+	}
+	.calendar_box .task .controlbox .handle { display: none; }
+	.calendar_box .task .controlbox button { float: none !important; min-height: 44px; width: auto !important; min-width: 80px; padding: 8px !important; white-space: nowrap; margin: 0 !important; display: inline-flex; align-items: center; gap: 4px; }
+	.calendar_box .task .controlbox button .material-symbols-outlined { width: 24px; flex-shrink: 0; }
+	.calendar_action_label { display: inline; }
+	.calendar_box .task .task_message { line-height: 1.6; }
+}

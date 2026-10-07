@@ -12,7 +12,7 @@
 	<div class="search_box" style="margin:8px 0 14px 0;padding:10px 14px 12px 14px;border:1px solid #d7deea;border-radius:10px;background:#f8fafc;display:flex;flex-direction:column;justify-content:center;">
 		<p style="margin:0 0 8px 0;min-height:18px;display:flex;align-items:center;font-size:13px;line-height:1.2;font-weight:bold;color:#334155;">{t key="db_exe.search_panel_title"}</p>
 		<div class="search_left">
-			<form id="form_{$timestamp}" class="search_form_flex">
+			<form id="form_{$timestamp}" class="search_form_flex calendar_search_form">
 				<input type="hidden" name="db_id" value="{$db_id}">
 				{foreach $search_group as $field}
 					<div class="search_form_item field_type_{$field.type|escape}" data-parameter-name="{$field.parameter_name|escape}" data-parameter-title="{$field.parameter_title|escape}" data-field-type="{$field.type|escape}">
@@ -60,14 +60,22 @@
 		<p><span class="material-symbols-outlined">globe_asia</span><span>{$timezone}</span></p>
 	</div>
 
-	<button class="ajax-link ui-button ui-corner-all change_week_button" data-d="{$time_previous}" data-class="{$class}" data-function="set_datetime" data-db_id="{$db_id}"><span class="material-symbols-outlined">chevron_left</span></button>
-	<button class="ajax-link ui-button ui-corner-all change_week_button" data-d="{$time_today}" data-class="{$class}" data-function="set_datetime" data-db_id="{$db_id}"><span class="material-symbols-outlined">today</span></button>
-	<button class="ajax-link ui-button ui-corner-all change_week_button" data-d="{$time_next}" data-class="{$class}" data-function="set_datetime" data-db_id="{$db_id}"><span class="material-symbols-outlined">chevron_right</span></button>
+	<button class="ajax-link ui-button ui-corner-all change_week_button calendar_week_navigation" data-d="{$time_previous}" data-class="{$class}" data-function="set_datetime" data-db_id="{$db_id}"><span class="material-symbols-outlined">chevron_left</span></button>
+	<button class="ajax-link ui-button ui-corner-all change_week_button calendar_week_navigation" data-d="{$time_today}" data-class="{$class}" data-function="set_datetime" data-db_id="{$db_id}"><span class="material-symbols-outlined">today</span></button>
+	<button class="ajax-link ui-button ui-corner-all change_week_button calendar_week_navigation" data-d="{$time_next}" data-class="{$class}" data-function="set_datetime" data-db_id="{$db_id}"><span class="material-symbols-outlined">chevron_right</span></button>
+
+	<div class="calendar_day_navigation">
+		<button class="ajax-link" data-d="{$time_previous_day}" data-class="{$class}" data-function="set_datetime" data-db_id="{$db_id}">前日</button>
+		<button class="ajax-link" data-d="{$time_today}" data-class="{$class}" data-function="set_datetime" data-db_id="{$db_id}">今日</button>
+		<button class="ajax-link" data-d="{$time_next_day}" data-class="{$class}" data-function="set_datetime" data-db_id="{$db_id}">翌日</button>
+	</div>
 
 	<div class="calendar_datepicker_area">
 		<form id="calendar_datepicer_form_{$timestamp}">
-			<input type="text" name="d" class="datepicker" id="calendar_datepicker" value="{$calendar_datepicker_d}" style="width:120px;">
-			<button class="ajax-link lang" data-form="calendar_datepicer_form_{$timestamp}" data-class="{$class}" data-function="set_datetime" data-db_id="{$db_id}">Jump</button>
+			<input type="hidden" name="class" value="{$class|escape}">
+			<input type="hidden" name="function" value="set_datetime">
+			<input type="hidden" name="db_id" value="{$db_id}">
+			<input type="text" name="d" class="datepicker" id="calendar_datepicker" value="{$calendar_datepicker_d}" style="width:100%;box-sizing:border-box;">
 		</form>
 	</div>
 
@@ -78,7 +86,7 @@
 	<div class="calendar">
 
 		{foreach $calendar_arr as $s}
-			<div class="calendar_day_bar" style="width:calc(100% / 7);">
+			<div class="calendar_day_bar{if $s.timestamp == $calendar_selected_day} calendar_selected_day{/if}" style="width:calc(100% / 7);">
 				<div class="calendar_box days_{$s.w}">
 					<p class="calendar_title"><span class="year">{$s.year}</span><span class="month lang">{$s.month}</span></p><p class="calendar_title"><span class="date">{$s.date}</span><span class="day">（<span class="lang">{$s.day}</span>）</span></p>
 				</div>
@@ -106,6 +114,9 @@
 </div>
 
 <script>
+	$("#calendar_datepicker").off("change.calendarDate").on("change.calendarDate", function () {
+		appcon("app.php", new FormData(this.form));
+	});
 	$(".active_indicator_trigger").on("click", function () {
 		$(".active_indicator").removeClass("indicator_active");
 		$(this).parents(".active_indicator").addClass("indicator_active");

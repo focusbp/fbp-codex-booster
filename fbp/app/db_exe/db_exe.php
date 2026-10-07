@@ -1665,6 +1665,11 @@ class db_exe {
 		if(empty($d)){
 			$d = time();
 		}
+		$selected_day = strtotime(date("Y-m-d", $d));
+		$ctl->assign("calendar_selected_day", $selected_day);
+		$ctl->assign("calendar_datepicker_d", $ctl->create_ValueFormatter()->format_date($selected_day));
+		$ctl->assign("time_previous_day", strtotime("-1 day", $selected_day));
+		$ctl->assign("time_next_day", strtotime("+1 day", $selected_day));
 		$d = $this->get_beginning_week_date($d); //Change to monday of the week
 		$ctl->assign("time_previous",strtotime("previous week",$d));
 		$ctl->assign("time_next",strtotime("next week",$d));
@@ -1785,6 +1790,7 @@ class db_exe {
 			    "date"=>date("d",$target_time),
 			    "day"=>$this->days[$w],
 			    "w" => $w,
+			    "timestamp" => $target_time,
 			    "hours"=>$hours
 			];
 		}

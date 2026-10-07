@@ -1,7 +1,7 @@
 <div class="task active_indicator" data-class="{$class}" data-id="{$row["_id_enc"]}" data-db_id="{$db_id}">
 	<span class="controlbox"><span class="material-symbols-outlined handle" style="width:25px;">drag_pan</span>
-		<button class="ajax-link listbutton" data-class="{$class}" data-function="delete" data-id="{$row["_id_enc"]}" data-db_id="{$db_id}" style="float:right;color:#2d2d2d;margin-right:5px;"><span class="material-symbols-outlined">delete</span></button>
-		<button class="ajax-link listbutton" data-class="{$class}" data-function="edit" data-id="{$row["_id_enc"]}"  data-db_id="{$db_id}" style="float:right;color:#2d2d2d;"><span class="material-symbols-outlined">edit_square</span></button>
+		<button class="ajax-link listbutton" data-class="{$class}" data-function="delete" data-id="{$row["_id_enc"]}" data-db_id="{$db_id}" style="float:right;color:#2d2d2d;margin-right:5px;"><span class="material-symbols-outlined">delete</span><span class="calendar_action_label">削除</span></button>
+		<button class="ajax-link listbutton" data-class="{$class}" data-function="edit" data-id="{$row["_id_enc"]}"  data-db_id="{$db_id}" style="float:right;color:#2d2d2d;"><span class="material-symbols-outlined">edit_square</span><span class="calendar_action_label">編集</span></button>
 	</span>
 	<span class="time">{$row.start_time} - {$row.end_time}</span>
 	<div class="task_message">
