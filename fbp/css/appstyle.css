@@ -2459,3 +2459,7 @@ input[type="time"] {
   margin-left: 8px;     /* 間隔を作る */
   cursor: pointer;
 }
+
+#menu_area.menu_without_scroll, #sidemenu.menu_without_scroll {
+	border-right: 1px solid #ccc;
+}

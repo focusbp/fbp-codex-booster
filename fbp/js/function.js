@@ -2929,6 +2929,8 @@ function sidemenu(classname, html, width, time, from) {
 	// for closing
 	sidemenu_from = from;
 
+	var previousMenu = document.getElementById("sidemenu");
+	if (previousMenu && previousMenu.menuScrollObserver) previousMenu.menuScrollObserver.disconnect();
 	$("#sidemenu").remove();
 
 	var multi_dialog_tag = document.createElement('div');
@@ -2942,6 +2944,7 @@ function sidemenu(classname, html, width, time, from) {
 	$(multi_dialog_tag).css("z-index", "9999999999");
 	$(multi_dialog_tag).css("background", "white");
 	$("#multi_dialog").append(multi_dialog_tag);
+	observe_menu_scroll_border(multi_dialog_tag);
 
 	translate();
 
@@ -5679,8 +5682,22 @@ function adjust_management_menu_height() {
     if (!menu) return;
     var top = Math.max(0, menu.getBoundingClientRect().top);
     menu.style.maxHeight = Math.max(0, window.innerHeight - top) + "px";
+    update_menu_scroll_border(menu);
 }
 $(function () {
     adjust_management_menu_height();
+    observe_menu_scroll_border(document.getElementById("menu_area"));
     $(window).on("resize.managementMenu scroll.managementMenu", adjust_management_menu_height);
 });
+
+function update_menu_scroll_border(menu) {
+    if (!menu) return;
+    menu.classList.toggle("menu_without_scroll", menu.clientHeight > 0 && menu.scrollHeight <= menu.clientHeight);
+}
+function observe_menu_scroll_border(menu) {
+    if (!menu) return;
+    update_menu_scroll_border(menu);
+    menu.menuScrollObserver = new ResizeObserver(function () { update_menu_scroll_border(menu); });
+    menu.menuScrollObserver.observe(menu);
+    if (menu.firstElementChild) menu.menuScrollObserver.observe(menu.firstElementChild);
+}
