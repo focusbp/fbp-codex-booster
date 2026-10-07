@@ -96,8 +96,8 @@ article {
     width: 100%;
     background: #FFF;
     padding-bottom: 20px;
-    border-bottom: 1px #ccc solid;
-    box-shadow: 3px 3px 5px #ccc;
+    border-bottom: none;
+    box-shadow: none;
     height: auto;
     overflow: hidden;
 	margin: 0 0 10px 0;

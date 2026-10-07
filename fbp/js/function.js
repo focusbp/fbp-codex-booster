@@ -2949,11 +2949,9 @@ function sidemenu(classname, html, width, time, from) {
 		var document_width = $(document).width();
 		$(multi_dialog_tag).css("left", document_width + "px");
 		$(multi_dialog_tag).addClass('detect_outside_click').animate({'left': document_width - width + "px"}, time);
-		$(multi_dialog_tag).css("box-shadow", "-5px 0px 5px #CCC");
 	} else {
 		$(multi_dialog_tag).css("left", "-" + width + "px");
 		$(multi_dialog_tag).addClass('detect_outside_click').animate({'left': '0'}, time);
-		$(multi_dialog_tag).css("box-shadow", "5px 0px 5px #CCC");
 	}
 
 }
