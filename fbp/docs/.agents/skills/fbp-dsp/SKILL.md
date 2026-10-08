@@ -22,7 +22,17 @@ Use `fbp/lib/DspPolicyTemplate.php` or CLI `app_call dsp generate_template` with
 Auto Task creation (type 8) has three stages, tracked by existing task/comment history, with no new status flags:
 1. Read-only selection of candidate notes with reasons. Request explicit agreement using the existing customer-response-wait status and TASKEXEC_WAIT_CUSTOMER: true.
 2. After selection is agreed, propose all four operation modes and conditions for the selected notes. Ask unresolved questions. Request agreement using the same existing customer-response-wait status. Explain the existing release-permission checkbox if production release is requested.
-3. Only after both agreements, save confirmed definitions, create PHP, test allow/deny behavior and release under existing code/release permissions. Permissions ON alone, silence, elapsed time and the initial request do not substitute for those two agreements. Already explicit agreements in history need not be repeated.
+3. Only after both agreements, save confirmed definitions, create PHP, test allow/deny behavior and release under existing code/release permissions. Permissions ON alone, silence, elapsed time and a generic initial creation/change request do not substitute for those agreements. Already explicit agreements in history need not be repeated.
+
+For new creation and additions/changes, select the starting stage from explicit evidence in the request and comment history:
+- No clear target note: stage 1, selecting only the necessary scope; do not reselect every note for a small change.
+- Customer explicitly names the note, but the operation/mode/conditions are not settled: stage 2. Present the current and proposed values and relevant access/field effects only for affected operations.
+- Customer explicitly requests concrete note, operation and resulting mode/conditions, or has already agreed to that exact difference: stage 3 for that scope, under existing change/release permissions. Do not ask again for that already explicit instruction. A generic request or permission ON is insufficient.
+- Partial agreement: confirm only the unresolved part. Expanding scope requires confirmation only of the additional part.
+
+Preserve unrelated notes, operations, conditions, exceptions and PHP methods. Add only the selected definition rows; update only the agreed rows/operations. Do not reset all definitions or regenerate unrelated code to repair discrepancies noticed during this task. If a shared helper would change other operations, explain that additional effect and obtain agreement before making it. Report the actual changes and tests/release results. Use the existing customer-response-wait status for unresolved questions, never a new flag.
+
+Examples: “Add DSP to reservations” starts at the reservation policy proposal; “Change reservation Update from owner-or-manager to manager-only” starts at implementation/testing of Update and does not reopen Read or other notes. An unclear request to review access starts at target selection.
 
 Audit (type 9) reads both panel definitions and PHP, including changed/deleted definitions, missing implementations and undefined data paths. It remains read-only and reports discrepancies; it does not automatically update definitions or code.
 
