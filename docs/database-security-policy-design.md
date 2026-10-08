@@ -115,6 +115,8 @@ get_prohibit_new_db(): bool
 
 禁止中は既に開いているDBの取得だけを許可し、未オープンのDBはFFM生成前に例外とする。別クラス・別分割領域のDBも別DBとして判定する。
 
+このフラグは接続状態の固定に使い、通常処理では既存DBへの認可された更新を許可する。DSP判定の実行状態はDspRuntimeが別に管理し、判定中だけFFMの書き込みを禁止する。Controllerを渡した直接のFFM新規生成も接続ガードで拒否する。
+
 ```php
 $previous = $ctl->get_prohibit_new_db();
 $ctl->set_prohibit_new_db(true);

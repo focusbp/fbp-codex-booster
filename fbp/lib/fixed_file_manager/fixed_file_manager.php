@@ -319,6 +319,7 @@ class fixed_file_manager implements FFM {
 	function __construct($filename, $datadir = null, $formatdir = null, array $options = []) {
 
         $this->ctl = $options['controller'] ?? (class_exists('Controller_class', false) ? Controller_class::getInstance() : null);
+        if ($this->ctl !== null && $this->ctl->get_prohibit_new_db()) throw new DspException('db_connections', 'new_ffm_during_guard');
         $this->dsp_channel = $this->ctl !== null ? $this->ctl->get_dsp_channel() : ($options['channel'] ?? 'unknown');
         $this->dsp = $options['dsp'] ?? DspRuntime::resolve((string) $datadir, $filename, $this->ctl, $this->dsp_channel, $options['database_class'] ?? null);
         if ($this->dsp !== null) {
@@ -443,7 +444,7 @@ class fixed_file_manager implements FFM {
 	}
 
 	private function assert_writable(string $operation): void {
-        if ($this->ctl !== null && $this->ctl->get_prohibit_new_db()) throw new DspException('policy_purity', 'write_during_policy');
+        if ($this->dsp_evaluating || DspRuntime::isEvaluating($this->ctl)) throw new DspException('policy_purity', 'write_during_policy');
 		if ($this->read_only) {
 			throw new Exception("Read-only fixed_file_manager cannot " . $operation . " : " . $this->path_dat);
 		}

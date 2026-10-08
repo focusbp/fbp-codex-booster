@@ -4,10 +4,10 @@
   "baseline_commit": "0e793fe0a93c24e6a2b6d3f31a653889937db35b",
   "baseline_ffm_sha256": "582001631fd9b88ca4917588f190c9769f18340b94b0bc308f129cc1c913854b",
   "source_sha256": {
-    "fbp/lib/fixed_file_manager/fixed_file_manager.php": "c3290331375b86b92fe249ebe92f4535fc852d5940d808d1b501f373f7f680d1",
-    "fbp/lib/fixed_file_manager/tests/dsp_matrix.php": "ac33daa6cd14b302e001b543dff24dda8ce1585514c0eabc87e7e9ef17d403d6",
+    "fbp/lib/fixed_file_manager/fixed_file_manager.php": "7c1c93d8ad4c0268482af28d29780897fb00c8f6a3aea17a2b6c28217d6390ae",
+    "fbp/lib/fixed_file_manager/tests/dsp_matrix.php": "aae651eaaacb5f0c301c007e56c65909cea9dfe615a4202e3c4d755b2accf2ca",
     "fbp/lib/Controller_class.php": "6a8225eb50d2c10dbd2bfb969b573be7d2197dbdf03614c93ce861bea31893a0",
-    "fbp/lib/DspRuntime.php": "494fcb35e9f19e9cba48411e65ad46c08bd361485696acd5d630387a039d90f8",
+    "fbp/lib/DspRuntime.php": "281486116bc6c3bc72098118f260df6ce7403afdc34e16cab8ad02771a63fd46",
     "fbp/interface/DspInterface.php": "a102f37b9676c9c3ede044d7bb8b5439db284304f35148ca907c270f235634bc",
     "fbp/app/mcp_server/mcp_server.php": "4cf9c7185c978f667c9400b30f142988deec7faf7eefbf554167465750e86392",
     "fbp/app/release/ReleaseManager.php": "5b788b5cb98bac8c6e3c48ae7b001a9b1990057ab04b3e224340e308cb94ee88"
@@ -30,7 +30,9 @@
   },
   "integration": {
     "app": "app-soshikikaikaku",
-    "checks": 30
+    "checks": 33,
+    "connection_guard_reusable_for_existing_writes": true,
+    "policy_judgment_rejects_dependency_writes": true
   },
   "automation_tests": 62,
   "browser": {

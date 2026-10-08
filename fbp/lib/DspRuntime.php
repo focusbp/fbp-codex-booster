@@ -8,6 +8,11 @@ require_once __DIR__ . '/../interface/DspInterface.php';
 final class DspRuntime {
     private static array $registries = [];
     private static array $loading = [];
+    private static array $evaluating = [];
+
+    public static function isEvaluating(?Controller $ctl): bool {
+        return $ctl !== null && isset(self::$evaluating[spl_object_id($ctl)]);
+    }
 
     public static function channelForEntry(?string $class, string $function): string {
         if ($class === 'mcp_server') return 'mcp';
@@ -64,7 +69,11 @@ final class DspRuntime {
 
     public static function invoke(?Controller $ctl, string $operation, array $target, callable $callback): mixed {
         $previous = $ctl !== null ? $ctl->get_prohibit_new_db() : false;
-        if ($ctl !== null) $ctl->set_prohibit_new_db(true);
+        $key = $ctl !== null ? spl_object_id($ctl) : null;
+        if ($ctl !== null) {
+            $ctl->set_prohibit_new_db(true);
+            self::$evaluating[$key] = (self::$evaluating[$key] ?? 0) + 1;
+        }
         try {
             return $callback();
         } catch (Throwable $e) {
@@ -72,7 +81,10 @@ final class DspRuntime {
             self::record($failure, ['operation' => $operation] + $target);
             throw $failure;
         } finally {
-            if ($ctl !== null) $ctl->set_prohibit_new_db($previous);
+            if ($ctl !== null) {
+                if (--self::$evaluating[$key] === 0) unset(self::$evaluating[$key]);
+                $ctl->set_prohibit_new_db($previous);
+            }
         }
     }
 

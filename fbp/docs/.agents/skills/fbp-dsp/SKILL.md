@@ -51,7 +51,7 @@ For MCP, Controller::get_dsp_mcp_subject() supplies validated call authenticatio
 
 Declare DB dependencies in registry before the target's operation. FFM may reacquire existing locks when adding another DB; do not rely on values read before preopening all dependencies. Policies must only read existing DBs; no DB writes, closes, external calls or new DB opens during judgment.
 
-DspRuntime temporarily enables Controller::set_prohibit_new_db(true) and restores the previous value with finally. Controller::db permits only cached handles during this guard. Controller close APIs and api() also reject lock changes. The guard is a consistency aid, not a sandbox against arbitrary code.
+DspRuntime temporarily enables Controller::set_prohibit_new_db(true) and restores the previous value with finally. Controller::db permits only cached handles during this guard. Controller close APIs and api() also reject lock changes. The connection guard alone permits writes to existing DBs, so it can also be used in normal application critical sections. Separately, DspRuntime tracks active judgments and FFM rejects writes during those judgments, including writes to unprotected dependency DBs. The guard is a consistency aid, not a sandbox against arbitrary code.
 
 FFM internally uses raw records for mutations and queries, applies row visibility before limits, and projects fields at the public boundary. get/get_many reject explicitly requested hidden rows. Scans skip hidden rows. match also requires permission to return id. Check all read APIs, including next/before/match/neighbors/iterate_filter; callbacks must never receive hidden fields.
 

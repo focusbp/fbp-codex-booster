@@ -243,7 +243,7 @@ foreach($methods as $method) foreach($actors as $actor) foreach(range(1,5) as $o
 
 foreach(range(0,9)as $mode)foreach($actors as $actor){
     testCase('errors',compact('mode','actor'),function()use($mode,$actor){
-        $ctl=context($actor,$mode);$ctl->guard=$mode===9;$policy=new MatrixPolicy($ctl,$ctl->channel);
+        $ctl=context($actor,$mode);$policy=new MatrixPolicy($ctl,$ctl->channel);
         if($mode<3){
             global $workspace,$fmt;
             $root=$workspace.'/load-'.$mode.'-'.$actor.'/classes';mkdir($root.'/data/test',0770,true);mkdir($root.'/dsp',0770,true);mkdir($root.'/fmt',0770,true);
@@ -252,6 +252,7 @@ foreach(range(0,9)as $mode)foreach($actors as $actor){
             check(!attempt(fn()=>new fixed_file_manager('sample',$root.'/data/test',$root.'/fmt',['controller'=>$ctl])),'Load error did not stop');return;
         }
         $db=policyFixture('errors',[row(max(1,$ctl->actor),1)],$ctl,$policy);
+        $ctl->guard=$mode===9;
         try{
             $hash=hash_file('sha256',$db->get_path_dat());
             if ($mode === 9) {
