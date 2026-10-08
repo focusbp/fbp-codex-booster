@@ -407,6 +407,8 @@ class mcp_server {
 			return $this->tool_auth_error($ctl, $server, $auth["error"]);
 		}
 		$subject = $this->subject_from_row($auth);
+		$previousSubject = $ctl->get_dsp_mcp_subject();
+		$ctl->set_dsp_mcp_subject($auth);
 		try {
 			if ((int) ($function["requires_confirmation"] ?? 0) === 1 && empty($args["confirm"])) {
 				throw new Exception("This tool requires confirm=true.");
@@ -421,6 +423,8 @@ class mcp_server {
 		} catch (Throwable $e) {
 			$this->safe_log_call($server, $function, $subject, "tools/call", $args, "error", $e->getMessage());
 			return $this->tool_error($e->getMessage());
+		} finally {
+			$ctl->set_dsp_mcp_subject($previousSubject);
 		}
 	}
 

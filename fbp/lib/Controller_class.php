@@ -2,6 +2,7 @@
 
 require_once __DIR__ . "/PollingSecurity.php";
 require_once __DIR__ . "/StandardScreenLayout.php";
+require_once __DIR__ . '/DspRuntime.php';
 
 class Controller_class implements Controller {
 
@@ -41,8 +42,13 @@ class Controller_class implements Controller {
 	private $second_work_area_default_width = null;
 	private $last_ai_completion_response = [];
 	private $db_read_only = false;
+	private bool $prohibit_new_db = false;
+	private string $dsp_channel;
+	private bool $dsp_channel_frozen = false;
+	private ?array $dsp_mcp_subject = null;
 
-	function __construct($class = null, $smarty = null) {
+	function __construct($class = null, $smarty = null, ?string $channel = null) {
+		$this->dsp_channel = $channel ?? (PHP_SAPI === 'cli' ? 'cli' : DspRuntime::channelForEntry($class, ''));
 
 		$this->dirs = new Dirs();
 		$this->smarty = $smarty;
@@ -65,6 +71,7 @@ class Controller_class implements Controller {
 	}
 
 	function api($api_url, $class, $function, $post_arr = []) {
+		$this->assert_db_connections_mutable();
 
 		$post_arr["class"] = $class;
 		$post_arr["function"] = $function;
@@ -185,12 +192,15 @@ class Controller_class implements Controller {
 
 		$key = $ddir . "/" . $name;
 		if (!isset($this->dbarr[$key])) {
+			$this->assert_db_connections_mutable();
 			$read_only = $this->db_read_only;
+			$options = ['read_only' => $read_only, 'controller' => $this, 'channel' => $this->dsp_channel, 'database_class' => $class];
 			try {
-				$ffm = new fixed_file_manager($name, $ddir, $fdir, ["read_only" => $read_only]);
+				$ffm = new fixed_file_manager($name, $ddir, $fdir, $options);
 			} catch (fixed_file_manager_read_only_writable_open_required $e) {
 				// Initial creation and format conversion require an ordered writable reopen.
-				$ffm = new fixed_file_manager($name, $ddir, $fdir);
+				$options['read_only'] = false;
+				$ffm = new fixed_file_manager($name, $ddir, $fdir, $options);
 			}
 			$ffm->set_controller($this);
 			$ffm->set_info($name, $class);
@@ -217,6 +227,7 @@ class Controller_class implements Controller {
 
 	// DBの接続をクローズ(ffmのオブジェクトを使用）
 	function close_db_by_ffm(FFM $ffm) {
+		$this->assert_db_connections_mutable();
 		foreach ($this->dbarr as $key => $ffm_obj) {
 			if ($ffm == $ffm_obj) {
 				$ffm->close();
@@ -227,10 +238,27 @@ class Controller_class implements Controller {
 	}
 
 	function close_all_db() {
+		$this->assert_db_connections_mutable();
 		foreach ($this->dbarr as $key => $ffm) {
 			$ffm->close();
 			unset($this->dbarr[$key]);
 		}
+	}
+
+	public function set_prohibit_new_db(bool $flag): void { $this->prohibit_new_db = $flag; }
+	public function get_prohibit_new_db(): bool { return $this->prohibit_new_db; }
+	public function get_dsp_channel(): string { return $this->dsp_channel; }
+	/** Framework entry routing only; never take this value from request parameters. */
+	public function set_dsp_channel(string $channel): void {
+		if ($this->dsp_channel_frozen) throw new DspException('channel', 'channel_change_after_policy_binding');
+		if (!in_array($channel, ['admin', 'public', 'mcp', 'api', 'cron', 'cli'], true)) throw new InvalidArgumentException('Unknown DSP channel');
+		$this->dsp_channel = $channel;
+	}
+	public function freeze_dsp_channel(): void { $this->dsp_channel_frozen = true; }
+	public function get_dsp_mcp_subject(): ?array { return $this->dsp_mcp_subject; }
+	public function set_dsp_mcp_subject(?array $subject): void { $this->dsp_mcp_subject = $subject; }
+	private function assert_db_connections_mutable(): void {
+		if ($this->prohibit_new_db) throw new DspException('db_connections', 'connection_change_during_policy');
 	}
 
 	//smartyを取得
@@ -1553,6 +1581,10 @@ class Controller_class implements Controller {
 	}
 
 	function set_check_login($flg) {
+		if (!$flg && $this->dsp_channel === 'admin') {
+			if ($this->dsp_channel_frozen) throw new DspException('channel', 'channel_change_after_policy_binding');
+			$this->dsp_channel = 'public';
+		}
 		$this->flg_check_login = $flg;
 	}
 

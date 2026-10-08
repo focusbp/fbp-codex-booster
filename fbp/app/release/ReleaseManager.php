@@ -87,6 +87,7 @@ class ReleaseManager {
 		}
 
 		$zip->addFromString("info.json", json_encode($info));
+		$this->addDirectoryFilesToZip($zip, $this->extractdir . '/dsp');
 
 		$files = new RecursiveIteratorIterator(
 			new RecursiveDirectoryIterator($this->appdir),
@@ -195,6 +196,8 @@ class ReleaseManager {
 				throw new Exception($ctl->t("release.validation.cannot_open_file", ["file" => basename($zipFile)]));
 			}
 			$this->deployStagedDirectory($stageDir . "/app", $this->appdir, $ctl, $zipFile, false);
+			// Old archives have no DSP payload; preserve existing policies in that case.
+			if (is_dir($stageDir . '/dsp')) $this->deployStagedDirectory($stageDir . '/dsp', $this->extractdir . '/dsp', $ctl, $zipFile, false);
 			foreach ($this->db_copy_list as $f) {
 				if ($f === "email_format" && !$deployEmail) continue;
 				if ($this->isDbDefinitionDataSet($f) && !$deployDbDefinitions) continue;

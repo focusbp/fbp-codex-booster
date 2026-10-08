@@ -1,6 +1,7 @@
 <?php
 
 include dirname(__FILE__) . '/../../interface/FFM.php';
+require_once dirname(__DIR__) . '/DspRuntime.php';
 
 if (!class_exists("FixedFileManagerFieldLengthException", false)) {
 	class FixedFileManagerFieldLengthException extends Exception {
@@ -75,6 +76,155 @@ class fixed_file_manager implements FFM {
 	private $index_ready = [];
 	private $index_disabled = false;
 	private $text_search_disabled = false;
+	private ?DspInterface $dsp = null;
+	private string $dsp_channel = 'unknown';
+	private bool $dsp_evaluating = false;
+	private ?string $dsp_policy_version = null;
+
+
+    private function dsp_call(string $operation, $id, callable $callback): mixed {
+        if ($this->dsp === null) return null;
+        if ($this->dsp_evaluating) throw new DspException('recursion', 'recursive_policy');
+        $position = is_resource($this->hf) ? ftell($this->hf) : null;
+        $this->dsp_evaluating = true;
+        try {
+            return DspRuntime::invoke($this->ctl, $operation, [
+                'table' => $this->filename, 'class' => $this->info_classname,
+                'id' => $id, 'channel' => $this->dsp_channel,
+                'policy_version' => $this->dsp_policy_version,
+                'actor_id' => $this->ctl !== null && method_exists($this->ctl, 'get_login_user_id') ? $this->ctl->get_login_user_id() : null,
+            ], $callback);
+        } finally {
+            $this->dsp_evaluating = false;
+            if ($position !== null && is_resource($this->hf)) fseek($this->hf, $position);
+        }
+    }
+
+    private function dsp_decision(array $row): DspReadDecision {
+        return $this->dsp_call('get', $row['id'] ?? null, fn() => $this->dsp->inspectRead($row));
+    }
+
+    private function dsp_visible(?array $row): bool {
+        return $row !== null && ($this->dsp === null || $this->dsp_decision($row)->visible);
+    }
+
+    private function dsp_persisted_row(array $row): array {
+        // Legacy get enriches rows with _id_enc; authorization before-images are persisted fields only.
+        return array_intersect_key($row, array_flip(array_column($this->format, 'name')));
+    }
+
+    private function dsp_project(array $row, bool $direct = false): array {
+        if ($this->dsp === null) return $row;
+        $decision = $this->dsp_decision($row);
+        if (!$decision->visible) {
+            // Only direct reads reach this branch; scans already removed invisible candidates.
+            $this->dsp_call('get', $row['id'] ?? null, fn() => throw new DspException('read_row', 'row_not_visible'));
+        }
+        return $decision->project($row);
+    }
+
+    private function dsp_read(string $method, array $request = []): void {
+        $this->dsp_call('get', null, fn() => $this->dsp->authorizeRead(['method' => $method] + $request));
+    }
+
+    // Use the same encoder as writedata so policy sees the values that will be persisted.
+    private function dsp_saved_row(array $row): array {
+        $stream = fopen('php://memory', 'w+b');
+        try {
+            $this->writedata($row, $stream);
+            rewind($stream);
+            fread($stream, 1);
+            $saved = [];
+            foreach ($this->format as $field) {
+                $value = fread($stream, $field['size']);
+                $saved[$field['name']] = match ($field['type']) {
+                    'N' => (int) $value, 'F' => (float) $value,
+                    'A' => json_decode($value, true) ?? [], default => trim($value, ' '),
+                };
+            }
+            return $saved;
+        } finally { fclose($stream); }
+    }
+
+    function insert(&$dataset) {
+        $position = is_resource($this->hf) ? ftell($this->hf) : null;
+        try { return $this->insert_raw($dataset); }
+        finally { if ($position !== null && is_resource($this->hf)) fseek($this->hf, $position); }
+    }
+
+    function update($dataset) {
+        $position = is_resource($this->hf) ? ftell($this->hf) : null;
+        try { return $this->update_raw($dataset); }
+        finally { if ($position !== null && is_resource($this->hf)) fseek($this->hf, $position); }
+    }
+
+    function delete($id) {
+        $position = is_resource($this->hf) ? ftell($this->hf) : null;
+        try { return $this->delete_raw($id); }
+        finally { if ($position !== null && is_resource($this->hf)) fseek($this->hf, $position); }
+    }
+
+    function get($id) {
+        $this->dsp_read('get', ['id' => $id]);
+        $row = $this->get_raw($id);
+        return $row === null ? null : $this->dsp_project($row, true);
+    }
+
+    function next() {
+        $this->dsp_read('next');
+        while (($row = $this->next_raw()) !== null) {
+            if ($this->dsp_visible($row)) return $this->dsp_project($row);
+        }
+        return null;
+    }
+
+    function before() {
+        $this->dsp_read('before');
+        while (($row = $this->before_raw()) !== null) {
+            if ($this->dsp_visible($row)) return $this->dsp_project($row);
+        }
+        return null;
+    }
+
+    public function getall($sortitem = null, $sort_order = SORT_ASC) {
+        $this->dsp_read('getall', ['sortitem' => $sortitem, 'sort_order' => $sort_order]);
+        return array_map(fn($row) => $this->dsp_project($row), $this->getall_raw($sortitem, $sort_order));
+    }
+
+    public function get_many(array $ids): array {
+        $this->dsp_read('get_many', ['ids' => $ids]);
+        return array_map(fn($row) => $this->dsp_project($row, true), $this->get_many_raw($ids));
+    }
+
+    function filter($itemname, $value, $exact_match = false, $and_or = 'AND', $sortitem = null, $sort_order = SORT_DESC, $max = null, &$is_last = null, $match_patterns = null) {
+        $this->dsp_read('filter', compact('itemname', 'value', 'exact_match', 'and_or', 'sortitem', 'sort_order', 'max', 'match_patterns'));
+        return array_map(fn($row) => $this->dsp_project($row), $this->filter_raw($itemname, $value, $exact_match, $and_or, $sortitem, $sort_order, $max, $is_last, $match_patterns));
+    }
+
+    function select($itemname, $value, $match_patterns = true, $and_or = 'AND', $sortitem = null, $sort_order = SORT_DESC, $max = null, &$is_last = null) {
+        $this->dsp_read('select', compact('itemname', 'value', 'match_patterns', 'and_or', 'sortitem', 'sort_order', 'max'));
+        return array_map(fn($row) => $this->dsp_project($row), $this->select_raw($itemname, $value, $match_patterns, $and_or, $sortitem, $sort_order, $max, $is_last));
+    }
+
+    function match($itemname, $value, $max = null, &$is_last = null, $exact_match = false) {
+        $this->dsp_read('match', compact('itemname', 'value', 'max', 'exact_match'));
+        return $this->match_raw($itemname, $value, $max, $is_last, $exact_match);
+    }
+
+    public function neighbors(int $node_id, ?array $relation_types = null, ?int $max = null, string $direction = 'out'): array {
+        $this->dsp_read('neighbors', compact('node_id', 'relation_types', 'max', 'direction'));
+        return array_map(fn($row) => $this->dsp_project($row), $this->neighbors_raw($node_id, $relation_types, $max, $direction));
+    }
+
+    public function neighbors_many(array $node_ids, ?array $relation_types = null, ?int $max_per_node = null, string $direction = 'out'): array {
+        $this->dsp_read('neighbors_many', compact('node_ids', 'relation_types', 'max_per_node', 'direction'));
+        return array_map(fn($rows) => array_map(fn($row) => $this->dsp_project($row), $rows), $this->neighbors_many_raw($node_ids, $relation_types, $max_per_node, $direction));
+    }
+
+    public function iterate_filter($func) {
+        $this->dsp_read('iterate_filter');
+        return $this->iterate_filter_raw($func);
+    }
 
 	private function is_empty_filter_itemname($iname): bool {
 		if (is_array($iname)) {
@@ -147,6 +297,7 @@ class fixed_file_manager implements FFM {
 	}
 	
 	function set_controller(Controller $ctl){
+		if ($this->dsp !== null && $this->ctl !== $ctl) throw new DspException('context', 'controller_change_after_policy_binding');
 		$this->ctl = $ctl;
 	}
 
@@ -166,6 +317,15 @@ class fixed_file_manager implements FFM {
 	 * コンストラクター
 	 */
 	function __construct($filename, $datadir = null, $formatdir = null, array $options = []) {
+
+        $this->ctl = $options['controller'] ?? (class_exists('Controller_class', false) ? Controller_class::getInstance() : null);
+        $this->dsp_channel = $this->ctl !== null ? $this->ctl->get_dsp_channel() : ($options['channel'] ?? 'unknown');
+        $this->dsp = $options['dsp'] ?? DspRuntime::resolve((string) $datadir, $filename, $this->ctl, $this->dsp_channel, $options['database_class'] ?? null);
+        if ($this->dsp !== null) {
+            $policyFile = (new ReflectionClass($this->dsp))->getFileName();
+            if (is_string($policyFile) && is_file($policyFile)) $this->dsp_policy_version = hash_file('sha256', $policyFile);
+        }
+        if ($this->dsp !== null && $this->ctl !== null) $this->ctl->freeze_dsp_channel();
 
 		$this->format_source = (string) ($options["format_source"] ?? "fmt");
 		if (!in_array($this->format_source, ["fmt", "dat_header"], true)) {
@@ -283,6 +443,7 @@ class fixed_file_manager implements FFM {
 	}
 
 	private function assert_writable(string $operation): void {
+        if ($this->ctl !== null && $this->ctl->get_prohibit_new_db()) throw new DspException('policy_purity', 'write_during_policy');
 		if ($this->read_only) {
 			throw new Exception("Read-only fixed_file_manager cannot " . $operation . " : " . $this->path_dat);
 		}
@@ -496,12 +657,18 @@ class fixed_file_manager implements FFM {
 		}
 	}
 
-	function insert(&$dataset) {
+	private function insert_raw(&$dataset) {
 		$this->assert_writable("insert");
 		// $this->hf をチェックする
 		$this->check_hf();
 		$this->assert_field_lengths($dataset);
 
+        if ($this->dsp !== null) {
+            $candidate = $dataset;
+            $candidate['id'] = $this->header['maxid'] + 1;
+            $candidate = $this->dsp_saved_row($candidate);
+            $this->dsp_call('insert', null, fn() => $this->dsp->authorizeInsert($candidate));
+        }
 		$this->mark_indexes_dirty();
 		$p = ftell($this->hf); //あとで戻す
 		// 
@@ -509,7 +676,8 @@ class fixed_file_manager implements FFM {
 		$this->header["maxid"]++;
 		$id = $this->header["maxid"];
 		$dataset["id"] = $id;
-		$this->write_operation_log("insert", null, $dataset);
+		$stored = $this->dsp === null ? $dataset : $candidate;
+		$this->write_operation_log("insert", null, $stored);
 
 		//最大IDの変更のためヘッダを保存
 		$header_txt = $this->makeHeader($this->header["maxid"], $this->header["format_txt"], $this->format);
@@ -520,23 +688,24 @@ class fixed_file_manager implements FFM {
 		fseek($this->hf, 0, SEEK_END);
 
 		//書き込む
-		$this->writedata($dataset);
+		$this->writedata($stored);
 
 		// 終端を記録
 		fseek($this->hf, 0, SEEK_END);
 		$this->eof = ftell($this->hf);
 
 		fseek($this->hf, $p); //戻す
-		$this->apply_index_insert($dataset);
+		$this->apply_index_insert($stored);
 		return $id;
 	}
 
-	function delete($id) {
+	private function delete_raw($id) {
 		$this->assert_writable("delete");
 		$p = ftell($this->hf); //あとで戻す
-		$d = $this->get($id);
+		$d = $this->get_raw($id);
 		//ポインタを戻す
 		if ($d != null) {
+            $this->dsp_call('delete', $d['id'], fn() => $this->dsp->authorizeDelete($this->dsp_persisted_row($d)));
 			$this->mark_indexes_dirty();
 			$this->write_operation_log("delete", $d, null);
 			fseek($this->hf, -1 * $this->header["recordsize"], SEEK_CUR);
@@ -546,21 +715,27 @@ class fixed_file_manager implements FFM {
 		fseek($this->hf, $p); //戻す
 	}
 
-	function update($dataset) {
+	private function update_raw($dataset) {
 		$this->assert_writable("update");
 		$this->assert_field_lengths($dataset);
 		$p = ftell($this->hf); //あとで戻す
-		$d = $this->get($dataset["id"]);
+		$d = $this->get_raw($dataset["id"]);
 
 		//ポインタを戻して書き込む
 		if ($d != null) {
+            $after = array_replace($d, $dataset);
+            if ($this->dsp !== null) {
+                $after = $this->dsp_saved_row($after);
+                $this->dsp_call('update', $d['id'], fn() => $this->dsp->authorizeUpdate($this->dsp_persisted_row($d), $after, array_keys($dataset)));
+            }
 			$this->mark_indexes_dirty();
 
 			// $dのデータを上書き
 			foreach ($dataset as $key => $val) {
 				$d[$key] = $val;
 			}
-			$before = $this->get($dataset["id"]);
+			if ($this->dsp !== null) $d = $after;
+			$before = $this->get_raw($dataset["id"]);
 			$this->write_operation_log("update", $before, $d);
 
 			fseek($this->hf, -1 * $this->header["recordsize"], SEEK_CUR);
@@ -571,7 +746,7 @@ class fixed_file_manager implements FFM {
 	}
 
 	// seek()を行った後に呼び出してデータを取得する
-	function next() {
+	private function next_raw() {
 
 		while (ftell($this->hf) < $this->eof) {
 
@@ -730,7 +905,7 @@ class fixed_file_manager implements FFM {
 		return false;
 	}
 
-	function before() {
+	private function before_raw() {
 
 		while (ftell($this->hf) >= $this->header["headersize"]) {
 
@@ -763,7 +938,7 @@ class fixed_file_manager implements FFM {
 	}
 
 	//
-	function filter($itemname, $value, $exact_match = false, $and_or = "AND", $sortitem = null, $sort_order = SORT_DESC, $max = null, &$is_last = null, $match_patterns = null) {
+	private function filter_raw($itemname, $value, $exact_match = false, $and_or = "AND", $sortitem = null, $sort_order = SORT_DESC, $max = null, &$is_last = null, $match_patterns = null) {
 
 
 		// 配列以外でも受け付ける
@@ -891,7 +1066,7 @@ class fixed_file_manager implements FFM {
 		// この場合も、AND 条件に含まれる数値型の完全一致だけは安全に候補を絞れる。
 		$candidate_ids = $this->indexed_candidate_ids($itemname, $value, $match_patterns, $and_or, !$exact_match);
 		if ($candidate_ids === null && !$exact_match) {
-			$candidate_ids = $this->text_filter_candidate_ids($itemname, $value, $and_or, $sortitem, $max);
+			$candidate_ids = $this->text_filter_candidate_ids($itemname, $value, $and_or, $sortitem, $this->dsp === null ? $max : null);
 		}
 		$candidate_pos = 0;
 		if ($candidate_ids === null) {
@@ -902,14 +1077,15 @@ class fixed_file_manager implements FFM {
 
 		while (true) {
 			if ($candidate_ids === null) {
-				$d = $this->before();
+				$d = $this->before_raw();
 				if ($d === null) break;
 			} else {
 				if ($candidate_pos >= count($candidate_ids)) break;
-				$d = $this->get($candidate_ids[$candidate_pos++]);
+				$d = $this->get_raw($candidate_ids[$candidate_pos++]);
 				if ($d === null) continue;
 			}
 
+			if (!$this->dsp_visible($d)) continue;
 			if ($and_or == "AND") {
 				$flg = true;
 			} else {
@@ -1091,7 +1267,7 @@ class fixed_file_manager implements FFM {
 		return $arr;
 	}
 
-	function select($itemname, $value, $match_patterns = true, $and_or = "AND", $sortitem = null, $sort_order = SORT_DESC, $max = null, &$is_last = null) {
+	private function select_raw($itemname, $value, $match_patterns = true, $and_or = "AND", $sortitem = null, $sort_order = SORT_DESC, $max = null, &$is_last = null) {
 
 		// 配列以外でも受け付ける
 		if (!is_array($itemname)) {
@@ -1163,7 +1339,7 @@ class fixed_file_manager implements FFM {
 		}
 
 		if (count($itemname) == 0) {
-			return $this->getall($sortitem, $sort_order);
+			return $this->getall_raw($sortitem, $sort_order);
 		}
 
 		$is_last = true;
@@ -1189,14 +1365,15 @@ class fixed_file_manager implements FFM {
 
 		while (true) {
 			if ($candidate_ids === null) {
-				$d = $this->before();
+				$d = $this->before_raw();
 				if ($d === null) break;
 			} else {
 				if ($candidate_pos >= count($candidate_ids)) break;
-				$d = $this->get($candidate_ids[$candidate_pos++]);
+				$d = $this->get_raw($candidate_ids[$candidate_pos++]);
 				if ($d === null) continue;
 			}
 
+			if (!$this->dsp_visible($d)) continue;
 			if ($and_or == "AND") {
 				$flg = true;
 			} else {
@@ -1322,7 +1499,7 @@ class fixed_file_manager implements FFM {
 	 * 部分一致したＩＤのリストを取得
 	 */
 
-	function match($itemname, $value, $max = null, &$is_last = null, $exact_match = false) {
+	private function match_raw($itemname, $value, $max = null, &$is_last = null, $exact_match = false) {
 
 		//初期値（最後までいかなかった場合に検出できるのでそこで $is_last=falseにしている）
 		$is_last = true;
@@ -1379,6 +1556,17 @@ class fixed_file_manager implements FFM {
 					}
 				}
 
+                if ($check && $this->dsp !== null) {
+                    $position = ftell($this->hf);
+                    try {
+                        $decision = $this->dsp_decision($this->get_raw($id));
+                        $check = $decision->visible;
+                        if ($check && $decision->fields !== null && !in_array('id', $decision->fields, true)) {
+                            $this->dsp_call('get', $id, fn() => throw new DspException('read_id', 'id_field_not_returnable'));
+                        }
+                    }
+                    finally { fseek($this->hf, $position); }
+                }
 				if ($check) {
 					$ret[] = $id;
 					$c++;
@@ -1392,11 +1580,11 @@ class fixed_file_manager implements FFM {
 		return $ret;
 	}
 
-	public function getall($sortitem = null, $sort_order = SORT_ASC) {
+	private function getall_raw($sortitem = null, $sort_order = SORT_ASC) {
 		$this->seek_end();
 		$arr = array();
-		while (($d = $this->before()) != null) {
-			$arr[] = $d;
+		while (($d = $this->before_raw()) != null) {
+			if ($this->dsp_visible($d)) $arr[] = $d;
 		}
 
 		if ($sortitem != null) {
@@ -1497,7 +1685,7 @@ class fixed_file_manager implements FFM {
 	 * IDでデータを検索。二分探索
 	 */
 
-	function get($id) {
+	private function get_raw($id) {
 
 		// Validation
 		// $id が0 or null の場合に不正なデータが返されてしまうので回避する
@@ -1562,7 +1750,7 @@ class fixed_file_manager implements FFM {
 		}
 	}
 
-	public function get_many(array $ids): array {
+	private function get_many_raw(array $ids): array {
 		$normalized = [];
 		foreach ($ids as $id) {
 			$id = $this->normalize_positive_integer($id);
@@ -1575,7 +1763,7 @@ class fixed_file_manager implements FFM {
 		$current = ftell($this->hf);
 		try {
 			foreach ($ids as $id) {
-				$row = $this->get($id);
+				$row = $this->get_raw($id);
 				if ($row !== null) $rows[$id] = $row;
 			}
 		} finally {
@@ -1584,7 +1772,7 @@ class fixed_file_manager implements FFM {
 		return $rows;
 	}
 
-	public function neighbors(
+	private function neighbors_raw(
 		int $node_id,
 		?array $relation_types = null,
 		?int $max = null,
@@ -1594,7 +1782,7 @@ class fixed_file_manager implements FFM {
 		return $node_id > 0 ? ($grouped[$node_id] ?? []) : [];
 	}
 
-	public function neighbors_many(
+	private function neighbors_many_raw(
 		array $node_ids,
 		?array $relation_types = null,
 		?int $max_per_node = null,
@@ -1763,10 +1951,11 @@ class fixed_file_manager implements FFM {
 		$current = ftell($this->hf);
 		try {
 			if ($candidate_ids !== null) {
-				$rows = $this->get_many($candidate_ids);
+				$rows = $this->get_many_raw($candidate_ids);
 				foreach ($candidate_ids as $id) {
 					if (!isset($rows[$id])) continue;
 					$row = $rows[$id];
+					if (!$this->dsp_visible($row)) continue;
 					if (!$this->neighbor_row_matches($row, $relation_types, $has_enabled)) continue;
 					$nodes = $this->neighbor_row_nodes($row, $node_set, $direction);
 					$this->append_neighbor_row($results, $seen, $row, $nodes, $max);
@@ -1774,7 +1963,8 @@ class fixed_file_manager implements FFM {
 				}
 			} else {
 				$this->seek_end();
-				while (($row = $this->before()) !== null) {
+				while (($row = $this->before_raw()) !== null) {
+					if (!$this->dsp_visible($row)) continue;
 					if (!$this->neighbor_row_matches($row, $relation_types, $has_enabled)) continue;
 					$nodes = $this->neighbor_row_nodes($row, $node_set, $direction);
 					$this->append_neighbor_row($results, $seen, $row, $nodes, $max);
@@ -1843,7 +2033,7 @@ class fixed_file_manager implements FFM {
 				$previous_allow_zero_length_read = $this->allow_zero_length_read_for_change_format;
 				$this->allow_zero_length_read_for_change_format = true;
 				try {
-					while (($d = $this->next()) != null) {
+					while (($d = $this->next_raw()) != null) {
 						$this->writedata($d, $h_tmp, $newf);
 						$converted_count++;
 					}
@@ -2198,7 +2388,7 @@ class fixed_file_manager implements FFM {
 				$values_by_shard = array_fill(0, self::INDEX_SHARDS, []);
 				$count = 0;
 				fseek($this->hf, $this->header["headersize"]);
-				while (($row = $this->next()) !== null) {
+				while (($row = $this->next_raw()) !== null) {
 					$raw_key = $this->index_key($field, $row[$field["name"]] ?? null, true);
 					$shard = $this->index_shard_number($raw_key);
 					$hex_key = bin2hex($raw_key);
@@ -3016,7 +3206,7 @@ class fixed_file_manager implements FFM {
 		$this->flg_filter_zero = $flg;
 	}
 	
-	public function iterate_filter($func) {
+	private function iterate_filter_raw($func) {
 		$this->seek_end();
 
 		$arr = [];
@@ -3024,13 +3214,15 @@ class fixed_file_manager implements FFM {
 		$c_true = 0;  // selected
 		$stop = false;
 
-		while (($d = $this->before()) != null) {
+		while (($d = $this->before_raw()) != null) {
 			
 			// 暗号化
 			if($this->ctl != null){
 				$d["_id_enc"] = $this->ctl->encrypt($d["id"]);
 			}
 
+			if (!$this->dsp_visible($d)) continue;
+			$d = $this->dsp_project($d);
 			$result = $func($d, $c_true, $c_all,$stop);
 
 			// KEEP

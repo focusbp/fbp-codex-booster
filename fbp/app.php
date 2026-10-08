@@ -354,10 +354,10 @@ $ctl = null;
 try{
 	//コントローラーを作成
 	if(startsWith($class, "_")){
-		$ctl = new Controller_class();
+		$ctl = new Controller_class(null, null, DspRuntime::channelForEntry($class, $function));
 	}else{
 		// クラスファイルのディレクトリ決定
-		$ctl = new Controller_class($class,$smarty);
+		$ctl = new Controller_class($class,$smarty,DspRuntime::channelForEntry($class, $function));
 		
 		// smartyにControllerをアサインしておく（自作プラグインで使用する）
 		$smarty->assign("_ctl",$ctl);
