@@ -2,6 +2,8 @@
 if(PHP_SAPI!=='cli'||$argc!==3||file_exists($argv[2]))exit(2);
 interface Controller {}
 class Controller_class implements Controller {
+    public bool $testserver=true;
+    function get_session($key){return $key==='testserver'?$this->testserver:null;}
     public array $post=[],$errors=[],$pool=[],$response=[];
     static function getInstance(){return null;}
     function __construct(public string $root,public string $fbp){}
@@ -27,5 +29,16 @@ try{
  $ctl->post=['note_id'=>$note['id']];$panel->generate_template($ctl);check(str_contains($ctl->response['php'],'implementation_required'));check(!isset($ctl->response['definition_hashes']));check(!is_dir($root.'/classes/app/_dsp'));
  $ctl->post=array_replace($valid,['id'=>$id,'mode'=>'allow']);$ctl->errors=[];$panel->save($ctl);check($db->get($id)['mode']==='allow'&&$db->get($id)['conditions']==='');
  $ctl->post=['id'=>$id];$panel->delete_exe($ctl);check($db->getall()===[]);
+ $ctl->post=['command'=>'add','note'=>'reservations','operation'=>'Read','mode'=>'Deny'];$panel->cli_command($ctl);check($ctl->response['ok']===true);$cliId=$ctl->response['item']['id'];
+ $ctl->post=['command'=>'add','note'=>'reservations','operation'=>'read','mode'=>'Allow'];$panel->cli_command($ctl);check($ctl->response['ok']===false&&isset($ctl->response['errors']['operation']));
+ $ctl->post=['command'=>'edit','id'=>$cliId,'mode'=>'Allow'];$panel->cli_command($ctl);check($ctl->response['item']['mode']==='allow'&&$ctl->response['item']['note_id']===$note['id']);
+ $ctl->post=['command'=>'list','note'=>'reservations','mode'=>'ALLOW'];$panel->cli_command($ctl);check(count($ctl->response['items'])===1);
+ $ctl->testserver=false;$ctl->post=['command'=>'delete','id'=>$cliId];$panel->cli_command($ctl);check($ctl->response['error']==='test_only'&&$db->get($cliId)!==null);$ctl->testserver=true;
+ $ctl->post=['command'=>'delete','id'=>$cliId];$panel->cli_command($ctl);check($db->getall()===[]);
+ $readonlyRoot=$root.'/readonly';mkdir($readonlyRoot.'/fmt',0770,true);copy($root.'/fmt/db.fmt',$readonlyRoot.'/fmt/db.fmt');
+ $reader=new Controller_class($readonlyRoot,$fbp);$seed=['tb_name'=>'example','menu_name'=>'Example'];$reader->db('db','db')->insert($seed);
+ foreach(['notes','list','get']as $command){$reader->post=['function'=>'cli_command','command'=>$command,'id'=>999];$readPanel=new dsp($reader);$readPanel->cli_command($reader);check(!is_file($readonlyRoot.'/classes/data/dsp/policies.dat'));}
+ foreach($reader->pool as $handle)$handle->close();
+ $forbidden=new Controller_class($root.'/forbidden',$fbp);$forbidden->testserver=false;$forbidden->post=['function'=>'cli_command','command'=>'add'];new dsp($forbidden);check($forbidden->response['error']==='test_only'&&$forbidden->pool===[]);
  echo json_encode(['passed'=>$checks,'duplicate_rejected'=>true,'conditions_validated'=>true,'settings_do_not_create_runtime_code'=>true])."\n";
 }finally{if($ctl)foreach($ctl->pool as $db)$db->close();if(is_dir($root))removeTree($root);}

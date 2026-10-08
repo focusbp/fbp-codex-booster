@@ -1,10 +1,24 @@
 <?php
 require_once __DIR__.'/../../lib/DspPolicyTemplate.php';
+require_once __DIR__.'/../../lib/DspDefinitionStore.php';
 class dsp {
-    private FFM $definitions;
+    private ?FFM $definitions=null;
     private FFM $notes;
+    private DspDefinitionStore $store;
     public function __construct(Controller $ctl) {
-        $this->notes=$ctl->db('db','db'); $this->definitions=$ctl->db('policies','dsp');
+        if($ctl->POST('function')==='cli_command'&&!$this->isCliTest($ctl)) {
+            $ctl->res_json(['ok'=>false,'error'=>'test_only']);return;
+        }
+        $this->notes=$ctl->db('db','db');
+        if($ctl->POST('function')==='cli_command') {
+            $command=$ctl->POST('command');
+            $path=dirname(dirname($this->notes->get_path_dat())).'/dsp/policies.dat';
+            if($command!=='notes'&&(!in_array($command,['list','get'],true)||is_file($path)))
+                $this->definitions=$ctl->db('policies','dsp');
+            $this->store=new DspDefinitionStore($this->notes,$this->definitions);return;
+        }
+        $this->definitions=$ctl->db('policies','dsp');
+        $this->store=new DspDefinitionStore($this->notes,$this->definitions);
         $ctl->assign('dsp_operations',['add'=>'Add','read'=>'Read','update'=>'Update','delete'=>'Delete']);
         $ctl->assign('dsp_modes',['allow'=>'Allow','deny'=>'Deny','custom'=>'Custom']);
         $opts=[''=>$ctl->t('dsp.select_note')];
@@ -39,35 +53,47 @@ class dsp {
         $ctl->show_multi_dialog('dsp_form','form.tpl','DSP',800,true,true);
     }
     public function save(Controller $ctl): void {
-        $post=$ctl->POST();$row=[];$errors=[];
-        foreach(['note_id','operation','mode','conditions','id'] as $key) {
-            if(isset($post[$key])&&!is_scalar($post[$key]))$errors[$key]=$ctl->t('dsp.invalid');
-            $row[$key]=is_scalar($post[$key]??null)?trim((string)$post[$key]):'';
+        $post=$ctl->POST();
+        try {
+            $id=$this->positiveId($post['id']??0,true);
+            $this->store->save($post,$id>0?$id:null);
+        } catch(DspDefinitionValidationException $e) {
+            $ctl->clear_error_message();foreach($e->errors as $key=>$code)$ctl->res_error_message($key,$ctl->t($code));return;
         }
-        if($row['id']!==''&&!ctype_digit($row['id']))$errors['id']=$ctl->t('dsp.invalid');
-        if(!ctype_digit($row['note_id']))$errors['note_id']=$ctl->t('dsp.note_required');
-        $row['id']=(int)$row['id'];$row['note_id']=(int)$row['note_id'];
-        if(!$this->notes->get($row['note_id']))$errors['note_id']=$ctl->t('dsp.note_required');
-        if(!in_array($row['operation'],['add','read','update','delete'],true))$errors['operation']=$ctl->t('dsp.invalid');
-        if(!in_array($row['mode'],['allow','deny','custom'],true))$errors['mode']=$ctl->t('dsp.invalid');
-        if($row['mode']==='custom'&&$row['conditions']==='')$errors['conditions']=$ctl->t('dsp.conditions_required');
-        if(strlen($row['conditions'])>6000)$errors['conditions']=$ctl->t('dsp.conditions_long');
-        if($row['mode']!=='custom')$row['conditions']='';
-        foreach($this->definitions->select(['note_id','operation'],[$row['note_id'],$row['operation']],true)as $existing)
-            if($existing['id']!==$row['id'])$errors['operation']=$ctl->t('dsp.duplicate');
-        $before=$row['id']>0?$this->definitions->get($row['id']):null;
-        if($row['id']>0&&!$before)$errors['id']=$ctl->t('dsp.invalid');
-        if($errors){$ctl->clear_error_message();foreach($errors as $key=>$message)$ctl->res_error_message($key,$message);return;}
-        if($before)$this->definitions->update($row);else $this->definitions->insert($row);
         $ctl->close_multi_dialog('dsp_form');$this->page($ctl);
+    }
+    private function positiveId(mixed $value,bool $allowZero=false): int {
+        if(!is_scalar($value)||!ctype_digit((string)$value)||(!$allowZero&&(int)$value<=0))
+            throw new DspDefinitionValidationException(['id'=>'dsp.invalid']);
+        return (int)$value;
+    }
+    private function isCliTest(Controller $ctl): bool { return PHP_SAPI==='cli'&&$ctl->get_session('testserver')===true; }
+    public function cli_command(Controller $ctl): void {
+        if(!$this->isCliTest($ctl)) { $ctl->res_json(['ok'=>false,'error'=>'test_only']);return; }
+        $post=$ctl->POST();
+        try {
+            $command=$post['command']??'';
+            $result=match($command){
+                'notes'=>['items'=>$this->store->notes()],
+                'list'=>['items'=>$this->store->listing($post)],
+                'get'=>['item'=>$this->store->get($this->positiveId($post['id']??''))],
+                'add'=>['item'=>$this->store->save($post)],
+                'edit'=>['item'=>$this->store->save($post,$this->positiveId($post['id']??''))],
+                'delete'=>['item'=>$this->store->delete($this->positiveId($post['id']??''))],
+                default=>throw new DspDefinitionValidationException(['command'=>'dsp.invalid']),
+            };
+            $ctl->res_json(['ok'=>true,'command'=>$command]+$result);
+        } catch(DspDefinitionValidationException $e) {
+            $errors=[];foreach($e->errors as $key=>$code)$errors[$key]=$ctl->t($code);
+            $ctl->res_json(['ok'=>false,'error'=>'validation','errors'=>$errors]);
+        }
     }
     public function delete(Controller $ctl): void {
         $row=$this->definitions->get((int)$ctl->POST('id'));if(!$row)throw new RuntimeException('DSP definition not found');
         $ctl->assign('data',$row);$ctl->show_multi_dialog('dsp_delete','delete.tpl',$ctl->t('common.delete'),600,true,true);
     }
     public function delete_exe(Controller $ctl): void {
-        $id=(int)$ctl->POST('id');$before=$this->definitions->get($id);if(!$before)throw new RuntimeException('DSP definition not found');
-        $this->definitions->delete($id);
+        $this->store->delete($this->positiveId($ctl->POST('id')));
         $ctl->close_multi_dialog('dsp_delete');$this->page($ctl);
     }
     public function generate_template(Controller $ctl): void {

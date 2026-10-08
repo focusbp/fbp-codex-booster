@@ -830,5 +830,6 @@
   "dsp.select_note": "ノートを選択",
   "dsp.all_notes": "すべてのノート",
   "dsp.all_operations": "すべての操作",
-  "dsp.all_modes": "すべての設定"
+  "dsp.all_modes": "すべての設定",
+  "dsp.not_found": "DSP設定が見つかりません。"
 }

@@ -830,5 +830,6 @@
   "dsp.select_note": "Select a note",
   "dsp.all_notes": "All notes",
   "dsp.all_operations": "All operations",
-  "dsp.all_modes": "All settings"
+  "dsp.all_modes": "All settings",
+  "dsp.not_found": "DSP definition not found."
 }
