@@ -15,6 +15,7 @@ class panel {
 		$ctl->invoke("page", [], "db");
 		$ctl->assign("panel_tab_labels", [
 			"db" => $ctl->t("panel.tab.database"),
+            "dsp" => "DSP",
 			"dashboard" => $ctl->t("panel.tab.dashboard"),
 			"constants" => $ctl->t("panel.tab.constants"),
 			"webhook" => $ctl->t("panel.tab.webhook"),

@@ -12,6 +12,7 @@ class ReleaseManager {
 	    "embed_app",
 	    "public_assets",
 	    "db_additionals",
+        "dsp",
 	    "dashboard",
 	    "cron",
 	    "api_studio"
@@ -476,7 +477,7 @@ class ReleaseManager {
 	}
 
 	private function isDbDefinitionDataSet(string $dataSet): bool {
-		return in_array($dataSet, ["db", "db_additionals", "constant_array"], true);
+		return in_array($dataSet, ["db", "db_additionals", "dsp", "constant_array"], true);
 	}
 
 	private function endsWith(string $haystack, string $needle): bool {

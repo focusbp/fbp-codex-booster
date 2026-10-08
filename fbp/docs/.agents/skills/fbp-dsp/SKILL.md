@@ -11,6 +11,21 @@ DSP complements normal FFM data access; it is not isolation from arbitrary PHP c
 
 Undefined DBs preserve existing behavior. Registered policies allow or throw DspException. A registered policy's missing implementation, invalid registry or evaluation failure stops safely; never downgrade an error to undefined.
 
+## Human definitions and creation workflow
+
+The developer panel DSP tab stores one `dsp/policies` row per note ID and operation. Visible fields are Note, Add/Read/Update/Delete, Allow/Deny/Custom and Conditions. Custom requires plain-text conditions; other modes have no conditions. Prevent duplicate note/operation rows. Note IDs link to existing `db/db` definitions; never guess rights from the note name.
+
+Definitions are specifications, not runtime configuration. Saving them does not change enforcement. Runtime reads only generated classes/app/_dsp PHP through the existing registry; no definition DB reads, prose evaluation, or definition/code mismatch checks are permitted in the data-access path. The audit task compares definitions against generated PHP. Undefined notes/operations have no additional DSP restriction (All Allow); application authorization remains in effect.
+
+Use `fbp/lib/DspPolicyTemplate.php` or CLI `app_call dsp generate_template` with note_id to obtain the source template and registry entry. Allow authorization methods simply return; Allow reads return DspReadDecision(true, null). Deny methods throw DspException. Unconfigured operations use the Allow template. Custom starts with a refusing placeholder; replace it only after confirmed conditions are implemented and tested. Do not install the placeholder as a finished Custom implementation. There are no definition hashes to match at runtime. Keep policy.md as a generated human-readable description and the panel definitions as the source of truth.
+
+Auto Task creation (type 8) has three stages, tracked by existing task/comment history, with no new status flags:
+1. Read-only selection of candidate notes with reasons. Request explicit agreement using the existing customer-response-wait status and TASKEXEC_WAIT_CUSTOMER: true.
+2. After selection is agreed, propose all four operation modes and conditions for the selected notes. Ask unresolved questions. Request agreement using the same existing customer-response-wait status. Explain the existing release-permission checkbox if production release is requested.
+3. Only after both agreements, save confirmed definitions, create PHP, test allow/deny behavior and release under existing code/release permissions. Permissions ON alone, silence, elapsed time and the initial request do not substitute for those two agreements. Already explicit agreements in history need not be repeated.
+
+Audit (type 9) reads both panel definitions and PHP, including changed/deleted definitions, missing implementations and undefined data paths. It remains read-only and reports discrepancies; it does not automatically update definitions or code.
+
 ## Project layout and registration
 
 Place policy.md, registry.php and policy classes in classes/app/_dsp. The _dsp directory is internal application code; do not create a routable _dsp.php or register it as a screen. No old classes/dsp lookup is supported. Shared DspInterface and DspException belong to the framework; do not duplicate them in the project.
@@ -80,4 +95,4 @@ Audit is read-only: compare policy.md, implementations, normal FFM call sites an
 5. Test production-like parent/child volumes and assert decision counts are linear (no dependency DSP calls or duplicate row judgment). Run meaningful multi-process tests for locks. FFM does not provide multi-DB rollback.
 6. Report actual results and unresolved rules. Use the existing project support permissions; policy creation does not authorize production release by itself.
 
-Choose regression checks for the changed behavior; the 1,000-case dsp_matrix.php suite is no longer mandatory and must not be run automatically. Keep it available for an explicit request. If used, provide an isolated workspace and a baseline preserving its relative interface dependency. Run checks from the test environment, not the source tree. The integrated verification fixture in app-soshikikaikaku uses only disposable test data.
+Choose regression checks for the changed behavior; the 1,000-case dsp_matrix.php suite is no longer mandatory and must not be run automatically. Keep it available for an explicit request. If used, provide an isolated workspace and a baseline preserving its relative interface dependency. Run checks from the test environment, not the source tree. Use isolated test fixtures; app-soshikikaikaku currently has no project DSP while its rules are reconsidered.

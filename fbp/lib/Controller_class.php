@@ -2447,6 +2447,7 @@ class Controller_class implements Controller {
 			"dashboard",
 			"db",
 			"db_additionals",
+            "dsp",
 			"email_format",
 			"embed_app",
 			"mcp_manage",

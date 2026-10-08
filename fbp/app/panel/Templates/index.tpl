@@ -1,6 +1,7 @@
 <div id="setting_panel_tabs">
 	<ul>
 		<li><a href="#tabs-db" invoke-class="db" invoke-function="page">{$panel_tab_labels.db}</a></li>
+		<li><a href="#tabs-dsp" invoke-class="dsp" invoke-function="page">DSP</a></li>
 		<li><a href="#tabs-dashboard" invoke-class="dashboard" invoke-function="list">{$panel_tab_labels.dashboard}</a></li>
 		<li><a href="#tabs-constants" invoke-class="panel_constants" invoke-function="page">{$panel_tab_labels.constants}</a></li>
 		<li><a href="#tabs-webhook" invoke-class="webhook_rule" invoke-function="page">{$panel_tab_labels.webhook}</a></li>
@@ -12,6 +13,7 @@
 		<li><a href="#tabs-cron" invoke-class="cron" invoke-function="page">{$panel_tab_labels.cron}</a></li>
 		<li><a href="#tabs-mail" invoke-class="email_format" invoke-function="page">{$panel_tab_labels.email_templates}</a></li>
 	</ul>
+	<div id="tabs-dsp"></div>
 	<div id="tabs-db">
 	</div>
 	<div id="tabs-dashboard">
