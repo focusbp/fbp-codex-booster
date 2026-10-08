@@ -75,12 +75,16 @@ class cron {
 			}
 			$error = null;
 			try {
-				$class_name = $d["class_name"];
-				$function_name = $d["function_name"];
-				$ctl->set_class($class_name);
-				$obj = getClassObject($ctl, $class_name, new Dirs());
-				$formatter = $ctl->create_ValueFormatter();
-				$obj->$function_name($ctl);
+				$previousSubject = $ctl->get_dsp_system_subject();
+				$ctl->set_dsp_system_subject(['kind' => 'cron', 'verified' => true, 'job_id' => (int) $d['id']]);
+				try {
+					$class_name = $d["class_name"];
+					$function_name = $d["function_name"];
+					$ctl->set_class($class_name);
+					$obj = getClassObject($ctl, $class_name, new Dirs());
+					$formatter = $ctl->create_ValueFormatter();
+					$obj->$function_name($ctl);
+				} finally { $ctl->set_dsp_system_subject($previousSubject); }
 				$last_log = $formatter->format_datetime(time()) . " " . $ctl->t("cron.exec_success");
 			} catch (Throwable $e) {
 				$error = $e;

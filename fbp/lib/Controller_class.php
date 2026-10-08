@@ -46,6 +46,7 @@ class Controller_class implements Controller {
 	private string $dsp_channel;
 	private bool $dsp_channel_frozen = false;
 	private ?array $dsp_mcp_subject = null;
+	private ?array $dsp_system_subject = null;
 
 	function __construct($class = null, $smarty = null, ?string $channel = null) {
 		$this->dsp_channel = $channel ?? (PHP_SAPI === 'cli' ? 'cli' : DspRuntime::channelForEntry($class, ''));
@@ -255,6 +256,9 @@ class Controller_class implements Controller {
 		$this->dsp_channel = $channel;
 	}
 	public function freeze_dsp_channel(): void { $this->dsp_channel_frozen = true; }
+	/** Server-owned proof, independent of the entry channel. No request parameters. */
+	public function get_dsp_system_subject(): ?array { return $this->dsp_system_subject; }
+	public function set_dsp_system_subject(?array $subject): void { $this->dsp_system_subject = $subject; }
 	public function get_dsp_mcp_subject(): ?array { return $this->dsp_mcp_subject; }
 	public function set_dsp_mcp_subject(?array $subject): void { $this->dsp_mcp_subject = $subject; }
 	private function assert_db_connections_mutable(): void {
@@ -2106,11 +2110,14 @@ class Controller_class implements Controller {
 	}
 
 	function verify_api_request() {
+		$this->dsp_system_subject = null;
 		$setting = $this->generate_api_credentials();
-		return $this->verify_hmac_request(
+		$verified = $this->verify_hmac_request(
 			(string) ($setting["api_key"] ?? ""),
 			(string) ($setting["api_secret"] ?? "")
 		);
+		if ($verified === true) $this->dsp_system_subject = ['kind' => 'api', 'verified' => true];
+		return $verified;
 	}
 
 	function verify_release_api_request() {

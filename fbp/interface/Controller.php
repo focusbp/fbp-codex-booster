@@ -17,5 +17,7 @@ interface Controller extends ctl_chat, ctl_db, ctl_files, ctl_fw, ctl_media, ctl
 	public function set_dsp_mcp_subject(?array $subject): void;
 	public function freeze_dsp_channel(): void;
 	public function get_dsp_mcp_subject(): ?array;
+	public function get_dsp_system_subject(): ?array;
+	public function set_dsp_system_subject(?array $subject): void;
 	
 }

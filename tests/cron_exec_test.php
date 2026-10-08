@@ -21,6 +21,7 @@ class CronTestController extends Controller_class {
         $this->dirs = new Dirs();
         (new ReflectionProperty(Controller_class::class, 'dbarr'))->setValue($this, []);
         (new ReflectionProperty(Controller_class::class, 'class'))->setValue($this, 'cron');
+        (new ReflectionProperty(Controller_class::class, 'dsp_channel'))->setValue($this, 'cron');
     }
     function GET($key = null) { return ['function'=>'exec', 'id'=>$this->id][$key] ?? null; }
     function POST($key = null) { return $key === '_call_from' ? 'appcon' : null; }
@@ -96,6 +97,7 @@ foreach (['normal','close_all','edit','delete','exception','type_error','long_er
     $error = null;
     $ctl->job = function($ctl) use ($mode, $id, &$error) {
         check($mode !== 'missing', 'Missing job executed');
+        check($ctl->get_dsp_system_subject() === ['kind'=>'cron','verified'=>true,'job_id'=>$id], 'Cron proof absent inside verified job');
         $fh = fopen(getenv('CRON_TEST_ROOT') . '/data/cron/cron.dat', 'r+');
         check(!flock($fh, LOCK_EX | LOCK_NB), 'Pre-execution cron lock was released'); fclose($fh);
         $ctl->close_all_db();
@@ -111,12 +113,14 @@ foreach (['normal','close_all','edit','delete','exception','type_error','long_er
     };
     if ($mode === 'normal') {
         $ctl->job = function($ctl) {
+            check(($ctl->get_dsp_system_subject()['kind'] ?? '') === 'cron', 'Normal job proof missing');
             $GLOBALS['original_cron_db'] = $ctl->db('cron','cron');
         };
     }
     $caught = null;
     try { (new cron($ctl))->exec($ctl); } catch (Throwable $e) { $caught = $e; }
     check($caught === $error, "$mode: original exception not preserved");
+    check($ctl->get_dsp_system_subject() === null, 'Cron proof leaked after job/exception');
     checkReleased();
     $saved = row($id);
     if ($mode === 'delete') check(empty($saved), 'Deleted job recreated');

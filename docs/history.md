@@ -2,6 +2,8 @@
 
 ## 2026-10-08
 
+- Task 4440の業務DSPに必要な検証済みsystem主体をControllerへ追加。HMAC成功だけでAPI主体を設定し、失敗・設定例外では破棄。cronは現存ジョブの実行中だけ主体を渡し、例外時も解除する。合成認証・cron並行実行・既存FFMと変更前比較1,000ケースを確認。アプリの業務DSPと合わせた別工程の反映が必要で、本番未反映。
+
 - DSP共通基盤を本番配布対象3台へ適用し、主要ファイルのハッシュ一致を確認。app-soshikikaikakuもr1539で本番適用し、定数定義と公開入口を確認。新設DSPディレクトリの事前作成を配布・新規作成手順へ追加して初回アプリ配布のHTTP 422を解消した。
 
 - DSP共通基盤、FFMのCRUD・読み取り検査、Controller/channelとDB接続ガード、策定・監査タスク、classes/dspの同期・配布、fbp-dsp Skillを実装。app-soshikikaikakuのテスト専用予約ポリシーと統合確認を追加。詳細は `docs/database-security-policy-verification.md`。本番未反映。
