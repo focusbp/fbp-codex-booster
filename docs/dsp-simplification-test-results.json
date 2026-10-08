@@ -1,6 +1,6 @@
 {
   "date": "2026-10-09",
-  "status": "framework_production_released_app_pending",
+  "status": "framework_and_app_production_released",
   "framework_sources": {
     "fbp/lib/fixed_file_manager/fixed_file_manager.php": "5d1891529e078a6373afff6af99a09687db6b145a73d76ab2957284bde4dbe42",
     "fbp/lib/DspRuntime.php": "da48514cc24447c9162795f6ca9c07994eb9e1fc64189dd5606bf3657d815cfc",
@@ -36,9 +36,15 @@
     "select_seconds": 0.039008140563964844,
     "scan_seconds": 0.06552505493164062
   },
-  "production_app_dsp": "remains_temporarily_disabled",
+  "production_app_dsp": "enabled_with_improved_policies",
   "framework_release_commit": "de1eef9",
   "framework_release_server_count": 3,
   "framework_core_distribution_hashes_matched": true,
-  "production_app_read_verified": true
+  "production_app_read_verified": true,
+  "production_app_dashboard_verified": true,
+  "post_enable_apache_sample": {
+    "seconds": 3,
+    "processes": 12,
+    "max_cpu_percent": 2.3
+  }
 }
