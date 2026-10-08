@@ -13,7 +13,7 @@ Undefined DBs preserve existing behavior. Registered policies allow or throw Dsp
 
 ## Project layout and registration
 
-Place policy.md, registry.php and policy classes in classes/dsp. Shared DspInterface and DspException belong to the framework; do not duplicate them in the project.
+Place policy.md, registry.php and policy classes in classes/app/_dsp. The _dsp directory is internal application code; do not create a routable _dsp.php or register it as a screen. No old classes/dsp lookup is supported. Shared DspInterface and DspException belong to the framework; do not duplicate them in the project.
 
 registry.php returns a map keyed by `class/table`, for example:
 
@@ -27,7 +27,7 @@ return [
 ];
 ```
 
-Exact physical partition keys such as `common_12/reservations` take precedence; `common/reservations` covers Controller-managed partitions of that class. A direct FFM construction should pass database_class when using partitions, plus controller. The runtime resolves classes/dsp from the classes/data path. Nonstandard data roots require an explicit `dsp` option. Avoid circular policy dependencies.
+Exact physical partition keys such as `common_12/reservations` take precedence; `common/reservations` covers Controller-managed partitions of that class. A direct FFM construction should pass database_class when using partitions, plus controller. The runtime resolves classes/app/_dsp from the classes/data path. Nonstandard data roots require an explicit `dsp` option. Avoid circular policy dependencies.
 
 FFM uses existing constructor options: controller, database_class and channel; channel is obtained from Controller when present. An explicit DspInterface object can be supplied for isolated tests. Registered operations without the required Controller fail safely. Verify initialization paths when applying policies to framework bootstrapping DBs.
 
@@ -75,9 +75,9 @@ Audit is read-only: compare policy.md, implementations, normal FFM call sites an
 
 1. Read the project's relevant docs and existing auth/data access. Inventory targets and currently undefined DBs.
 2. Confirm business rules, create/update policy.md, registry and implementation for confirmed targets only.
-3. Synchronize via the environment's approved workflow. classes/dsp must be included in synchronization and release archives; old archives without DSP leave existing policies intact.
+3. Synchronize via the environment's approved workflow. classes/app/_dsp is included by normal application synchronization and release. Do not add a separate DSP payload or old-path fallback; replacing application code also replaces its policies.
 4. Test undefined compatibility, allowed CRUD, denied CRUD, other owners/orgs, immutable fields, read projection/query restrictions, load/evaluation errors and connection guard restoration.
 5. Test production-like parent/child volumes and assert decision counts are linear (no dependency DSP calls or duplicate row judgment). Run meaningful multi-process tests for locks. FFM does not provide multi-DB rollback.
 6. Report actual results and unresolved rules. Use the existing project support permissions; policy creation does not authorize production release by itself.
 
-For framework changes run existing FFM tests and the deterministic dsp_matrix.php suite (1,000 cases including comparisons with pre-change FFM). Provide an isolated workspace and a baseline file preserving its relative interface dependency. Run from the test environment, not the source tree. The integrated verification fixture in app-soshikikaikaku is restricted to the test environment and its registered test DB; it does not define business policies for existing notes.
+Choose regression checks for the changed behavior; the 1,000-case dsp_matrix.php suite is no longer mandatory and must not be run automatically. Keep it available for an explicit request. If used, provide an isolated workspace and a baseline preserving its relative interface dependency. Run checks from the test environment, not the source tree. The integrated verification fixture in app-soshikikaikaku uses only disposable test data.

@@ -251,9 +251,9 @@ foreach(range(0,9)as $mode)foreach($actors as $actor){
         $ctl=context($actor,$mode);$policy=new MatrixPolicy($ctl,$ctl->channel);
         if($mode<3){
             global $workspace,$fmt;
-            $root=$workspace.'/load-'.$mode.'-'.$actor.'/classes';mkdir($root.'/data/test',0770,true);mkdir($root.'/dsp',0770,true);mkdir($root.'/fmt',0770,true);
+            $root=$workspace.'/load-'.$mode.'-'.$actor.'/classes';mkdir($root.'/data/test',0770,true);mkdir($root.'/app/_dsp',0770,true);mkdir($root.'/fmt',0770,true);
             file_put_contents($root.'/fmt/sample.fmt',$fmt);
-            file_put_contents($root.'/dsp/registry.php',match($mode){0=>"<?php return ['test/sample'=>['file'=>'missing.php','class'=>'Absent']];",1=>"<?php return 'bad';",2=>"<?php syntax !"});
+            file_put_contents($root.'/app/_dsp/registry.php',match($mode){0=>"<?php return ['test/sample'=>['file'=>'missing.php','class'=>'Absent']];",1=>"<?php return 'bad';",2=>"<?php syntax !"});
             check(!attempt(fn()=>new fixed_file_manager('sample',$root.'/data/test',$root.'/fmt',['controller'=>$ctl])),'Load error did not stop');return;
         }
         $db=policyFixture('errors',[row(max(1,$ctl->actor),1)],$ctl,$policy);

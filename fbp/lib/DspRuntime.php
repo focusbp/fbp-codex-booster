@@ -51,7 +51,7 @@ final class DspRuntime {
         $marker = '/classes/data/';
         $pos = strrpos($path . '/', $marker);
         if ($pos === false) return null;
-        $root = substr($path, 0, $pos) . '/classes/dsp';
+        $root = substr($path, 0, $pos) . '/classes/app/_dsp';
         $registry = $root . '/registry.php';
         if (!is_file($registry)) return null;
         try {
