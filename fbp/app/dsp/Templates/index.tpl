@@ -20,6 +20,7 @@
 </tbody></table></div>
 
 {literal}<style>
+#tabs-dsp #dsp_filter { background:#f5f5f5; border-radius:8px; padding:16px; box-sizing:border-box; }
 #tabs-dsp .dsp-search-fields { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; align-items:end; }
 #tabs-dsp .dsp-search-fields > div { min-width:0; }
 #tabs-dsp .dsp-search-fields input, #tabs-dsp .dsp-search-fields select { width:100%; box-sizing:border-box; }
