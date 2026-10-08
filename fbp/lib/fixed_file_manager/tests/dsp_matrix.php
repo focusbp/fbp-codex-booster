@@ -35,6 +35,7 @@ function same($expected, $actual): void { check($expected === $actual, 'Expected
 function fixture(string $name, string $fmt, array $rows, array $options = []): fixed_file_manager {
     global $workspace;
     $root = $workspace . '/' . $name;
+    $GLOBALS['case_workspaces'][] = $root;
     mkdir($root . '/data', 0770, true); mkdir($root . '/fmt', 0770, true);
     file_put_contents($root . '/fmt/sample.fmt', $fmt);
     $ffm = new fixed_file_manager('sample', $root . '/data', $root . '/fmt');
@@ -79,6 +80,8 @@ function compatibility(): array {
         $db->seek_end(); $backward = []; while (($r = $db->before()) !== null) $backward[] = $r;
         $out[] = [$db->getall('id'), $selected, $last, $filtered, $many, $forward, $backward, $db->get(99), $db->get_header_info(), hash_file('sha256', $db->get_path_dat())];
         $db->close();
+        foreach ($GLOBALS['case_workspaces'] as $root) removeTree($root);
+        $GLOBALS['case_workspaces'] = [];
     }
     return $out;
 }
@@ -132,9 +135,11 @@ $report = fopen($workspace . '/cases.jsonl', 'wb');
 $passed = 0; $failed = 0; $counts = [];
 function testCase(string $group, array $conditions, callable $body): void {
     global $report, $passed, $failed, $counts;
+    $GLOBALS['case_workspaces'] = [];
     $id = array_sum($counts) + 1; $counts[$group] = ($counts[$group] ?? 0) + 1;
     try { $body(); $passed++; $result = ['passed' => true]; }
     catch (Throwable $e) { $failed++; $result = ['passed' => false, 'error' => $e->getMessage()]; }
+    if ($result['passed']) foreach ($GLOBALS['case_workspaces'] as $root) removeTree($root);
     fwrite($report, json_encode(['id' => $id, 'group' => $group, 'conditions' => $conditions] + $result, JSON_UNESCAPED_UNICODE) . "\n");
 }
 

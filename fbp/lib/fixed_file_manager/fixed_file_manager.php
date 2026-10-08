@@ -80,10 +80,16 @@ class fixed_file_manager implements FFM {
 	private string $dsp_channel = 'unknown';
 	private bool $dsp_evaluating = false;
 	private ?string $dsp_policy_version = null;
+    private array $dsp_read_decisions = [];
+    private ?array $dsp_context_rows = null;
 
 
     private function dsp_call(string $operation, $id, callable $callback): mixed {
         if ($this->dsp === null) return null;
+        if (DspRuntime::forbidsRead($this->ctl)) throw new DspException('policy_purity', 'database_access_during_judgment');
+        if (($operation !== 'get' || $id === null) && $this->dsp instanceof DspPreparedInterface) {
+            DspRuntime::prepare($this->ctl, $this->dsp);
+        }
         if ($this->dsp_evaluating) throw new DspException('recursion', 'recursive_policy');
         $position = is_resource($this->hf) ? ftell($this->hf) : null;
         $this->dsp_evaluating = true;
@@ -93,7 +99,7 @@ class fixed_file_manager implements FFM {
                 'id' => $id, 'channel' => $this->dsp_channel,
                 'policy_version' => $this->dsp_policy_version,
                 'actor_id' => $this->ctl !== null && method_exists($this->ctl, 'get_login_user_id') ? $this->ctl->get_login_user_id() : null,
-            ], $callback);
+            ], fn() => DspRuntime::preparedInvoke($this->ctl, $callback));
         } finally {
             $this->dsp_evaluating = false;
             if ($position !== null && is_resource($this->hf)) fseek($this->hf, $position);
@@ -101,11 +107,23 @@ class fixed_file_manager implements FFM {
     }
 
     private function dsp_decision(array $row): DspReadDecision {
-        return $this->dsp_call('get', $row['id'] ?? null, fn() => $this->dsp->inspectRead($row));
+        return $this->dsp_read_decisions[$row['id']] ??= $this->dsp_call('get', $row['id'] ?? null, fn() => $this->dsp->inspectRead($row));
     }
 
     private function dsp_visible(?array $row): bool {
         return $row !== null && ($this->dsp === null || $this->dsp_decision($row)->visible);
+    }
+
+    public function dsp_context_snapshot(): array {
+        if (!DspRuntime::isPreparing($this->ctl)) throw new DspException('context', 'preparation_required');
+        if ($this->dsp_context_rows !== null) return $this->dsp_context_rows;
+        $position = ftell($this->hf);
+        try {
+            $rows = [];
+            $this->seek_end();
+            while (($row = $this->before_raw()) !== null) $rows[(int)$row['id']] = $this->dsp_persisted_row($row);
+            return $this->dsp_context_rows = $rows;
+        } finally { fseek($this->hf, $position); }
     }
 
     private function dsp_persisted_row(array $row): array {
@@ -124,6 +142,9 @@ class fixed_file_manager implements FFM {
     }
 
     private function dsp_read(string $method, array $request = []): void {
+        if ($this->dsp !== null && DspRuntime::isPreparing($this->ctl)) throw new DspException('context', 'protected_read_during_preparation');
+        if (DspRuntime::forbidsRead($this->ctl)) throw new DspException('policy_purity', 'database_access_during_judgment');
+        $this->dsp_read_decisions = [];
         $this->dsp_call('get', null, fn() => $this->dsp->authorizeRead(['method' => $method] + $request));
     }
 
@@ -149,19 +170,19 @@ class fixed_file_manager implements FFM {
     function insert(&$dataset) {
         $position = is_resource($this->hf) ? ftell($this->hf) : null;
         try { return $this->insert_raw($dataset); }
-        finally { if ($position !== null && is_resource($this->hf)) fseek($this->hf, $position); }
+        finally { $this->dsp_context_rows = null; $this->dsp_read_decisions = []; if ($position !== null && is_resource($this->hf)) fseek($this->hf, $position); }
     }
 
     function update($dataset) {
         $position = is_resource($this->hf) ? ftell($this->hf) : null;
         try { return $this->update_raw($dataset); }
-        finally { if ($position !== null && is_resource($this->hf)) fseek($this->hf, $position); }
+        finally { $this->dsp_context_rows = null; $this->dsp_read_decisions = []; if ($position !== null && is_resource($this->hf)) fseek($this->hf, $position); }
     }
 
     function delete($id) {
         $position = is_resource($this->hf) ? ftell($this->hf) : null;
         try { return $this->delete_raw($id); }
-        finally { if ($position !== null && is_resource($this->hf)) fseek($this->hf, $position); }
+        finally { $this->dsp_context_rows = null; $this->dsp_read_decisions = []; if ($position !== null && is_resource($this->hf)) fseek($this->hf, $position); }
     }
 
     function get($id) {
@@ -444,6 +465,8 @@ class fixed_file_manager implements FFM {
 	}
 
 	private function assert_writable(string $operation): void {
+        $this->dsp_context_rows = null;
+        $this->dsp_read_decisions = [];
         if ($this->dsp_evaluating || DspRuntime::isEvaluating($this->ctl)) throw new DspException('policy_purity', 'write_during_policy');
 		if ($this->read_only) {
 			throw new Exception("Read-only fixed_file_manager cannot " . $operation . " : " . $this->path_dat);
@@ -584,6 +607,8 @@ class fixed_file_manager implements FFM {
 
 	//クローズ
 	function closeDatFile() {
+        $this->dsp_context_rows = null;
+        $this->dsp_read_decisions = [];
 		$this->close_index_cache();
 		if (is_resource($this->hf)) {
 			@flock($this->hf, LOCK_UN);
@@ -1086,7 +1111,6 @@ class fixed_file_manager implements FFM {
 				if ($d === null) continue;
 			}
 
-			if (!$this->dsp_visible($d)) continue;
 			if ($and_or == "AND") {
 				$flg = true;
 			} else {
@@ -1221,7 +1245,7 @@ class fixed_file_manager implements FFM {
 				$flg = true;
 			}
 
-			if ($flg) {
+			if ($flg && $this->dsp_visible($d)) {
 				$arr[] = $d;
 				$c++;
 				if ($sortitem == null) {
@@ -1374,7 +1398,6 @@ class fixed_file_manager implements FFM {
 				if ($d === null) continue;
 			}
 
-			if (!$this->dsp_visible($d)) continue;
 			if ($and_or == "AND") {
 				$flg = true;
 			} else {
@@ -1440,7 +1463,7 @@ class fixed_file_manager implements FFM {
 			}
 
 
-			if ($flg) {
+			if ($flg && $this->dsp_visible($d)) {
 				$arr[] = $d;
 				$c++;
 				if ($sortitem == null) {

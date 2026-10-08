@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-09",
+  "status": "test_environment_verified",
+  "framework_sources": {
+    "fbp/lib/fixed_file_manager/fixed_file_manager.php": "5d1891529e078a6373afff6af99a09687db6b145a73d76ab2957284bde4dbe42",
+    "fbp/lib/DspRuntime.php": "da48514cc24447c9162795f6ca9c07994eb9e1fc64189dd5606bf3657d815cfc",
+    "fbp/interface/DspInterface.php": "4c29c57ab15171dd1bc1fbf6f9880546e01229aa40c6ecb83f5d8a2d3db28f94",
+    "fbp/lib/fixed_file_manager/tests/dsp_matrix.php": "28b4a47d0b3ac230eb580373157b7fb213980bd137cc5ed8156e006fc12f5669"
+  },
+  "app_revision": 1547,
+  "ffm": {
+    "total": 1000,
+    "passed": 1000,
+    "failed": 0,
+    "groups": {
+      "compatibility": 250,
+      "insert": 100,
+      "update": 200,
+      "delete": 100,
+      "read": 250,
+      "errors": 50,
+      "concurrency": 50
+    },
+    "seed": "exhaustive-v1"
+  },
+  "business_checks": 198,
+  "registration_checks": 100,
+  "controller_integration_checks": 32,
+  "test_dashboard_verified": true,
+  "synthetic_volume": {
+    "project_rows": 222,
+    "task_rows": 3765,
+    "history_rows": 9833,
+    "select_inspections": 1,
+    "scan_inspections": 9833,
+    "select_seconds": 0.039008140563964844,
+    "scan_seconds": 0.06552505493164062
+  },
+  "production_app_dsp": "remains_temporarily_disabled"
+}

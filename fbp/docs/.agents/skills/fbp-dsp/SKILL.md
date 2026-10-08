@@ -49,11 +49,15 @@ For MCP, Controller::get_dsp_mcp_subject() supplies validated call authenticatio
 
 ## Lock and purity rules
 
-Declare DB dependencies in registry before the target's operation. FFM may reacquire existing locks when adding another DB; do not rely on values read before preopening all dependencies. Policies must only read existing DBs; no DB writes, closes, external calls or new DB opens during judgment.
+Declare DB dependencies in registry before the target's operation. FFM may reacquire existing locks when adding another DB; do not rely on values read before preopening all dependencies. Judgment methods must only compare the supplied row with prepared identity/scope values. FFM reads (including unprotected DBs), writes, closes, external calls and new DB opens are prohibited during judgment. Do not resolve parent records with get/select/filter from a judgment.
 
 DspRuntime temporarily enables Controller::set_prohibit_new_db(true) and restores the previous value with finally. Controller::db permits only cached handles during this guard. Controller close APIs and api() also reject lock changes. The connection guard alone permits writes to existing DBs, so it can also be used in normal application critical sections. Separately, DspRuntime tracks active judgments and FFM rejects writes during those judgments, including writes to unprotected dependency DBs. The guard is a consistency aid, not a sandbox against arbitrary code.
 
-FFM internally uses raw records for mutations and queries, applies row visibility before limits, and projects fields at the public boundary. get/get_many reject explicitly requested hidden rows. Scans skip hidden rows. match also requires permission to return id. Check all read APIs, including next/before/match/neighbors/iterate_filter; callbacks must never receive hidden fields.
+For parent/organization information not stored on the target row, implement optional `DspPreparedInterface::prepareContext(callable $snapshot)`. This runs once before each public read or mutation, after all dependencies are open, with writes/new connections/lock changes prohibited. Call `$snapshot('project', 'common')` to obtain a trusted ID-keyed persisted map of a declared, preopened dependency. This preparation-only internal path does not invoke dependency DSPs: use it only to prepare authorization facts, never return its contents to users. Ordinary reads of protected DBs during preparation are rejected to prevent recursion. Put project identity preparation in a helper; no separate authentication Provider is required. Do not fix an identity for the lifetime of a policy. Preparation errors fail closed.
+
+Dependency maps are cached only while FFM locks remain held. Mutations and lock release/reacquisition invalidate the maps. Read decisions are reused for visibility and field projection only within one public read, and cleared before the next operation. Keep maps bounded to necessary dependencies; add volume tests before registering large dependencies.
+
+FFM internally uses raw records for mutations and queries, evaluates matching candidates once after original query conditions and before limits, and projects fields at the public boundary. get/get_many reject explicitly requested hidden rows. Scans skip hidden rows. match also requires permission to return id. Check all read APIs, including next/before/match/neighbors/iterate_filter; callbacks must never receive hidden fields.
 
 ## policy.md
 
@@ -73,7 +77,7 @@ Audit is read-only: compare policy.md, implementations, normal FFM call sites an
 2. Confirm business rules, create/update policy.md, registry and implementation for confirmed targets only.
 3. Synchronize via the environment's approved workflow. classes/dsp must be included in synchronization and release archives; old archives without DSP leave existing policies intact.
 4. Test undefined compatibility, allowed CRUD, denied CRUD, other owners/orgs, immutable fields, read projection/query restrictions, load/evaluation errors and connection guard restoration.
-5. Run meaningful multi-process tests for locks. FFM does not provide multi-DB rollback.
+5. Test production-like parent/child volumes and assert decision counts are linear (no dependency DSP calls or duplicate row judgment). Run meaningful multi-process tests for locks. FFM does not provide multi-DB rollback.
 6. Report actual results and unresolved rules. Use the existing project support permissions; policy creation does not authorize production release by itself.
 
 For framework changes run existing FFM tests and the deterministic dsp_matrix.php suite (1,000 cases including comparisons with pre-change FFM). Provide an isolated workspace and a baseline file preserving its relative interface dependency. Run from the test environment, not the source tree. The integrated verification fixture in app-soshikikaikaku is restricted to the test environment and its registered test DB; it does not define business policies for existing notes.

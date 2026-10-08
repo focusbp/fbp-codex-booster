@@ -9,6 +9,30 @@ final class DspRuntime {
     private static array $registries = [];
     private static array $loading = [];
     private static array $evaluating = [];
+    private static array $preparing = [];
+    private static array $pure = [];
+
+    public static function isPreparing(?Controller $ctl): bool {
+        return $ctl !== null && isset(self::$preparing[spl_object_id($ctl)]);
+    }
+    public static function forbidsRead(?Controller $ctl): bool {
+        return $ctl !== null && isset(self::$pure[spl_object_id($ctl)]) && !self::isPreparing($ctl);
+    }
+    public static function preparedInvoke(?Controller $ctl, callable $callback): mixed {
+        $key = $ctl === null ? 0 : spl_object_id($ctl);
+        self::$pure[$key] = (self::$pure[$key] ?? 0) + 1;
+        try { return $callback(); }
+        finally { if (--self::$pure[$key] === 0) unset(self::$pure[$key]); }
+    }
+    public static function prepare(?Controller $ctl, DspPreparedInterface $policy): void {
+        if ($ctl === null) throw new DspException("context", "controller_required");
+        $key = spl_object_id($ctl);
+        self::invoke($ctl, "prepare", [], static function () use ($ctl, $key, $policy) {
+            self::$preparing[$key] = true;
+            try { $policy->prepareContext(static fn($table, $class = "common") => $ctl->db($table, $class)->dsp_context_snapshot()); }
+            finally { unset(self::$preparing[$key]); }
+        });
+    }
 
     public static function isEvaluating(?Controller $ctl): bool {
         return $ctl !== null && isset(self::$evaluating[spl_object_id($ctl)]);
