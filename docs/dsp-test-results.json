@@ -1,6 +1,6 @@
 {
   "date": "2026-10-08",
-  "status": "test_environment_verified_not_released",
+  "status": "test_environment_verified_and_production_released",
   "baseline_commit": "0e793fe0a93c24e6a2b6d3f31a653889937db35b",
   "baseline_ffm_sha256": "582001631fd9b88ca4917588f190c9769f18340b94b0bc308f129cc1c913854b",
   "source_sha256": {
@@ -14653,5 +14653,22 @@
     "inclusion": true,
     "isolated_deployment": true,
     "legacy_preservation": true
+  },
+  "deployment": {
+    "date": "2026-10-08",
+    "framework_servers": 3,
+    "framework_files_hash_verified": 6,
+    "app": "app-soshikikaikaku",
+    "app_destinations": 1,
+    "app_svn_revision": 1539,
+    "app_release_api_success": true,
+    "production_task_types_verified": [
+      8,
+      9
+    ],
+    "production_public_channel_verified": true,
+    "initial_app_release_http": 422,
+    "directory_preparation_fixed": true,
+    "app_source_ssh_hash_check": "unavailable"
   }
 }

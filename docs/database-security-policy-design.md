@@ -1,6 +1,6 @@
 # Database Security Policy（DSP）導入設計
 
-状態: 2026-10-08に共通基盤・策定監査タスク・Skillを実装し、テスト環境で検証。本番未反映。以下は合意した設計で、実装仕様の正本はfbp-dsp Skill。検証結果は `database-security-policy-verification.md` を参照する。
+状態: 2026-10-08に共通基盤・策定監査タスク・Skillを実装し、テスト環境で検証後、本番へ適用。以下は合意した設計で、実装仕様の正本はfbp-dsp Skill。検証・リリース結果は `database-security-policy-verification.md` を参照する。
 
 ## 目的と今回の範囲
 

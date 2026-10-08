@@ -2,6 +2,8 @@
 
 ## 2026-10-08
 
+- DSP共通基盤を本番配布対象3台へ適用し、主要ファイルのハッシュ一致を確認。app-soshikikaikakuもr1539で本番適用し、定数定義と公開入口を確認。新設DSPディレクトリの事前作成を配布・新規作成手順へ追加して初回アプリ配布のHTTP 422を解消した。
+
 - DSP共通基盤、FFMのCRUD・読み取り検査、Controller/channelとDB接続ガード、策定・監査タスク、classes/dspの同期・配布、fbp-dsp Skillを実装。app-soshikikaikakuのテスト専用予約ポリシーと統合確認を追加。詳細は `docs/database-security-policy-verification.md`。本番未反映。
 
 - DSPの検証計画に、FFM単体の異なる1,000パターン以上のテストとapp-soshikikaikakuテスト環境での最終統合テストを必須条件として追加。ケース配分、期待結果、再現性、安全なテストデータ、合格条件を記録。テストはDSP実装後に実施する計画で、未実行。
