@@ -2135,7 +2135,35 @@ function datetime_strings_to_timestamp_in_timezone(dateText, timeText, timezone)
 	return Math.floor(guessMs / 1000);
 }
 
+// Keep a note's search-session writes and list reads in their submission order.
+var standardScreenRequests = Object.create(null);
 function appcon(url, fd, nextfunction) {
+	var functionName = fd.get("function");
+	var dbId = fd.get("db_id");
+	if (fd.get("class") !== "db_exe" || !dbId
+			|| ["search", "rows"].indexOf(functionName) === -1) {
+		return appcon_execute(url, fd, nextfunction);
+	}
+	var key = url + ":" + dbId;
+	var state = standardScreenRequests[key];
+	if (!state) {
+		state = { tail: $.Deferred().resolve().promise(), revision: 0 };
+		standardScreenRequests[key] = state;
+	}
+	var revision = ++state.revision;
+	var result = state.tail.then(function () {
+		return appcon_execute(url, fd, nextfunction, function () {
+			return state.revision === revision;
+		});
+	});
+	state.tail = result;
+	result.always(function () {
+		if (state.tail === result) delete standardScreenRequests[key];
+	});
+	return result;
+}
+
+function appcon_execute(url, fd, nextfunction, isCurrentResponse) {
 
 	// 同期処理のため
 	var dfd = $.Deferred();
@@ -2226,6 +2254,11 @@ function appcon(url, fd, nextfunction) {
 			return XHR;
 		},
 	}).done(function (data) {
+		// A later search/list request already owns this note's displayed result.
+		if (isCurrentResponse && !isCurrentResponse()) {
+			dfd.resolve();
+			return;
+		}
 
 		// chat用loading
 		$("#loading").hide();
@@ -2251,6 +2284,7 @@ function appcon(url, fd, nextfunction) {
 
 			if (res["error"] != null) {
 				notification("", res["error"], 800, 5);
+				dfd.resolve();
 				return;
 			}
 
@@ -4015,6 +4049,12 @@ function bind_search_box_auto_submit(dialog_id) {
 		if (form.length === 0 || button.length === 0) {
 			return;
 		}
+		// List refreshes also initialize the surrounding screen. Keep this form's
+		// pending input search alive; delegated handlers already cover its fields.
+		if (form.data("auto_search_bound")) {
+			return;
+		}
+		form.data("auto_search_bound", true);
 
 		var previousCancel = form.data("auto_search_cancel");
 		if (previousCancel) {
