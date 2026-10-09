@@ -3,6 +3,7 @@
 require_once __DIR__ . '/DspException.php';
 require_once __DIR__ . '/DspReadDecision.php';
 require_once __DIR__ . '/DspSetting.php';
+require_once __DIR__ . '/DspProfile.php';
 require_once __DIR__ . '/../interface/DspInterface.php';
 
 /** Registry discovery and exception containment; no project-specific authentication model. */
@@ -36,11 +37,12 @@ final class DspRuntime {
     public static function prepare(?Controller $ctl, DspPreparedInterface $policy): void {
         if ($ctl === null) throw new DspException("context", "controller_required");
         $key = spl_object_id($ctl);
-        self::invoke($ctl, "prepare", [], static function () use ($ctl, $key, $policy) {
+        $profile = DspProfile::start();
+        try { self::invoke($ctl, "prepare", [], static function () use ($ctl, $key, $policy) {
             self::$preparing[$key] = true;
             try { $policy->prepareContext(static fn($table, $class = "common") => $ctl->db($table, $class)->dsp_context_snapshot()); }
             finally { unset(self::$preparing[$key]); }
-        });
+        }); } finally { DspProfile::record('prepare:' . get_class($policy), $profile); }
     }
 
     public static function isEvaluating(?Controller $ctl): bool {

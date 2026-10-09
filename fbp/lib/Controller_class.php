@@ -193,6 +193,7 @@ class Controller_class implements Controller {
 
 		$key = $ddir . "/" . $name;
 		if (!isset($this->dbarr[$key])) {
+			$profile = DspProfile::start();
 			$this->assert_db_connections_mutable();
 			$read_only = $this->db_read_only;
 			$options = ['read_only' => $read_only, 'controller' => $this, 'channel' => $this->dsp_channel, 'database_class' => $class];
@@ -206,6 +207,7 @@ class Controller_class implements Controller {
 			$ffm->set_controller($this);
 			$ffm->set_info($name, $class);
 			$this->dbarr[$key] = $ffm;
+			DspProfile::record('open:' . $class . '/' . $name, $profile);
 			return $ffm;
 		} else {
 			$ffm = $this->dbarr[$key];
@@ -496,6 +498,9 @@ class Controller_class implements Controller {
 
 	//jsonで応答を返す
 	function res() {
+		if ($this->get_session('login') && $this->is_app_admin() && ($profile = DspProfile::report()) !== null) {
+			$this->arr['dsp_profile'] = $profile;
+		}
 
 		// DBのログを出力
 		if ($this->testserver()) {

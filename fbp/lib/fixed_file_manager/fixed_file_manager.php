@@ -93,6 +93,7 @@ class fixed_file_manager implements FFM {
         if ($this->dsp_evaluating) throw new DspException('recursion', 'recursive_policy');
         $position = is_resource($this->hf) ? ftell($this->hf) : null;
         $this->dsp_evaluating = true;
+        $profile = DspProfile::start();
         try {
             return DspRuntime::invoke($this->ctl, $operation, [
                 'table' => $this->filename, 'class' => $this->info_classname,
@@ -101,6 +102,7 @@ class fixed_file_manager implements FFM {
                 'actor_id' => $this->ctl !== null && method_exists($this->ctl, 'get_login_user_id') ? $this->ctl->get_login_user_id() : null,
             ], fn() => DspRuntime::preparedInvoke($this->ctl, $callback));
         } finally {
+            DspProfile::record(($id === null ? 'authorize:' : 'inspect:') . $this->filename, $profile);
             $this->dsp_evaluating = false;
             if ($position !== null && is_resource($this->hf)) fseek($this->hf, $position);
         }
@@ -117,13 +119,14 @@ class fixed_file_manager implements FFM {
     public function dsp_context_snapshot(): array {
         if (!DspRuntime::isPreparing($this->ctl)) throw new DspException('context', 'preparation_required');
         if ($this->dsp_context_rows !== null) return $this->dsp_context_rows;
+        $profile = DspProfile::start();
         $position = ftell($this->hf);
         try {
             $rows = [];
             $this->seek_end();
             while (($row = $this->before_raw()) !== null) $rows[(int)$row['id']] = $this->dsp_persisted_row($row);
             return $this->dsp_context_rows = $rows;
-        } finally { fseek($this->hf, $position); }
+        } finally { DspProfile::record('snapshot:' . $this->filename, $profile, count($rows ?? [])); fseek($this->hf, $position); }
     }
 
     private function dsp_persisted_row(array $row): array {
@@ -218,8 +221,11 @@ class fixed_file_manager implements FFM {
     }
 
     function filter($itemname, $value, $exact_match = false, $and_or = 'AND', $sortitem = null, $sort_order = SORT_DESC, $max = null, &$is_last = null, $match_patterns = null) {
+        $profile = DspProfile::start();
+        try {
         $this->dsp_read('filter', compact('itemname', 'value', 'exact_match', 'and_or', 'sortitem', 'sort_order', 'max', 'match_patterns'));
         return array_map(fn($row) => $this->dsp_project($row), $this->filter_raw($itemname, $value, $exact_match, $and_or, $sortitem, $sort_order, $max, $is_last, $match_patterns));
+        } finally { DspProfile::record('filter:' . $this->filename, $profile); }
     }
 
     function select($itemname, $value, $match_patterns = true, $and_or = 'AND', $sortitem = null, $sort_order = SORT_DESC, $max = null, &$is_last = null) {
@@ -551,7 +557,9 @@ class fixed_file_manager implements FFM {
 
 			//ロック実行
 			$lock_mode = $this->read_only ? LOCK_SH : LOCK_EX;
+			$profile = DspProfile::start();
 			$lockresult = flock($this->hf, $lock_mode);
+			DspProfile::record('lock:' . $this->filename . ':' . ($this->read_only ? 'shared' : 'exclusive'), $profile);
 
 			//$this->log(realpath($this->path_dat),"LOCK");
 

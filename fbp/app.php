@@ -436,6 +436,10 @@ try{
 	
 	// 設定の読み込みなどで使用したDBを開放
 	$ctl->close_all_db();
+	if ($class === 'db_exe' && in_array($function, ['page', 'search', 'rows'], true)
+		&& ($_POST['_dsp_profile'] ?? '') === '1' && $ctl->get_session('login') && $ctl->is_app_admin()) {
+		DspProfile::begin();
+	}
 
 	//クラスを読み込み
 	$appobj = getClassObject($ctl,$class,$dir);
