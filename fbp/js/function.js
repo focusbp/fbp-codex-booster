@@ -2135,13 +2135,13 @@ function datetime_strings_to_timestamp_in_timezone(dateText, timeText, timezone)
 	return Math.floor(guessMs / 1000);
 }
 
-// Keep a note's search-session writes and list reads in their submission order.
+// Keep a note's page reloads, search-session writes and list reads in submission order.
 var standardScreenRequests = Object.create(null);
 function appcon(url, fd, nextfunction) {
 	var functionName = fd.get("function");
 	var dbId = fd.get("db_id");
 	if (fd.get("class") !== "db_exe" || !dbId
-			|| ["search", "rows"].indexOf(functionName) === -1) {
+			|| ["page", "search", "rows"].indexOf(functionName) === -1) {
 		return appcon_execute(url, fd, nextfunction);
 	}
 	var key = url + ":" + dbId;
