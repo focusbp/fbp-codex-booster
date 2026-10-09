@@ -4016,15 +4016,33 @@ function bind_search_box_auto_submit(dialog_id) {
 			return;
 		}
 
+		var previousCancel = form.data("auto_search_cancel");
+		if (previousCancel) {
+			previousCancel();
+		}
 		form.off(".auto_search");
 		var timer = null;
-		var triggerSearch = function (delayMs) {
+		var textInputs = "input[type='text'],input[type='search'],input[type='number'],textarea";
+		var cancelSearch = function () {
 			if (timer) {
 				clearTimeout(timer);
 				timer = null;
 			}
+		};
+		form.data("auto_search_cancel", cancelSearch);
+		var isComposing = function () {
+			return form.find(textInputs).filter(function () {
+				return $(this).data("auto_search_composing") === true;
+			}).length > 0;
+		};
+		var triggerSearch = function (delayMs) {
+			cancelSearch();
+			if (isComposing()) {
+				return;
+			}
 			var execute = function () {
-				if (button.prop("disabled")) {
+				timer = null;
+				if (!form.get(0).isConnected || isComposing() || button.prop("disabled")) {
 					return;
 				}
 				button.trigger("click");
@@ -4040,14 +4058,26 @@ function bind_search_box_auto_submit(dialog_id) {
 			var tag = (this.tagName || "").toLowerCase();
 			var type = (this.type || "").toLowerCase();
 			if ((tag === "input" && (type === "text" || type === "search" || type === "number")) || tag === "textarea") {
-				triggerSearch(350);
+				triggerSearch(500);
 				return;
 			}
 			triggerSearch(0);
 		});
 
-		form.on("input.auto_search", "input[type='text'],input[type='search'],input[type='number'],textarea", function () {
-			triggerSearch(350);
+		form.on("compositionstart.auto_search", textInputs, function () {
+			$(this).data("auto_search_composing", true);
+			cancelSearch();
+		});
+		form.on("compositionend.auto_search", textInputs, function () {
+			$(this).data("auto_search_composing", false);
+			triggerSearch(500);
+		});
+		form.on("input.auto_search", textInputs, function (event) {
+			if (event.originalEvent && event.originalEvent.isComposing) {
+				cancelSearch();
+				return;
+			}
+			triggerSearch(500);
 		});
 	});
 }
