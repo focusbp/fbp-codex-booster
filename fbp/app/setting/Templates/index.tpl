@@ -92,7 +92,7 @@
 							<td><input type="text" name="currency_decimal_digits" value="{$setting.currency_decimal_digits}"></td>
 						</tr>
 						<tr>
-							<th rowspan="6">{t key="setting.mode"}</th>
+							<th rowspan="7">{t key="setting.mode"}</th>
 							<td>{t key="setting.mode"}</td>
 							<td>{html_options name="force_testmode" options=$arr_force_testmode selected=$setting.force_testmode}</td>
 						</tr>
@@ -103,6 +103,10 @@
 						<tr>
 							<td>{t key="setting.error_report_level"}</td>
 							<td>{html_options name="error_report_level" options=$arr_error_report_level selected=$setting.error_report_level}</td>
+						</tr>
+						<tr>
+							<td>{t key="setting.dsp"}</td>
+							<td>{html_options name="dsp_disabled" options=$arr_onoff selected=$dsp_disabled}<br><small>{t key="setting.dsp.help"}</small></td>
 						</tr>
 						<tr>
 							<td>{t key="setting.show_homepage_link"}</td>

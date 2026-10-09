@@ -11,6 +11,12 @@ DSP complements normal FFM data access; it is not isolation from arbitrary PHP c
 
 Undefined DBs preserve existing behavior. Registered policies allow or throw DspException. A registered policy's missing implementation, invalid registry or evaluation failure stops safely; never downgrade an error to undefined.
 
+## Application switch
+
+The administrator system setting "Database Security Policy (DSP)" enables or disables enforcement for that application. `dsp_disabled=0` is ON and `1` is OFF; missing/invalid values keep ON. OFF retains definitions and PHP but skips registry/policy loading, judgments and dependency opens, including explicitly supplied policies. Existing application authentication/authorization remains active. Use OFF only when explicitly requested for that app; do not change another app's setting or infer permission to leave it OFF from a general audit request.
+
+Framework entry points read the saved system setting on each request and populate Controller's server-owned setting snapshot before protected access. The next request after saving observes the switch, including already logged-in sessions. Do not accept the flag from GET/POST for data access or read the system setting DB from a judgment. Already opened handles retain their binding within that request. With ON, load/evaluation failures still stop safely. Tests should cover ON restoration, all entry channels, dependency suppression and unchanged application authorization.
+
 ## Human definitions and creation workflow
 
 The developer panel DSP tab stores one `dsp/policies` row per note ID and operation. Visible fields are Note, Add/Read/Update/Delete, Allow/Deny/Custom and Conditions. Custom requires plain-text conditions; other modes have no conditions. Prevent duplicate note/operation rows. Note IDs link to existing `db/db` definitions; never guess rights from the note name.

@@ -342,7 +342,7 @@ class fixed_file_manager implements FFM {
         $this->ctl = $options['controller'] ?? (class_exists('Controller_class', false) ? Controller_class::getInstance() : null);
         if ($this->ctl !== null && $this->ctl->get_prohibit_new_db()) throw new DspException('db_connections', 'new_ffm_during_guard');
         $this->dsp_channel = $this->ctl !== null ? $this->ctl->get_dsp_channel() : ($options['channel'] ?? 'unknown');
-        $this->dsp = $options['dsp'] ?? DspRuntime::resolve((string) $datadir, $filename, $this->ctl, $this->dsp_channel, $options['database_class'] ?? null);
+        $this->dsp = DspRuntime::isDisabled($this->ctl) ? null : ($options['dsp'] ?? DspRuntime::resolve((string) $datadir, $filename, $this->ctl, $this->dsp_channel, $options['database_class'] ?? null));
         if ($this->dsp !== null) {
             $policyFile = (new ReflectionClass($this->dsp))->getFileName();
             if (is_string($policyFile) && is_file($policyFile)) $this->dsp_policy_version = hash_file('sha256', $policyFile);

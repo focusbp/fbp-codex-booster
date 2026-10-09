@@ -7,6 +7,7 @@
 
 include_once (__DIR__ . "/../../lib/FrameworkTheme.php");
 require_once __DIR__ . "/../../lib/StandardScreenLayout.php";
+require_once __DIR__ . "/../../lib/DspSetting.php";
 
 class setting {
 
@@ -222,6 +223,7 @@ class setting {
 		$setting["project_portal_url"] = $this->normalize_project_portal_url($setting["project_portal_url"] ?? "");
 		$setting["error_report_level"] = $this->normalize_error_report_level($setting["error_report_level"] ?? "");
 		$setting["standard_screen_responsive"] = fbp_normalize_standard_screen_responsive($setting["standard_screen_responsive"] ?? null);
+		$setting["dsp_disabled"] = fbp_normalize_dsp_disabled($setting["dsp_disabled"] ?? null);
 		
 		
 		$this->ffm->update($setting);
@@ -410,6 +412,7 @@ class setting {
 
 		$ctl->assign("setting", $setting);
 		$ctl->assign("standard_screen_responsive", fbp_normalize_standard_screen_responsive($setting["standard_screen_responsive"] ?? null));
+		$ctl->assign("dsp_disabled", fbp_normalize_dsp_disabled($setting["dsp_disabled"] ?? null));
 		$ctl->assign("masked_setting", $this->mask_sensitive_setting($setting));
 		$ctl->assign("line_webhook_url", $ctl->get_APP_URL("webhook_line", "receive"));
 		$ctl->assign("mcp_server_info", $this->get_mcp_server_info($ctl));

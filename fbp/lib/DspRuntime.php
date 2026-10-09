@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/DspException.php';
 require_once __DIR__ . '/DspReadDecision.php';
+require_once __DIR__ . '/DspSetting.php';
 require_once __DIR__ . '/../interface/DspInterface.php';
 
 /** Registry discovery and exception containment; no project-specific authentication model. */
@@ -11,6 +12,14 @@ final class DspRuntime {
     private static array $evaluating = [];
     private static array $preparing = [];
     private static array $pure = [];
+
+    public static function isDisabled(?Controller $ctl): bool {
+        if ($ctl === null || !method_exists($ctl, 'get_session')) return false;
+        // Framework entry points refresh this server-owned setting before opening app DBs.
+        // Do not read the setting DB here: resolution also runs during bootstrap.
+        $setting = $ctl->get_session('setting');
+        return is_array($setting) && fbp_normalize_dsp_disabled($setting['dsp_disabled'] ?? null) === 1;
+    }
 
     public static function isPreparing(?Controller $ctl): bool {
         return $ctl !== null && isset(self::$preparing[spl_object_id($ctl)]);
@@ -47,6 +56,7 @@ final class DspRuntime {
     }
 
     public static function resolve(string $datadir, string $table, ?Controller $ctl, string $channel, ?string $databaseClass = null): ?DspInterface {
+        if (self::isDisabled($ctl)) return null;
         $path = str_replace('\\', '/', realpath($datadir) ?: $datadir);
         $marker = '/classes/data/';
         $pos = strrpos($path . '/', $marker);

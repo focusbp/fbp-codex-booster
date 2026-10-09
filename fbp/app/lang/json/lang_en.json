@@ -1,4 +1,6 @@
 {
+  "setting.dsp": "Database Security Policy (DSP)",
+  "setting.dsp.help": "Keep ON for normal use. OFF disables DSP access restrictions for this app from the next request after saving. Application authentication and permission checks remain active.",
   "setting.not_found_page": "404 Page",
   "setting.not_found_page.help": "Leave blank for the default 404. Specify a public, display-only Class and Function.",
   "base.app_name": "FOCUS Business Platform",

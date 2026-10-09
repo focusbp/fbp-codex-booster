@@ -71,3 +71,4 @@ show_developer_panel,1,N
 website_url,255,T
 line_bot_greeting_message,1000,T
 line_forward_unknown_to_manager,1,N
+dsp_disabled,1,N
