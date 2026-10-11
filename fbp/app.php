@@ -255,6 +255,23 @@ if ($well_known_route !== "") {
 	}
 }
 
+// 内部要求は正規の組み合わせだけを許可し、不正な要求を例外ログにしない。
+if (is_string($class) && str_starts_with($class, '_')) {
+	$internal_requests = [
+		'_DISPLAY' => '_ARR',
+		'_VIMEO' => '_THUMBNAIL',
+	];
+	if (!isset($internal_requests[$class]) || $function !== $internal_requests[$class]) {
+		http_response_code(403);
+		header('Content-Type: text/plain; charset=UTF-8');
+		header('Cache-Control: no-store');
+		if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'HEAD') {
+			echo 'Forbidden';
+		}
+		exit;
+	}
+}
+
 $smarty->assign("class",$class);
 $smarty->assign("css_class",$class); // Default
 
@@ -424,7 +441,7 @@ try{
 	}
 
 	// Vimeo thumbnail
-	if($class=="_VIMEO" && $function="_THUMBNAIL"){
+	if($class === "_VIMEO" && $function === "_THUMBNAIL"){
 		$vimeo_id = $ctl->POST("vimeo_id");
 		$url = $ctl->get_vimeo_thumbnail($vimeo_id);
 		echo json_encode(["url"=>$url]);
