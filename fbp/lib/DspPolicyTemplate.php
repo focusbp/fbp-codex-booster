@@ -10,7 +10,12 @@ final class DspPolicyTemplate {
             'delete'=>['authorizeDelete(array $before): void'],
         ];
         $source = "<?php\nfinal class $className implements DspInterface {\n".
-            '    public function __construct(private Controller $ctl, private readonly string $channel) {}'."\n";
+            '    public function __construct(private Controller $ctl, private readonly string $channel) {}'."\n".
+            '    private function isManagementDbApi(): bool {'."\n".
+            '        $subject = $this->ctl->get_dsp_system_subject();'."\n".
+            '        return $this->channel === \'api\' && $this->ctl->get_classname() === \'db_api\''."\n".
+            '            && ($subject[\'verified\'] ?? null) === true && ($subject[\'kind\'] ?? null) === \'api\';'."\n".
+            '    }'."\n";
         foreach ($methods as $op=>$signatures) {
             $rule = $rules[$op] ?? ['mode'=>'allow','conditions'=>''];
             if (!in_array($rule['mode'],['allow','deny','custom'],true)) throw new InvalidArgumentException('Invalid DSP mode');
@@ -22,7 +27,8 @@ final class DspPolicyTemplate {
                     'deny'=>"throw new DspException('panel_policy', 'operation_denied');",
                     'custom'=>"throw new DspException('custom_pending', 'implementation_required');",
                 };
-                $source .= "    public function $signature { $body }\n";
+                $managementReturn = $read ? 'return new DspReadDecision(true, null);' : 'return;';
+                $source .= "    public function $signature { if (\$this->isManagementDbApi()) { $managementReturn } $body }\n";
             }
         }
         return ['php'=>$source."}\n"];
