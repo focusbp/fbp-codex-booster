@@ -109,6 +109,8 @@ Audit is read-only: compare policy.md, implementations, normal FFM call sites an
 
 ## Introduction and verification
 
+In local Auto Task policy implementation (type 8 / dsp_policy), after explicit agreement and code-change permission, run `~/scripts/copy_to_web.sh <code_dir>` without `--app-only` before implementing DSP. Resolve code_dir through the management API. Verify synchronization succeeded and DSP infrastructure/settings reads work; stop on failure. This exception synchronizes existing framework source to the test environment and never permits framework source edits. Do not synchronize during proposals or read-only audits. Subsequent app synchronization uses `--app-only`; production release retains its separate permissions and workflow.
+
 1. Read the project's relevant docs and existing auth/data access. Inventory targets and currently undefined DBs.
 2. Confirm business rules, create/update policy.md, registry and implementation for confirmed targets only.
 3. Synchronize via the environment's approved workflow. classes/app/_dsp is included by normal application synchronization and release. Do not add a separate DSP payload or old-path fallback; replacing application code also replaces its policies.
