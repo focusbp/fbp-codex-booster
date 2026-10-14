@@ -113,6 +113,8 @@ Audit is read-only: compare policy.md, implementations, normal FFM call sites an
 
 ## Introduction and verification
 
+The local DSP worker parent now performs the infrastructure sync before starting Codex when code-change permission is ON. Confirm success in the provided dsp_sync.log instead of running the same full sync again. The exception is confined to the parent's sync subprocess; subsequent Codex application sync remains --app-only. Audit and permission-OFF tasks skip it. This preparation does not replace explicit target/condition agreement.
+
 In local Auto Task policy implementation (type 8 / dsp_policy), after explicit agreement and code-change permission, run `~/scripts/copy_to_web.sh <code_dir>` without `--app-only` before implementing DSP. Resolve code_dir through the management API. Verify synchronization succeeded and DSP infrastructure/settings reads work; stop on failure. This exception synchronizes existing framework source to the test environment and never permits framework source edits. Do not synchronize during proposals or read-only audits. Subsequent app synchronization uses `--app-only`; production release retains its separate permissions and workflow.
 
 1. Read the project's relevant docs and existing auth/data access. Inventory targets and currently undefined DBs.
