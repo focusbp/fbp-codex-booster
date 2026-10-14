@@ -684,6 +684,7 @@ function report_bootstrap_error(Throwable $e, $class, $function) {
 		"remote_addr" => (string) ($_SERVER["REMOTE_ADDR"] ?? ""),
 		"user_agent" => (string) ($_SERVER["HTTP_USER_AGENT"] ?? ""),
 	];
+	if ($e instanceof DspException) $payload['dsp_metadata'] = $e->getServerErrorMetadata();
 	$payload["error_hash"] = hash("sha256", implode("\n", [
 		(string) $payload["app_name"],
 		(string) $payload["class_name"],
@@ -692,6 +693,7 @@ function report_bootstrap_error(Throwable $e, $class, $function) {
 		(string) $payload["message"],
 		(string) $payload["file_path"],
 		(string) $payload["line_no"],
+		...(isset($payload['dsp_metadata']) ? [json_encode($payload['dsp_metadata'])] : []),
 	]));
 
 	$json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);

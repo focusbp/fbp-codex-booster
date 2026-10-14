@@ -114,6 +114,11 @@ final class DspRuntime {
             return $callback();
         } catch (Throwable $e) {
             $failure = $e instanceof DspException ? $e : new DspException('evaluation', 'policy_evaluation_error', [], $e);
+            try { $subject = $ctl !== null && method_exists($ctl, 'get_dsp_system_subject') ? $ctl->get_dsp_system_subject() : null; }
+            catch (Throwable) { $subject = null; }
+            if (!is_array($subject)) $subject = null;
+            $failure->setRuntimeContext(['operation'=>$operation, 'channel'=>$target['channel'] ?? 'unknown',
+                'trusted_cron'=>($subject['verified'] ?? false) === true && ($subject['kind'] ?? '') === 'cron' && (int)($subject['job_id'] ?? 0)>0]);
             self::record($failure, ['operation' => $operation] + $target);
             throw $failure;
         } finally {
@@ -125,6 +130,7 @@ final class DspRuntime {
     }
 
     private static function record(DspException $e, array $target): void {
+        if (($target['operation'] ?? '') === 'load') $e->setRuntimeContext($target);
         // Only identifiers and reason codes. Never serialize rows or authentication credentials.
         error_log('[DSP] ' . json_encode($target + $e->getDetails() + ['trace_id' => bin2hex(random_bytes(8))], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE));
     }

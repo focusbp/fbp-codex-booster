@@ -107,6 +107,10 @@ For reservations, check stored owner against authenticated actor; verify managem
 
 ## Exceptions and audit
 
+ServerError reports now carry separate `dsp_metadata` containing only rule/reason codes, entry channel, operation and boolean evidence flags; request GET/POST data is never used as this metadata. The runtime captures verified cron context before unwinding. Unknown/legacy DSP refusals become read-only investigation tasks with change/release permissions OFF; load/evaluation faults and verified cron failures remain defect candidates. Unauthenticated requests alone are not evidence of an attack.
+
+Only after trusted authentication/ownership checks conclusively establish a normal refusal may a policy throw `new DspException('stable_rule_id', 'cross_owner_access', ['expected_denial'=>true])`. Recognized reasons are invalid_credentials, tampered_request, cross_owner_access and cross_org_access; the marker applies only to public/API/MCP channels. Never set it for generic operation_denied/business_access_denied, guessed rights, missing runtime context, cron, loading or evaluation faults. Do not copy tokens, user IDs, rows or request values into rule/reason or details. Existing policies are not automatically rewritten to add the marker. The worker keeps unproven refusals for investigation instead of relaxing DSP conditions.
+
 Throw `new DspException('stable_rule_id', 'reason_code')`. Keep details to identifiers/codes; never put raw records, tokens or passwords in exceptions. External messages are generic; internal DSP logs contain operation, DB, row ID, channel, rule/reason and trace ID. Unexpected exceptions are wrapped as evaluation errors and stop the operation.
 
 Audit is read-only: compare policy.md, implementations, normal FFM call sites and undefined DBs; run allow/deny tests only on isolated disposable data. Do not change code/docs/configuration, sync or release unless the user changes the task scope. In support task type 9, request a separate policy/change task for fixes. Missing policies and unverified tests must be reported, not treated as a clean audit.

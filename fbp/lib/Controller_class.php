@@ -2214,6 +2214,7 @@ class Controller_class implements Controller {
 				"remote_addr" => (string) ($_SERVER["REMOTE_ADDR"] ?? ""),
 				"user_agent" => (string) ($_SERVER["HTTP_USER_AGENT"] ?? ""),
 			];
+			if ($e instanceof DspException) $payload['dsp_metadata'] = $e->getServerErrorMetadata($this->get_dsp_channel());
 			$payload["error_hash"] = hash(
 				"sha256",
 				implode("\n", [
@@ -2224,6 +2225,7 @@ class Controller_class implements Controller {
 					(string) $payload["message"],
 					(string) $payload["file_path"],
 					(string) $payload["line_no"],
+					...(isset($payload['dsp_metadata']) ? [json_encode($payload['dsp_metadata'])] : []),
 				])
 			);
 
