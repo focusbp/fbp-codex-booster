@@ -1,6 +1,6 @@
 <form id="dsp_definition_form">
 <input type="hidden" name="id" value="{$data.id|escape}">
-{fields_form_original name="note_id" type="dropdown" title={t key="dsp.note"} options_arr=$dsp_notes value=$data.note_id}
+{fields_form_original name="target" type="dropdown" title={t key="dsp.target"} options_arr=$dsp_notes value=$data.target}
 {fields_form_original name="operation" type="dropdown" title={t key="dsp.operation"} options_arr=$dsp_operations value=$data.operation}
 {fields_form_original name="mode" type="dropdown" title={t key="dsp.mode"} options_arr=$dsp_modes value=$data.mode}
 {fields_form_original name="conditions" type="textarea" title={t key="dsp.conditions"} value=$data.conditions}

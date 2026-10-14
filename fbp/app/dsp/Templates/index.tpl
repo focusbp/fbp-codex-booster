@@ -2,7 +2,7 @@
 <p>{t key="dsp.creation_help"}</p>
 <form id="dsp_filter">
 <div class="dsp-search-fields">
-{fields_form_original name="note_id" type="dropdown" title={t key="dsp.note"} options_arr=$dsp_note_filters value=$filter.note_id|default:'' item_margin_top="0"}
+{fields_form_original name="target" type="dropdown" title={t key="dsp.target"} options_arr=$dsp_note_filters value=$filter.target|default:'' item_margin_top="0"}
 {fields_form_original name="operation" type="dropdown" title={t key="dsp.operation"} options_arr=$dsp_operation_filters value=$filter.operation|default:'' item_margin_top="0"}
 {fields_form_original name="mode" type="dropdown" title={t key="dsp.mode"} options_arr=$dsp_mode_filters value=$filter.mode|default:'' item_margin_top="0"}
 {fields_form_original name="keyword" type="text" title={t key="dsp.keyword"} value=$filter.keyword|default:'' item_margin_top="0"}

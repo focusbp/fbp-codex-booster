@@ -833,5 +833,8 @@
   "dsp.all_notes": "All notes",
   "dsp.all_operations": "All operations",
   "dsp.all_modes": "All settings",
-  "dsp.not_found": "DSP definition not found."
+  "dsp.not_found": "DSP definition not found.",
+  "dsp.target": "Note / custom DB",
+  "dsp.custom_db": "Custom DB",
+  "dsp.target_required": "Select an existing note or custom DB."
 }

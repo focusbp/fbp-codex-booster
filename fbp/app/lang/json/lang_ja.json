@@ -833,5 +833,8 @@
   "dsp.all_notes": "すべてのノート",
   "dsp.all_operations": "すべての操作",
   "dsp.all_modes": "すべての設定",
-  "dsp.not_found": "DSP設定が見つかりません。"
+  "dsp.not_found": "DSP設定が見つかりません。",
+  "dsp.target": "対象ノート・独自DB",
+  "dsp.custom_db": "独自DB",
+  "dsp.target_required": "存在する対象ノート・独自DBを選択してください。"
 }

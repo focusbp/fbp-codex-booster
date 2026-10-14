@@ -13,43 +13,34 @@ class dsp {
         if($ctl->POST('function')==='cli_command') {
             $command=$ctl->POST('command');
             $path=dirname(dirname($this->notes->get_path_dat())).'/dsp/policies.dat';
-            if($command!=='notes'&&(!in_array($command,['list','get'],true)||is_file($path)))
+            if(!in_array($command,['notes','targets'],true)&&(!in_array($command,['list','get','generate_template'],true)||is_file($path)))
                 $this->definitions=$ctl->db('policies','dsp');
-            $this->store=new DspDefinitionStore($this->notes,$this->definitions);return;
+            $this->store=new DspDefinitionStore($this->notes,$this->definitions,dirname(dirname(dirname($this->notes->get_path_dat()))).'/app',dirname(__DIR__));return;
         }
         $this->definitions=$ctl->db('policies','dsp');
-        $this->store=new DspDefinitionStore($this->notes,$this->definitions);
+        $this->store=new DspDefinitionStore($this->notes,$this->definitions,dirname(dirname(dirname($this->notes->get_path_dat()))).'/app',dirname(__DIR__));
         $ctl->assign('dsp_operations',['add'=>'Add','read'=>'Read','update'=>'Update','delete'=>'Delete']);
         $ctl->assign('dsp_modes',['allow'=>'Allow','deny'=>'Deny','custom'=>'Custom']);
         $opts=[''=>$ctl->t('dsp.select_note')];
-        foreach($this->notes->getall('tb_name') as $row) $opts[$row['id']]=($row['menu_name']?:$row['tb_name']).' ('.$row['tb_name'].')';
+        foreach($this->store->targets() as $row) $opts[$row['target']]=$row['note_id']>0?$row['note_name'].' (common/'.$row['db_table'].')':$ctl->t('dsp.custom_db').' ('.$row['db_class'].'/'.$row['db_table'].')';
         $ctl->assign('dsp_notes',$opts);
         $opts['']=$ctl->t('dsp.all_notes');$ctl->assign('dsp_note_filters',$opts);
         $ctl->assign('dsp_operation_filters',[''=>$ctl->t('dsp.all_operations'),'add'=>'Add','read'=>'Read','update'=>'Update','delete'=>'Delete']);
         $ctl->assign('dsp_mode_filters',[''=>$ctl->t('dsp.all_modes'),'allow'=>'Allow','deny'=>'Deny','custom'=>'Custom']);
     }
     public function page(Controller $ctl): void {
-        $filter=$ctl->POST(); $names=array_column($this->notes->getall(),'menu_name','id');
-        $tables=array_column($this->notes->getall(),'tb_name','id'); $items=[];
-        foreach($this->definitions->getall('id',SORT_DESC) as $row) {
-            $row['note_name']=($names[$row['note_id']]??'')?:($tables[$row['note_id']]??$ctl->t('dsp.note_deleted'));
-            $row['table_name']=$tables[$row['note_id']]??'';
-            if (!empty($filter['note_id']) && (int)$filter['note_id']!==$row['note_id']) continue;
-            if (!empty($filter['operation']) && $filter['operation']!==$row['operation']) continue;
-            if (!empty($filter['mode']) && $filter['mode']!==$row['mode']) continue;
-            $keyword=is_string($filter['keyword']??null)?trim($filter['keyword']):'';
-            if($keyword!=='' && mb_stripos($row['note_name'].' '.$row['table_name'].' '.$row['conditions'],$keyword)===false)continue;
-            $items[]=$row;
-        }
+        $filter=$ctl->POST();$items=$this->store->listing($filter);
+        foreach($items as &$row)if(!$row['target_exists'])$row['note_name']=$ctl->t('dsp.note_deleted');
+        unset($row);
         $ctl->assign('items',$items);$ctl->assign('filter',$filter);$ctl->reload_area('#tabs-dsp','index.tpl');
     }
     public function add(Controller $ctl): void { $this->form($ctl,[]); }
     public function edit(Controller $ctl): void {
-        $row=$this->definitions->get((int)$ctl->POST('id'));if(!$row)throw new RuntimeException('DSP definition not found');
+        $row=$this->store->get($this->positiveId($ctl->POST('id')));
         $this->form($ctl,$row);
     }
     private function form(Controller $ctl,array $row): void {
-        $ctl->assign('data',$row+['note_id'=>'','operation'=>'read','mode'=>'allow','conditions'=>'','id'=>0]);
+        $ctl->assign('data',$row+['target'=>'','operation'=>'read','mode'=>'allow','conditions'=>'','id'=>0]);
         $ctl->show_multi_dialog('dsp_form','form.tpl','DSP',800,true,true);
     }
     public function save(Controller $ctl): void {
@@ -75,6 +66,8 @@ class dsp {
             $command=$post['command']??'';
             $result=match($command){
                 'notes'=>['items'=>$this->store->notes()],
+                'targets'=>['items'=>$this->store->targets()],
+                'generate_template'=>['template'=>$this->store->template($post)],
                 'list'=>['items'=>$this->store->listing($post)],
                 'get'=>['item'=>$this->store->get($this->positiveId($post['id']??''))],
                 'add'=>['item'=>$this->store->save($post)],
@@ -97,11 +90,6 @@ class dsp {
         $ctl->close_multi_dialog('dsp_delete');$this->page($ctl);
     }
     public function generate_template(Controller $ctl): void {
-        $id=(int)$ctl->POST('note_id');$note=$this->notes->get($id);if(!$note)throw new RuntimeException('Note not found');
-        $rules=array_column($this->definitions->select('note_id',$id,true),null,'operation');
-        $name='Note'.$id.'Dsp';$result=DspPolicyTemplate::generate($name,$rules);
-        $result['note']=['id'=>$note['id'],'tb_name'=>$note['tb_name']];$result['rules']=$rules;
-        $result['registry']=['common/'.$note['tb_name']=>['file'=>$name.'.php','class'=>$name]];
-        $ctl->res_json($result);
+        $ctl->res_json($this->store->template($ctl->POST()));
     }
 }
