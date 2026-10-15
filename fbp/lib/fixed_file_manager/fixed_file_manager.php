@@ -563,6 +563,11 @@ class fixed_file_manager implements FFM {
 
 			//$this->log(realpath($this->path_dat),"LOCK");
 
+			// Another process can write while lock-order adjustment releases our locks.
+			// Refresh persisted metadata on every acquisition, not only the first open.
+			$this->header = $this->getHeader();
+			$this->format = $this->parseFormat($this->header["format_txt"]);
+
 			if (!$this->flg_prepared) {
 				//スクリプト終了時に安全に終了するための関数を登録する
 				register_shutdown_function(function ($class) {
@@ -571,12 +576,6 @@ class fixed_file_manager implements FFM {
 						@fclose($class->hf);
 					}
 				}, $this);
-
-				// ヘッダを読み込む
-				$this->header = $this->getHeader();
-
-				// フォーマットをセット
-				$this->format = $this->parseFormat($this->header["format_txt"]);
 
 				// jsonを読み込み
 				if ($this->path_json !== null && is_file($this->path_json)) {
