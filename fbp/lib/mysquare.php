@@ -113,7 +113,7 @@ class mysquare {
 		return $card_id;
 	}
 	
-	function payment($customer_id,$card_id,$price,$currency="JPY"){
+	function payment($customer_id,$card_id,$price,$currency="JPY", ?string $idempotency_key = null){
 		$this->payment_result = [];
 		$payments_api = $this->client->getPaymentsApi();
 
@@ -129,12 +129,17 @@ class mysquare {
 			throw new Exception("Invalid Card ID");
 		}
 
-		$create_payment_request = new CreatePaymentRequest($card_id, uniqid(), $money);
+		if ($idempotency_key !== null && ($idempotency_key === '' || strlen($idempotency_key) > 45)) {
+            throw new InvalidArgumentException('Invalid payment idempotency key');
+        }
+        $create_payment_request = new CreatePaymentRequest($card_id, $idempotency_key ?? uniqid(), $money);
 		$create_payment_request->setCustomerId($customer_id);
+        if ($idempotency_key !== null) $create_payment_request->setReferenceId($idempotency_key);
 
 		$result = $payments_api->createPayment($create_payment_request);
 		$result_body = json_decode($result->getBody(),true);
 		if ($result->isError()) {
+            $this->payment_result = ['errors' => (array) ($result_body['errors'] ?? [])];
 			$txt = "";
 			if(isset($result_body["errors"]) && is_array($result_body["errors"])){
 				foreach($result_body["errors"] as $error){
@@ -156,6 +161,15 @@ class mysquare {
 			return $payment;
 		}
 	}
+
+    function retrieve_payment(string $payment_id): array {
+        $response = $this->client->getPaymentsApi()->getPayment($payment_id);
+        $body = json_decode($response->getBody(), true);
+        if ($response->isError() || empty($body['payment']['id'])) {
+            throw new RuntimeException('Square決済結果を確認できませんでした');
+        }
+        return $body['payment'];
+    }
 
 	function get_payment_result(): array {
 		return $this->payment_result;

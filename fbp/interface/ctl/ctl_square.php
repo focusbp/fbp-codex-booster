@@ -18,9 +18,11 @@ interface ctl_square {
 	 * @param string $currency The currency to use for the transaction, default is "JPY".
 	 * @return mixed The result of the payment transaction from Square.
 	 */
-	function square_payment($square_customer_id, $card_id, $price, $currency = "JPY"):bool;
+	function square_payment($square_customer_id, $card_id, $price, $currency = "JPY", ?string $idempotency_key = null):bool;
 
 	function square_get_payment_result():array;
+
+    function square_retrieve_payment(string $payment_id): array;
 
 	function square_refund_payment(string $payment_id, int $amount, string $idempotency_key, string $currency = "JPY", string $reason = ""):bool;
 

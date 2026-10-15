@@ -124,6 +124,9 @@ interface FFM {
 	 */
 	function close();
 
+    /** Flush and sync journal writes without releasing the database lock. */
+    function sync_writes(): void;
+
 	/**
 	 * Selects data based on a matching condition for a specific field.
 	 * 

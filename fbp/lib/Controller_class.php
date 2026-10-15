@@ -2679,7 +2679,7 @@ class Controller_class implements Controller {
 		}
 	}
 
-	function square_payment($square_customer_id, $card_id, $price, $currency = null): bool {
+	function square_payment($square_customer_id, $card_id, $price, $currency = null, ?string $idempotency_key = null): bool {
 		$this->square_payment_result = [];
 		try {
 			if (!class_exists("mysquare")) {
@@ -2693,7 +2693,8 @@ class Controller_class implements Controller {
 				$currency = "JPY";
 			}
 			$mysquare = new mysquare($this->square_access_token, $this->get_session("testserver"));
-			$result = $mysquare->payment($square_customer_id, $card_id, $price, $currency);
+			$result = $mysquare->payment($square_customer_id, $card_id, $price, $currency, $idempotency_key);
+            $this->square_payment_result = $mysquare->get_payment_result();
 
 			if (!$result) {
 				$this->square_error = $mysquare->get_error();
@@ -2707,6 +2708,12 @@ class Controller_class implements Controller {
 			return false;
 		}
 	}
+
+    function square_retrieve_payment(string $payment_id): array {
+        if (!class_exists('mysquare')) $this->set_square();
+        $square = new mysquare($this->square_access_token, $this->get_session('testserver'));
+        return $square->retrieve_payment($payment_id);
+    }
 
 	function square_get_payment_result(): array {
 		return $this->square_payment_result;

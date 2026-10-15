@@ -601,6 +601,14 @@ class fixed_file_manager implements FFM {
 	 * $ctl->db からインスタンスを作成した場合は、直接このclose()を呼んではならない。$ctl->close_db_by_ffm(FFM $ffm) でクローズすること！
 	 */
 
+    /** Persist an external-operation journal before sending irreversible requests. Retains the lock. */
+    public function sync_writes(): void {
+        $this->assert_writable('sync_writes');
+        $this->check_hf();
+        if (!is_resource($this->hf) || !fflush($this->hf)) throw new RuntimeException('DB flush failed');
+        if (function_exists('fsync') && !fsync($this->hf)) throw new RuntimeException('DB sync failed');
+    }
+
 	function close() {
 		$this->closeDatFile();
 
