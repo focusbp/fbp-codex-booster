@@ -4,6 +4,7 @@ require_once __DIR__ . '/DspException.php';
 require_once __DIR__ . '/DspReadDecision.php';
 require_once __DIR__ . '/DspSetting.php';
 require_once __DIR__ . '/DspProfile.php';
+require_once __DIR__ . '/DspIntegrationPolicy.php';
 require_once __DIR__ . '/../interface/DspInterface.php';
 
 /** Registry discovery and exception containment; no project-specific authentication model. */
@@ -58,6 +59,8 @@ final class DspRuntime {
     }
 
     public static function resolve(string $datadir, string $table, ?Controller $ctl, string $channel, ?string $databaseClass = null): ?DspInterface {
+        $fixed = self::integrationPolicy($datadir, $table, $ctl, $channel, $databaseClass);
+        if ($fixed !== null) return $fixed;
         if (self::isDisabled($ctl)) return null;
         $path = str_replace('\\', '/', realpath($datadir) ?: $datadir);
         $marker = '/classes/data/';
@@ -101,6 +104,20 @@ final class DspRuntime {
             self::record($failure, ['operation' => 'load', 'table' => $table, 'channel' => $channel]);
             throw $failure;
         }
+    }
+
+    public static function integrationPolicy(string $datadir, string $table, ?Controller $ctl, string $channel, ?string $databaseClass = null): ?DspInterface {
+        if ($ctl === null || !method_exists($ctl, 'get_classname')
+            || !in_array($ctl->get_classname(), ['project_integration_api', 'integration_settings'], true)) return null;
+        $path = str_replace('\\', '/', realpath($datadir) ?: $datadir);
+        $marker = '/classes/data/';
+        $pos = strrpos($path.'/', $marker);
+        if ($pos === false) return null;
+        $relative = trim(substr($path, $pos + strlen($marker)), '/');
+        // Fixed storage only; partitioned or unrelated databases retain app policy.
+        $class = $relative === '_common' ? 'common' : $relative;
+        if ($databaseClass !== null && $databaseClass !== $class) return null;
+        return DspIntegrationPolicy::resolve($ctl, $channel, $class, $table);
     }
 
     public static function invoke(?Controller $ctl, string $operation, array $target, callable $callback): mixed {

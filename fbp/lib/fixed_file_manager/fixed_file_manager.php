@@ -83,6 +83,16 @@ class fixed_file_manager implements FFM {
     private array $dsp_read_decisions = [];
     private ?array $dsp_context_rows = null;
 
+    private function refresh_integration_policy(): void {
+        if ($this->dsp instanceof DspIntegrationPolicy) return;
+        $fixed = DspRuntime::integrationPolicy($this->datadir, $this->filename, $this->ctl, $this->dsp_channel, $this->info_classname);
+        if ($fixed === null) return;
+        $this->dsp = $fixed;
+        $this->dsp_read_decisions = [];
+        $this->dsp_policy_version = hash_file('sha256', __DIR__.'/../DspIntegrationPolicy.php');
+        $this->ctl->freeze_dsp_channel();
+    }
+
 
     private function dsp_call(string $operation, $id, callable $callback): mixed {
         if ($this->dsp === null) return null;
@@ -145,6 +155,7 @@ class fixed_file_manager implements FFM {
     }
 
     private function dsp_read(string $method, array $request = []): void {
+        $this->refresh_integration_policy();
         if ($this->dsp !== null && DspRuntime::isPreparing($this->ctl)) throw new DspException('context', 'protected_read_during_preparation');
         if (DspRuntime::forbidsRead($this->ctl)) throw new DspException('policy_purity', 'database_access_during_judgment');
         $this->dsp_read_decisions = [];
@@ -171,18 +182,21 @@ class fixed_file_manager implements FFM {
     }
 
     function insert(&$dataset) {
+        $this->refresh_integration_policy();
         $position = is_resource($this->hf) ? ftell($this->hf) : null;
         try { return $this->insert_raw($dataset); }
         finally { $this->dsp_context_rows = null; $this->dsp_read_decisions = []; if ($position !== null && is_resource($this->hf)) fseek($this->hf, $position); }
     }
 
     function update($dataset) {
+        $this->refresh_integration_policy();
         $position = is_resource($this->hf) ? ftell($this->hf) : null;
         try { return $this->update_raw($dataset); }
         finally { $this->dsp_context_rows = null; $this->dsp_read_decisions = []; if ($position !== null && is_resource($this->hf)) fseek($this->hf, $position); }
     }
 
     function delete($id) {
+        $this->refresh_integration_policy();
         $position = is_resource($this->hf) ? ftell($this->hf) : null;
         try { return $this->delete_raw($id); }
         finally { $this->dsp_context_rows = null; $this->dsp_read_decisions = []; if ($position !== null && is_resource($this->hf)) fseek($this->hf, $position); }
@@ -348,7 +362,8 @@ class fixed_file_manager implements FFM {
         $this->ctl = $options['controller'] ?? (class_exists('Controller_class', false) ? Controller_class::getInstance() : null);
         if ($this->ctl !== null && $this->ctl->get_prohibit_new_db()) throw new DspException('db_connections', 'new_ffm_during_guard');
         $this->dsp_channel = $this->ctl !== null ? $this->ctl->get_dsp_channel() : ($options['channel'] ?? 'unknown');
-        $this->dsp = DspRuntime::isDisabled($this->ctl) ? null : ($options['dsp'] ?? DspRuntime::resolve((string) $datadir, $filename, $this->ctl, $this->dsp_channel, $options['database_class'] ?? null));
+        $this->dsp = DspRuntime::integrationPolicy((string) $datadir, $filename, $this->ctl, $this->dsp_channel, $options['database_class'] ?? null)
+            ?? (DspRuntime::isDisabled($this->ctl) ? null : ($options['dsp'] ?? DspRuntime::resolve((string) $datadir, $filename, $this->ctl, $this->dsp_channel, $options['database_class'] ?? null)));
         if ($this->dsp !== null) {
             $policyFile = (new ReflectionClass($this->dsp))->getFileName();
             if (is_string($policyFile) && is_file($policyFile)) $this->dsp_policy_version = hash_file('sha256', $policyFile);
