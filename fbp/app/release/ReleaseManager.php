@@ -88,6 +88,8 @@ class ReleaseManager {
 		}
 
 		$zip->addFromString("info.json", json_encode($info));
+		// An empty application is valid, and must still replace the target app tree.
+		$zip->addEmptyDir("app");
 
 		$files = new RecursiveIteratorIterator(
 			new RecursiveDirectoryIterator($this->appdir),
@@ -193,7 +195,7 @@ class ReleaseManager {
 		try {
 			$rootEntries = $this->extractReleaseZipToDirectory($zip, $ctl, $zipFile, $stageDir);
 			if (!is_dir($stageDir . "/app")) {
-				throw new Exception($ctl->t("release.validation.cannot_open_file", ["file" => basename($zipFile)]));
+				throw new Exception("Release archive is missing the app directory.");
 			}
 			$this->deployStagedDirectory($stageDir . "/app", $this->appdir, $ctl, $zipFile, false);
 			foreach ($this->db_copy_list as $f) {
