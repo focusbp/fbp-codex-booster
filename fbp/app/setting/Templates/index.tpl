@@ -14,7 +14,6 @@
 				<li><a href="#setting-tab-integrations">{t key="setting.tab.line_bot"}</a></li>
 				<li><a href="#setting-tab-payment">{t key="setting.tab.square"}</a></li>
 				<li><a href="#setting-tab-google">{t key="setting.tab.google"}</a></li>
-				<li><a href="#setting-tab-api-auth">{t key="setting.tab.api_hmac"}</a></li>
 				<li><a href="#setting-tab-mcp-server">{t key="setting.tab.mcp_server"}</a></li>
 				<li><a href="#setting-tab-vimeo">{t key="setting.tab.vimeo"}</a></li>
 				<li><a href="#setting-tab-external-keys" invoke-class="external_keys" invoke-function="page">{t key="external_keys.name"}</a></li>
@@ -208,7 +207,8 @@
 						</tr>
 						<tr>
 							<th>{t key="setting.standard_screen_responsive"}</th>
-							<td colspan="2">{html_options name="standard_screen_responsive" options=$arr_standard_screen_responsive selected=$standard_screen_responsive}<br><small>{t key="setting.standard_screen_responsive.help"}</small></td>
+							<td>{t key="setting.standard_screen_responsive.help"}</td>
+							<td>{html_options name="standard_screen_responsive" options=$arr_standard_screen_responsive selected=$standard_screen_responsive}</td>
 						</tr>
 						<tr>
 							<th rowspan="2">{t key="setting.viewport"}</th>
@@ -384,31 +384,6 @@
 							<th>{t key="setting.google_settings"}</th>
 							<td>{t key="setting.api_key"}</td>
 							<td><input type="password" name="api_key_map" value="" placeholder="{$masked_setting.api_key_map}"></td>
-						</tr>
-					</table>
-				</div>
-			</div>
-
-			<div id="setting-tab-api-auth" class="setting_tab_panel">
-				<div class="setting_tab_inner">
-					<table class="setting_detail_table">
-						<tr>
-							<th rowspan="2">{t key="setting.api_authentication_hmac"}</th>
-							<td>{t key="setting.api_key"}</td>
-							<td><input type="text" name="api_key" value="" placeholder="{$masked_setting.api_key}" autocomplete="off" spellcheck="false"></td>
-						</tr>
-						<tr>
-							<td>{t key="setting.api_secret"}</td>
-							<td><input type="password" name="api_secret" value="" placeholder="{$masked_setting.api_secret}" autocomplete="new-password" spellcheck="false"></td>
-						</tr>
-						<tr>
-							<th rowspan="2">{t key="setting.release_api_hmac"}</th>
-							<td>{t key="setting.release_api_key"}</td>
-							<td><input type="text" name="release_api_key" value="" placeholder="{$masked_setting.release_api_key}" autocomplete="off" spellcheck="false"></td>
-						</tr>
-						<tr>
-							<td>{t key="setting.release_api_secret"}</td>
-							<td><input type="text" name="release_api_secret" value="" placeholder="{$masked_setting.release_api_secret}" autocomplete="off" spellcheck="false"></td>
 						</tr>
 					</table>
 				</div>

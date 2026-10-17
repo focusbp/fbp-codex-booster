@@ -148,7 +148,12 @@ class setting {
 	}
 
 	private function save_posted_setting(Controller $ctl): array {
-		return $this->save_setting_values($ctl, $ctl->POST(), false);
+		$values = $ctl->POST();
+		// HMAC credentials are managed through provisioning/API, never the settings UI.
+		foreach (["api_key", "api_secret", "api_key_map", "release_api_key", "release_api_secret"] as $key) {
+			unset($values[$key]);
+		}
+		return $this->save_setting_values($ctl, $values, false);
 	}
 
 	private function save_setting_values(Controller $ctl, array $values, bool $filter_known_fields): array {
