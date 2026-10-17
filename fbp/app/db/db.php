@@ -1408,6 +1408,7 @@ class db {
 
 	/** Safe programmatic schema API used by trusted integrations such as MCP. */
 	function create_spreadsheet_note(Controller $ctl, string $title): array {
+        ExcelDefinitionGuard::assertNoteCreationAllowed($ctl);
         ExcelDefinitionGuard::assertEditable($ctl->dirs->datadir);
 		$row = $this->mcp_schema_create_table($ctl, ['tb_name' => 'sheet_' . bin2hex(random_bytes(8)), 'title' => $title]);
 		$row['list_type'] = 4;

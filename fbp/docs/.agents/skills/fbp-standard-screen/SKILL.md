@@ -145,7 +145,9 @@ description: Build, maintain, or adjust FBP Standard Screen note management usin
 
 ## スプレッドシート
 
-- 親ノートの「画面パターン」をスプレッドシート（`list_type=4`）にする。`db_exe/page`から直接開く。Production Modeでは一覧との表示切替や有効・無効フラグを設けない。Developer Modeでは下記の検証用表示だけを許可する。行順は内部`excel_sort`を使い、検索・列ソートは設けない。
+- システム設定「Excel風ノートの追加」は既定On（`spreadsheet_note_add_disabled` の未設定/0）、Offは1。Offではノート追加の＋と追加処理を禁止する。既存ノートの編集は維持する。共通定義を複数プロジェクトへ配布する構成では配布先ごとにOffを設定する。Developer Modeの追加禁止はOnでも維持する。
+
+- 親ノートの「画面パターン」をスプレッドシート（`list_type=4`）にする。`db_exe/page`から直接開く。Production Modeでは一覧との表示切替や有効・無効フラグを設けない。Developer Modeでは下記の検証用表示だけを許可する。行順は内部`excel_sort`を使い、検索・列ソートは設けない。全行を表示し、ページ分割・ページ番号・総行数表示は設けない。
 - A〜AZの列記号から項目設定、データセルから小型入力を開く。「確定」と行ペーストは即時保存。行番号メニューは追加・削除・コピー・ペースト、行・列それぞれのハンドルで表示順を移動する。列の内部名と式の参照は維持し、タイトル行の行番号は空欄、データ行は1から表示する。行ボタンは出さず `db_additionals place=0` を表示する。
 - 列見出し右端のドラッグで列幅を調整し、終了時に列定義の`column_width`（px）へ保存する。未設定132px、64〜1200px。ダブルクリックはタイトルと表示中データに合わせる。幅は列移動・定義同期でも維持し、未使用列を生成する理由にはしない。
 - Excel列の正本は実行環境の `excel_grid/settings`。通常のdb_fieldsへ二重登録しない。Production Modeではタイトル・型を利用者が変更できる。Developer Modeでは列設定を変更しない。整数・小数だけ入力方法 input / calculation を表示し、他の型は非表示・input固定。型変更で計算を使えなくなったらinputへ戻す。functionはプロジェクトサポート専用の内部設定で、通常画面では選択・解除できない。設定済みの説明とセルの手動編集禁止を維持する。Excel列に必須指定はない。

@@ -119,16 +119,13 @@ trait ExcelGridActions {
             $max=0; foreach ($rows as $r) $max=max($max,(int)($r['excel_sort'] ?? 0));
             foreach ($rows as &$r) if (empty($r['excel_sort'])) { $r['excel_sort']=++$max; $this->ffm->update(['id'=>$r['id'],'excel_sort'=>$r['excel_sort']]); } unset($r);
             $rows=$this->excelRows($ctl);
-            $page=max(0,(int)($ctl->POST('excel_page') ?? $ctl->get_session('excel_page_'.$this->table_name) ?? 0));
-            $page=min($page,max(0,(int)ceil(count($rows)/50)-1)); $ctl->set_session('excel_page_'.$this->table_name,$page);
-            $shown=array_slice($rows,$page*50,50);
-            foreach ($shown as &$row) { $row['_version']=ExcelGrid::version($row); $row['_errors']=ExcelGrid::errors($ctl,$this->table_name,(int)$row['id']); } unset($row);
+            foreach ($rows as &$row) { $row['_version']=ExcelGrid::version($row); $row['_errors']=ExcelGrid::errors($ctl,$this->table_name,(int)$row['id']); } unset($row);
             $fields=[];
             foreach (ExcelGrid::orderedNames($cfg) as $name) $fields[]=ExcelGrid::field($name,ExcelGrid::column($name,$cfg['columns'][$name] ?? []));
             $additionals=$ctl->db('additionals','db_additionals')->select(['tb_name','place'],[$this->table_name,0],true,'AND','sort',SORT_DESC);
             $this->add_show_button_class($ctl,$additionals);
-            $ctl->assign('additionals',$additionals); $ctl->assign('excel_fields',$fields); $ctl->assign('excel_rows',$shown);
-            $ctl->assign('excel_columns',$cfg['columns'] ?: []); $ctl->assign('excel_page',$page); $ctl->assign('excel_total',count($rows));
+            $ctl->assign('additionals',$additionals); $ctl->assign('excel_fields',$fields); $ctl->assign('excel_rows',$rows);
+            $ctl->assign('excel_columns',$cfg['columns'] ?: []);
             $ctl->assign('excel_table_width',66+array_sum(array_column($fields,'column_width')));
             $ctl->assign('excel_min_column_width',ExcelGrid::MIN_COLUMN_WIDTH); $ctl->assign('excel_max_column_width',ExcelGrid::MAX_COLUMN_WIDTH);
             $ctl->assign('excel_column_width_token',$this->excelToken($ctl,'column_width',['revision'=>(int)$cfg['revision']]));
@@ -279,7 +276,6 @@ trait ExcelGridActions {
             $new=$ctl->get_default_values($this->table_name); $new['excel_sort']=$this->excelNextSort($ctl); $id=$this->ffm->insert($new);
             $this->excelDone($ctl);
             $errors=$this->excelCalculate($ctl,$this->ffm->get($id),[],'add');
-            $ctl->set_session('excel_page_'.$this->table_name,max(0,(int)ceil(count($this->excelRows($ctl))/50)-1));
             $this->excelRefresh($ctl);
             if ($errors) $ctl->show_notification_text('行を追加しました。ERROR: '.implode(' / ',array_unique(array_values($errors))));
         } catch (Throwable $e) { if ($e instanceof ExcelDefinitionReadOnly) $this->excelError($ctl,$e); $ctl->show_notification_text($e->getMessage()); }

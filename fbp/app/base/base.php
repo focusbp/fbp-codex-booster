@@ -188,6 +188,8 @@ class base {
 	function spreadsheet_note_add(Controller $ctl) {
 		if (!$ctl->get_login_id()) { $ctl->deny_forbidden_access(); return; }
         if (ExcelDefinitionGuard::isDeveloper($ctl->dirs->datadir)) { $ctl->show_notification_text((new ExcelDefinitionReadOnly())->getMessage()); return; }
+        try { ExcelDefinitionGuard::assertNoteCreationAllowed($ctl); }
+        catch (RuntimeException $e) { $ctl->show_notification_text($e->getMessage()); return; }
 		$token = bin2hex(random_bytes(24));
 		$ctl->set_session('spreadsheet_note_ticket', ['token' => $token, 'time' => time()]);
 		$ctl->assign('note_token', $token);
@@ -198,6 +200,7 @@ class base {
 		if (!$ctl->get_login_id()) { $ctl->deny_forbidden_access(); return; }
 		$ctl->clear_error_message();
 		try {
+            ExcelDefinitionGuard::assertNoteCreationAllowed($ctl);
 			$ticket = $ctl->get_session('spreadsheet_note_ticket') ?: [];
 			if (empty($ticket['token']) || !hash_equals($ticket['token'], (string)$ctl->POST('note_token')) || $ticket['time'] < time() - 3600) {
 				throw new RuntimeException('操作の有効期限が切れました。開き直してください。');
@@ -267,6 +270,8 @@ class base {
 		}
 		
 		$setting = $ctl->get_setting();
+        $noteSetting = $ctl->db('setting', 'setting')->get(1) ?: [];
+        $ctl->assign('spreadsheet_note_add_allowed', ExcelDefinitionGuard::noteCreationEnabled($noteSetting) && (int)($noteSetting['force_testmode'] ?? 1) === 0);
 		$project_portal_url = $this->normalize_external_url($setting["project_portal_url"] ?? "");
 		$homepage_url = $this->normalize_external_url($setting["website_url"] ?? "");
 		$show_homepage_menu = ((int) ($setting["show_menu_homepage"] ?? 0) === 1 && $homepage_url !== "");

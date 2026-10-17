@@ -8,7 +8,7 @@
 			<a class="ajax-link lang" data-class="dashboard" data-function="page">{$base_menu_i18n.dashboard}</a>
 		{/if}
 
-		<h3 class="note-menu-heading"><span class="note-menu-title">{$base_menu_i18n.databases}</span><button type="button" class="ajax-link note-create-button" data-class="base" data-function="spreadsheet_note_add" title="ノートを追加" aria-label="ノートを追加">＋</button></h3>
+		<h3 class="note-menu-heading"><span class="note-menu-title">{$base_menu_i18n.databases}</span>{if $spreadsheet_note_add_allowed}<button type="button" class="ajax-link note-create-button" data-class="base" data-function="spreadsheet_note_add" title="ノートを追加" aria-label="ノートを追加">＋</button>{/if}</h3>
 			{foreach $database_menu as $d}
 				<a class="ajax-link lang" data-class="db_exe" data-function="page" data-db_id="{$d.id}">{$d.menu_name|escape}</a>
 			{/foreach}

@@ -418,6 +418,7 @@ class setting {
 		$ctl->assign("setting", $setting);
 		$ctl->assign("standard_screen_responsive", fbp_normalize_standard_screen_responsive($setting["standard_screen_responsive"] ?? null));
 		$ctl->assign("dsp_disabled", fbp_normalize_dsp_disabled($setting["dsp_disabled"] ?? null));
+        $ctl->assign("spreadsheet_note_add_disabled", in_array($setting["spreadsheet_note_add_disabled"] ?? null, [1, "1"], true) ? 1 : 0);
 		$ctl->assign("masked_setting", $this->mask_sensitive_setting($setting));
 		$ctl->assign("line_webhook_url", $ctl->get_APP_URL("webhook_line", "receive"));
 		$ctl->assign("mcp_server_info", $this->get_mcp_server_info($ctl));

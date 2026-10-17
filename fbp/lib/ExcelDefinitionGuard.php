@@ -49,6 +49,14 @@ final class ExcelDefinitionGuard {
     public static function isDeveloper(string $dataRoot): bool {
         return self::references(realpath($dataRoot) ?: $dataRoot, fn($rows) => self::developer($rows));
     }
+    // 0/empty preserves ON for existing projects; 1 is explicit OFF.
+    public static function noteCreationEnabled(array $setting): bool {
+        return !in_array($setting['spreadsheet_note_add_disabled'] ?? null, [1, '1'], true);
+    }
+    public static function assertNoteCreationAllowed(Controller $ctl): void {
+        $setting = $ctl->db('setting', 'setting')->get(1) ?: [];
+        if (!self::noteCreationEnabled($setting)) throw new RuntimeException('Excel風ノートの追加はシステム設定で無効になっています。');
+    }
     public static function assertEditable(string $dataRoot): void {
         if (self::isDeveloper($dataRoot)) throw new ExcelDefinitionReadOnly();
     }

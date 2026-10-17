@@ -91,10 +91,14 @@
 							<td><input type="text" name="currency_decimal_digits" value="{$setting.currency_decimal_digits}"></td>
 						</tr>
 						<tr>
-							<th rowspan="7">{t key="setting.mode"}</th>
+							<th rowspan="8">{t key="setting.mode"}</th>
 							<td>{t key="setting.mode"}</td>
 							<td>{html_options name="force_testmode" options=$arr_force_testmode selected=$setting.force_testmode}</td>
 						</tr>
+                        <tr>
+                            <td>Excel風ノートの追加</td>
+                            <td>{html_options name="spreadsheet_note_add_disabled" options=$arr_onoff selected=$spreadsheet_note_add_disabled}<br><small>共通のノート定義を複数プロジェクトへ配布する場合はOffにしてください。</small></td>
+                        </tr>
 						<tr>
 							<td>{t key="setting.developer_panel"}</td>
 							<td>{html_options name="show_developer_panel" options=$arr_show_developer_panel selected=$setting.show_developer_panel}</td>
