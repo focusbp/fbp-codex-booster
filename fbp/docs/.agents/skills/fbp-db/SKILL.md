@@ -74,13 +74,21 @@ description: Manage the FBP DB lifecycle, schema and screen reflection, and appl
 - 新規テーブル作成時は、原則 `screen_build_type=Standard Screen` を選ぶ。
 - `Original Screen` は、ユーザーが「Original Screen指定」と明示した場合、または標準の `list/add/edit/delete/search/list_on_side`、`db_additionals`、`post_action_class` では足りない業務UIが必要な場合だけ選ぶ。
 - 標準CRUDノート、取込確認用ノート、一時的なデータ管理ノート、MCP Note CRUD と共通化したいノートは `Standard Screen` を選び、`screen_fields` を `list/add/edit/delete/search/list_on_side` に反映する。
-- `list_type` は `Standard Screen` の画面パターン（0: 検索＋一覧、1: 手動ソート、2: カレンダー、3: 単一レコード）、または `Original Screen` 実装時の補助設定として扱う。画面構築方式そのものを `list_type` に混ぜない。
+- `list_type` は `Standard Screen` の画面パターン（0: 検索＋一覧、1: 手動ソート、2: カレンダー、3: 単一レコード、4: スプレッドシート）、または `Original Screen` 実装時の補助設定として扱う。画面構築方式そのものを `list_type` に混ぜない。
 - 新規テーブル作成時、`sort` 項目で手動並び替えを運用するテーブルは、`一覧タイプ` を `Manual Sort` に設定する。
 - CLI では `db_tables_add` / `db_tables_edit` の `list_type=1` を使う。
 - 手動並び替えを行うテーブルでは、`sort` 項目を追加または維持し、`sortkey=sort` と `list_type=1` を揃える。
 - 手動並び替えを行わないテーブルでは、安易に `sort` 項目を追加しない。既存の `sort` がある場合だけ、通常の `Search and Table` を選んでよい。
 - `Manual Sort` を使うテーブルでは、`sort` 項目を `screen_fields` に入れない。
 - 並び替えは画面の `Manual Sort` 操作で行う前提とし、`list` / `add` / `edit` / `search` に `sort` を出さない。
+
+## Developer ModeのExcel定義保護
+
+- `force_testmode=1` ではExcel風ノートの新規作成、列定義変更、Excel風への画面パターン変更はエラーになる。既存Excel風から非Excel風への定義変更も行わない。本番を正本とし、本番取得結果を専用の `excel_settings_import` で取り込む。取得JSONは開発用に改変しない。
+- 本番にだけ存在するExcel風ノートの基本定義は、専用の `excel_note_import` で同じIDに取り込む。通常のdb_tables_addやモード変更で作り直さない。ID／名前の衝突、孤立した項目、採番の飛越しがあれば停止する。appリリース直前の強制同期は環境側のリリーススクリプトに従う。
+- 検索＋一覧で検証するときは、ノート画面の「検証用に検索＋一覧で表示」または `excel_preview_set` を使う。「本番の表示に戻す」／`excel_preview_reset` で復帰する。表示指定はセッションのみで、db定義・本番リリースへ含めない。
+- 型・選択肢・計算式・幅・列順・生成状態をdb_fields、汎用API、直接FFM、fmt編集から変更して迂回しない。既存の生成済み列へのデータ操作やコード・画面配置の開発は可能。未生成列への入力は拒否する。
+- 制限を避ける目的でモードをProduction Modeへ変更しない。実際の画面パターンや列定義の変更は、本番で行ってから対応する定義を同期する。
 
 ## state field policy
 - `enabled` / `is_active` / `active` / `有効` などの有効状態項目は、数値テキスト入力ではなく dropdown または checkbox として扱える型・定数にする。

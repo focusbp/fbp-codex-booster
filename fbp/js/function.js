@@ -2283,7 +2283,7 @@ function appcon_execute(url, fd, nextfunction, isCurrentResponse) {
 			res = JSON.parse(data);
 
 			if (res["error"] != null) {
-				notification("", res["error"], 800, 5);
+				notification("", typeof res["error"] === "object" ? res["error"].message : res["error"], 800, 5);
 				dfd.resolve();
 				return;
 			}
@@ -2320,6 +2320,21 @@ function appcon_execute(url, fd, nextfunction, isCurrentResponse) {
 				//console.log(htmlstr);
 			}
 
+                // A committed Excel input can keep its editor open on a calculation error.
+                // Replace only the operation token; never redraw or clear the user's form.
+                if (typeof res.excel_editor_token === 'string') {
+                    $('#multi_dialog_db_exe_excel-editor input[name="excel_token"]').val(res.excel_editor_token);
+                }
+                if (res.excel_options_result) {
+                    document.querySelector('#multi_dialog_db_exe_excel-editor .excel-editor-form')?.dispatchEvent(
+                        new CustomEvent('excel-options-result', {detail: res.excel_options_result}));
+                }
+                if (res.excel_column_width_result) {
+                    var excelGrid = document.querySelector('.excel-grid');
+                    if (excelGrid && excelGrid.dataset.dbId === String(res.excel_column_width_result.db_id)) {
+                        excelGrid.dispatchEvent(new CustomEvent('excel-column-width-result', {detail: res.excel_column_width_result}));
+                    }
+                }
 				// Error Message
 				var errormessage = normalizeErrorMessageArray(res['errormessage']);
 				if (res["clear_error_message"] == "true" || errormessage.length > 0) {

@@ -14,6 +14,7 @@
 		{/if}
 		<p class="lang">{t key="db.description_or_memo"}</p>
 		<input type="text" name="description" value="{$data.description}">
+		{if $excel_developer_mode && $data.list_type == 4}<p>本番の画面パターン：Excel風。検証にはノート画面の「検証用に検索＋一覧で表示」を利用してください。</p>{/if}
 		<p>作成方法</p>
 		{html_options id="screen_build_type" name="screen_build_type" options=$screen_build_type_opt selected=$data["screen_build_type"]}
 		<p class="lang">{t key="db.parent_table"}</p>
@@ -55,7 +56,7 @@
 			{html_options id="sort_order" name="sort_order" options=$sort_order_opt selected=$data["sort_order"]}
 			<p class="lang">{t key="db.dialog_width"}</p>
 			<input type="text" name="edit_width" value="{$data["edit_width"]}">
-			<p class="lang">{t key="db.list_type"}</p>
+            <p class="lang">{t key="db.list_type"}</p>
 			{html_options id="list_type" name="list_type" options=$list_type_opt selected=$data["list_type"]}
             <p class="error_message">{$errors.list_type|default:""|escape}</p>
 			<p class="lang">{t key="db.side_panel_list_type"}</p>
@@ -105,9 +106,10 @@
 					}
 					let list_type = $("#list_type").val();
                     let single = list_type == 3;
+                    let spreadsheet = list_type == 4;
                     let unused = $("#side_list_type, #horizontal_scroll, #show_id, #show_search_id, #show_duplicate, input[name='edit_width']");
-                    unused.prop('disabled', single).toggle(!single);
-                    unused.prev('p').toggle(!single);
+                    unused.prop('disabled', single || spreadsheet).toggle(!single && !spreadsheet);
+                    unused.prev('p').toggle(!single && !spreadsheet);
 					$('.record_identifier_setting').toggle(list_type == 0 || list_type == 1);
 					if (list_type == 0) {
 					$("#sortkey").prop('disabled', false);
@@ -115,7 +117,7 @@
 				} else if (list_type == 1) {
 					$("#sortkey").prop('disabled', true);
 					$("#sort_order").prop('disabled', true);
-				} else if (list_type == 2 || list_type == 3) {
+				} else if (list_type == 2 || list_type == 3 || list_type == 4) {
 					$("#sortkey").prop('disabled', true);
 					$("#sort_order").prop('disabled', true);
 				}

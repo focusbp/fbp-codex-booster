@@ -106,6 +106,11 @@ function cli_register_error_handler(string $level): void {
 }
 
 cli_register_error_handler(cli_load_error_report_level($dir));
+set_exception_handler(function (Throwable $e) {
+    if (!$e instanceof ExcelDefinitionReadOnly) { fwrite(STDERR, (string)$e . "\n"); exit(1); }
+    echo json_encode(['ok'=>false, 'error'=>['code'=>ExcelDefinitionReadOnly::ERROR_CODE, 'message'=>$e->getMessage()]], JSON_UNESCAPED_UNICODE);
+    exit(1);
+});
 
 function cli_prepare_smarty(Smarty $smarty) {
 	$smarty->escape_html  = true;
@@ -168,6 +173,15 @@ function cli_get_class_object(Controller $ctl, $class, Dirs $dir) {
 }
 
 function create_db($name, $data_dir, $fmt_dir) {
+    if (in_array(basename(rtrim((string)$data_dir,'/')), ['common','_common'], true)) {
+        $root=dirname(rtrim($data_dir,'/'));
+        if (is_file($root.'/excel_grid/settings.dat')) {
+            $settings=create_db('settings',$root.'/excel_grid',__DIR__.'/app/excel_grid/fmt');
+            $config=$settings->select('tb_name',$name)[0] ?? [];
+            if ($config) $fmt_dir=ExcelGrid::writeFormat($root,$name,$fmt_dir,$config);
+        }
+    }
+
 	if (!isset($GLOBALS["cli_db_pool"]) || !is_array($GLOBALS["cli_db_pool"])) {
 		$GLOBALS["cli_db_pool"] = [];
 	}
@@ -179,6 +193,16 @@ function create_db($name, $data_dir, $fmt_dir) {
 	$pool[$key] = new fixed_file_manager($name, $data_dir, $fmt_dir);
 	$pool[$key]->set_info($name, basename(rtrim((string) $data_dir, "/")));
 	return $pool[$key];
+}
+
+function cli_excel_fields(Dirs $dir,array $note,array $base): array {
+    if (!is_file($dir->datadir.'/excel_grid/settings.dat')) return $base;
+    $settings=create_db('settings',$dir->datadir.'/excel_grid',__DIR__.'/app/excel_grid/fmt');
+    $cfg=$settings->select('tb_name',$note['tb_name'])[0] ?? [];
+    if (!$cfg) return $base;
+    $map=[]; foreach ($base as $f) $map[$f['parameter_name']]=$f;
+    foreach (($cfg['columns'] ?: []) as $name=>$c) if (!empty($c['generated'])) $map[$name]=ExcelGrid::field($name,$c)+['db_id'=>$note['id'],'definition_source'=>'excel_grid'];
+    return array_values($map);
 }
 
 function cli_close_all_db() {
@@ -1730,7 +1754,7 @@ function cli_app_call_execute(array $data, Dirs $dir, Smarty $smarty) {
 	} catch (Throwable $e) {
 		echo json_encode([
 			"ok" => false,
-			"error" => $e->getMessage(),
+			"error" => $e instanceof ExcelDefinitionReadOnly ? ["code"=>ExcelDefinitionReadOnly::ERROR_CODE,"message"=>$e->getMessage()] : $e->getMessage(),
 		], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
 	}
 
@@ -1757,6 +1781,7 @@ function cli_app_call_execute(array $data, Dirs $dir, Smarty $smarty) {
 	}
 	if (is_array($response_json)) {
 		$out["response_json"] = $response_json;
+        if (($response_json["error"]["code"] ?? null) === ExcelDefinitionReadOnly::ERROR_CODE) $out["ok"] = false;
 		if (isset($response_json["console_log"])) {
 			$out["console_log"] = $response_json["console_log"];
 		}
@@ -2049,6 +2074,11 @@ function cli_standard_screen_check($ffm_db_admin, $ffm_db_fields_admin, $ffm_scr
 			continue;
 		}
 		$checked_tables++;
+        // Spreadsheet columns drive their own screens; screen_fields are not required.
+        if (ExcelGrid::isSpreadsheet($table)) {
+            foreach (ExcelGrid::configurationErrors($table) as $field=>$message) cli_standard_screen_check_add_issue($issues,'ERROR',$table,['screen_name'=>'spreadsheet'],['parameter_name'=>$field,'type'=>''],'spreadsheet_configuration',$message,'Check the note screen pattern.');
+            continue;
+        }
 		$table_screen_fields = $screen_by_table[$tb_name] ?? [];
         if (SingleRecordScreen::is_single($table)) {
             $table_screen_fields = array_values(array_filter($table_screen_fields, fn($field) => ($field['screen_name'] ?? '') === 'edit'));
@@ -2168,6 +2198,7 @@ function cli_validate_single_table(Dirs $dir, array $table): void {
         fn($name) => cli_db($dir, $name),
         fn($name) => $ffm_additionals->select('tb_name', $name)
     );
+    $errors=array_merge($errors,ExcelGrid::configurationErrors($table));
     if ($errors) {
         fwrite(STDERR, json_encode(['errors' => $errors], JSON_UNESCAPED_UNICODE) . "\n");
         exit(1);
@@ -2275,6 +2306,62 @@ if ($command === "method_call") {
 	cli_output_json($out, $out["ok"] ? 0 : 1);
 }
 
+if ($command === 'excel_note_import') {
+    define('FBP_EXCEL_NOTE_IMPORT_COMMAND', true);
+    [$ok,$err,$data] = cli_get_json_arg($argv);
+    try {
+        if (!$ok || !is_file($data['file'] ?? '')) throw new RuntimeException('本番ノート定義のJSONを指定してください。');
+        $snapshot = json_decode(file_get_contents($data['file']), true, 64, JSON_THROW_ON_ERROR);
+        if (($snapshot['ok'] ?? null)!==true || ($snapshot['table'] ?? '')!=='db' || !is_array($snapshot['item'] ?? null)) throw new RuntimeException('本番のノート定義取得結果を指定してください。');
+        if (!$ffm_db_admin->get((int)($snapshot['item']['id'] ?? 0)) && $ffm_db_fields_admin->select('db_id', (int)($snapshot['item']['id'] ?? 0))) throw new RuntimeException('取込み先IDに既存の項目定義が残っています。上書きせず停止しました。');
+        $result = ExcelDefinitionGuard::importNote($dir->datadir, $ffm_db_admin, $snapshot['item']);
+        if ($result['created']) cli_make_table_format($dir, $ffm_db_admin, $ffm_db_fields_admin, $ffm_constant_array, $ffm_values);
+        cli_output_json(['ok'=>true]+$result,0);
+    } catch (Throwable $e) { cli_output_json(['ok'=>false,'error'=>$e->getMessage()],1); }
+}
+
+if (in_array($command, ['excel_preview_set', 'excel_preview_reset'], true)) {
+    [$ok,$err,$data] = cli_get_json_arg($argv);
+    if (!$ok || empty($data['tb_name'])) cli_output_json(['ok'=>false,'error'=>'tb_nameを指定してください。'],1);
+    $note = $ffm_db_admin->select('tb_name', $data['tb_name'])[0] ?? [];
+    if (!$note || !ExcelGrid::isSpreadsheet($note)) cli_output_json(['ok'=>false,'error'=>'対象はExcel風ノートではありません。'],1);
+    define('FBP_EXCEL_PREVIEW_COMMAND', true);
+    $data['class'] = 'db_exe'; $data['function'] = $command; $data['post'] = ['db_id'=>$note['id']];
+    $out = cli_app_call_execute($data, $dir, $smarty);
+    $response = $out['response_json'] ?? [];
+    cli_output_json($out, isset($response['excel_preview']) ? 0 : 1);
+}
+
+if ($command === 'excel_settings_export') {
+    [$ok,$err,$data]=cli_get_json_arg($argv);
+    try {
+        if (!$ok || !preg_match('/^[a-z][a-z0-9_]*$/',(string)($data['tb_name'] ?? ''))) throw new RuntimeException('tb_nameを指定してください。');
+        $table=$data['tb_name'];
+        $settings=create_db('settings',$dir->datadir.'/excel_grid',__DIR__.'/app/excel_grid/fmt');
+        $cfg=$settings->select('tb_name',$table)[0] ?? [];
+        if (!$cfg) throw new RuntimeException('Excel列定義がありません。');
+        cli_output_json(['ok'=>true,'schema_version'=>1,'tb_name'=>$table,'list_type'=>ExcelGrid::PATTERN,'column_order'=>ExcelGrid::orderedNames($cfg),'columns'=>(object)($cfg['columns'] ?: []),'revision'=>(int)$cfg['revision'],'fetched_at'=>gmdate('c')],0);
+    } catch (Throwable $e) { cli_output_json(['ok'=>false,'error'=>$e->getMessage()],1); }
+}
+
+if ($command === 'excel_settings_import') {
+    define('FBP_EXCEL_IMPORT_COMMAND', true);
+    [$ok,$err,$data]=cli_get_json_arg($argv);
+    if (!$ok || !is_string($data['file'] ?? null) || !is_file($data['file'])) cli_output_json(['ok'=>false,'error'=>'設定JSONファイルを指定してください。'],1);
+    try {
+        if (!is_file($dir->appdir_user.'/setting/setting.php') && !is_dir($dir->datadir)) throw new RuntimeException('Runtime not found.');
+        $snapshot=json_decode(file_get_contents($data['file']),true,64,JSON_THROW_ON_ERROR);
+        $name=(string)($data['tb_name'] ?? '');
+        if ($name==='' || ($snapshot['tb_name'] ?? '')!==$name) throw new RuntimeException('tb_nameが一致しません。');
+        $note=$ffm_db_admin->select('tb_name',$name)[0] ?? [];
+        if (!$note || !ExcelGrid::isSpreadsheet($note)) throw new RuntimeException('対象ノートの画面パターンをスプレッドシートにしてください。');
+        $out=cli_app_call_execute(['class'=>'db_exe','function'=>'excel_import','post'=>['db_id'=>$note['id'],'snapshot'=>json_encode($snapshot,JSON_UNESCAPED_UNICODE)]],$dir,$smarty);
+        $response=$out['response_json'] ?? [];
+        if (($response['ok'] ?? true)===false || !empty($response['errormessage'])) throw new RuntimeException(is_array($response['error'] ?? null) ? ($response['error']['message'] ?? '列定義の取込みに失敗しました。') : (string)($response['error'] ?? '列定義の取込みに失敗しました。'));
+        cli_output_json($out,0);
+    } catch (Throwable $e) { cli_output_json(['ok'=>false,'error'=>$e->getMessage()],1); }
+}
+
 if ($command === "app_call") {
 	[$ok, $err, $data] = cli_get_json_arg($argv);
 	if (!$ok) {
@@ -2283,7 +2370,7 @@ if ($command === "app_call") {
 	}
 	try {
 		$out = cli_app_call_execute($data, $dir, $smarty);
-		cli_output_json($out, 0);
+		cli_output_json($out, ($out["ok"] ?? true) ? 0 : 1);
 	} catch (Throwable $e) {
 		fwrite(STDERR, $e->getMessage() . "\n");
 		exit(1);
@@ -3271,7 +3358,8 @@ if ($command === "db_tables_delete") {
 }
 
 if ($command === "db_fields_list") {
-	$items = $ffm_db_fields_admin->getall("sort", SORT_ASC);
+    $items=[];
+    foreach ($ffm_db_admin->getall() as $note) $items=array_merge($items,cli_excel_fields($dir,$note,$ffm_db_fields_admin->select('db_id',$note['id'])));
 	[$ok, $err, $data] = cli_get_json_arg($argv);
 	if ($ok && isset($data["db_id"])) {
 		$target = (int) $data["db_id"];
@@ -3680,6 +3768,7 @@ if ($command === "db_schema") {
 		$fields_by_db_id[$fid][] = $f;
 	}
 
+    foreach ($db_list as $note) $fields_by_db_id[(int)$note["id"]]=cli_excel_fields($dir,$note,$fields_by_db_id[(int)$note["id"]] ?? []);
 	$db_by_id = [];
 	foreach ($db_list as $db) {
 		$db_by_id[(int) $db["id"]] = $db;

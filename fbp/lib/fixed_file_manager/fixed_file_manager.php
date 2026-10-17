@@ -2,6 +2,7 @@
 
 include dirname(__FILE__) . '/../../interface/FFM.php';
 require_once dirname(__DIR__) . '/DspRuntime.php';
+require_once dirname(__DIR__) . '/ExcelDefinitionGuard.php';
 
 if (!class_exists("FixedFileManagerFieldLengthException", false)) {
 	class FixedFileManagerFieldLengthException extends Exception {
@@ -126,6 +127,24 @@ class fixed_file_manager implements FFM {
         return $row !== null && ($this->dsp === null || $this->dsp_decision($row)->visible);
     }
 
+    /** Minimal framework metadata for the definition invariant, independent of DSP. */
+    public function excel_guard_snapshot(): array {
+        if (!ExcelDefinitionGuard::readingContext()) throw new LogicException('Framework context only.');
+        $fields = match (basename(rtrim($this->datadir, '/')).'/'.$this->filename) {
+            'setting/setting' => ['id', 'force_testmode'],
+            'db/db' => ['id', 'tb_name', 'list_type', 'screen_build_type'],
+            'excel_grid/settings' => ['id', 'tb_name'],
+            default => throw new LogicException('Not definition metadata.'),
+        };
+        $position = ftell($this->hf);
+        try {
+            $rows = [];
+            $this->seek_end();
+            while (($row = $this->before_raw()) !== null) $rows[(int)$row['id']] = array_intersect_key($row, array_flip($fields));
+            return $rows;
+        } finally { fseek($this->hf, $position); }
+    }
+
     public function dsp_context_snapshot(): array {
         if (!DspRuntime::isPreparing($this->ctl)) throw new DspException('context', 'preparation_required');
         if ($this->dsp_context_rows !== null) return $this->dsp_context_rows;
@@ -184,21 +203,31 @@ class fixed_file_manager implements FFM {
     function insert(&$dataset) {
         $this->refresh_integration_policy();
         $position = is_resource($this->hf) ? ftell($this->hf) : null;
-        try { return $this->insert_raw($dataset); }
+        try { return ExcelDefinitionGuard::write($this->filename, $this->datadir, function ($context) use (&$dataset) {
+            ExcelDefinitionGuard::check($context, 'insert', null, $dataset);
+            return $this->insert_raw($dataset, $context);
+        }); }
         finally { $this->dsp_context_rows = null; $this->dsp_read_decisions = []; if ($position !== null && is_resource($this->hf)) fseek($this->hf, $position); }
     }
 
     function update($dataset) {
         $this->refresh_integration_policy();
         $position = is_resource($this->hf) ? ftell($this->hf) : null;
-        try { return $this->update_raw($dataset); }
+        try { return ExcelDefinitionGuard::write($this->filename, $this->datadir, function ($context) use ($dataset) {
+            $before = $this->get_raw($dataset['id']);
+            ExcelDefinitionGuard::check($context, 'update', $before, $before === null ? null : array_replace($before, $dataset));
+            return $this->update_raw($dataset, $context);
+        }); }
         finally { $this->dsp_context_rows = null; $this->dsp_read_decisions = []; if ($position !== null && is_resource($this->hf)) fseek($this->hf, $position); }
     }
 
     function delete($id) {
         $this->refresh_integration_policy();
         $position = is_resource($this->hf) ? ftell($this->hf) : null;
-        try { return $this->delete_raw($id); }
+        try { return ExcelDefinitionGuard::write($this->filename, $this->datadir, function ($context) use ($id) {
+            ExcelDefinitionGuard::check($context, 'delete', $this->get_raw($id), null);
+            return $this->delete_raw($id, $context);
+        }); }
         finally { $this->dsp_context_rows = null; $this->dsp_read_decisions = []; if ($position !== null && is_resource($this->hf)) fseek($this->hf, $position); }
     }
 
@@ -358,6 +387,12 @@ class fixed_file_manager implements FFM {
 	 * コンストラクター
 	 */
 	function __construct($filename, $datadir = null, $formatdir = null, array $options = []) {
+        // Runtime Excel formats are never replaced by an app release. Protect raw CLI/API opens too.
+        if (in_array(basename(rtrim((string)$datadir, '/')), ['common','_common'], true)) {
+            $runtimeDir=dirname(rtrim($datadir,'/')).'/excel_grid/fmt';
+            if (is_file($runtimeDir.'/'.$filename.'.fmt')) $formatdir=$runtimeDir;
+        }
+
 
         $this->ctl = $options['controller'] ?? (class_exists('Controller_class', false) ? Controller_class::getInstance() : null);
         if ($this->ctl !== null && $this->ctl->get_prohibit_new_db()) throw new DspException('db_connections', 'new_ffm_during_guard');
@@ -498,7 +533,14 @@ class fixed_file_manager implements FFM {
 	 * 全データ削除
 	 */
 
-	public function allclear() {
+    public function allclear() {
+        ExcelDefinitionGuard::write($this->filename, $this->datadir, function ($context) {
+            ExcelDefinitionGuard::check($context, 'clear', null, null);
+            $this->allclear_raw();
+        });
+    }
+
+    private function allclear_raw() {
 		$this->assert_writable("allclear");
 		$this->mark_indexes_dirty();
 		$snapshot = $this->snapshot_dat_file("allclear");
@@ -713,7 +755,7 @@ class fixed_file_manager implements FFM {
 		}
 	}
 
-	private function insert_raw(&$dataset) {
+	private function insert_raw(&$dataset, ?array $excelContext = null) {
 		$this->assert_writable("insert");
 		// $this->hf をチェックする
 		$this->check_hf();
@@ -725,6 +767,7 @@ class fixed_file_manager implements FFM {
             $candidate = $this->dsp_saved_row($candidate);
             $this->dsp_call('insert', null, fn() => $this->dsp->authorizeInsert($candidate));
         }
+        ExcelDefinitionGuard::check($excelContext, 'insert', null, $this->dsp === null ? $dataset : $candidate);
 		$this->mark_indexes_dirty();
 		$p = ftell($this->hf); //あとで戻す
 		// 
@@ -755,13 +798,14 @@ class fixed_file_manager implements FFM {
 		return $id;
 	}
 
-	private function delete_raw($id) {
+	private function delete_raw($id, ?array $excelContext = null) {
 		$this->assert_writable("delete");
 		$p = ftell($this->hf); //あとで戻す
 		$d = $this->get_raw($id);
 		//ポインタを戻す
 		if ($d != null) {
             $this->dsp_call('delete', $d['id'], fn() => $this->dsp->authorizeDelete($this->dsp_persisted_row($d)));
+            ExcelDefinitionGuard::check($excelContext, 'delete', $d, null);
 			$this->mark_indexes_dirty();
 			$this->write_operation_log("delete", $d, null);
 			fseek($this->hf, -1 * $this->header["recordsize"], SEEK_CUR);
@@ -771,7 +815,7 @@ class fixed_file_manager implements FFM {
 		fseek($this->hf, $p); //戻す
 	}
 
-	private function update_raw($dataset) {
+	private function update_raw($dataset, ?array $excelContext = null) {
 		$this->assert_writable("update");
 		$this->assert_field_lengths($dataset);
 		$p = ftell($this->hf); //あとで戻す
@@ -784,6 +828,7 @@ class fixed_file_manager implements FFM {
                 $after = $this->dsp_saved_row($after);
                 $this->dsp_call('update', $d['id'], fn() => $this->dsp->authorizeUpdate($this->dsp_persisted_row($d), $after, array_keys($dataset)));
             }
+            ExcelDefinitionGuard::check($excelContext, 'update', $d, $after);
 			$this->mark_indexes_dirty();
 
 			// $dのデータを上書き
@@ -876,7 +921,14 @@ class fixed_file_manager implements FFM {
 		}
 	}
 
-	public function restore_deleted_record(array $dataset): void {
+    public function restore_deleted_record(array $dataset): void {
+        ExcelDefinitionGuard::write($this->filename, $this->datadir, function ($context) use ($dataset) {
+            ExcelDefinitionGuard::check($context, 'insert', null, $dataset);
+            $this->restore_deleted_record_raw($dataset);
+        });
+    }
+
+    private function restore_deleted_record_raw(array $dataset): void {
 		$this->assert_writable("restore_deleted_record");
 		if (empty($dataset["id"])) {
 			throw new Exception("id is required to restore deleted record");

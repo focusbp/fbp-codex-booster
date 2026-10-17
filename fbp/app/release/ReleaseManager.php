@@ -457,6 +457,7 @@ class ReleaseManager {
 		return $path === "log/ffm" || strpos($path, "log/ffm/") === 0
 			|| $path === "data/external_keys" || strpos($path, "data/external_keys/") === 0
 			|| $path === "data/integration_settings" || strpos($path, "data/integration_settings/") === 0
+			|| $path === "data/excel_grid" || strpos($path, "data/excel_grid/") === 0
 			|| $path === "data/project_integration" || strpos($path, "data/project_integration/") === 0;
 	}
 

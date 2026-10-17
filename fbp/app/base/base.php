@@ -184,6 +184,38 @@ class base {
 		
 		$ctl->reload_area("#menu", "left_menu.tpl");
 	}
+
+	function spreadsheet_note_add(Controller $ctl) {
+		if (!$ctl->get_login_id()) { $ctl->deny_forbidden_access(); return; }
+        if (ExcelDefinitionGuard::isDeveloper($ctl->dirs->datadir)) { $ctl->show_notification_text((new ExcelDefinitionReadOnly())->getMessage()); return; }
+		$token = bin2hex(random_bytes(24));
+		$ctl->set_session('spreadsheet_note_ticket', ['token' => $token, 'time' => time()]);
+		$ctl->assign('note_token', $token);
+		$ctl->show_multi_dialog('spreadsheet-note', 'spreadsheet_note.tpl', 'ノートを追加', 400);
+	}
+
+	function spreadsheet_note_create(Controller $ctl) {
+		if (!$ctl->get_login_id()) { $ctl->deny_forbidden_access(); return; }
+		$ctl->clear_error_message();
+		try {
+			$ticket = $ctl->get_session('spreadsheet_note_ticket') ?: [];
+			if (empty($ticket['token']) || !hash_equals($ticket['token'], (string)$ctl->POST('note_token')) || $ticket['time'] < time() - 3600) {
+				throw new RuntimeException('操作の有効期限が切れました。開き直してください。');
+			}
+			$name = $ctl->POST('menu_name');
+			if (!is_string($name) || trim($name) === '') throw new RuntimeException('メニュー名を入力してください。');
+			$name = trim($name);
+			if (strlen($name) > 255) throw new RuntimeException('メニュー名は255バイト以内で入力してください。');
+			require_once __DIR__ . '/../db/db.php';
+			$schema = new db($ctl);
+			$schema->create_spreadsheet_note($ctl, $name);
+			$ctl->set_session('spreadsheet_note_ticket', null);
+			$ctl->close_multi_dialog('spreadsheet-note');
+			$ctl->reload_menu();
+		} catch (Throwable $e) {
+			$ctl->res_error_message('menu_name', $e->getMessage());
+		}
+	}
 	
 	function show_left_sidemenu(Controller $ctl) {
 

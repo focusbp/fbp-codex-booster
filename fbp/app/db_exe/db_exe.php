@@ -3,7 +3,11 @@
 require_once __DIR__ . "/../../lib/SingleRecordScreen.php";
 
 
+require_once __DIR__ . "/ExcelGridActions.php";
+require_once __DIR__ . "/../../lib/ExcelPreview.php";
+
 class db_exe {
+    use ExcelGridActions;
 	private const READ_ONLY_FUNCTIONS = [
 		"page", "search", "search_child", "search_weekly_calendar", "rows",
 		"add", "edit", "delete", "rows_child", "add_child", "edit_child", "delete_child",
@@ -15,11 +19,13 @@ class db_exe {
 	private $table_name;
 	private $ffm;
 	private $db_setting;
+    private array $source_db_setting = [];
 	private $days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 	private $window_name;
 	private $title;
 	private $access_denied = false;
 	private $request_function = "";
+    private bool $excel_in_hook = false;
 
 	public static function is_read_only_function(string $function_name): bool {
 		return in_array($function_name, self::READ_ONLY_FUNCTIONS, true);
@@ -72,6 +78,13 @@ class db_exe {
 	}
 
 	private function invoke_post_action_class(Controller $ctl, $data, $post_action_from = "", ?int $source_id = null, ?array $before_data = null){
+        if (ExcelGrid::config($ctl,$this->table_name) && $post_action_from !== 'delete' && !$this->excel_in_hook) {
+            $this->excel_in_hook=true;
+            try { $this->excelCalculate($ctl,$data,$before_data ?? [],$post_action_from); }
+            finally { $this->excel_in_hook=false; }
+            if (strpos($this->request_function,"excel_")!==0) $ctl->invoke("rows",["db_id"=>$this->db_setting_id]);
+            return;
+        }
 		if(empty($this->db_setting["post_action_class"])){
 			return;
 		}
@@ -90,7 +103,21 @@ class db_exe {
 		if(is_array($data)){
 			$post["_post_action_after"] = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 		}
-		$ctl->invoke("run", $post, $this->db_setting["post_action_class"]);
+        if ($this->excel_in_hook) {
+            $class=trim((string)$this->db_setting['post_action_class']);
+            if (!preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/',$class)) throw new RuntimeException('関数の登録が不正です。');
+            if (!class_exists($class,false)) require_once $ctl->dirs->get_class_dir($class).'/'.$class.'.php';
+            $reflection=new ReflectionClass($class); $ctor=$reflection->getConstructor();
+            $hook=$ctor && $ctor->getNumberOfParameters()>0 ? new $class($ctl) : new $class();
+            if (!is_callable([$hook,'run'])) throw new RuntimeException('関数のrun処理がありません。');
+            $post['_post_action_excel_errors']=json_encode(ExcelGrid::errors($ctl,$this->table_name,(int)$data['id']),JSON_UNESCAPED_UNICODE);
+            $previous=$_POST; $errorCount=$ctl->count_res_error_message();
+            try { $_POST=$post; $hook->run($ctl); }
+            finally { $_POST=$previous; }
+            if ($ctl->count_res_error_message()>$errorCount) throw new RuntimeException('関数の計算に失敗しました。');
+        } else {
+		    $ctl->invoke("run", $post, $this->db_setting["post_action_class"]);
+        }
 	}
 
 	function __construct(Controller $ctl) {
@@ -133,7 +160,15 @@ class db_exe {
 		// Making database instances
 		$this->fmt_db = $ctl->db("db","db");
 		$db = $this->fmt_db->get($this->db_setting_id);
-		$this->db_setting = $db;
+        if (ExcelGrid::isSpreadsheet($db) && self::is_read_only_function($function_name)) {
+            $ctl->close_db_by_ffm($this->fmt_db);
+            if (!$ctl->set_db_read_only(false)) throw new RuntimeException('Excel画面のDB接続を準備できません。');
+            $this->fmt_db=$ctl->db('db','db');
+            $db=$this->fmt_db->get($this->db_setting_id);
+        }
+
+        $this->source_db_setting = $db ?: [];
+        $this->db_setting = $db;
 		$this->table_name = $db["tb_name"];
 		if($this->table_name == null){
 			$ctl->stop_executing_function();
@@ -149,6 +184,11 @@ class db_exe {
 			return;
 		}
 		
+        $this->db_setting = ExcelPreview::effective($ctl, $this->source_db_setting);
+        $ctl->assign('excel_developer_mode', ExcelDefinitionGuard::isDeveloper($ctl->dirs->datadir));
+        $ctl->assign('excel_preview_available', ExcelPreview::available($ctl, $this->source_db_setting));
+        $ctl->assign('excel_preview_active', ExcelGrid::isSpreadsheet($this->source_db_setting) && !ExcelGrid::isSpreadsheet($this->db_setting));
+        $ctl->assign('excel_preview_token', $this->excelToken($ctl, 'preview'));
 		$ctl->assign("tb_name",$this->table_name);
 		
 	}
@@ -548,6 +588,11 @@ class db_exe {
 	}
 
 	private function can_execute(Controller $ctl): bool {
+        if (ExcelGrid::isSpreadsheet($this->db_setting) && !in_array($this->request_function,['page','rows','reload'],true) && strpos($this->request_function,'excel_')!==0) {
+            $ctl->show_notification_text('スプレッドシートの操作を利用してください。');
+            return false;
+        }
+
         if (SingleRecordScreen::is_single($this->db_setting)) {
             if (!empty($this->db_setting['parent_tb_id']) || !in_array($this->request_function, ['page', 'reload', 'save_single_exe'], true)) {
                 $ctl->show_notification_text($ctl->t('db.single.operation_not_supported'));
@@ -726,6 +771,10 @@ class db_exe {
             return;
         }
 
+        if (ExcelGrid::isSpreadsheet($this->db_setting)) {
+            $this->excel_page($ctl);
+            return;
+        }
 		if($this->db_setting["list_type"] == 0){
 			//List Type is "Search and Table"
 			$search = $ctl->get_session("search_" . $this->table_name);
@@ -991,6 +1040,7 @@ class db_exe {
 	
 	
 	function rows(Controller $ctl){
+        if (ExcelGrid::isSpreadsheet($this->db_setting)) { $this->excel_page($ctl); return; }
 		if (!$this->can_execute($ctl)) {
 			return;
 		}
@@ -1009,7 +1059,8 @@ class db_exe {
 
 		// Encrypt ID and change data
 		$ctl->assign_field_settings("group1",$this->table_name, 'list', false,true,true);
-		$ctl->assign("rows",$rows);
+		if (ExcelGrid::config($ctl,$this->table_name)) foreach ($rows as &$r) $r['_excel_errors']=ExcelGrid::errors($ctl,$this->table_name,(int)$r['id']); unset($r);
+        $ctl->assign("rows",$rows);
 		
 		// Checking child tables
 		$ctl->assign("child_tables", $this->get_child_tables_for_parent_list($ctl));

@@ -95,7 +95,8 @@ class db {
 	    0 => "Search and Table",
 	    1 => "Manual Sort",
 	    2 => "Weekly Calendar",
-	    3 => "Single Record"
+	    3 => "Single Record",
+        4 => "スプレッドシート"
 	];
 	private $screen_build_type_opt = [
 	    0 => "Standard Screen",
@@ -205,11 +206,12 @@ class db {
 	}
 
 	function __construct(Controller $ctl) {
-		$this->fmt_db = $ctl->db("db");
-		$this->fmt_db_fields = $ctl->db("db_fields");
-		$this->fmt_screen = $ctl->db("screen");
-		$this->fmt_screen_fields = $ctl->db("screen_fields");
+		$this->fmt_db = $ctl->db("db", "db");
+		$this->fmt_db_fields = $ctl->db("db_fields", "db");
+		$this->fmt_screen = $ctl->db("screen", "db");
+		$this->fmt_screen_fields = $ctl->db("screen_fields", "db");
 
+		$ctl->assign('excel_developer_mode', ExcelDefinitionGuard::isDeveloper($ctl->dirs->datadir));
 		$ctl->assign('type_opt', $this->type_opt);
 		$ctl->assign("validation_opt", $this->validation_opt);
 		$ctl->assign("constant_array_opt", $ctl->get_all_constant_array_names(true));
@@ -382,6 +384,14 @@ class db {
         // Original Screen hides the pattern control and resets it on save.
         if ((int) ($post['screen_build_type'] ?? 0) === 1 && !array_key_exists('list_type', $post)) {
             $table['list_type'] = 0;
+        }
+        $errors = array_merge($errors, ExcelGrid::configurationErrors($table));
+        if (ExcelDefinitionGuard::isDeveloper($ctl->dirs->datadir)) {
+            $oldExcel = (int)($current['list_type'] ?? -1) === 4;
+            if ((!$oldExcel && (int)($table['list_type'] ?? -1) === 4)
+                || ($oldExcel && ((int)($table['list_type'] ?? -1) !== 4 || (int)($table['screen_build_type'] ?? 0) !== 0))) {
+                $errors['list_type'] = 'Developer Modeでは画面パターンを変更できません。検証用の表示切替を利用してください。';
+            }
         }
         if (!$errors) {
             foreach (SingleRecordScreen::configuration_errors($table,
@@ -1397,6 +1407,18 @@ class db {
 	}
 
 	/** Safe programmatic schema API used by trusted integrations such as MCP. */
+	function create_spreadsheet_note(Controller $ctl, string $title): array {
+        ExcelDefinitionGuard::assertEditable($ctl->dirs->datadir);
+		$row = $this->mcp_schema_create_table($ctl, ['tb_name' => 'sheet_' . bin2hex(random_bytes(8)), 'title' => $title]);
+		$row['list_type'] = 4;
+		$row['menu_visibility'] = 0;
+		$sort = 0;
+		foreach ($this->fmt_db->getall() as $existing) $sort = max($sort, (int)($existing['sort'] ?? 0) + 1);
+		$row['sort'] = $sort;
+		$this->fmt_db->update($row);
+		return $row;
+	}
+
 	function mcp_schema_create_table(Controller $ctl, array $input): array {
 		$name = trim((string) ($input['tb_name'] ?? ''));
 		$title = trim((string) ($input['title'] ?? $input['menu_name'] ?? ''));

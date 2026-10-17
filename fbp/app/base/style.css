@@ -139,6 +139,42 @@ article {
     font-weight: bold;
 }
 
+#left_menu .note-menu-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+#left_menu .note-menu-title {
+    white-space: nowrap;
+}
+
+#left_menu .note-create-button {
+    flex: 0 0 28px;
+    width: 28px;
+    height: 28px;
+    float: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 0 0 auto;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+    font-size: 22px;
+    line-height: 1;
+    text-align: center;
+    transition: none;
+}
+
+#left_menu .note-create-button:hover {
+    border: 0;
+    box-shadow: none;
+}
+
 #left_menu .ui-state-active {
 	color:inherit;
 }

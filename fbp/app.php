@@ -553,6 +553,18 @@ try{
 	exit;
 	
 }catch(Throwable $e){
+    if ($e instanceof ExcelDefinitionReadOnly) {
+        if (($class ?? '') === 'db_api') {
+            http_response_code(409);
+            header('Content-Type: application/json; charset=UTF-8');
+            echo json_encode(['ok'=>false,'error'=>['code'=>ExcelDefinitionReadOnly::ERROR_CODE,'message'=>$e->getMessage()]], JSON_UNESCAPED_UNICODE);
+        } elseif (isset($ctl)) {
+            $ctl->res_error_message('excel_error', $e->getMessage());
+            $ctl->show_notification_text($e->getMessage());
+            $ctl->res();
+        }
+        exit;
+    }
 	unset($_POST["external_key_secret"]);
 	$report_result = [
 		"configured" => false,

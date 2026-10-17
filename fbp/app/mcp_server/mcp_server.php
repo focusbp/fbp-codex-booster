@@ -544,6 +544,7 @@ class mcp_server {
 		$input_fields = $this->tool_field_rows((int) $tool["id"], "input");
 		$uploads = [];
 		$data = $this->build_input_data($ctl, $table, $input_fields, $args, true, $uploads);
+		ExcelGrid::guardInput($ctl,$table,$data);
 		$this->enable_strict_field_length($ffm);
 		$id = $ffm->insert($data);
 		$row = $ffm->get((int) $id);
@@ -581,6 +582,7 @@ class mcp_server {
 		$before_row = $row;
 		$uploads = [];
 		$data = $this->build_input_data($ctl, $table, $this->tool_field_rows((int) $tool["id"], "input"), $args, false, $uploads);
+		ExcelGrid::guardInput($ctl,$table,$data);
 		foreach ($data as $key => $value) {
 			$row[$key] = $value;
 		}
@@ -623,7 +625,12 @@ class mcp_server {
 		];
 	}
 
-	private function run_note_post_action_hook(Controller $ctl, string $table, string $from, array $data, ?array $before_data = null): array {
+	private function run_note_post_action_hook(Controller $ctl, string $table, string $from, array $data, ?array $before_data = null, bool $excel_nested = false): array {
+        if (!$excel_nested && $from !== "delete" && ExcelGrid::config($ctl,$table)) {
+            $hookResult=[];
+            $errors=ExcelGrid::recalculate($ctl,$table,$data,function(array $row) use ($ctl,$table,$from,$before_data,&$hookResult) { $hookResult=$this->run_note_post_action_hook($ctl,$table,$from,$row,$before_data,true); });
+            return $hookResult + ["excel_errors"=>$errors];
+        }
 		$db_setting = $this->note_db_setting($ctl, $table);
 		$class = trim((string) ($db_setting["post_action_class"] ?? ""));
 		if ($class === "") {
@@ -1370,7 +1377,7 @@ class mcp_server {
 			return $map;
 		}
 		$db_id = (int) ($db_list[0]["id"] ?? 0);
-		foreach ($ctl->db("db_fields", "db")->select("db_id", $db_id) as $field) {
+		foreach ($ctl->get_field_list($tb_name) as $field) {
 			$name = (string) ($field["parameter_name"] ?? "");
 			if ($name !== "") {
 				$map[$name] = $field;

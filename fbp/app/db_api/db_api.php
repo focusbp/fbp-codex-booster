@@ -6,6 +6,17 @@ class db_api {
 		$ctl->set_check_login(false);
 	}
 
+    /** Authenticated definition-only snapshot; no business rows or credentials. */
+    function excel_settings(Controller $ctl) {
+        if ($ctl->verify_api_request() !== true) exit;
+        $table=trim((string)$ctl->GET('table'));
+        if (!preg_match('/^[a-z][a-z0-9_]*$/',$table)) $this->respond_error(400,'invalid_table','Invalid note name.');
+        $note=$ctl->get_db_setting($table);
+        $cfg=ExcelGrid::config($ctl,$table);
+        if (!$note || !ExcelGrid::isSpreadsheet($note) || !$cfg) $this->respond_error(404,'excel_settings_not_found','Excel settings have not been initialized.');
+        $this->respond_json(['ok'=>true,'schema_version'=>1,'tb_name'=>$table,'list_type'=>ExcelGrid::PATTERN,'column_order'=>ExcelGrid::orderedNames($cfg),'columns'=>(object)($cfg['columns'] ?: []),'revision'=>(int)$cfg['revision'],'fetched_at'=>gmdate('c')]);
+    }
+
 	function tables(Controller $ctl) {
 		if ($ctl->verify_api_request() !== true) {
 			exit;

@@ -8,12 +8,10 @@
 			<a class="ajax-link lang" data-class="dashboard" data-function="page">{$base_menu_i18n.dashboard}</a>
 		{/if}
 
-		{if count($database_menu) > 0}
-			<h3>{$base_menu_i18n.databases}</h3>
+		<h3 class="note-menu-heading"><span class="note-menu-title">{$base_menu_i18n.databases}</span><button type="button" class="ajax-link note-create-button" data-class="base" data-function="spreadsheet_note_add" title="ノートを追加" aria-label="ノートを追加">＋</button></h3>
 			{foreach $database_menu as $d}
-				<a class="ajax-link lang" data-class="db_exe" data-function="page" data-db_id="{$d.id}">{$d.menu_name}</a>
+				<a class="ajax-link lang" data-class="db_exe" data-function="page" data-db_id="{$d.id}">{$d.menu_name|escape}</a>
 			{/foreach}
-		{/if}
 
 		{if $menu_file != null}
 			{include file="$menu_file"}

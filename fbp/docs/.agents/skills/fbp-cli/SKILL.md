@@ -39,6 +39,12 @@ description: Execute and verify FBP features through cli.php commands including 
 - ラッパーで足りない CLI はそのまま透過実行できる:
   `php <app-root>/fbp/cli.php cron_list --json='{"id":1}'`
 
+## Excel風ノートの開発時検証
+
+Developer ModeではExcel定義の新規作成・変更を拒否する。`db_tables_edit`で画面パターンを変えず、`excel_preview_set --json='{"tb_name":"example","session_id":"ExcelCheck","windowcode":"ExcelCheck"}'` で検証用の検索＋一覧を使う。同じsession_id・windowcodeのapp_callに引き継がれ、`excel_preview_reset`で元のExcel風へ戻せる。これらの指定はブラウザーのセッションやリリース定義には影響しない。
+
+本番の列定義取得は環境側の専用スクリプト、取り込みは `excel_settings_import` を使う。汎用app_callのexcel_importは拒否する。取得JSONを変更したり、モード変更で定義保護を回避したりしない。
+
 ## bulk execution safety
 - 長い複合コマンドを `bash -lc '...'` に多重クォートして実行しない（特に `php -r` / ヒアドキュメント混在を禁止）。
 - 一括処理は `/tmp` 等に実行スクリプトを作成し、`set -euo pipefail` 付きで `bash /tmp/<script>.sh` で実行する。

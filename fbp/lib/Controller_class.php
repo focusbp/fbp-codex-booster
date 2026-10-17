@@ -3,6 +3,7 @@
 require_once __DIR__ . "/PollingSecurity.php";
 require_once __DIR__ . "/StandardScreenLayout.php";
 require_once __DIR__ . '/DspRuntime.php';
+require_once __DIR__ . '/ExcelGrid.php';
 
 class Controller_class implements Controller {
 
@@ -192,6 +193,7 @@ class Controller_class implements Controller {
 		$fdir = $this->dirs->get_class_dir($class) . "/fmt";
 
 		$key = $ddir . "/" . $name;
+        if ($class === "common") $fdir = ExcelGrid::formatDir($this, $name, $fdir);
 		if (!isset($this->dbarr[$key])) {
 			$profile = DspProfile::start();
 			$this->assert_db_connections_mutable();
@@ -4127,6 +4129,19 @@ class Controller_class implements Controller {
 
 
 		$this->assign("_use_thumbnail", $use_thumbnail);
+        if (ExcelGrid::config($this, $table_name)) {
+            $fields = $this->get_field_list($table_name, $screen_or_fieldnamearray);
+            foreach ($fields as &$f) {
+                $f += ['parameter_description'=>'','title_color'=>'','display_format'=>0,'max_bytes'=>0,'options'=>[], 'colors'=>[], 'is_table_dropdown'=>false];
+                if (!isset($f['excel_mode'])) {
+                    $f['options']=$this->get_constant_array($f['constant_array_name'] ?? '', $option_emptydata);
+                } elseif ($option_emptydata) $f['options']=[''=>''] + $f['options'];
+            }
+            unset($f);
+            $this->assign($group_name, $fields);
+            return;
+        }
+
 
 		$arr_list = [];
 		$fmt_screen_fields = $this->db("screen_fields", "db");
@@ -4447,6 +4462,12 @@ class Controller_class implements Controller {
 		$db = $fmt_db->select("tb_name", $table_name)[0];
 
 		$fmt_fields = $this->db("db_fields", "db");
+        if (ExcelGrid::config($this, $table_name)) {
+            $base = $fmt_fields->select("db_id", $db["id"]);
+            $all = ExcelGrid::fields($this, $table_name, $base, is_array($screen_or_fieldnamearray) ? $screen_or_fieldnamearray : null);
+            if ($screen_or_fieldnamearray === "search") return array_values(array_filter($all, fn($f) => !in_array($f["parameter_name"], ["id", "excel_sort", "sort"], true)));
+            return $all;
+        }
 		if ($screen_or_fieldnamearray == null) {
 			return $fmt_fields->select("db_id", $db["id"]);
 		}
@@ -4576,6 +4597,9 @@ class Controller_class implements Controller {
 	}
 
 	function get_field_setting($tb_name, $field_name) {
+        $config=ExcelGrid::config($this,$tb_name);
+        if (!empty($config['columns'][$field_name]['generated'])) return ExcelGrid::field($field_name,$config['columns'][$field_name]);
+
 
 		if (!empty($this->cache_field["$tb_name/$field_name"])) {
 			return $this->cache_field["$tb_name/$field_name"];
@@ -4853,6 +4877,12 @@ class Controller_class implements Controller {
 	 * @return bool Returns true if validation passes, false if any required fields are missing.
 	 */
 	function validate($table_name, $screen_or_fieldnamearray, $post, $validate_upload_field = true): bool {
+        try { ExcelGrid::guardInput($this, $table_name, $post); }
+        catch (InvalidArgumentException $e) {
+            foreach ((ExcelGrid::config($this,$table_name)['columns'] ?? []) as $name=>$c) if ($c['mode']!=='input' && array_key_exists($name,$post)) $this->res_error_message($name,$e->getMessage());
+            return false;
+        }
+
 
 		$fields = $this->get_field_list($table_name, $screen_or_fieldnamearray);
 		$error_fields = [];

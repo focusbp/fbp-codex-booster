@@ -8,7 +8,8 @@ $row : array of the values.
 {assign name $field["parameter_name"]}
 {assign type $field["type"]}
 
-{if $type == "text"}
+{if isset($row._excel_errors[$name])}<span class="error_message">ERROR</span>
+{else if $type == "text"}
 	<p>{$row.$name}</p>
 	
 {else if $type == "number"}

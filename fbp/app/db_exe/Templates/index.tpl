@@ -1,3 +1,4 @@
+{include file="excel_preview.tpl"}
 {if $testserver || $setting.show_developer_panel == 1}
 	<div class="db_edit_button_area">
 		<button class="ajax-link" invoke-class="db" invoke-function="edit" data-id="{$db_id}" data-mode="database">

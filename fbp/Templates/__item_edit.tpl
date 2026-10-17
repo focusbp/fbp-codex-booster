@@ -26,7 +26,9 @@ $row : array of the values.
 {/if}
 
 	
-{if $type == "text"}
+{if isset($field.excel_mode) && $field.excel_mode != "input"}
+    {include file="__item_viewer_notag.tpl"}
+{else if $type == "text"}
 	
 	<input type="text" name="{$name}" value="{$row.$name}">
 	

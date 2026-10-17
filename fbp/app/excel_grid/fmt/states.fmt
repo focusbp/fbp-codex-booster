@@ -1,0 +1,4 @@
+id,24,N
+tb_name,255,T
+row_id,24,N
+errors,16384,A
