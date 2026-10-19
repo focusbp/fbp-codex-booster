@@ -194,7 +194,27 @@ RGBAの新しい反射レイヤーを返す。本体へはcomposeの最後に元
 Pythonのfigure_reflection_surface.pyと引数の意味を共有する。従来のreflectionとprocess既定は変更しない。
 2Dの接地補正と圧縮による近似であり、隠れた面・足裏を生成せず、物理的に正しい3D鏡像は保証しない。
 
-## 足の影専用
+## 元画像とマスクだけの反射
+
+`ImageEffects::reflectionFromMask(GdImage $image, GdImage $mask, float $opacity=.4, int $depth=480): array`
+
+同じサイズのsRGB元画像と白黒の本体マスクを渡す。座標・接地線・追加AI判定は不要。
+返り値は`layer`（反射RGBA）、`mask`（反射確認用白黒マスク）、`report`。
+reportはsupported/reason/feet（左右のx_range・contact_line・floor_y・depth・reflected_pixels）を含む。
+マスクの下部28%で2接地候補を分離し、足裏候補の中央部から接地線を近似する。
+これは幾何判定であり、部品が本当に足であることの意味認識はしない。
+
+各足の横範囲内で、接地線のYをf(x)として元画素`(x,f(x)-d)`を`(x,f(x)+d)`へ写す。
+Xは不変、縦倍率1.0、横拡大・ぼかしなし。対象マスク内部には反射を描かない。
+opacityは0〜1、depthは正整数の最大減衰距離px。実距離は足幅×1.4とdepthの小さい方。
+両入力は最大24,000,000画素。空・端切れ・接地候補の分離不可は透明画像とsupported=false。
+元画像・入力マスクは変更しない。色は元画像からコピーする。反射生成自体はマスク入力のロジックのみ。
+マスク作成は別工程。見えない面は復元せず、物理的に正しい3D鏡像を保証する処理ではない。
+
+Python CLIのreflection_maskと同じ検出・写像・丸めを使用する。
+PNGのGD/Pillowのアルファ変換で最大1階調の差がある。RGBと確認用マスクは同一。
+
+## 足の影専用API
 
 `ImageEffects::footShadow(GdImage $mask, array $options=[], bool $fullBody=false): array`
 

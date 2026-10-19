@@ -316,6 +316,13 @@ final class ImageEffects
         return SoftBlur::apply($layer, $blur);
     }
 
+    /** Requires only the source and its binary mask; all two-foot geometry is mask-derived. */
+    public static function reflectionFromMask(GdImage $image, GdImage $mask, float $opacity = .4, int $depth = 480): array
+    {
+        require_once __DIR__ . '/MaskReflection.php';
+        return MaskReflection::create($image, $mask, $opacity, $depth);
+    }
+
     /** Infer two feet from a confirmed full-body mask; returns layer/report, no shadow if ambiguous. */
     public static function footShadow(GdImage $mask, array $options = [], bool $fullBody = false): array
     {
