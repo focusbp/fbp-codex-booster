@@ -17,8 +17,12 @@ final class PythonMask
         if (imagesx($image) < 1 || imagesy($image) < 1 || imagesx($image) > 24000000 / imagesy($image)) {
             throw new InvalidArgumentException('Mask input exceeds 24 million pixels.');
         }
-        $python = $python ?? (is_executable('/opt/fbp-image-effects/bin/python3') ? '/opt/fbp-image-effects/bin/python3' : '/usr/bin/python3');
-        if (!str_starts_with($python, '/') || !is_file($python) || !is_executable($python)) {
+        // open_basedir blocks PHP stat() of /usr/bin and /opt, but not OS process execution.
+        // Do not probe executable files outside the app; proc_open reports missing executables.
+        $restricted = trim((string) ini_get('open_basedir')) !== '';
+        $python = $python ?? (!$restricted && is_executable('/opt/fbp-image-effects/bin/python3') ? '/opt/fbp-image-effects/bin/python3' : '/usr/bin/python3');
+        if (!str_starts_with($python, '/') || str_contains($python, "\0")
+            || (!$restricted && (!is_file($python) || !is_executable($python)))) {
             throw new InvalidArgumentException('An absolute executable Python path is required.');
         }
         $input = tempnam($tempDir, 'ie_rgb_');

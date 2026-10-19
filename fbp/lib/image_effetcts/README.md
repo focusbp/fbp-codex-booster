@@ -114,7 +114,9 @@ $report = $done['report'];
 
 実行環境はPython 3.10以上、Linux x86_64、glibc 2.27以上、libstdc++。
 Python標準ライブラリと同梱ネイティブライブラリだけを使い、pipパッケージ・Pillow・numpy・Python版onnxruntimeは不要。
-インタープリターは画像処理用共通venvがあれば優先し、なければシステムのPythonを使う。
+PHPのファイル参照制限がない場合、画像処理用共通venvがあれば優先し、なければシステムのPythonを使う。
+`open_basedir` が設定されている場合はシステムPythonを既定にし、アプリ外の実行ファイルをPHPでstatしない。
+この場合も専用venvを使うなら `python` 引数で明示する。既存のPHPファイル参照制限を緩める必要はない。
 明示する場合は `python` 引数にサーバー側で管理する絶対実行パスを渡す。
 リクエスト値からPython・モデル・スクリプトのパスを受け取らない。
 PHP実行ユーザーにPython起動とライブラリ読取りの権限が必要で、`open_basedir`・`proc_open` の制限も確認する。
