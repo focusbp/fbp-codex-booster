@@ -24,13 +24,13 @@ final class SurfaceReflection
         $mask=ImageEffects::mask($mask);
         $layer=imagecreatetruecolor($w,$h);imagealphablending($layer,false);imagesavealpha($layer,true);imagefill($layer,0,0,0x7f000000);
         $segment=0;
-        for($x=$line[0][0];$x<=$last;$x++){
+        for($x=0;$x<$w;$x++){
             while($segment<count($line)-2 && $x>$line[$segment+1][0])$segment++;
             [$ax,$ay]=$line[$segment];[$bx,$by]=$line[$segment+1];
             $floor=(int)floor($ay+($by-$ay)*($x-$ax)/($bx-$ax)+.5);
-            for($dy=1;$dy<=min($depth,$h-1-$floor);$dy++){
+            for($dy=max(1,1-$floor);$dy<=min($depth,$h-1-$floor);$dy++){
                 $sy=$floor-max(1,(int)floor($dy/$scale+.5));if($sy<0)break;
-                if(!(imagecolorat($mask,$x,$sy)&255))continue;
+                if($sy>=$h || !(imagecolorat($mask,$x,$sy)&255))continue;
                 $alpha=(int)floor(127*(1-$opacity*(1-$dy/$depth)**2)+.5);
                 imagesetpixel($layer,$x,$floor+$dy,($alpha<<24)|(imagecolorat($image,$x,$sy)&0xffffff));
             }

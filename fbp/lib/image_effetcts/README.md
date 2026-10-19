@@ -179,16 +179,39 @@ null（既定）は追加なし。多点背景→複数光源→従来の単一�
 
 ## 接地線に沿う反射
 
-`ImageEffects::reflectionOnSurface(GdImage $image, GdImage $mask, array $contactLine, bool $fullBody, float $opacity=.4, int $depth=480, float $verticalScale=.75): GdImage`
+`ImageEffects::reflectionOnSurface(GdImage $image, GdImage $mask, array $contactLine, bool $fullBody, float $opacity=.4, int $depth=480, float $verticalScale=.75, float $blur=0): GdImage`
 
 - image/mask: 同サイズの配置済みsRGB参照画像と白黒の本体／片足マスク。最大24,000,000画素。
 - contactLine: 画像内の整数座標`[[x,y],...]`、2〜画像幅個、Xの厳密昇順。Yは1〜高さ−2。
-  隣接点を線形補間し、接地線のX範囲にだけ反射を作る。
+  隣接点を線形補間し、両端外は端の線分を延長する。反射元の範囲はmaskで指定する。
 - fullBody: trueが必須。
 - opacity: 0〜1、既定0.4。depth: 下方への減衰距離px、正整数、既定480。
 - verticalScale: 縦圧縮率0.1〜2、既定0.75。1未満で反射を縦方向に圧縮。
+- blur: 柔らかなぼかし0〜100px、既定0。PHPのGDとPythonのPillowではぼかしの画素結果に差がある。
 
 RGBAの新しい反射レイヤーを返す。本体へはcomposeの最後に元画素をコピーする。
 脚ごとに別マスク・接地線で呼び出す。従来reflectionの水平軸と異なり、列ごとに足裏の接地位置を変える。
 Pythonのfigure_reflection_surface.pyと引数の意味を共有する。従来のreflectionとprocess既定は変更しない。
 2Dの接地補正と圧縮による近似であり、隠れた面・足裏を生成せず、物理的に正しい3D鏡像は保証しない。
+
+## 足の影専用
+
+`ImageEffects::footShadow(GdImage $mask, array $options=[], bool $fullBody=false): array`
+
+白い本体・黒い背景の全身マスクから、下部28%の左右の足を分離して足裏候補を求める。
+足裏中央部の輪郭を直線近似し、接地影と短い投影影を作る。入力マスクは変更しない。
+返り値は`layer`（RGBA GD画像）と`report`（supported/reason/footprints/settings）。
+fullBody=trueで全身と確認済みの場合だけ適用する。空・端切れ・足が分離できない場合は
+透明レイヤーとsupported=falseを返す。モデル・AI通信を使わず、足形状や靴底を生成しない。
+
+| options | 意味・範囲・既定値 |
+| --- | --- |
+| opacity | 濃さ0〜1、既定0.3 |
+| blur | 柔らかい影のぼかし0〜100px、既定5 |
+| length | 投影影の長さ。画像幅の0〜50%、既定8 |
+| angle | 投影方向。0右・90下・180左・270上、−10億〜10億度、既定200 |
+
+footprintsはマスクから求めた画素座標で、写真固定の座標を使わない。画像は最大24,000,000画素。
+自動の足判定は幾何的な近似。全身判定・支持具の判定は呼出側で行い、結果を目視確認する。
+背景・反射へ重ねてからcomposeで本体画素を戻す。Pythonのfoot_shadowと同じ設定形式で、
+ぼかし・描画エンジンの差による画素差はある。従来shadow/processの既定は変更しない。

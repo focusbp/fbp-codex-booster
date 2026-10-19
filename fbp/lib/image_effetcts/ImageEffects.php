@@ -308,10 +308,19 @@ final class ImageEffects
 
     /** Approximate floor reflection using a projected contact polyline and vertical compression. */
     public static function reflectionOnSurface(GdImage $image, GdImage $mask, array $contactLine, bool $fullBody,
-        float $opacity = .4, int $depth = 480, float $verticalScale = .75): GdImage
+        float $opacity = .4, int $depth = 480, float $verticalScale = .75, float $blur = 0): GdImage
     {
         require_once __DIR__ . '/SurfaceReflection.php';
-        return SurfaceReflection::create($image, $mask, $contactLine, $fullBody, $opacity, $depth, $verticalScale);
+        $layer = SurfaceReflection::create($image, $mask, $contactLine, $fullBody, $opacity, $depth, $verticalScale);
+        require_once __DIR__ . '/SoftBlur.php';
+        return SoftBlur::apply($layer, $blur);
+    }
+
+    /** Infer two feet from a confirmed full-body mask; returns layer/report, no shadow if ambiguous. */
+    public static function footShadow(GdImage $mask, array $options = [], bool $fullBody = false): array
+    {
+        require_once __DIR__ . '/FootShadow.php';
+        return FootShadow::create($mask, $options, $fullBody);
     }
 
     /** Copies subject pixels last; input objects are never mutated. */
