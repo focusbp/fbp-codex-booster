@@ -125,7 +125,8 @@ $row : array of the values.
 			{assign "image_width" $field["image_width"]}
 		{/if}
 	{assign file $ctl->get_file_info($row[$name])}
-	<img src="app.php?class=db_exe&function=view_image&path={$file["path"]}&{$timestamp}" style="max-width:{$image_width}px	;">
+	{assign "path" $file["path"]}
+	{include file="{$base_template_dir}/__image_preview.tpl"}
 	{/if}
 	<input type="file" name="{$name}" class="fr_image_paste" data-text="Image Uploader">
 	

@@ -2463,3 +2463,10 @@ input[type="time"] {
 #menu_area.menu_without_scroll, #sidemenu.menu_without_scroll {
 	border-right: 1px solid #ccc;
 }
+
+.fbp-image-preview { display:inline-block; max-width:100%; cursor:zoom-in; }
+.fbp-image-preview:focus-visible { outline:2px solid var(--fbp-framework-primary-color, #1673b1); }
+.fbp-image-preview img { vertical-align:middle; }
+.fbp-image-preview-toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.fbp-image-preview-viewport { overflow:auto; width:100%; height:60vh; overscroll-behavior:contain; }
+.fbp-image-preview-viewport img { display:block; max-width:none !important; max-height:none !important; height:auto; margin:0; }

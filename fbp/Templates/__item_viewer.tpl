@@ -99,7 +99,7 @@ $row : array of the values.
 		{else}
 			{assign "path" $file["path"]}
 		{/if}
-	<p><img src="app.php?class=db_exe&function=view_image&path={$path}" style="max-width:{$image_width}px;"></p>
+	<p>{include file="{$base_template_dir}/__image_preview.tpl"}</p>
     {/if}
 {else if $type == "file"}
     {if $row[$name]}

@@ -5787,3 +5787,56 @@ function observe_menu_scroll_border(menu) {
     menu.menuScrollObserver.observe(menu);
     if (menu.firstElementChild) menu.menuScrollObserver.observe(menu.firstElementChild);
 }
+
+// Use the normal stacked modal so an image opened from an edit dialog stays above it.
+$(document).on("click.fbpImagePreview", "a.fbp-image-preview", function (event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const trigger = this;
+    const $trigger = $(trigger);
+    const $viewport = $('<div class="fbp-image-preview-viewport" tabindex="0"></div>');
+    const $image = $('<img alt="">').attr('alt', $trigger.find('img').attr('alt') || '');
+    $viewport.append($image);
+    const $toolbar = $('<div class="fbp-image-preview-toolbar"></div>');
+    const $percent = $('<output aria-live="polite">100%</output>');
+    let scale = 1;
+    function setScale(value) {
+        if (!$image[0].naturalWidth) return;
+        scale = Math.max(0.001, Math.min(4, value));
+        $image.css('width', Math.round($image[0].naturalWidth * scale) + 'px');
+        $percent.text(Math.round(scale * 100) + '%');
+    }
+    function button(text, label, action) {
+        $('<button type="button"></button>').text(text).attr({'aria-label': label, title: label})
+            .on('click', action).appendTo($toolbar);
+    }
+    button('−', $trigger.attr('data-out-label'), () => setScale(scale / 1.25));
+    button('+', $trigger.attr('data-in-label'), () => setScale(scale * 1.25));
+    button('100%', '100%', () => setScale(1));
+    button($trigger.attr('data-fit-label'), $trigger.attr('data-fit-label'), () => {
+        setScale(Math.min(1, $viewport[0].clientWidth / $image[0].naturalWidth,
+            $viewport[0].clientHeight / $image[0].naturalHeight));
+        $viewport.scrollTop(0).scrollLeft(0);
+    });
+    $toolbar.append($percent);
+    const title = $('<span>').text($trigger.attr('data-preview-title') || $image.attr('alt')).html();
+    multi_dialog('image-preview', $viewport, title, Math.min(1200, window.innerWidth - 24),
+        'db_exe', $('#testserver').text() === 'true', multi_dialog_zindex++, $toolbar, {modal: true}, false);
+    const $modal = $('#multi_dialog_db_exe_image-preview');
+    $modal.off('keydown.fbpImagePreview').on('keydown.fbpImagePreview', function (e) {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            $(this).find('.multi_dialog_close').trigger('click');
+        }
+        if (e.key === 'Tab') {
+            const $focusable = $modal.find('button, [tabindex="0"]');
+            const first = $focusable[0], last = $focusable[$focusable.length - 1];
+            if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+            else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+    });
+    $modal.find('.multi_dialog_close').one('click.fbpImagePreview', () => trigger.focus());
+    $image.on('load', () => { setScale(1); $viewport.trigger('focus'); });
+    $image.attr('src', trigger.href);
+});

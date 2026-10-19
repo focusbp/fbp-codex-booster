@@ -105,7 +105,7 @@ $row : array of the values.
 			{assign "media_url" $ctl->get_public_media_url($path, $file["filename"], "image")}
 			<img src="{$media_url}" style="max-width:{$image_width}px;">
 		{else}
-			<img src="app.php?class=db_exe&function=view_image&path={$path}" style="max-width:{$image_width}px;">
+			{include file="{$base_template_dir}/__image_preview.tpl"}
 		{/if}
     {/if}
 {else if $type == "file"}

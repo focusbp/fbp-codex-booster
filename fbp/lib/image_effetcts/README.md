@@ -200,14 +200,24 @@ Pythonのfigure_reflection_surface.pyと引数の意味を共有する。従来�
 
 同じサイズのsRGB元画像と白黒の本体マスクを渡す。座標・接地線・追加AI判定は不要。
 返り値は`layer`（反射RGBA）、`mask`（反射確認用白黒マスク）、`report`。
-reportはsupported/reason/feet（左右のx_range・contact_line・floor_y・depth・reflected_pixels）を含む。
-マスクの下部28%で2接地候補を分離し、足裏候補の中央部から接地線を近似する。
-これは幾何判定であり、部品が本当に足であることの意味認識はしない。
+reportはsupported/reason/split_x/halves/reflected_pixelsを含む。
+画像幅の中央（floor(width/2)）でマスクを左右に分割する。各半分で列ごとの最下端を取得し、
+その半分の本体高さの下側10％にある輪郭点から両端12％ずつを除き、最小二乗法で底辺の傾きを求める。
+同じ傾きのまま、その半分の全マスク画素が線より上に収まる位置まで基準線を下げる。
+halvesはside/x_range/supported/reason/floor_y/slope/intercept/angle_degrees/contact_line/reflected_pixelsを含む。
 
-各足の横範囲内で、接地線のYをf(x)として元画素`(x,f(x)-d)`を`(x,f(x)+d)`へ写す。
-Xは不変、縦倍率1.0、横拡大・ぼかしなし。対象マスク内部には反射を描かない。
-opacityは0〜1、depthは正整数の最大減衰距離px。実距離は足幅×1.4とdepthの小さい方。
-両入力は最大24,000,000画素。空・端切れ・接地候補の分離不可は透明画像とsupported=false。
+各列の基準Yを`F(x)=round(slope*x+intercept)`とし、白マスク内の元画素`(x,F(x)-d)`を`(x,F(x)+d)`へ写す。
+X不変、縦倍率1.0、横拡大・ぼかしなし。足以外のマスク領域も対象とする。
+opacityは0〜1、depthは正整数の減衰距離px。濃さは`opacity × (1-d/depth)^2`。depthまたは画像下端で打ち切り、圧縮しない。
+両入力は最大24,000,000画素。空の半分・底辺の点が3点未満・最下端が画像最上端または最下端の場合はその半分をスキップ。
+片側だけでも基準線を求められればsupported=true。各半分の理由と描画数も確認する。
+異常値は角度の絶対値60度超、近似に使うX幅がmax(2,画像幅×0.005の四捨五入)未満、
+近似誤差RMSがmax(2,画像高さ×0.01)px超、基準線の下方補正がmax(3,半分の本体高さ×0.05)px超とする。
+該当する半分だけabnormal_bottom_lineとしてスキップする。
+両側の角度がそれぞれ±3度以内、最下端Yの差がmax(2,画像高さ×0.005の四捨五入)px以内なら、
+両側の最下端Yの大きい方を共通水平線として採用。片側だけ有効ならその側だけに適用する。
+report.modeはhorizontal/split/left_only/right_only/none。thresholdsとhalves.detected_angle_degreesで判定基準と補正前の角度を確認できる。
+X固定の列単位の反転であり、斜め軸に対する回転を伴う鏡映ではない。中央をまたぐ被写体は中央で反射線が切り替わる。
 元画像・入力マスクは変更しない。色は元画像からコピーする。反射生成自体はマスク入力のロジックのみ。
 マスク作成は別工程。見えない面は復元せず、物理的に正しい3D鏡像を保証する処理ではない。
 
