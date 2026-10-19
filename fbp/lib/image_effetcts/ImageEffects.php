@@ -12,6 +12,7 @@ final class ImageEffects
         'width' => 1080, 'height' => 1920, 'margin' => 80,
         'background_top' => 239, 'background_bottom' => 255,
         'background_gradient' => null,
+        'background_lights' => null,
         'reflection_opacity' => 0.2, 'reflection_depth' => 220,
         'shadow_opacity' => 0.15, 'shadow_blur' => 12,
         'light_strength' => 0.0, 'light_target' => 'background',
@@ -217,6 +218,13 @@ final class ImageEffects
         return Gradient::render($width, $height, $config);
     }
 
+    /** Apply ordered local lights to the background before compose(). */
+    public static function backgroundLights(GdImage $background, array $config): GdImage
+    {
+        require_once __DIR__ . '/BackgroundLights.php';
+        return BackgroundLights::apply($background, $config);
+    }
+
     /** Returns placed reference, binary mask and coordinate transform. Does not upscale. */
     public static function layout(GdImage $image, GdImage $mask, int $width = 1080, int $height = 1920, int $margin = 80): array
     {
@@ -296,6 +304,14 @@ final class ImageEffects
             imagesetpixel($result, $x, $y, $color);
         }
         return $result;
+    }
+
+    /** Approximate floor reflection using a projected contact polyline and vertical compression. */
+    public static function reflectionOnSurface(GdImage $image, GdImage $mask, array $contactLine, bool $fullBody,
+        float $opacity = .4, int $depth = 480, float $verticalScale = .75): GdImage
+    {
+        require_once __DIR__ . '/SurfaceReflection.php';
+        return SurfaceReflection::create($image, $mask, $contactLine, $fullBody, $opacity, $depth, $verticalScale);
     }
 
     /** Copies subject pixels last; input objects are never mutated. */
@@ -379,6 +395,11 @@ final class ImageEffects
     {
         if (array_diff_key($values, self::DEFAULTS)) throw new InvalidArgumentException('Unknown setting.');
         $s = array_replace(self::DEFAULTS, $values);
+        if ($s['background_lights'] !== null) {
+            if (!is_array($s['background_lights'])) throw new InvalidArgumentException('Lights must be an object.');
+            require_once __DIR__ . '/BackgroundLights.php';
+            $s['background_lights'] = BackgroundLights::validate($s['background_lights']);
+        }
         if ($s['background_gradient'] !== null) {
             if (!is_array($s['background_gradient'])) throw new InvalidArgumentException('Gradient must be an object.');
             require_once __DIR__ . '/Gradient.php';
@@ -428,6 +449,7 @@ final class ImageEffects
         $bg = $s['background_gradient'] !== null ? self::gradient($s['width'], $s['height'], $s['background_gradient'])
             : self::background($s['width'], $s['height'], $s['background_top'], $s['background_bottom']);
         $subject = $placed['reference']; $layers = [];
+        if ($s['background_lights'] !== null) $bg = self::backgroundLights($bg, $s['background_lights']);
         if ($s['light_target'] === 'background') $bg = self::lighting($bg, $s['light_strength']);
         else $subject = self::lighting($subject, $s['light_strength'], [.5, .25], .7, 'subject', ($options['allow_subject_change'] ?? false) === true);
         foreach ($options['reflections'] ?? [] as $reflection) {

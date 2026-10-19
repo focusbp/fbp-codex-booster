@@ -145,3 +145,50 @@ PHP実行ユーザーにPython起動とライブラリ読取りの権限が必�
 null（既定）で従来の2色グレー背景、指定時に多点背景を使用する。
 Pythonのfigure_gradient.pyと同じ設定を使用できる。追加依存ライブラリはない。
 出力は`savePng`でsRGBマーカー付きPNGへ保存する。影・照明・反射は別処理。
+
+## 複数の背景光源
+
+`ImageEffects::backgroundLights(GdImage $background, array $config): GdImage`
+
+入力はsRGBの背景GD画像、最大24,000,000画素。新しいGD画像を返し入力を変更しない。
+本体をcomposeする前に適用する。PHPでICC変換はしないため、prepareの既存制限を守る。
+
+```json
+{"lights":[{"center":[28,4],"radius":[20,27],"angle":-15,"color":"#FFFFFF","strength":0.65,"falloff":2,"blend":"screen"}]}
+```
+
+| 設定 | 意味・既定値 |
+| --- | --- |
+| lights | 順番に合成する光源配列、0〜32個。空配列は画素変更なし |
+| center | 中心[x,y]。幅・高さに対する％、−100〜200。既定[50,50] |
+| radius | 回転前の楕円半径[x,y]。幅・高さの％、0.1〜400。既定[30,30] |
+| angle | 楕円の時計回りの角度。0は横軸、−10億〜10億度、既定0 |
+| color | #RRGGBB、既定#FFFFFF |
+| strength | 中心合成強度0〜1、既定0.3。0は無効 |
+| falloff | 減衰指数0.25〜8、既定2（Gaussian）。大きくすると中心が広がり、小さくすると集中 |
+| blend | screen（既定、明るく）／normal（色を混ぜる）／multiply（暗く） |
+
+楕円距離dに対し強度は `strength * exp(-0.5 * d^falloff)`。
+radiusは光が消える境界ではなく減衰基準。各光源ごとにsRGB各チャンネルを合成して丸める。
+配列順で結果が変わる。白色背景にscreenをかけてもそれ以上明るくならない。
+アルファ値は維持する。物理的な照明・影・被写体照明の再現ではなく、背景用の光の効果。
+Pythonのfigure_lights.pyと共通のJSON。追加依存なし。
+
+settings/loadPreset/savePreset/processでは`background_lights`に同じオブジェクトを指定。
+null（既定）は追加なし。多点背景→複数光源→従来の単一照明→影・反射→本体合成の順。
+
+## 接地線に沿う反射
+
+`ImageEffects::reflectionOnSurface(GdImage $image, GdImage $mask, array $contactLine, bool $fullBody, float $opacity=.4, int $depth=480, float $verticalScale=.75): GdImage`
+
+- image/mask: 同サイズの配置済みsRGB参照画像と白黒の本体／片足マスク。最大24,000,000画素。
+- contactLine: 画像内の整数座標`[[x,y],...]`、2〜画像幅個、Xの厳密昇順。Yは1〜高さ−2。
+  隣接点を線形補間し、接地線のX範囲にだけ反射を作る。
+- fullBody: trueが必須。
+- opacity: 0〜1、既定0.4。depth: 下方への減衰距離px、正整数、既定480。
+- verticalScale: 縦圧縮率0.1〜2、既定0.75。1未満で反射を縦方向に圧縮。
+
+RGBAの新しい反射レイヤーを返す。本体へはcomposeの最後に元画素をコピーする。
+脚ごとに別マスク・接地線で呼び出す。従来reflectionの水平軸と異なり、列ごとに足裏の接地位置を変える。
+Pythonのfigure_reflection_surface.pyと引数の意味を共有する。従来のreflectionとprocess既定は変更しない。
+2Dの接地補正と圧縮による近似であり、隠れた面・足裏を生成せず、物理的に正しい3D鏡像は保証しない。
