@@ -5788,55 +5788,94 @@ function observe_menu_scroll_border(menu) {
     if (menu.firstElementChild) menu.menuScrollObserver.observe(menu.firstElementChild);
 }
 
-// Use the normal stacked modal so an image opened from an edit dialog stays above it.
+// A top-layer image viewer: wheel zooms around the pointer; primary-button drag pans.
 $(document).on("click.fbpImagePreview", "a.fbp-image-preview", function (event) {
     event.preventDefault();
     event.stopPropagation();
     const trigger = this;
-    const $trigger = $(trigger);
-    const $viewport = $('<div class="fbp-image-preview-viewport" tabindex="0"></div>');
-    const $image = $('<img alt="">').attr('alt', $trigger.find('img').attr('alt') || '');
-    $viewport.append($image);
-    const $toolbar = $('<div class="fbp-image-preview-toolbar"></div>');
-    const $percent = $('<output aria-live="polite">100%</output>');
-    let scale = 1;
-    function setScale(value) {
-        if (!$image[0].naturalWidth) return;
-        scale = Math.max(0.001, Math.min(4, value));
-        $image.css('width', Math.round($image[0].naturalWidth * scale) + 'px');
-        $percent.text(Math.round(scale * 100) + '%');
+    const existing = document.querySelector('.fbp-image-viewer');
+    if (existing) existing.close();
+    const viewer = document.createElement('dialog');
+    viewer.className = 'fbp-image-viewer';
+    viewer.setAttribute('aria-label', trigger.getAttribute('data-preview-title') || trigger.getAttribute('aria-label'));
+    const stage = document.createElement('div');
+    stage.className = 'fbp-image-viewer-stage';
+    const image = document.createElement('img');
+    image.alt = trigger.querySelector('img')?.alt || '';
+    image.draggable = false;
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'fbp-image-viewer-close';
+    close.textContent = '×';
+    close.setAttribute('aria-label', trigger.getAttribute('data-close-label'));
+    stage.append(image);
+    viewer.append(stage, close);
+    document.body.append(viewer);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    let scale = 1, x = 0, y = 0, pointer = null;
+    function render() {
+        image.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
     }
-    function button(text, label, action) {
-        $('<button type="button"></button>').text(text).attr({'aria-label': label, title: label})
-            .on('click', action).appendTo($toolbar);
+    function fit() {
+        if (!image.naturalWidth) return;
+        scale = Math.min(1, (stage.clientWidth - 32) / image.naturalWidth,
+            (stage.clientHeight - 32) / image.naturalHeight);
+        x = (stage.clientWidth - image.naturalWidth * scale) / 2;
+        y = (stage.clientHeight - image.naturalHeight * scale) / 2;
+        render();
     }
-    button('−', $trigger.attr('data-out-label'), () => setScale(scale / 1.25));
-    button('+', $trigger.attr('data-in-label'), () => setScale(scale * 1.25));
-    button('100%', '100%', () => setScale(1));
-    button($trigger.attr('data-fit-label'), $trigger.attr('data-fit-label'), () => {
-        setScale(Math.min(1, $viewport[0].clientWidth / $image[0].naturalWidth,
-            $viewport[0].clientHeight / $image[0].naturalHeight));
-        $viewport.scrollTop(0).scrollLeft(0);
+    viewer.addEventListener('close', () => {
+        window.removeEventListener('resize', fit);
+        document.body.style.overflow = previousOverflow;
+        viewer.remove();
+        if (trigger.isConnected) trigger.focus();
+    }, {once: true});
+    close.addEventListener('click', () => viewer.close());
+    // Only the close button is in the tab sequence; retain keyboard focus in the viewer.
+    viewer.addEventListener('keydown', e => {
+        if (e.key === 'Tab') { e.preventDefault(); close.focus(); }
     });
-    $toolbar.append($percent);
-    const title = $('<span>').text($trigger.attr('data-preview-title') || $image.attr('alt')).html();
-    multi_dialog('image-preview', $viewport, title, Math.min(1200, window.innerWidth - 24),
-        'db_exe', $('#testserver').text() === 'true', multi_dialog_zindex++, $toolbar, {modal: true}, false);
-    const $modal = $('#multi_dialog_db_exe_image-preview');
-    $modal.off('keydown.fbpImagePreview').on('keydown.fbpImagePreview', function (e) {
-        if (e.key === 'Escape') {
-            e.preventDefault();
-            e.stopPropagation();
-            $(this).find('.multi_dialog_close').trigger('click');
-        }
-        if (e.key === 'Tab') {
-            const $focusable = $modal.find('button, [tabindex="0"]');
-            const first = $focusable[0], last = $focusable[$focusable.length - 1];
-            if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-            else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-        }
+    stage.addEventListener('wheel', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!image.naturalWidth) return;
+        const rect = stage.getBoundingClientRect();
+        const px = e.clientX - rect.left, py = e.clientY - rect.top;
+        const delta = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? stage.clientHeight : 1);
+        const next = Math.max(0.01, Math.min(8, scale * Math.exp(-delta * 0.002)));
+        x = px - (px - x) * next / scale;
+        y = py - (py - y) * next / scale;
+        scale = next;
+        render();
+    }, {passive: false});
+    stage.addEventListener('pointerdown', e => {
+        if (e.button !== 0 || pointer !== null) return;
+        e.preventDefault();
+        pointer = {id: e.pointerId, x: e.clientX, y: e.clientY};
+        stage.setPointerCapture(e.pointerId);
+        stage.classList.add('is-dragging');
     });
-    $modal.find('.multi_dialog_close').one('click.fbpImagePreview', () => trigger.focus());
-    $image.on('load', () => { setScale(1); $viewport.trigger('focus'); });
-    $image.attr('src', trigger.href);
+    stage.addEventListener('pointermove', e => {
+        if (!pointer || pointer.id !== e.pointerId) return;
+        x += e.clientX - pointer.x;
+        y += e.clientY - pointer.y;
+        pointer.x = e.clientX;
+        pointer.y = e.clientY;
+        render();
+    });
+    function stopDrag(e) {
+        if (!pointer || pointer.id !== e.pointerId) return;
+        pointer = null;
+        stage.classList.remove('is-dragging');
+        if (stage.hasPointerCapture(e.pointerId)) stage.releasePointerCapture(e.pointerId);
+    }
+    stage.addEventListener('pointerup', stopDrag);
+    stage.addEventListener('pointercancel', stopDrag);
+    stage.addEventListener('lostpointercapture', stopDrag);
+    image.addEventListener('load', fit);
+    window.addEventListener('resize', fit);
+    viewer.showModal();
+    close.focus();
+    image.src = trigger.href;
 });

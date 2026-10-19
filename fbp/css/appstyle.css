@@ -2467,6 +2467,10 @@ input[type="time"] {
 .fbp-image-preview { display:inline-block; max-width:100%; cursor:zoom-in; }
 .fbp-image-preview:focus-visible { outline:2px solid var(--fbp-framework-primary-color, #1673b1); }
 .fbp-image-preview img { vertical-align:middle; }
-.fbp-image-preview-toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
-.fbp-image-preview-viewport { overflow:auto; width:100%; height:60vh; overscroll-behavior:contain; }
-.fbp-image-preview-viewport img { display:block; max-width:none !important; max-height:none !important; height:auto; margin:0; }
+.fbp-image-viewer { position:fixed; inset:0; width:100vw; height:100vh; height:100dvh; max-width:none; max-height:none; margin:0; padding:0; border:0; overflow:hidden; background:rgba(0,0,0,.92); color:#fff; }
+.fbp-image-viewer::backdrop { background:rgba(0,0,0,.7); }
+.fbp-image-viewer-stage { position:absolute; inset:0; overflow:hidden; touch-action:none; user-select:none; cursor:grab; }
+.fbp-image-viewer-stage.is-dragging { cursor:grabbing; }
+.fbp-image-viewer-stage img { position:absolute; left:0; top:0; width:auto; height:auto; max-width:none !important; max-height:none !important; margin:0; transform-origin:0 0; pointer-events:none; }
+.fbp-image-viewer button.fbp-image-viewer-close { position:absolute; top:12px; right:12px; display:flex; align-items:center; justify-content:center; width:44px; height:44px; min-width:0; padding:0; margin:0; border:1px solid #aaa; border-radius:50%; background:#222; color:#fff; font-size:32px; line-height:1; cursor:pointer; }
+.fbp-image-viewer-close:focus-visible { outline:2px solid #fff; outline-offset:3px; }

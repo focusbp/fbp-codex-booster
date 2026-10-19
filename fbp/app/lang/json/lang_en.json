@@ -837,8 +837,5 @@
   "dsp.target": "Note / custom DB",
   "dsp.custom_db": "Custom DB",
   "dsp.target_required": "Select an existing note or custom DB.",
-  "image.preview.open": "Enlarge image",
-  "image.preview.fit": "Fit to window",
-  "image.preview.zoom_in": "Zoom in",
-  "image.preview.zoom_out": "Zoom out"
+  "image.preview.open": "Enlarge image"
 }

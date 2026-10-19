@@ -837,8 +837,5 @@
   "dsp.target": "対象ノート・独自DB",
   "dsp.custom_db": "独自DB",
   "dsp.target_required": "存在する対象ノート・独自DBを選択してください。",
-  "image.preview.open": "画像を拡大表示",
-  "image.preview.fit": "画面に収める",
-  "image.preview.zoom_in": "拡大",
-  "image.preview.zoom_out": "縮小"
+  "image.preview.open": "画像を拡大表示"
 }
