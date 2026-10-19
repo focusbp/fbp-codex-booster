@@ -1,5 +1,9 @@
 # app-framework5 History
 
+## 2026-10-19 PHPからの本体マスク自動生成
+- ImageEffects::createMaskを追加。PHPのデコード済みRGBを一時BMPとして渡し、Python標準ライブラリと同梱U2NETP・ONNX Runtimeで候補マスクを返す。推論資産のハッシュ、返却PNGの寸法・ハッシュを検査し、タイムアウト・空マスクを拒否。一時ファイルは成功・失敗時とも削除する。
+- 専用テスト環境で実写真の推論、元画素保持、空マスク拒否、実行失敗・タイムアウト時の終了と掃除、既存PHP合成・HEIC・JPEG回転・PNGの回帰を確認。モデル・CPU runtime・ライセンスをframeworkへ同梱し、pipや外部画像APIを使わず動作する。
+
 ## 2026-10-19 PHP画像エフェクトライブラリ
 - `lib/image_effetcts/ImageEffects.php` を追加。外部で用意した本体マスク・多角形を受け取り、背景、配置、支持具除外、接地影、足別の反射、照明、合成、PNG、比較画像、画素差分、設定JSONをPHP/GDで処理する。AI推論・外部通信・隠れた部品の復元は含めない。
 - 既存HEICコンバーターとGDのPNG処理を利用し、入力ファイルを保持。ICC色変換は行わず、ICC付き入力にはsRGB変換済みの明示確認を要求する。既存のController画像リサイズ処理は変更していない。

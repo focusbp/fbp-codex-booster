@@ -1,0 +1,10 @@
+{
+  "runtime": "ONNX Runtime 1.18.1 CPU Linux x64",
+  "model": "U2NETP (rembg distribution)",
+  "api": 18,
+  "sha256": {
+    "u2netp.onnx": "309c8469258dda742793dce0ebea8e6dd393174f89934733ecc8b14c76f4ddd8",
+    "libonnxruntime.so": "1147caa734d19f7549f90a659aa9ca444366eeb80a596900d19d242145a9f4c9",
+    "segment.so": "037e6331b5d744d445fd3bb4e85356c44e7c08e3d4040a42c77ac42788c63231"
+  }
+}

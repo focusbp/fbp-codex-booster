@@ -17,6 +17,13 @@ final class ImageEffects
     ];
     private const MAX_PIXELS = 24000000;
 
+    /** Generate a subject candidate mask using the bundled local model. Pass $ctl->get_temp_dir(). */
+    public static function createMask(GdImage $image, string $tempDir, ?string $python = null, int $timeout = 60, int $tolerance = 28): array
+    {
+        require_once __DIR__ . '/PythonMask.php';
+        return PythonMask::create($image, $tempDir, $python, $timeout, $tolerance);
+    }
+
     private static function dimensions(int $width, int $height): void
     {
         if ($width < 1 || $height < 1 || $width > self::MAX_PIXELS / $height) {

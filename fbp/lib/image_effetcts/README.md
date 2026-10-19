@@ -2,8 +2,9 @@
 
 `ImageEffects.php` をrequireし、`Fbp\ImageEffects\ImageEffects` のstaticメソッドを呼ぶ。
 ディレクトリ名 `image_effetcts` は指定に合わせたもの。
-PHP 8.1以上・GDを使用。Python・推論モデル・AI/API通信は不要。
-自動背景分離は行わず、呼び出し側が本体マスクと必要な多角形を渡す。
+PHP 8.1以上・GDを使用。合成・エフェクトはPHPのみ。
+本体マスクを外部から渡すか、`createMask()` でPHPからPythonを呼んで生成する。
+支持具のAI判定、外部API通信、隠れた部品の復元は行わない。
 
 ## 既存ライブラリとの関係
 
@@ -21,7 +22,8 @@ require_once __DIR__ . '/ImageEffects.php'; // 呼出し元に合わせて解決
 use Fbp\ImageEffects\ImageEffects;
 
 $photo = ImageEffects::prepare($photoPath, $ctl->get_temp_dir(), sourceIsSrgb: true);
-$mask = ImageEffects::prepare($maskPath, $ctl->get_temp_dir());
+$generated = ImageEffects::createMask($photo, $ctl->get_temp_dir());
+$mask = $generated['mask'];
 $waiting = ImageEffects::process($photo, $mask); // 確認画像だけを返す
 $previewPng = ImageEffects::pngData($waiting['preview']);
 
@@ -47,12 +49,14 @@ $report = $done['report'];
 ## 関数と引数
 
 すべての画像引数・戻り値はGDの `GdImage`。処理中は入力GDオブジェクトを変更しない。
-各メソッドはファイル・DBへの書込みを行わず、`savePng` と `savePreset` だけが指定ファイルを作る。
-`prepare` はHEIC変換に限りControllerから渡された一時ディレクトリを使い、終了時に削除する。
+`savePng` と `savePreset` は指定ファイルを作る。
+`prepare` のHEIC変換と `createMask` はControllerから渡された一時ディレクトリを使い、終了時に削除する。
+その他の画像メソッドはファイル・DBへの書込みを行わない。
 
 | メソッド | 引数・戻り値 |
 |---|---|
 | `prepare(path, tempDir, sourceIsSrgb=false)` | ローカルJPEG/PNG/HEICを読み込み、JPEGのEXIF方向を補正。`tempDir` は `$ctl->get_temp_dir()`。元ファイルは保持 |
+| `createMask(image, tempDir, python=null, timeout=60, tolerance=28)` | PHPから同梱Pythonワーカーで候補マスクを新規生成。`mask` と `report` を返す。タイムアウト1〜300秒、背景分離閾値の調整値0〜100（大きいほど候補を広く残す） |
 | `mask(source)` | グレースケールを白黒マスクへ変換。色付き・透明マスクは拒否 |
 | `previewMasks(image, mask, polygons=[])` | 本体範囲を緑、削除予定の多角形を赤線で重ねた画像 |
 | `removeSupports(mask, polygons, reviewed=false, occludesSubject=false)` | 多角形内をマスクから除外。未確認・本体を隠す支持具の除去は拒否 |
@@ -99,4 +103,20 @@ $report = $done['report'];
 強度は0〜1、余白は画像領域が残る値、反射深さは1以上、影のぼかしは0〜1000。
 
 本体の画素差分0は、選択した領域の保持だけを示す。マスク精度や除去対象の妥当性は保証しない。
-本体の再生成、隠れたパーツの復元、AI背景分離、AIによる支持具判定は実装しない。
+本体の再生成、隠れたパーツの復元、AIによる支持具判定は実装しない。
+
+## Pythonマスク生成
+
+`PythonMask.php` がPHPでデコード済みのRGBを一時BMPへ出し、配列形式の `proc_open` で
+`python/mask_worker.py` を実行する。ワーカーはU2NETPで候補を推定し、元RGBを使って輪郭を補正する。
+本体画像を生成・変更せず、マスクだけを返す。寸法・SHA256を照合し、一時BMP/PNGは成功・失敗時とも削除する。
+生成されたマスクは目視確認が必要。空またはほぼ全面のマスク、推論失敗、タイムアウトは例外にし、別方式に黙って切り替えない。
+
+実行環境はPython 3.10以上、Linux x86_64、glibc 2.27以上、libstdc++。
+Python標準ライブラリと同梱ネイティブライブラリだけを使い、pipパッケージ・Pillow・numpy・Python版onnxruntimeは不要。
+インタープリターは画像処理用共通venvがあれば優先し、なければシステムのPythonを使う。
+明示する場合は `python` 引数にサーバー側で管理する絶対実行パスを渡す。
+リクエスト値からPython・モデル・スクリプトのパスを受け取らない。
+PHP実行ユーザーにPython起動とライブラリ読取りの権限が必要で、`open_basedir`・`proc_open` の制限も確認する。
+モデルとONNX Runtimeは `python/segmentation/` に同梱し、実行時にダウンロードしない。
+出典・ライセンス・配布物のハッシュは同ディレクトリの説明を参照する。
