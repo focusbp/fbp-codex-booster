@@ -122,3 +122,26 @@ PHPのファイル参照制限がない場合、画像処理用共通venvがあ�
 PHP実行ユーザーにPython起動とライブラリ読取りの権限が必要で、`open_basedir`・`proc_open` の制限も確認する。
 モデルとONNX Runtimeは `python/segmentation/` に同梱し、実行時にダウンロードしない。
 出典・ライセンス・配布物のハッシュは同ディレクトリの説明を参照する。
+
+## 多点連続グラデーション
+
+`ImageEffects::gradient(int $width, int $height, array $config): GdImage`
+
+幅・高さは正整数、合計最大24,000,000画素。configは次の共通JSON形式。
+
+```json
+{"angle":0,"stops":[{"position":0,"color":"#C7CAD1","easing":"smooth"},{"position":55,"color":"#F7F8FA","easing":"smooth"},{"position":62,"color":"#F8F9FB","easing":"smooth"},{"position":68,"color":"#EBECF1","easing":"smooth"},{"position":100,"color":"#E1E3EA"}]}
+```
+
+- `angle`: 有限数の度数。既定0=下、90=右、180=上、270=左。360度周期。
+- `stops`: 2〜256点でN−1領域。境界位置と色を共有して連続的につなぐ。
+- `position`: 0〜100の数値、厳密な昇順、先頭0・末尾100が必須。
+  軸は画像の実寸比で回転し、全頂点の投影範囲を0〜100へ正規化する。
+- `color`: sRGBの`#RRGGBB`。各RGBチャンネルを直接補間する。
+- `easing`: 次の点までの`linear`（既定）または`smooth`（smoothstep）。末尾は未使用。
+
+単一画素や軸方向の長さが0の画像では始点色を使う。
+`settings` / `loadPreset` / `savePreset` / `process`にも`background_gradient`を追加。
+null（既定）で従来の2色グレー背景、指定時に多点背景を使用する。
+Pythonのfigure_gradient.pyと同じ設定を使用できる。追加依存ライブラリはない。
+出力は`savePng`でsRGBマーカー付きPNGへ保存する。影・照明・反射は別処理。

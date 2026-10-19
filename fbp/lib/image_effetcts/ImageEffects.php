@@ -11,6 +11,7 @@ final class ImageEffects
     public const DEFAULTS = [
         'width' => 1080, 'height' => 1920, 'margin' => 80,
         'background_top' => 239, 'background_bottom' => 255,
+        'background_gradient' => null,
         'reflection_opacity' => 0.2, 'reflection_depth' => 220,
         'shadow_opacity' => 0.15, 'shadow_blur' => 12,
         'light_strength' => 0.0, 'light_target' => 'background',
@@ -209,6 +210,13 @@ final class ImageEffects
         return $image;
     }
 
+    /** Continuous color-stop gradient; compatible with figure_gradient.py JSON. */
+    public static function gradient(int $width, int $height, array $config): GdImage
+    {
+        require_once __DIR__ . '/Gradient.php';
+        return Gradient::render($width, $height, $config);
+    }
+
     /** Returns placed reference, binary mask and coordinate transform. Does not upscale. */
     public static function layout(GdImage $image, GdImage $mask, int $width = 1080, int $height = 1920, int $margin = 80): array
     {
@@ -371,6 +379,11 @@ final class ImageEffects
     {
         if (array_diff_key($values, self::DEFAULTS)) throw new InvalidArgumentException('Unknown setting.');
         $s = array_replace(self::DEFAULTS, $values);
+        if ($s['background_gradient'] !== null) {
+            if (!is_array($s['background_gradient'])) throw new InvalidArgumentException('Gradient must be an object.');
+            require_once __DIR__ . '/Gradient.php';
+            $s['background_gradient'] = Gradient::validate($s['background_gradient']);
+        }
         foreach (['width', 'height', 'margin', 'background_top', 'background_bottom', 'reflection_depth'] as $key) {
             if (!is_int($s[$key])) throw new InvalidArgumentException($key . ' must be integer.');
         }
@@ -412,7 +425,8 @@ final class ImageEffects
         if ($options['occludes_subject'] ?? false) throw new InvalidArgumentException('Hidden subject restoration is excluded.');
         $clean = self::removeSupports($mask, $options['polygons'] ?? [], true);
         $placed = self::layout($image, $clean, $s['width'], $s['height'], $s['margin']);
-        $bg = self::background($s['width'], $s['height'], $s['background_top'], $s['background_bottom']);
+        $bg = $s['background_gradient'] !== null ? self::gradient($s['width'], $s['height'], $s['background_gradient'])
+            : self::background($s['width'], $s['height'], $s['background_top'], $s['background_bottom']);
         $subject = $placed['reference']; $layers = [];
         if ($s['light_target'] === 'background') $bg = self::lighting($bg, $s['light_strength']);
         else $subject = self::lighting($subject, $s['light_strength'], [.5, .25], .7, 'subject', ($options['allow_subject_change'] ?? false) === true);
