@@ -2282,6 +2282,14 @@ function appcon_execute(url, fd, nextfunction, isCurrentResponse) {
 
 			res = JSON.parse(data);
 
+			if (res["window_state_removed"] === true) {
+				if (window.confirm("画面データが整理されました。再読み込みしてください。未保存の入力内容は失われます。")) {
+					window.location.reload();
+				}
+				dfd.resolve();
+				return;
+			}
+
 			if (res["error"] != null) {
 				notification("", typeof res["error"] === "object" ? res["error"].message : res["error"], 800, 5);
 				dfd.resolve();

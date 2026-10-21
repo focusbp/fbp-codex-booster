@@ -42,6 +42,23 @@ if (isset($_REQUEST[session_name()])) {
 
 // Session Start
 session_start();
+require_once __DIR__ . '/lib/WindowSession.php';
+// Trim existing state before loading the application libraries. Keep the tab-copy
+// source until its data has been inherited below.
+$window_session_current = (string) ($_COOKIE['windowID'] ?? $_REQUEST['_windowcode'] ?? '');
+$window_session_source = (string) ($_COOKIE['old_windowID'] ?? '');
+if (is_appcon_request() && WindowSession::valid($window_session_current)
+        && WindowSession::wasRemoved($_SESSION, $window_session_current)) {
+    header('Content-Type: application/json; charset=UTF-8');
+    echo json_encode(['window_state_removed' => true]);
+    exit;
+}
+WindowSession::prune($_SESSION, [$window_session_current, $window_session_source]);
+register_shutdown_function(static function () use (&$window_session_current) {
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        WindowSession::prune($_SESSION, [$window_session_current]);
+    }
+});
 
 // アップロードデータ容量のチェック
 if(isUploadMaxFilesizeExceeded() || isPostMaxSizeExceeded()) {
@@ -389,6 +406,13 @@ try{
 		$windowcode = uniqid("WID_");
 		$ctl->assign("new_windowID",$windowcode);
 	}
+	$window_session_current = $windowcode;
+	// A full page navigation starts fresh. Image requests must not dismiss the
+	// removed marker before the old tab's next Ajax operation.
+	if (!is_appcon_request() && $function === 'page') {
+		WindowSession::restore($_SESSION, $windowcode);
+	}
+	WindowSession::touch($_SESSION, $windowcode);
 	$ctl->set_windowcode($windowcode);
 	$smarty->assign("windowcode",$windowcode);
 
@@ -410,6 +434,7 @@ try{
 		unset($_COOKIE["old_windowID"]);
 	}
 	
+	WindowSession::prune($_SESSION, [$windowcode]);
 	$ctl->set_session("class",$class);
 	$ctl->set_session("appcode",$appcode);
 	$ctl->set_session("testserver",$testserver);
