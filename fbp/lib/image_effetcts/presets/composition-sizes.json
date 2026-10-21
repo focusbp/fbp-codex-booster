@@ -1,0 +1,7 @@
+{
+  "desktop-hero": {"width": 1495, "height": 732},
+  "mobile-hero": {"width": 673, "height": 733},
+  "sub-banner": {"width": 1000, "height": 560},
+  "social-square": {"width": 1080, "height": 1080},
+  "social-story": {"width": 1080, "height": 1920}
+}

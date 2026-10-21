@@ -1,12 +1,60 @@
 # PHP画像エフェクト
 
+汎用のリサイズ・位置指定クロップ・余白・回転反転・文字入れ・PNG/JPEG/WebP/ZIP出力には
+`compose_batch`、比較一覧は`contact_sheet`、RGB ICC→sRGB変換は`normalize_srgb`を使う。
+設定JSON・容量指定・再利用テンプレートと制限は[ImageComposition.md](ImageComposition.md)。
+フィギュア向けの固定サイズ・マスクは不要。
+
+AIによる文字・不要物の除去と背景補完は[BackgroundFill.md](BackgroundFill.md)。
+PHPはOpenAI API、auto-taskはCodexの画像編集ツールへ分け、候補の指定範囲だけを共通処理で合成する。
+
 `ImageEffects.php` をrequireし、`Fbp\ImageEffects\ImageEffects` のstaticメソッドを呼ぶ。
 ディレクトリ名 `image_effetcts` は指定に合わせたもの。
 PHP 8.1以上・GDを使用。合成・エフェクトはPHPのみ。
 本体マスクを外部から渡すか、`createMask()` でPHPからPythonを呼んで生成する。
-支持具のAI判定、外部API通信、隠れた部品の復元は行わない。
+ImageEffects自体は支持具のAI判定、外部API通信、隠れた部品の復元は行わない。AI背景補完は上記の別入口で明示的に呼び出す。
 
-## 既存ライブラリとの関係
+## 背景追加エフェクト
+
+`backgroundEffects($width, $height, $config)` は `['layer'=>透過GD画像, 'config'=>展開済みJSON配列]` を返す。
+PHP/GDだけで描画し、外部API・Pythonは呼ばない。旧 `backgroundLights()` とその設定は互換のため維持する。
+
+```php
+$config = ['seed'=>123, 'effects'=>[
+    ['type'=>'lightning', 'count'=>2, 'region'=>[5,10,95,40], 'size'=>[15,25], 'opacity'=>0.8],
+    ['type'=>'ellipse', 'center'=>[50,15], 'radius'=>[25,8], 'angle'=>-20,
+     'color'=>'#B4CEFF', 'opacity'=>0.4, 'blur'=>3],
+]];
+$effect = ImageEffects::backgroundEffects(1080, 1440, $config);
+// backgroundは本体合成前の、不透明な背景GD画像。
+imagealphablending($background, true);
+imagecopy($background, $effect['layer'], 0, 0, 0, 0, 1080, 1440);
+// $effect['config']をJSON保存すれば図形単位で編集・再現できる。
+// process/presetも ['background_effects'=>$config] を受け付ける。
+```
+
+共通JSON：ルートはseed（省略でランダム、整数0〜2147483647）とeffects（必須配列）。effectsの順でsource-over合成。
+typeはspotlight（光彩）/lightning（雷）/cloud（雲）/fireworks（花火）、またはline/circle/ellipse。
+4種類のプリセットには `impact`（「迫力」、0.25〜2、既定1）を指定できる。模様の広がり・線幅・粒・ぼかしの倍率で、1.7なら1.7倍。
+中心範囲・個数・色・透明度は維持。展開済みJSONには倍率を適用した図形だけを保存するため、再読込で二重拡大しない。
+プリセットはcount（整数1〜8、既定1）、region（中心範囲の幅・高さ％、既定[10,10,90,75]）、size（[最小,最大]、1〜70、既定[15,30]）、
+angle（回転範囲、−360〜360、既定[-20,20]）、colors（#RRGGBB配列1〜16色）、opacity（0〜1、既定.65）、blur（短辺％0〜20、既定1.2、花火は2.4）。
+花火は線・先端の粒・中心を柔らかくぼかす。保存済みの展開済み図形JSONはそのまま再現できる。
+regionは[左,上,右,下]の各0〜100。模様の端はregionからはみ出し得る。同じ上下限で値を固定できる。
+sizeは図形生成用％スケールで種類ごとに広がりが異なる。seedと寸法が同じなら同じ模様になる。
+
+直接図形の共通キー：center（幅・高さ％、各−200〜300、既定[50,50]）、color（#RRGGBB、既定白）、opacity（0〜1、既定.5）、
+angle（時計回り・右0度、−360000〜360000、既定0）、blur（短辺％0〜100、既定0）。
+lineはlength（短辺％0.01〜500、既定30）、thickness（短辺％0.01〜100、既定.3）。代わりにstart/end（幅・高さ％、各−200〜300）で両端も指定できる。
+start/endは両方必須、center/angle/lengthと排他。circleのradiusは短辺％0.01〜200、既定10。
+ellipseのradiusは[横半径,縦半径]で各短辺％0.01〜200、既定[10,6]。
+
+未知キー・null・不正値は例外。展開後256図形、出力24百万画素、内部描画50百万画素が上限。
+エフェクトだけ長辺640px以下で描画して拡大する。本体画像は縮小しない。ぼかしは距離による輪郭フェザーで、Gaussianではない。
+Python/PHP共通JSON。GDの7bitアルファ・拡大補間の差があるため、出力PNGの画素完全一致は保証しない。
+旧lightsのscreen/multiplyとは異なるため、新spotlightへの設定変換は自動では行わない。
+
+## 既存ライブラリとの関係（形式・色空間）
 
 - HEICは既存の `lib_ext/php-heic-to-jpg` を利用。既存変換バイナリの実行権限と対応OSが必要。JPEGを経由するため、HEICの元画素と完全一致する変換ではない。
 - JPEG/PNGは既存のController画像処理と同じPHP GDで読み書きする。新しい画像ライブラリは追加しない。
@@ -245,3 +293,28 @@ footprintsはマスクから求めた画素座標で、写真固定の座標を�
 自動の足判定は幾何的な近似。全身判定・支持具の判定は呼出側で行い、結果を目視確認する。
 背景・反射へ重ねてからcomposeで本体画素を戻す。Pythonのfoot_shadowと同じ設定形式で、
 ぼかし・描画エンジンの差による画素差はある。従来shadow/processの既定は変更しない。
+
+## 共通CLI
+
+`php cli.php <処理名> [引数]` で、アプリ・DB・Controllerなしで実行できる。
+HTTP経由の起動は拒否する。`--help` は処理一覧、`<処理名> --help` は現在の引数定義を表示する。
+ローカルの `run.sh` と `figure_*.py` はこの入口へ転送する。処理の追加は `Cli.php` と
+必要なImageEffectsメソッドへ集約し、ローカル側に処理名のホワイトリストや描画コードを持たせない。
+
+```bash
+php cli.php background --width 1080 --height 1920 --output background.png
+php cli.php process --input normalized.png --mask mask.png --output preview
+php cli.php process --input normalized.png --mask mask.png --reviewed --output result
+```
+
+従来のローカルCLIの処理名・主要引数・ファイル構成を維持する。
+`process` は確認前にプレビューを保存して終了コード3、確認後はframeworkの `process()` で合成する。
+終了コードは0=成功、1=入力・実行エラー、2=画素保持／出力仕様検査の不合格、3=確認待ちまたは足影・反射の判定不能。
+支持具JSONは入力寸法・SHA256・各領域の座標／confidence／occludes_subjectを検査する。
+本体を隠す支持具は確認済みでも除去しない。出力と付随JSONは新規パスだけを受け付ける。
+
+`--temp-dir` または環境変数 `IMAGE_EFFECTS_TEMP_DIR` で、HEICとPythonMaskに渡す書込み可能な一時領域を指定する。
+CLIは一時領域を自動作成しない。アプリから各メソッドを使う場合は従来どおりControllerの一時領域を渡す。
+`--source-is-srgb` はICC付き入力がすでにsRGB化済みであることの確認であり、変換処理ではない。
+マスク座標を使う単独処理は正規化済みPNGを入力する。PNGの検査はframework出力のsRGBチャンクを認識する。
+PHP/GDの制限・画素結果を基準とし、旧Pillow版との完全一致は保証しない。

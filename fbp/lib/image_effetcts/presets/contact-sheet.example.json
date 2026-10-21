@@ -1,0 +1,12 @@
+{
+  "items": [{"input": "preview-a.png", "label": "A案"}, {"input": "preview-b.png", "label": "B案"}],
+  "columns": 2,
+  "cell_width": 500,
+  "cell_height": 350,
+  "gap": 20,
+  "label_height": 60,
+  "font_size": 24,
+  "background": "#FFFFFF",
+  "color": "#202020",
+  "name": "comparison.png"
+}

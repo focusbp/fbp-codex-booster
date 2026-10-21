@@ -42,11 +42,13 @@ try:
     for kind in [0, 1]:
         cli('db_tables_edit', {'id': note, 'list_type': kind, 'identifier_prefix': 'Example-1_test'})
         assert f'[Example-1_test:{record}]' in html(), 'both list patterns render prefix'
+        cli('db_tables_edit', {'id': note, 'identifier_prefix': '発注ナビ'})
+        assert f'[発注ナビ:{record}]' in html(), 'both list patterns render Japanese prefix'
     cli('db_tables_edit', {'id': note, 'show_id': 0})
-    assert '[Example-1_test:' not in html(), 'hidden ID stays hidden'
+    assert '[発注ナビ:' not in html(), 'hidden ID stays hidden'
     cli('db_tables_edit', {'id': note, 'show_id': 1, 'identifier_prefix': ''})
     assert f'<p>{record}</p>' in html(), 'clear restores numeric ID'
-    for invalid in ['<script>', 'a:b', 'a b', '1test', 'a' * 65, ['bad']]:
+    for invalid in ['<script>', 'a:b', 'a b', '1test', 'a' * 65, '発' * 65, '発注:ナビ', '発注 ナビ', ['bad']]:
         cli('db_tables_edit', {'id': note, 'identifier_prefix': invalid}, fail=True)
     response = call('db', 'edit_silent_exe', {'id': note, 'identifier_prefix': 'invalid:prefix'})
     assert response.get('errormessage'), 'UI rejects invalid prefix'

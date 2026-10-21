@@ -1582,8 +1582,12 @@ class Controller_class implements Controller {
 
 		imagecopyresampled($canvas, $image, 0, 0, 0, 0, $width, $height, $image_w, $image_h);
 
-		// 出力（JPEG 以外も必要なら条件分岐）
-		imagejpeg($canvas, $this->dirs->datadir . "/upload/$outputfile", $quality);
+		// PNGは透過と形式を保持。qualityは既存のJPEG品質として扱う。
+		if ($type === IMAGETYPE_PNG) {
+			imagepng($canvas, $this->dirs->datadir . "/upload/$outputfile", 6);
+		} else {
+			imagejpeg($canvas, $this->dirs->datadir . "/upload/$outputfile", $quality);
+		}
 
 		if (PHP_VERSION_ID < 80000) {
 			imagedestroy($image);

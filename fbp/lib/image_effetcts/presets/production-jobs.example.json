@@ -1,0 +1,20 @@
+{
+  "jobs": [
+    {
+      "name": "social-card.webp",
+      "template": "social-square",
+      "quality": 90,
+      "min_quality": 50,
+      "max_bytes": 300000,
+      "layers": [
+        {"input": "source.jpg", "width": 1080, "height": 1080, "fit": "cover", "position": [0.5, 0]},
+        {"type": "text", "text": "暮らしを、もっと豊かに。", "font": "font.ttf", "font_size": 32, "color": "#FFFFFF", "align": "center", "x": 40, "y": 950, "width": 1000, "height": 100}
+      ]
+    },
+    {"name": "padded.png", "base": "source.jpg", "padding": [40, 40, 40, 40], "matte": "transparent"},
+    {
+      "name": "cropped.jpg", "width": 1200, "height": 630,
+      "layers": [{"input": "source.jpg", "crop": [0, 0, 800, 600], "rotate": 0, "flip": "none", "fit": "cover", "focus": [0.7, 0.5], "width": 1200, "height": 630}]
+    }
+  ]
+}

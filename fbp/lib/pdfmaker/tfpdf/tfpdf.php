@@ -1668,15 +1668,37 @@ function _parsepngstream($f, $file)
 	$h = $this->_readint($f);
 	$bpc = ord($this->_readstream($f,1));
 	if($bpc>8){
-		//$this->Error('16-bit depth not supported: '.$file);
-		$tmpdir = ini_get("upload_tmp_dir");
-		$temp_file = tempnam($tmpdir, 'Tux') . ".png";
-		exec("convert $file -define png:bit-depth=8 $temp_file",$output,$error);
-		$f2 = fopen($temp_file, "r");
-		$res = $this->_parsepngstream($f2, $temp_file);
-		fclose($f2);
-		return $res;
-		
+		// Normalize high-bit-depth PNGs with GD; no external command or disk file.
+		if(!function_exists('imagecreatefromstring') || !function_exists('imagepng'))
+			$this->Error('GD PNG support required for 16-bit PNG: '.$file);
+		if(!rewind($f))
+			$this->Error('Cannot rewind PNG stream: '.$file);
+		$image = @imagecreatefromstring(stream_get_contents($f));
+		if($image===false)
+			$this->Error('Cannot decode 16-bit PNG: '.$file);
+		imagealphablending($image, false);
+		imagesavealpha($image, true);
+		imageinterlace($image, false);
+		ob_start();
+		try {
+			$encoded = imagepng($image);
+			$png = ob_get_contents();
+		} finally {
+			ob_end_clean();
+			if(PHP_VERSION_ID<80000) imagedestroy($image);
+		}
+		if(!$encoded || strlen($png)<26 || ord($png[24])>8)
+			$this->Error('Cannot encode 8-bit PNG: '.$file);
+		$f2 = fopen('php://memory', 'w+b');
+		if(!$f2)
+			$this->Error('Cannot create PNG stream: '.$file);
+		try {
+			if(fwrite($f2, $png)!==strlen($png) || !rewind($f2))
+				$this->Error('Cannot write PNG stream: '.$file);
+			return $this->_parsepngstream($f2, $file);
+		} finally {
+			fclose($f2);
+		}
 	}
 	$ct = ord($this->_readstream($f,1));
 	if($ct==0 || $ct==4)

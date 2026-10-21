@@ -13,6 +13,7 @@ final class ImageEffects
         'background_top' => 239, 'background_bottom' => 255,
         'background_gradient' => null,
         'background_lights' => null,
+        'background_effects' => null,
         'reflection_opacity' => 0.2, 'reflection_depth' => 220,
         'shadow_opacity' => 0.15, 'shadow_blur' => 12,
         'light_strength' => 0.0, 'light_target' => 'background',
@@ -225,6 +226,13 @@ final class ImageEffects
         return BackgroundLights::apply($background, $config);
     }
 
+    /** Background addition layer + resolved primitive JSON; presets randomize unless seeded. */
+    public static function backgroundEffects(int $width, int $height, array $config): array
+    {
+        require_once __DIR__ . '/BackgroundEffects.php';
+        return BackgroundEffects::render($width, $height, $config);
+    }
+
     /** Returns placed reference, binary mask and coordinate transform. Does not upscale. */
     public static function layout(GdImage $image, GdImage $mask, int $width = 1080, int $height = 1920, int $margin = 80): array
     {
@@ -411,6 +419,11 @@ final class ImageEffects
     {
         if (array_diff_key($values, self::DEFAULTS)) throw new InvalidArgumentException('Unknown setting.');
         $s = array_replace(self::DEFAULTS, $values);
+        if ($s['background_effects'] !== null) {
+            if (!is_array($s['background_effects'])) throw new InvalidArgumentException('Background effects must be an object.');
+            require_once __DIR__ . '/BackgroundEffects.php';
+            $s['background_effects'] = BackgroundEffects::resolve($s['background_effects']);
+        }
         if ($s['background_lights'] !== null) {
             if (!is_array($s['background_lights'])) throw new InvalidArgumentException('Lights must be an object.');
             require_once __DIR__ . '/BackgroundLights.php';
@@ -466,6 +479,11 @@ final class ImageEffects
             : self::background($s['width'], $s['height'], $s['background_top'], $s['background_bottom']);
         $subject = $placed['reference']; $layers = [];
         if ($s['background_lights'] !== null) $bg = self::backgroundLights($bg, $s['background_lights']);
+        if ($s['background_effects'] !== null) {
+            $effect = self::backgroundEffects($s['width'], $s['height'], $s['background_effects']);
+            imagealphablending($bg, true);
+            imagecopy($bg, $effect['layer'], 0, 0, 0, 0, $s['width'], $s['height']);
+        }
         if ($s['light_target'] === 'background') $bg = self::lighting($bg, $s['light_strength']);
         else $subject = self::lighting($subject, $s['light_strength'], [.5, .25], .7, 'subject', ($options['allow_subject_change'] ?? false) === true);
         foreach ($options['reflections'] ?? [] as $reflection) {
