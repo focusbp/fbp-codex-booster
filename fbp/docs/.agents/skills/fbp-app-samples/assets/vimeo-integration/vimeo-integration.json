@@ -1,0 +1,9 @@
+{
+  "name": "vimeo-integration",
+  "files": ["vimeo_video_template/vimeo_video_template.php", "vimeo_video_template/vimeo_api.php", "vimeo_video_template/Templates/play.tpl", "vimeo_video_template/Templates/delete.tpl"],
+  "entry": {"class": "vimeo_video_template", "function": "upload", "post": {"record_id": "existing-authorized-record"}},
+  "tables": [],
+  "integration_hooks": ["canManage", "loadRecord", "saveVideo", "detachVideo"],
+  "external_services": ["Vimeo"],
+  "default_access": "deny"
+}

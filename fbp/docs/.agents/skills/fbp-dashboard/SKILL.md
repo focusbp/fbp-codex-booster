@@ -1,6 +1,6 @@
 ---
 name: fbp-dashboard
-description: Build dashboard widgets with class registration, 3-column width rules, and panel-based management.
+description: Build dashboard widgets and chart templates, including mixed dual-axis charts and regression lines, with class registration and 3-column width rules.
 ---
 
 # fbp-dashboard
@@ -43,6 +43,7 @@ description: Build dashboard widgets with class registration, 3-column width rul
 - 例: `1,2` は同一行。`1,3` は `1` の次に改行して `3`。
 
 ## chart widget example
+- 複合グラフ・左右2軸・回帰線は [advanced-charts](../fbp-app-samples/references/advanced-charts.md) と同Skillの `assets/advanced-charts/` を適用する。基本の棒グラフだけなら以下で足りる。
 - Chart.js は標準で読み込まれているため、ウィジェット側は `create_chart()` と `chart_draw()` を使う。
 - `canvas id` は重複を避けるため毎回一意にする（例: `random_alphabet()` を利用）。
 - 棒グラフでは、指定がない限り `backgroundColor` と `borderColor` を同じ色にする。輪郭だけ濃い色にすると意図せず古い印象になりやすい。

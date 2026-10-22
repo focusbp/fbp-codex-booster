@@ -1,0 +1,8 @@
+{
+  "name": "advanced-charts",
+  "files": ["advanced_chart_sample/advanced_chart_sample.php", "advanced_chart_sample/linear_trend.php", "advanced_chart_sample/Templates/charts.tpl"],
+  "entry": {"class": "advanced_chart_sample", "function": "run"},
+  "dashboard": {"class_name": "advanced_chart_sample", "function_name": "dashboard", "column_width": 3},
+  "tables": [],
+  "external_services": []
+}

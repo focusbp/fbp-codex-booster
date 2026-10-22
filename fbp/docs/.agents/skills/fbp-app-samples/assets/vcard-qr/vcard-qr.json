@@ -1,0 +1,7 @@
+{
+  "name": "vcard-qr",
+  "files": ["vcard_qr_sample/vcard_qr_sample.php", "vcard_qr_sample/vcard_builder.php", "vcard_qr_sample/Templates/download.tpl"],
+  "entry": {"class": "vcard_qr_sample", "function": "run"},
+  "tables": [],
+  "external_services": []
+}

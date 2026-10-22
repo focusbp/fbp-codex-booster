@@ -1,6 +1,6 @@
 ---
 name: fbp-pdf
-description: Implement and repair FBP PDF display/download flows by applying the bundled delivery sample, including authenticated public invoices, broken download links, tpl-less generation, and media inclusion.
+description: Implement and repair FBP PDF display/download flows and vCard QR documents using bundled templates, including authenticated invoices, tpl-less generation, and media inclusion.
 ---
 
 # fbp-pdf
@@ -11,6 +11,8 @@ description: Implement and repair FBP PDF display/download flows by applying the
 - ユーザーから印刷機能の実装を依頼される
 
 ## workflow
+vCard入りQRの帳票には [vcard-qr](../fbp-app-samples/references/vcard-qr.md) と同Skillの `assets/vcard-qr/` を使う。文字列を直接連結せず、同梱builderのエスケープとUTF-8行折返しを維持する。
+
 1. 出力要件とデータ取得元を確定。
 2. 新規の帳票生成は管理側・公開側とも `$ctl->create_pdfmaker()` でオブジェクトを作り、`addText()` / `addTable()` 等で組み立てる。
 3. 管理側の標準は、`ajax-link` または `db_additionals` の入口 → `show_multi_dialog()` で取得条件・対象を表示 → ダイアログ内の `download-link`（`data-open_new_tab="true"`）でPOST → `$pdf->download_pdf($filename)`。このダイアログは取得操作用であり、Controllerの `show_pdf()` によるテンプレートプレビューとは別のもの。

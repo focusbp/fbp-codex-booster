@@ -1,11 +1,13 @@
 ---
 name: fbp-media
-description: Implement and verify FBP file/image uploads and image/video/file delivery, covering both open public media and closed authenticated or owner-only media. Use fbp-csv for CSV import/export.
+description: Implement and verify FBP file/image uploads, media delivery, and Vimeo upload/playback/deletion templates. Covers public and authenticated media; use fbp-csv for CSV import/export.
 ---
 
 # fbp-media
 
 ## workflow
+Vimeoへのアップロード・再生・削除は [vimeo-integration](../fbp-app-samples/references/vimeo-integration.md) と同Skillの `assets/vimeo-integration/` を使う。旧アップローダーはトークンをブラウザーへ渡すため、一般会員向け投稿へ流用しない。アプリ内保存動画は以下と `references/video.md` を使う。
+
 1. 画像・動画を「固定素材」か「実行時のアップロード・生成物」かで分類して保存先を決め、次に公開範囲を決める。公開範囲だけで保存先を決めない。
 2. 動的なファイルは DB の `type=file` / `type=image` を使い、`screen_fields` に反映する。保存は `save_files()` / `save_posted_files()`（標準画面では自動保存）を使う。固定の公開素材は `fbp-fixed-images` を参照する。
 3. 配信区分に合うクラス・関数と画面の取得URLを実装し、HTTP経由で認証・表示・ダウンロードを確認する。

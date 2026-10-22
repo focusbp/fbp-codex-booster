@@ -13,6 +13,11 @@ When creating a new reusable sample from an existing app or feature, read `refer
 
 ## Samples
 
+- **複合グラフ・回帰線**: 左右2軸の棒＋折れ線、等間隔データの最小二乗回帰と延長。[手順と制約](references/advanced-charts.md)、`assets/advanced-charts/`。
+- **vCard入りQR**: UTF-8・エスケープ・行折返し付きvCard 3.0をQR付きPDFへ出力。[手順と検証](references/vcard-qr.md)、`assets/vcard-qr/`。
+- **Vimeo連携**: 信頼済み運用者向けアップロード、所有者確認、再生、確認付き削除。認可・保存フックは初期拒否。[接続手順](references/vimeo-integration.md)、`assets/vimeo-integration/`。
+  - この3件は `scripts/install_feature_template.php <sample-name> <app-source-root>` でコードだけを配置する。DBや外部サービスは変更しない。検証は `scripts/test_feature_templates.php <framework-fbp-root>` と各referenceの実操作確認を使う。
+
 用途別サンプル取得ツールが環境にある場合は、まず必要なコードと関連ファイルの索引を取得する。
 確認状態と正本の変更検知を確認し、未確認の動作を検証済みと扱わない。
 取得後もテンプレート・DB定義などの依存部分を含めて適応する。

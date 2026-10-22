@@ -128,6 +128,27 @@ Check real downloads, filenames, parsed contents/page counts, empty/invalid
 selection and denial in another session. Never disable login for testing.
 ```
 
+### Advanced Charts, vCard QR and Vimeo Templates
+
+```text
+Use fbp-app-samples with fbp-dashboard, fbp-pdf or fbp-media as appropriate.
+Choose advanced-charts, vcard-qr or vimeo-integration and read its reference.
+Install its bundled assets with scripts/install_feature_template.php into an
+existing app source root, then sync source to the test runtime. No live reference
+app is needed. Do not overwrite existing classes or create DB/sample data.
+For charts, retain unique canvas IDs, explicit axes, numeric input validation,
+and the distinction between observations and extrapolation.
+For vCard QR, retain UTF-8 folding/escaping and the management PDF download path.
+For Vimeo, implement the denied-by-default authorization and revision-checked
+record hooks first. Its legacy uploader is only for trusted token-holding
+operators. Preserve remote privacy and verify ownership before metadata/delete
+calls. Do not run live uploads/deletes without an authorized test account/video.
+Run test_feature_templates.php, check installer overwrite refusal, then verify
+real chart drawing and PDF button/download/QR decoding in the test app.
+Report mocked Vimeo checks separately from actual external integration checks.
+Keep assets, manifests, references, installer and this prompt in sync.
+```
+
 ### Customer Management
 
 Copy the whole block below and paste it into Codex:
