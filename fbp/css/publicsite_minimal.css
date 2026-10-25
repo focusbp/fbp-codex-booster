@@ -394,6 +394,31 @@
 	cursor: move;
 }
 
+.dialog_title_copy_bubble {
+	position: fixed;
+	z-index: 2147483647;
+	box-sizing: border-box;
+	max-width: calc(100vw - 16px);
+	padding: 7px 12px;
+	border-radius: 6px;
+	background: var(--fbp-framework-primary-color, #4B70FF);
+	color: var(--fbp-framework-primary-text-color, #FFF);
+	font-size: 13px;
+	line-height: 1.4;
+	box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
+	pointer-events: none;
+}
+
+.dialog_title_copy_bubble::after {
+	content: "";
+	position: absolute;
+	top: 100%;
+	left: var(--copy-arrow-left, 50%);
+	transform: translateX(-50%);
+	border: 6px solid transparent;
+	border-top-color: var(--fbp-framework-primary-color, #4B70FF);
+}
+
 .multi_dialog .multi_dialog_title {
 	display: block;
 	flex: 0 1 auto;

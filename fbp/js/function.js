@@ -1404,6 +1404,28 @@ $("body").on("click", ".ajax-link", function (event) {
 	}
 });
 
+var dialogTitleCopyTimer;
+function hideDialogTitleCopyBubble() {
+	clearTimeout(dialogTitleCopyTimer);
+	$(".dialog_title_copy_bubble").remove();
+	$(window).off(".dialogTitleCopyBubble");
+	$("body").off("pointerdown.dialogTitleCopyBubble");
+}
+
+function showDialogTitleCopyBubble(title) {
+	hideDialogTitleCopyBubble();
+	if (!title.isConnected) return;
+	var bubble = $("<div>", {class: "dialog_title_copy_bubble", role: "status", text: "コピーしました"}).appendTo("body");
+	var rect = title.getBoundingClientRect();
+	var width = bubble.outerWidth();
+	var center = rect.left + rect.width / 2;
+	var left = Math.max(8, Math.min(center - width / 2, window.innerWidth - width - 8));
+	bubble.css({left: left, top: Math.max(8, rect.top - bubble.outerHeight() - 8), "--copy-arrow-left": Math.max(10, Math.min(width - 10, center - left)) + "px"});
+	$(window).on("scroll.dialogTitleCopyBubble resize.dialogTitleCopyBubble", hideDialogTitleCopyBubble);
+	$("body").one("pointerdown.dialogTitleCopyBubble", hideDialogTitleCopyBubble);
+	dialogTitleCopyTimer = setTimeout(hideDialogTitleCopyBubble, 2000);
+}
+
 // Copy the dialog's screen path without treating text selection as a click.
 $("body").on("click keydown", ".multi_dialog_title", async function (event) {
 	if (event.type === "keydown") {
@@ -1437,8 +1459,12 @@ $("body").on("click keydown", ".multi_dialog_title", async function (event) {
 		field.remove();
 		if (active && active.isConnected) active.focus({preventScroll: true});
 	}
-	var message = copied ? "コピーしました" : "コピーできませんでした。タイトルの文字を選択してコピーしてください。";
-	notification("", '<div class="fr_notification lang" role="status" style="padding:12px;font-size:14px;">' + escapeHtml(message) + '</div>', 360, 2);
+	if (copied) {
+		showDialogTitleCopyBubble(this);
+	} else {
+		hideDialogTitleCopyBubble();
+		notification("", '<div class="fr_notification lang" role="status" style="padding:12px;font-size:14px;">コピーできませんでした。タイトルの文字を選択してコピーしてください。</div>', 360, 2);
+	}
 });
 
 // ajax-formボタン
