@@ -480,60 +480,6 @@ article {
 	min-width: 0;
 }
 
-.work_area_title .screen_debug_icon_workarea {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	margin: 0 0 0 auto;
-	padding: 0;
-	height: auto;
-	width: auto;
-	cursor: pointer;
-	color: var(--fbp-framework-primary-color, #4ba3ff);
-	line-height: 1;
-	user-select: none;
-}
-
-.work_area_title .screen_debug_icon_workarea .material-symbols-outlined {
-	font-size: 20px;
-	line-height: 24px;
-	width: 24px;
-	height: 24px;
-	overflow: hidden;
-}
-
-.work_area_title .screen_debug_icon_workarea:hover {
-	color: var(--fbp-framework-primary-hover-color, #0f4c81);
-}
-
-.work_area_title .screen_debug_icon_workarea.screen_debug_captured {
-	width: auto;
-	max-width: 520px;
-	gap: 4px;
-	padding: 0;
-	font-size: 12px;
-}
-
-.work_area_title .screen_debug_captured_text {
-	display: inline-block;
-	max-width: 460px;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	line-height: 24px;
-	color: var(--fbp-framework-primary-hover-color, #0f4c81);
-}
-
-.work_area_title .screen_debug_copy_icon {
-	cursor: pointer;
-	border-radius: 4px;
-}
-
-.work_area_title .screen_debug_copy_icon:hover,
-.work_area_title .screen_debug_copy_icon.copied {
-	background: var(--fbp-framework-primary-soft-color, rgba(75, 163, 255, 0.18));
-}
-
 #work_area_second{
 	width: 400px;
 	position: fixed;
@@ -575,25 +521,6 @@ article {
 .work_area_second_action_button .material-symbols-outlined,
 #work_area_second_show_button .material-symbols-outlined {
 	color: #FFF;
-}
-
-.work_area_second_action_bar .screen_debug_icon_workarea {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	background: var(--fbp-framework-primary-color, #4ba3ff);
-	color: var(--fbp-framework-primary-text-color, #FFF);
-	margin: 0;
-	padding: 4px 8px;
-	border-radius: 4px;
-	cursor: pointer;
-	line-height: 1;
-}
-
-.work_area_second_action_bar .screen_debug_icon_workarea .material-symbols-outlined {
-	color: #FFF;
-	font-size: 20px;
-	line-height: 1;
 }
 
 .work_area_second_body {

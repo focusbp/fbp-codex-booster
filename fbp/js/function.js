@@ -1403,90 +1403,6 @@ $("body").on("click", ".ajax-link", function (event) {
 	}
 });
 
-$("body").on("click", ".screen_debug_copy_icon", function (event) {
-	event.preventDefault();
-	event.stopPropagation();
-	var $box = $(this).closest(".screen_debug_captured");
-	var code = String($box.attr("data-screen_debug_code") || "").trim();
-	if (code === "") {
-		return;
-	}
-	copyScreenDebugCode(code, function () {
-		$(event.currentTarget).addClass("copied");
-		setTimeout(function () {
-			$(event.currentTarget).removeClass("copied");
-		}, 700);
-	});
-});
-
-function copyScreenDebugCode(code, copied) {
-	var copyText = String(code || "").trim();
-	if (copyText === "") {
-		return;
-	}
-	if (navigator.clipboard && navigator.clipboard.writeText) {
-		navigator.clipboard.writeText(copyText).then(copied).catch(function () {
-			copyTextFallback(copyText);
-			copied();
-		});
-		return;
-	}
-	copyTextFallback(copyText);
-	copied();
-}
-
-function copyTextFallback(text) {
-	var ta = document.createElement("textarea");
-	ta.value = text;
-	ta.style.position = "fixed";
-	ta.style.left = "-9999px";
-	document.body.appendChild(ta);
-	ta.focus();
-	ta.select();
-	try {
-		document.execCommand("copy");
-	} catch (err) {
-		// noop
-	}
-	document.body.removeChild(ta);
-}
-
-function renderScreenDebugLogCaptured(payload) {
-	var screenKey = String(payload["screen_key"] || "").trim();
-	var code = String(payload["code"] || "").trim();
-	var label = String(payload["label"] || "Screen ID").trim();
-	var copyTitle = String(payload["copy_title"] || "Copy").trim();
-	if (screenKey === "" || code === "") {
-		return;
-	}
-	$(".screen_debug_icon").filter(function () {
-		return String($(this).attr("data-screen_key") || "").trim() === screenKey;
-	}).each(function () {
-		var $icon = $(this);
-		var $scope = $icon.closest(".multi_dialog");
-		if ($scope.length === 0) {
-			$scope = $icon.closest(".work_area");
-		}
-		$icon.removeClass("ajax-link");
-		$icon.addClass("screen_debug_captured");
-		$icon.removeAttr("data-class");
-		$icon.removeAttr("data-function");
-		$icon.removeAttr("data-screen_key");
-		$icon.attr("data-screen_debug_code", code);
-		$icon.attr("title", code);
-		$icon.empty();
-		$("<span>").addClass("screen_debug_captured_text").text(code).appendTo($icon);
-		copyScreenDebugCode(code, function () {});
-		$scope.find(".screen_debug_id_value").each(function () {
-			if ($(this).is("input, textarea")) {
-				$(this).val(code);
-			} else {
-				$(this).text(code);
-			}
-		});
-	});
-}
-
 // ajax-formボタン
 $("body").on("click", ".form_button", function (event) {
 
@@ -2483,10 +2399,6 @@ function appcon_execute(url, fd, nextfunction, isCurrentResponse) {
 				}
 			}
 
-			if (res["screen_debug_log_captured"] != null) {
-				renderScreenDebugLogCaptured(res["screen_debug_log_captured"]);
-			}
-
 			// 通知(notification)
 			if (res["notifications"] != null) {
 				for (var md of res["notifications"]) {
@@ -2540,10 +2452,9 @@ function appcon_execute(url, fd, nextfunction, isCurrentResponse) {
 				for (var md of res["second_work_area"]) {
 					var html = md["html"];
 					var width = md["width"];
-					var screen_debug_key = md["screen_debug_key"] || "";
 					var classname = res["class"];
 
-					second_work_area(classname, html, width, screen_debug_key);
+					second_work_area(classname, html, width);
 				}
 			}
 
@@ -2748,7 +2659,6 @@ function appcon_execute(url, fd, nextfunction, isCurrentResponse) {
 						var forcopy = md["forcopy"];
 						var fixed_bar = md["fixed_bar"];
 						var options = md["options"];
-						var screen_debug_key = md["screen_debug_key"] || "";
 
 					if (cmd == "close") {
 						classname = md["class"];
@@ -2763,7 +2673,7 @@ function appcon_execute(url, fd, nextfunction, isCurrentResponse) {
 								mdx = multi_dialog_zindex;
 							}
 							ensureClassStylesheet(classname);
-							multi_dialog(dialog_name, html, title, width, classname, testserver, mdx, fixed_bar, options, fadeflg, forcopy, screen_debug_key);
+							multi_dialog(dialog_name, html, title, width, classname, testserver, mdx, fixed_bar, options, fadeflg, forcopy);
 							multi_dialog_zindex++;
 					}
 				}
@@ -2825,7 +2735,6 @@ function appcon_execute(url, fd, nextfunction, isCurrentResponse) {
 				var dialog_name = md["dialog_name"];
 				var html = md["html"];
 				var title = md["title"];
-				var screen_debug_key = md["screen_debug_key"] || "";
 				var classname = res["class"];
 				var testserver = md["testserver"];
 				var post_arr = md["post_arr"];
@@ -2837,9 +2746,6 @@ function appcon_execute(url, fd, nextfunction, isCurrentResponse) {
 				$(multi_dialog_tag).addClass("getting_dialog_id");
 				var $workTitle = $('<div class="work_area_title lang"></div>');
 				$workTitle.append($('<span class="work_area_title_text"></span>').text(title));
-				if (screen_debug_key !== "") {
-					$workTitle.append($('<p class="ajax-link screen_debug_icon screen_debug_icon_workarea" data-class="screen_debug_log" data-function="capture" title="お問い合わせ用の画面IDを取得"><span class="material-symbols-outlined">screenshot_monitor</span></p>').attr("data-screen_key", screen_debug_key));
-				}
 				$(multi_dialog_tag).append($workTitle);
 				$(multi_dialog_tag).append(html);
 				$("#work_area").hide().html("").append(multi_dialog_tag).show();
@@ -3049,7 +2955,7 @@ $(window).resize(function () {
 	adjust_second_work_area_layout();
 });
 
-function second_work_area(classname, html, w, screen_debug_key) {
+function second_work_area(classname, html, w) {
 	var wasAlreadyOpen = (flg_second_work_area === 1 && flg_second_work_area_hidden === 0 && $("#work_area_second").is(":visible"));
 	flg_second_work_area = 1;
 	flg_second_work_area_hidden = 0;
@@ -3066,11 +2972,6 @@ function second_work_area(classname, html, w, screen_debug_key) {
 	var close_button = document.createElement("div");
 	$(close_button).addClass("work_area_second_action_button");
 	$(close_button).append('<span class="material-symbols-outlined">close</span>');
-	if (String(screen_debug_key || "").trim() !== "") {
-		var $screenDebugButton = $('<p class="ajax-link screen_debug_icon screen_debug_icon_workarea" data-class="screen_debug_log" data-function="capture" title="お問い合わせ用の画面IDを取得"><span class="material-symbols-outlined">screenshot_monitor</span></p>');
-		$screenDebugButton.attr("data-screen_key", screen_debug_key);
-		$(action_bar).append($screenDebugButton);
-	}
 	$(action_bar).append(hide_button).append(close_button);
 
 	var body = document.createElement("div");
@@ -3229,7 +3130,7 @@ function refresh_multi_dialog_modal_cover() {
 	});
 }
 
-function multi_dialog(dialog_name, contents, title, width, getclassname, testserver, mdz, fixed_bar = "", options = [], fadeflg = true, forcopy = "", screen_debug_key = "") {
+function multi_dialog(dialog_name, contents, title, width, getclassname, testserver, mdz, fixed_bar = "", options = [], fadeflg = true, forcopy = "") {
 
 
 	var exe_classname = getclassname;
@@ -3245,29 +3146,6 @@ function multi_dialog(dialog_name, contents, title, width, getclassname, testser
 
 	var title_display = '<span class="multi_dialog_title lang">' + title + '</span>';
 
-	function syncScreenDebugButton($dlg, screenKey) {
-		var $titleArea = $dlg.find(".multi_dialog_title_area").first();
-		if ($titleArea.length === 0) {
-			return;
-		}
-		var key = String(screenKey || "").trim();
-		var $icon = $titleArea.find(".screen_debug_icon").first();
-		if (key === "") {
-			$icon.remove();
-			return;
-		}
-		if ($icon.length === 0) {
-			$icon = $('<p class="ajax-link screen_debug_icon" data-class="screen_debug_log" data-function="capture" title="お問い合わせ用の画面IDを取得"><span class="material-symbols-outlined">screenshot_monitor</span></p>');
-			var $close = $titleArea.find(".multi_dialog_close").first();
-			if ($close.length > 0) {
-				$close.before($icon);
-			} else {
-				$titleArea.append($icon);
-			}
-		}
-		$icon.attr("data-screen_key", key);
-		$icon.data("screen_key", key);
-	}
 
 	if ($(dialog_id).length) {
 
@@ -3314,7 +3192,6 @@ function multi_dialog(dialog_name, contents, title, width, getclassname, testser
 				}
 			}
 		}
-		syncScreenDebugButton($(dialog_id), screen_debug_key);
 
 		// z-indexの設定
 		$(dialog_id).css("z-index", mdz);
@@ -3385,25 +3262,6 @@ function multi_dialog(dialog_name, contents, title, width, getclassname, testser
 
 		// HTMLに入れる
 		$("#multi_dialog").append(multi_dialog_tag);
-		syncScreenDebugButton($(multi_dialog_tag), screen_debug_key);
-
-		// Draggable
-		$(multi_dialog_tag).draggable({
-			handle: ".multi_dialog_title_area",
-			start: function () {
-				$(this).css("z-index", multi_dialog_zindex);
-				multi_dialog_zindex++;
-			},
-			stop: function () {
-				var st = $(window).scrollTop();
-				if ($(this).offset().top < st) {
-					$(this).offset({top: st});
-				}
-				if ($(this).offset().top > st + $(window).height()) {
-					$(this).offset({top: st + $(window).height() - 100});
-				}
-			}
-		});
 
 		// Resizable
 		$(multi_dialog_tag).resizable();
@@ -3420,7 +3278,6 @@ function multi_dialog(dialog_name, contents, title, width, getclassname, testser
 		// クローズイベント
 		$(multi_dialog_tag).on("click", ".multi_dialog_close", function (e) {
 			$(multi_dialog_tag).resizable("destroy");
-			$(multi_dialog_tag).draggable("destroy");
 			$(multi_dialog_tag).off("click", ".multi_dialog_close");
 			$(multi_dialog_tag).remove();
 			refresh_multi_dialog_modal_cover();

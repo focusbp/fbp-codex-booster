@@ -312,8 +312,6 @@ class Controller_class implements Controller {
 		}
 		$this->arr["dialog_options"] = $options;
 		$this->smarty->assign("MYSESSION", $_SESSION[$this->windowcode]);
-		$screen_debug_key = $this->register_screen_debug_context($dialog_name, $template);
-		$this->smarty->assign("screen_debug_key", $screen_debug_key);
 		$tmp = $this->smarty->fetch($template);
 		$this->console_log("Template:" . $this->class . "/" . $template, "#CE5C00");
 		$fixed_bar = null;
@@ -594,8 +592,6 @@ class Controller_class implements Controller {
 		if ($current_class !== "") {
 			$this->assign("class", $current_class);
 		}
-		$screen_debug_key = $this->register_screen_debug_context("publicsite", $contents_template);
-		$this->assign("screen_debug_key", $screen_debug_key);
 		$contents = $this->fetch($contents_template);
 		$this->assign("contents", $contents);
 		$this->assign("publicsite_menu_items", $this->build_publicsite_menu_items());
@@ -1652,10 +1648,8 @@ class Controller_class implements Controller {
 		$options["modal_flg"] = $options["modal_flg"] ? 1 : 0;
 		
 		$dialog_name = str_replace([" ", ".", "#"], "", $dialog_name);
-		$screen_debug_key = $this->register_screen_debug_context($dialog_name, $template);
 
 		$this->smarty->assign("dialog_name", $dialog_name);
-		$this->smarty->assign("screen_debug_key", $screen_debug_key);
 
 		$this->smarty->assign("MYSESSION", $_SESSION[$this->windowcode]);
 		$tmp = $this->smarty->fetch($template);
@@ -1677,86 +1671,9 @@ class Controller_class implements Controller {
 			$md["testserver"] = $this->get_session("testserver");
 			$md["forcopy"] = $this->class . "/" . $this->POST("function");
 			$md["post"] = $_POST;
-			$md["screen_debug_key"] = $screen_debug_key;
 			$md["multi_dialog_zindex"] = isset($_POST["multi_dialog_zindex"]) ? $_POST["multi_dialog_zindex"] : null;
 			$this->arr["multi_dialog"][] = $md;
 		}
-
-	function register_screen_debug_context($dialog_name, $template) {
-		if ($this->class === "screen_debug_log") {
-			return "";
-		}
-		try {
-			$screen_key = "SK-" . strtoupper(bin2hex(random_bytes(4)));
-		} catch (Throwable $e) {
-			$screen_key = "SK-" . strtoupper(substr(md5(uniqid("", true)), 0, 8));
-		}
-		$context = [
-			"screen_key" => $screen_key,
-			"appcode" => (string) ($this->get_appcode() ?? ""),
-			"app_class" => (string) $this->class,
-			"app_function" => (string) ($_POST["function"] ?? $_GET["function"] ?? ""),
-			"template" => (string) $template,
-			"dialog_id" => (string) $dialog_name,
-			"url" => (string) ($_SERVER["REQUEST_URI"] ?? ""),
-			"get" => $_GET,
-			"post" => $_POST,
-			"files" => $this->screen_debug_files_meta($_FILES),
-			"user_id" => (string) ($this->get_login_user_id() ?? ""),
-			"user_name" => (string) ($this->get_login_name() ?? $this->get_login_id() ?? ""),
-			"user_agent" => (string) ($_SERVER["HTTP_USER_AGENT"] ?? ""),
-			"created_at" => time(),
-		];
-		$this->set_session("screen_debug_context", $context);
-		$contexts = $this->get_session("screen_debug_contexts");
-		if (!is_array($contexts)) {
-			$contexts = [];
-		}
-		$contexts[$screen_key] = $context;
-		if (count($contexts) > 20) {
-			uasort($contexts, function ($a, $b) {
-				return (int) ($b["created_at"] ?? 0) <=> (int) ($a["created_at"] ?? 0);
-			});
-			$contexts = array_slice($contexts, 0, 20, true);
-		}
-		$this->set_session("screen_debug_contexts", $contexts);
-		return $screen_key;
-	}
-
-	private function screen_debug_files_meta($files) {
-		if (!is_array($files)) {
-			return [];
-		}
-		$out = [];
-		foreach ($files as $key => $file) {
-			$out[$key] = $this->screen_debug_file_meta_item($file);
-		}
-		return $out;
-	}
-
-	private function screen_debug_file_meta_item($file) {
-		if (!is_array($file)) {
-			return [];
-		}
-		if (isset($file["name"]) && is_array($file["name"])) {
-			$out = [];
-			foreach ($file["name"] as $idx => $name) {
-				$out[$idx] = [
-					"name" => $name,
-					"type" => $file["type"][$idx] ?? "",
-					"size" => $file["size"][$idx] ?? 0,
-					"error" => $file["error"][$idx] ?? 0,
-				];
-			}
-			return $out;
-		}
-		return [
-			"name" => $file["name"] ?? "",
-			"type" => $file["type"] ?? "",
-			"size" => $file["size"] ?? 0,
-			"error" => $file["error"] ?? 0,
-		];
-	}
 
 	function show_notification_text($txt, $time = 2, $background = "#4B70FF", $color = "#FFF", $fontsize = 24, $width = 600) {
 		$style = "background:$background;color:$color;font-size:{$fontsize}px;";
@@ -1770,7 +1687,6 @@ class Controller_class implements Controller {
 	function show_notification($template, $width = 600, $time = 5) {
 
 		$this->smarty->assign("MYSESSION", $_SESSION[$this->windowcode]);
-		$this->smarty->assign("screen_debug_key", $this->register_screen_debug_context($dialog_name, $template));
 		$tmp = $this->smarty->fetch($template);
 		$this->console_log("Template:" . $this->class . "/" . $template, "#CE5C00");
 
@@ -1817,8 +1733,6 @@ class Controller_class implements Controller {
 		}
 		$this->smarty->assign("MYSESSION", $_SESSION[$this->windowcode]);
 		$dialog_name = "secondworkarea";
-		$screen_debug_key = $this->register_screen_debug_context($dialog_name, $template);
-		$this->smarty->assign("screen_debug_key", $screen_debug_key);
 
 		$tmp = $this->smarty->fetch($template);
 		$this->console_log("Template:" . $this->class . "/" . $template, "#CE5C00");
@@ -1826,7 +1740,6 @@ class Controller_class implements Controller {
 		$html = '<div class="class_style_' . $this->class . '">' . $tmp . '</div>';
 		$md["html"] = $html;
 		$md["width"] = $width;
-		$md["screen_debug_key"] = $screen_debug_key;
 		$md["multi_dialog_zindex"] = $_POST["multi_dialog_zindex"] ?? null;
 		$this->arr["second_work_area"][] = $md;
 	}
@@ -1875,8 +1788,6 @@ class Controller_class implements Controller {
 		}
 
 		$this->smarty->assign("MYSESSION", $_SESSION[$this->windowcode]);
-		$screen_debug_key = $this->register_screen_debug_context($dialog_name, $template);
-		$this->smarty->assign("screen_debug_key", $screen_debug_key);
 		$tmp = $this->smarty->fetch($template);
 		$this->console_log("Template:" . $this->class . "/" . $template, "#CE5C00");
 		$html = '<div class="class_style_' . $this->class . '">' . $tmp . '</div>';
@@ -1885,7 +1796,6 @@ class Controller_class implements Controller {
 		$md["title"] = $title;
 		$md["testserver"] = $this->get_session("testserver");
 		$md["post"] = $_POST;
-		$md["screen_debug_key"] = $screen_debug_key;
 		$this->arr["work_area"] = $md;
 	}
 

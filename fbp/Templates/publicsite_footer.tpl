@@ -29,11 +29,6 @@
 <div id="server_year_month_format" style="display:none;">{$setting.year_month_format}</div>
 <div id="public_windowcode" style="display:none;">{$windowcode}</div>
 
-{if $screen_debug_key != ""}
-	<p class="ajax-link screen_debug_icon publicsite_screen_debug_icon" data-class="screen_debug_log" data-function="capture" data-screen_key="{$screen_debug_key|escape}" title="お問い合わせ用の画面IDを取得">
-		<span class="material-symbols-outlined">screenshot_monitor</span>
-	</p>
-{/if}
 
 {include file="{$base_template_dir}/scripts.tpl"}
 

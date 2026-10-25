@@ -663,7 +663,8 @@ section {
 	background: var(--fbp-dialog-header-bg, #F8FAFC);
     color: var(--fbp-dialog-title-color, #111827);
     padding: 10px 12px 10px 18px;
-	cursor: move;
+	cursor: text;
+	user-select: text;
     float: left;
     display: flex;
 	align-items: center;
@@ -689,106 +690,6 @@ section {
 	color: var(--fbp-dialog-muted-color, #6B7280);
 	margin: 0;
 	transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.multi_dialog .multi_dialog_title_area .screen_debug_icon {
-	display: inline-flex;
-	flex: 0 1 auto;
-	align-items: center;
-	justify-content: center;
-	margin: 0;
-	padding: 0;
-	height: 34px;
-	width: 34px;
-	border-radius: 8px;
-	cursor: pointer;
-	color: var(--fbp-dialog-muted-color, #6B7280);
-	line-height: 1;
-	user-select: none;
-	transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.multi_dialog .multi_dialog_title_area .screen_debug_icon .material-symbols-outlined {
-	font-size: 18px;
-	line-height: 20px;
-	width: 20px;
-	height: 20px;
-	color: inherit;
-	overflow: hidden;
-}
-
-.multi_dialog .multi_dialog_title_area .screen_debug_icon:hover {
-	background: var(--fbp-dialog-action-hover-bg, #F3F4F6);
-	color: var(--fbp-dialog-title-color, #111827);
-}
-
-.multi_dialog .multi_dialog_title_area .screen_debug_icon.screen_debug_captured {
-	width: auto;
-	max-width: min(420px, 45vw);
-	gap: 4px;
-	padding: 0 8px;
-	font-size: 12px;
-	background: var(--fbp-dialog-meta-bg, #F1F5F9);
-	border: 1px solid var(--fbp-dialog-border-color, #DDE3EA);
-}
-
-.multi_dialog .multi_dialog_title_area .screen_debug_captured_text {
-	display: inline-block;
-	max-width: 380px;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	line-height: 20px;
-	color: inherit;
-}
-
-.multi_dialog .multi_dialog_title_area .screen_debug_copy_icon {
-	cursor: pointer;
-	border-radius: 4px;
-}
-
-.multi_dialog .multi_dialog_title_area .screen_debug_copy_icon:hover,
-.multi_dialog .multi_dialog_title_area .screen_debug_copy_icon.copied {
-	background: #2E7D32;
-}
-
-.publicsite_screen_debug_icon {
-	position: fixed;
-	left: 18px;
-	bottom: 18px;
-	z-index: 2500;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	gap: 6px;
-	padding: 5px 10px;
-	border-radius: 999px;
-	color: #FFF;
-	cursor: pointer;
-}
-
-.publicsite_screen_debug_icon .material-symbols-outlined {
-	font-size: 15px;
-	line-height: 1;
-	width: 15px;
-	color: #0f4c81;
-}
-
-.publicsite_screen_debug_icon:hover {
-	opacity: 0.85;
-}
-
-.publicsite_screen_debug_icon.screen_debug_captured {
-	width: auto;
-	max-width: calc(100vw - 36px);
-	gap: 4px;
-	padding: 8px 10px;
-	border-radius: 12px;
-	font-size: 12px;
-}
-
-.publicsite_screen_debug_icon.screen_debug_captured .screen_debug_captured_text {
-	color: #0f4c81;
 }
 
 .multi_dialog .multi_dialog_title {
