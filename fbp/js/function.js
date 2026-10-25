@@ -1380,6 +1380,7 @@ $("body").on("click", ".ajax-link", function (event) {
 		}
 		if ($(this).closest("#left_menu, #sidemenu").length > 0) {
 			fd.append("_restore_after_login", "1");
+			fd.dialogMenuName = $(this).text().trim();
 		}
 
 		// data-_chatid を取得
@@ -1401,6 +1402,43 @@ $("body").on("click", ".ajax-link", function (event) {
 
 		appcon(url, fd);
 	}
+});
+
+// Copy the dialog's screen path without treating text selection as a click.
+$("body").on("click keydown", ".multi_dialog_title", async function (event) {
+	if (event.type === "keydown") {
+		if (event.key !== "Enter" && event.key !== " ") return;
+		event.preventDefault();
+	} else {
+		var selection = window.getSelection();
+		if (event.detail > 1 || (selection && !selection.isCollapsed && this.contains(selection.anchorNode))) return;
+	}
+	var $dialog = $(this).closest(".multi_dialog");
+	var menu = $dialog.attr("data-menu-name") || "";
+	var title = $(this).text().trim();
+	var text = "[" + (menu ? menu + "->" : "") + title + "]";
+	var copied = false;
+	if (navigator.clipboard && navigator.clipboard.writeText) {
+		try {
+			await navigator.clipboard.writeText(text);
+			copied = true;
+		} catch (error) {
+			// Fall through to the browser's legacy clipboard support.
+		}
+	}
+	if (!copied) {
+		var active = document.activeElement;
+		var field = document.createElement("textarea");
+		field.value = text;
+		field.style.cssText = "position:fixed;left:-9999px;top:0;";
+		document.body.appendChild(field);
+		field.select();
+		try { copied = document.execCommand("copy"); } catch (error) {}
+		field.remove();
+		if (active && active.isConnected) active.focus({preventScroll: true});
+	}
+	var message = copied ? "コピーしました" : "コピーできませんでした。タイトルの文字を選択してコピーしてください。";
+	notification("", '<div class="fr_notification lang" role="status" style="padding:12px;font-size:14px;">' + escapeHtml(message) + '</div>', 360, 2);
 });
 
 // ajax-formボタン
@@ -2054,6 +2092,12 @@ function datetime_strings_to_timestamp_in_timezone(dateText, timeText, timezone)
 // Keep a note's page reloads, search-session writes and list reads in submission order.
 var standardScreenRequests = Object.create(null);
 function appcon(url, fd, nextfunction) {
+	if (fd.dialogMenuName === undefined) {
+		var origin = document.getElementById(String(fd.get("_dialog_id") || "").replace(/^#/, ""));
+		fd.dialogMenuName = (origin && $(origin).closest(".multi_dialog").attr("data-menu-name"))
+			|| $("#work_area").attr("data-menu-name")
+			|| $("#work_area .work_area_title_text").first().text().trim();
+	}
 	var functionName = fd.get("function");
 	var dbId = fd.get("db_id");
 	if (fd.get("class") !== "db_exe" || !dbId
@@ -2673,7 +2717,7 @@ function appcon_execute(url, fd, nextfunction, isCurrentResponse) {
 								mdx = multi_dialog_zindex;
 							}
 							ensureClassStylesheet(classname);
-							multi_dialog(dialog_name, html, title, width, classname, testserver, mdx, fixed_bar, options, fadeflg, forcopy);
+							multi_dialog(dialog_name, html, title, width, classname, testserver, mdx, fixed_bar, options, fadeflg, forcopy, fd.dialogMenuName);
 							multi_dialog_zindex++;
 					}
 				}
@@ -2746,6 +2790,7 @@ function appcon_execute(url, fd, nextfunction, isCurrentResponse) {
 				$(multi_dialog_tag).addClass("getting_dialog_id");
 				var $workTitle = $('<div class="work_area_title lang"></div>');
 				$workTitle.append($('<span class="work_area_title_text"></span>').text(title));
+				$("#work_area").attr("data-menu-name", fd.dialogMenuName || title);
 				$(multi_dialog_tag).append($workTitle);
 				$(multi_dialog_tag).append(html);
 				$("#work_area").hide().html("").append(multi_dialog_tag).show();
@@ -3130,7 +3175,7 @@ function refresh_multi_dialog_modal_cover() {
 	});
 }
 
-function multi_dialog(dialog_name, contents, title, width, getclassname, testserver, mdz, fixed_bar = "", options = [], fadeflg = true, forcopy = "") {
+function multi_dialog(dialog_name, contents, title, width, getclassname, testserver, mdz, fixed_bar = "", options = [], fadeflg = true, forcopy = "", menu_name) {
 
 
 	var exe_classname = getclassname;
@@ -3144,10 +3189,11 @@ function multi_dialog(dialog_name, contents, title, width, getclassname, testser
 
 	var multi_dialog_tag = null;
 
-	var title_display = '<span class="multi_dialog_title lang">' + title + '</span>';
+	var title_display = '<span class="multi_dialog_title lang" role="button" tabindex="0" title="クリックして画面名をコピー">' + title + '</span>';
 
 
 	if ($(dialog_id).length) {
+		if (menu_name !== undefined) $(dialog_id).attr("data-menu-name", menu_name);
 
 		// 一旦非表示(更新してから３以内は非表示にしない)
 		var tmp_now = Math.floor(Date.now() / 1000);
@@ -3233,6 +3279,7 @@ function multi_dialog(dialog_name, contents, title, width, getclassname, testser
 		$(multi_dialog_tag).addClass("multi_dialog");
 		$(multi_dialog_tag).addClass("getting_dialog_id");
 		$(multi_dialog_tag).attr("data-modal_flg", is_modal ? "1" : "0");
+		$(multi_dialog_tag).attr("data-menu-name", menu_name || $("#work_area").attr("data-menu-name") || $("#work_area .work_area_title_text").first().text().trim());
 
 		// タイトル部分
 		var dialog_html = '<div class="multi_dialog_title_area lang_check_area" data-classname="' + exe_classname + '">' + title_display + '<div class="multi_dialog_header_actions"><div class="multi_dialog_close" role="button" aria-label="Close">&times;</div></div></div>';
