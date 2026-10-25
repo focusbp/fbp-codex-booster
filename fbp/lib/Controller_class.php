@@ -1675,6 +1675,12 @@ class Controller_class implements Controller {
 			$this->arr["multi_dialog"][] = $md;
 		}
 
+	// Compatibility for apps that still call the retired screen-debug API.
+	// Do not collect request data or write session/log records.
+	function register_screen_debug_context($dialog_name, $template) {
+		return "";
+	}
+
 	function show_notification_text($txt, $time = 2, $background = "#4B70FF", $color = "#FFF", $fontsize = 24, $width = 600) {
 		$style = "background:$background;color:$color;font-size:{$fontsize}px;";
 		$md["html"] = '<div class="class_style_' . $this->class . '"><div class="fr_notification lang" style="' . $style . '">' . $txt . '</div></div>';
