@@ -391,13 +391,14 @@
 	background: var(--fbp-dialog-header-bg, #F8FAFC);
 	color: var(--fbp-dialog-title-color, #111827);
 	box-sizing: border-box;
-	cursor: text;
-	user-select: text;
+	cursor: move;
 }
 
 .multi_dialog .multi_dialog_title {
 	display: block;
-	flex: 1 1 auto;
+	flex: 0 1 auto;
+	cursor: text;
+	user-select: text;
 	min-width: 0;
 	width: auto;
 	overflow: hidden;

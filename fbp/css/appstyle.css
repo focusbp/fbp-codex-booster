@@ -663,8 +663,7 @@ section {
 	background: var(--fbp-dialog-header-bg, #F8FAFC);
     color: var(--fbp-dialog-title-color, #111827);
     padding: 10px 12px 10px 18px;
-	cursor: text;
-	user-select: text;
+	cursor: move;
     float: left;
     display: flex;
 	align-items: center;
@@ -694,7 +693,9 @@ section {
 
 .multi_dialog .multi_dialog_title {
 	display: block;
-	flex: 1 1 auto;
+	flex: 0 1 auto;
+	cursor: text;
+	user-select: text;
 	min-width: 0;
 	width: auto;
 	overflow: hidden;

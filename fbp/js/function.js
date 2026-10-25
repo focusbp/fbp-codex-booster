@@ -3263,6 +3263,25 @@ function multi_dialog(dialog_name, contents, title, width, getclassname, testser
 		// HTMLに入れる
 		$("#multi_dialog").append(multi_dialog_tag);
 
+		// Keep title text selectable while the rest of the header remains a drag handle.
+		$(multi_dialog_tag).draggable({
+			handle: ".multi_dialog_title_area",
+			cancel: "input, textarea, button, select, option, .multi_dialog_title, .multi_dialog_header_actions",
+			start: function () {
+				$(this).css("z-index", multi_dialog_zindex);
+				multi_dialog_zindex++;
+			},
+			stop: function () {
+				var st = $(window).scrollTop();
+				if ($(this).offset().top < st) {
+					$(this).offset({top: st});
+				}
+				if ($(this).offset().top > st + $(window).height()) {
+					$(this).offset({top: st + $(window).height() - 100});
+				}
+			}
+		});
+
 		// Resizable
 		$(multi_dialog_tag).resizable();
 
@@ -3278,6 +3297,7 @@ function multi_dialog(dialog_name, contents, title, width, getclassname, testser
 		// クローズイベント
 		$(multi_dialog_tag).on("click", ".multi_dialog_close", function (e) {
 			$(multi_dialog_tag).resizable("destroy");
+			$(multi_dialog_tag).draggable("destroy");
 			$(multi_dialog_tag).off("click", ".multi_dialog_close");
 			$(multi_dialog_tag).remove();
 			refresh_multi_dialog_modal_cover();
