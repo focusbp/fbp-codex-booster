@@ -10,7 +10,8 @@ final class SimpleEcRecurringEngine {
             $preview=str_starts_with((string)$contract['record_key'],'preview:');if($sandboxOnly?!$preview:$preview)continue;
             if($eligible && !$eligible($contract))continue;
             if($onlyId!==null&&(int)$contract['id']!==$onlyId)continue;
-            $key=SimpleEcStore::paymentKey((string)$contract['id'],$month);$rows=$db['payments']->select('idempotency_key',$key);$p=$rows[0]??[];
+            if(empty($contract['record_key']))throw new RuntimeException('契約の内部識別キーを確認してください。');
+            $key=SimpleEcStore::paymentKey((string)$contract['record_key'],$month);$rows=$db['payments']->select('idempotency_key',$key);$p=$rows[0]??[];
             if(($p['state']??'')==='succeeded'){self::applySuccess($db,$contract,$p,$month);$report['recovered']++;continue;}
             if($p){$report['held']++;continue;}
             $p=['contract_id'=>$contract['id'],'name'=>$contract['name']??'','mail'=>$contract['mail']??'','status'=>1,'environment'=>$sandboxOnly?'sandbox':'production','login_id'=>$contract['login_id'],'period'=>$month,'amount'=>(int)$contract['getugaku'],'state'=>'unknown','result'=>'結果確認中','idempotency_key'=>$key,'source'=>$sandboxOnly?'Sandboxサブスクリプション':'サブスクリプション','created_at'=>time()];

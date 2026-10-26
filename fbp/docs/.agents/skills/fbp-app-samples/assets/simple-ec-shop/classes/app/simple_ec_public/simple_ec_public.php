@@ -237,7 +237,7 @@ class simple_ec_public {
                 if($order){
                     if((int)$r['date_shoki_kessai']<=time() && date('Y-m')>=SimpleEcPaymentGuard::recurringStartMonth($db)){
                         SimpleEcProductionPayment::chargeSubscriptions($ctl,$db,$id);
-                        $payments=$db['payments']->select('idempotency_key',SimpleEcStore::paymentKey((string)$id,date('Y-m')));$payment=$payments[0]??null;
+                        $payments=$db['payments']->select('idempotency_key',SimpleEcStore::paymentKey((string)$r['record_key'],date('Y-m')));$payment=$payments[0]??null;
                         if(!$payment || $payment['state']!=='succeeded')throw new RuntimeException('初回決済が完了していません。管理者に確認してください。');
                         $payment['order_id']=$order['id'];$db['payments']->update($payment);
                     }
@@ -255,7 +255,7 @@ class simple_ec_public {
             if($order){
                 if((int)$r['date_shoki_kessai']<=time()){
                     SimpleEcSandboxPayment::chargeSubscriptions($ctl,$db,$id);
-                    $payments=$db['payments']->select('idempotency_key',SimpleEcStore::paymentKey((string)$id,date('Y-m')));$payment=$payments[0]??null;
+                    $payments=$db['payments']->select('idempotency_key',SimpleEcStore::paymentKey((string)$r['record_key'],date('Y-m')));$payment=$payments[0]??null;
                     if(!$payment || $payment['state']!=='succeeded')throw new RuntimeException('初回決済が完了していません。管理者に確認してください。');
                     $payment['order_id']=$order['id'];$db['payments']->update($payment);
                 }
