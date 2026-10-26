@@ -1,0 +1,2559 @@
+{
+  "name": "simple-ec-shop",
+  "title": "シンプルECショップ",
+  "version": 1,
+  "description": "Guest checkout with selected product types, common Square settings, bank transfer and standard admin screens.",
+  "types": {
+    "physical": {
+      "key": 0,
+      "label": "物販"
+    },
+    "event": {
+      "key": 1,
+      "label": "イベント"
+    },
+    "inquiry": {
+      "key": 2,
+      "label": "問い合わせ"
+    },
+    "quote": {
+      "key": 3,
+      "label": "見積依頼"
+    },
+    "subscription": {
+      "key": 4,
+      "label": "サブスクリプション"
+    }
+  },
+  "options": {
+    "sec_shops_paytype": [
+      {
+        "key": "0",
+        "value": "銀行振込（手動決済）",
+        "color": "#1565C0",
+        "sort": 0
+      },
+      {
+        "key": "2",
+        "value": "Square",
+        "color": "#2E7D32",
+        "sort": 1
+      }
+    ],
+    "sec_shops_flg_photo4": [
+      {
+        "key": "0",
+        "value": "非表示・非対応",
+        "color": "#1565C0",
+        "sort": 0
+      },
+      {
+        "key": "1",
+        "value": "表示・対応",
+        "color": "#2E7D32",
+        "sort": 1
+      }
+    ],
+    "sec_shops_flg_photo3": [
+      {
+        "key": "0",
+        "value": "非表示・非対応",
+        "color": "#1565C0",
+        "sort": 0
+      },
+      {
+        "key": "1",
+        "value": "表示・対応",
+        "color": "#2E7D32",
+        "sort": 1
+      }
+    ],
+    "sec_shops_flg_photo2": [
+      {
+        "key": "0",
+        "value": "非表示・非対応",
+        "color": "#1565C0",
+        "sort": 0
+      },
+      {
+        "key": "1",
+        "value": "表示・対応",
+        "color": "#2E7D32",
+        "sort": 1
+      }
+    ],
+    "sec_shops_flg_photo1": [
+      {
+        "key": "0",
+        "value": "非表示・非対応",
+        "color": "#1565C0",
+        "sort": 0
+      },
+      {
+        "key": "1",
+        "value": "表示・対応",
+        "color": "#2E7D32",
+        "sort": 1
+      }
+    ],
+    "sec_shops_status": [
+      {
+        "key": "0",
+        "value": "クローズ",
+        "color": "#1565C0",
+        "sort": 0
+      },
+      {
+        "key": "1",
+        "value": "オープン",
+        "color": "#2E7D32",
+        "sort": 1
+      },
+      {
+        "key": "2",
+        "value": "製作中",
+        "color": "#C62828",
+        "sort": 2
+      }
+    ],
+    "sec_products_hyoji": [
+      {
+        "key": "0",
+        "value": "表示",
+        "color": "#1565C0",
+        "sort": 0
+      },
+      {
+        "key": "1",
+        "value": "非表示",
+        "color": "#2E7D32",
+        "sort": 1
+      }
+    ],
+    "sec_products_teiki_shokai": [
+      {
+        "key": "0",
+        "value": "即時課金",
+        "color": "#1565C0",
+        "sort": 0
+      },
+      {
+        "key": "1",
+        "value": "次月から課金",
+        "color": "#2E7D32",
+        "sort": 1
+      }
+    ],
+    "sec_products_zaiko_check": [
+      {
+        "key": "0",
+        "value": "上限なし",
+        "color": "#1565C0",
+        "sort": 0
+      },
+      {
+        "key": "1",
+        "value": "上限あり",
+        "color": "#2E7D32",
+        "sort": 1
+      }
+    ],
+    "sec_orders_status": [
+      {
+        "key": "0",
+        "value": "決済待ち",
+        "color": "#EF6C00",
+        "sort": 0
+      },
+      {
+        "key": "1",
+        "value": "発送・対応待ち",
+        "color": "#2E7D32",
+        "sort": 1
+      },
+      {
+        "key": "2",
+        "value": "対応済み",
+        "color": "#C62828",
+        "sort": 2
+      },
+      {
+        "key": "3",
+        "value": "キャンセル",
+        "color": "#6A1B9A",
+        "sort": 3
+      },
+      {
+        "key": "4",
+        "value": "返金処理完了",
+        "color": "#00695C",
+        "sort": 4
+      }
+    ],
+    "sec_contracts_status": [
+      {
+        "key": "0",
+        "value": "未処理",
+        "color": "#1565C0",
+        "sort": 0
+      },
+      {
+        "key": "1",
+        "value": "契約中",
+        "color": "#2E7D32",
+        "sort": 1
+      },
+      {
+        "key": "2",
+        "value": "エラー",
+        "color": "#C62828",
+        "sort": 2
+      },
+      {
+        "key": "3",
+        "value": "カード登録待ち",
+        "color": "#6A1B9A",
+        "sort": 3
+      },
+      {
+        "key": "9",
+        "value": "契約終了",
+        "color": "#00695C",
+        "sort": 4
+      }
+    ],
+    "sec_payments_status": [
+      {
+        "key": "0",
+        "value": "決済済",
+        "color": "#2E7D32",
+        "sort": 0
+      },
+      {
+        "key": "1",
+        "value": "エラー",
+        "color": "#C62828",
+        "sort": 1
+      },
+      {
+        "key": "2",
+        "value": "返金済",
+        "color": "#1565C0",
+        "sort": 2
+      }
+    ],
+    "sec_runtime_mail_enabled": [
+      {
+        "key": "0",
+        "value": "無効",
+        "color": "#1565C0",
+        "sort": 0
+      },
+      {
+        "key": "1",
+        "value": "有効",
+        "color": "#2E7D32",
+        "sort": 1
+      }
+    ],
+    "sec_runtime_cron_enabled": [
+      {
+        "key": "0",
+        "value": "無効",
+        "color": "#1565C0",
+        "sort": 0
+      },
+      {
+        "key": "1",
+        "value": "有効",
+        "color": "#2E7D32",
+        "sort": 1
+      }
+    ],
+    "sec_runtime_live_enabled": [
+      {
+        "key": "0",
+        "value": "無効",
+        "color": "#1565C0",
+        "sort": 0
+      },
+      {
+        "key": "1",
+        "value": "有効",
+        "color": "#2E7D32",
+        "sort": 1
+      }
+    ]
+  },
+  "notes": [
+    {
+      "table": {
+        "tb_name": "sec_shops",
+        "menu_name": "ショップ",
+        "sort": 0,
+        "show_menu": 1,
+        "sortkey": "id",
+        "sort_order": 0,
+        "screen_build_type": 0,
+        "list_type": 0,
+        "list_width": 1000,
+        "edit_width": 1000,
+        "show_id": 0,
+        "show_search_id": 0,
+        "show_duplicate": 0,
+        "show_icon_on_parent_list": 0,
+        "post_action_class": "",
+        "description": "Simple EC Shop sample"
+      },
+      "fields": [
+        {
+          "parameter_name": "shop_code",
+          "parameter_title": "ショップコード",
+          "parameter_description": "半角英小文字・数字・ハイフン（先頭は英字）。",
+          "type": "text",
+          "length": 64,
+          "validation": 1,
+          "sort": 0,
+          "duplicate_check": 1
+        },
+        {
+          "parameter_name": "photo4",
+          "parameter_title": "ショップ画像4",
+          "type": "image",
+          "length": 24,
+          "sort": 45,
+          "image_width": 300,
+          "image_width_thumbnail": 120
+        },
+        {
+          "parameter_name": "photo3",
+          "parameter_title": "ショップ画像3",
+          "type": "image",
+          "length": 24,
+          "sort": 44,
+          "image_width": 300,
+          "image_width_thumbnail": 120
+        },
+        {
+          "parameter_name": "photo2",
+          "parameter_title": "ショップ画像2",
+          "type": "image",
+          "length": 24,
+          "sort": 43,
+          "image_width": 300,
+          "image_width_thumbnail": 120
+        },
+        {
+          "parameter_name": "photo1",
+          "parameter_title": "ショップ画像1",
+          "type": "image",
+          "length": 24,
+          "sort": 42,
+          "image_width": 300,
+          "image_width_thumbnail": 120
+        },
+        {
+          "parameter_name": "update_time",
+          "parameter_title": "更新日時",
+          "type": "number",
+          "length": 20,
+          "sort": 37
+        },
+        {
+          "parameter_name": "description",
+          "parameter_title": "ショップ紹介",
+          "type": "textarea",
+          "length": 600,
+          "sort": 34
+        },
+        {
+          "parameter_name": "memo_template",
+          "parameter_title": "注文備考テンプレート",
+          "type": "textarea",
+          "length": 1000,
+          "sort": 33
+        },
+        {
+          "parameter_name": "color_h",
+          "parameter_title": "説明見出し色",
+          "type": "color",
+          "length": 15,
+          "sort": 31
+        },
+        {
+          "parameter_name": "color_fg",
+          "parameter_title": "文字色",
+          "type": "color",
+          "length": 15,
+          "sort": 30
+        },
+        {
+          "parameter_name": "color_shohin_border",
+          "parameter_title": "商品枠色",
+          "type": "color",
+          "length": 15,
+          "sort": 28
+        },
+        {
+          "parameter_name": "color_button_hover",
+          "parameter_title": "ボタン選択色",
+          "type": "color",
+          "length": 15,
+          "sort": 27
+        },
+        {
+          "parameter_name": "color_button_fg",
+          "parameter_title": "ボタン文字色",
+          "type": "color",
+          "length": 15,
+          "sort": 26
+        },
+        {
+          "parameter_name": "color_button_bg",
+          "parameter_title": "ボタン背景色",
+          "type": "color",
+          "length": 15,
+          "sort": 25
+        },
+        {
+          "parameter_name": "color_title_bg",
+          "parameter_title": "見出し背景色",
+          "type": "color",
+          "length": 15,
+          "sort": 23
+        },
+        {
+          "parameter_name": "text1",
+          "parameter_title": "商品下部説明HTML",
+          "type": "textarea",
+          "length": 10000,
+          "sort": 20
+        },
+        {
+          "parameter_name": "text0",
+          "parameter_title": "商品上部説明HTML",
+          "type": "textarea",
+          "length": 10000,
+          "sort": 19
+        },
+        {
+          "parameter_name": "henpin",
+          "parameter_title": "返品条件",
+          "type": "textarea",
+          "length": 1000,
+          "sort": 18
+        },
+        {
+          "parameter_name": "soryo",
+          "parameter_title": "送料",
+          "type": "number",
+          "length": 255,
+          "sort": 17
+        },
+        {
+          "parameter_name": "oshiharai",
+          "parameter_title": "支払方法",
+          "type": "textarea",
+          "length": 2000,
+          "sort": 16
+        },
+        {
+          "parameter_name": "hikiwatashi_houhou",
+          "parameter_title": "引渡し方法",
+          "type": "textarea",
+          "length": 1000,
+          "sort": 15
+        },
+        {
+          "parameter_name": "hikiwatashi_jiki",
+          "parameter_title": "引渡し時期",
+          "type": "textarea",
+          "length": 1000,
+          "sort": 14
+        },
+        {
+          "parameter_name": "soryo_txt",
+          "parameter_title": "送料説明",
+          "type": "text",
+          "length": 255,
+          "sort": 13
+        },
+        {
+          "parameter_name": "paytype",
+          "parameter_title": "決済方法",
+          "constant_array_name": "sec_shops_paytype",
+          "type": "dropdown",
+          "length": 1,
+          "sort": 12
+        },
+        {
+          "parameter_name": "mail",
+          "parameter_title": "メール",
+          "type": "text",
+          "length": 255,
+          "sort": 11,
+          "format_check": "email"
+        },
+        {
+          "parameter_name": "tel",
+          "parameter_title": "電話",
+          "type": "text",
+          "length": 255,
+          "sort": 10
+        },
+        {
+          "parameter_name": "address",
+          "parameter_title": "住所",
+          "type": "text",
+          "length": 255,
+          "sort": 9
+        },
+        {
+          "parameter_name": "daihyo",
+          "parameter_title": "代表者",
+          "type": "text",
+          "length": 255,
+          "sort": 8
+        },
+        {
+          "parameter_name": "company",
+          "parameter_title": "会社名",
+          "type": "text",
+          "length": 255,
+          "sort": 7
+        },
+        {
+          "parameter_name": "flg_photo4",
+          "parameter_title": "画像4の表示",
+          "constant_array_name": "sec_shops_flg_photo4",
+          "type": "dropdown",
+          "length": 1,
+          "sort": 6
+        },
+        {
+          "parameter_name": "flg_photo3",
+          "parameter_title": "画像3の表示",
+          "constant_array_name": "sec_shops_flg_photo3",
+          "type": "dropdown",
+          "length": 1,
+          "sort": 5
+        },
+        {
+          "parameter_name": "flg_photo2",
+          "parameter_title": "画像2の表示",
+          "constant_array_name": "sec_shops_flg_photo2",
+          "type": "dropdown",
+          "length": 1,
+          "sort": 4
+        },
+        {
+          "parameter_name": "flg_photo1",
+          "parameter_title": "画像1の表示",
+          "constant_array_name": "sec_shops_flg_photo1",
+          "type": "dropdown",
+          "length": 1,
+          "sort": 3
+        },
+        {
+          "parameter_name": "shopname",
+          "parameter_title": "ショップ名",
+          "type": "text",
+          "length": 255,
+          "sort": 2
+        },
+        {
+          "parameter_name": "status",
+          "parameter_title": "状態",
+          "constant_array_name": "sec_shops_status",
+          "type": "dropdown",
+          "length": 1,
+          "sort": 1
+        },
+        {
+          "parameter_name": "login_id",
+          "parameter_title": "ショップアカウント",
+          "type": "text",
+          "length": 255,
+          "sort": 0
+        }
+      ],
+      "screens": {
+        "list": [
+          {
+            "parameter_name": "shop_code",
+            "sort": "0"
+          },
+          {
+            "parameter_name": "shopname",
+            "sort": "1"
+          },
+          {
+            "parameter_name": "status",
+            "sort": "2"
+          },
+          {
+            "parameter_name": "company",
+            "sort": "3"
+          },
+          {
+            "parameter_name": "paytype",
+            "sort": "4"
+          }
+        ],
+        "search": [
+          {
+            "parameter_name": "shop_code",
+            "sort": "0"
+          },
+          {
+            "parameter_name": "shopname",
+            "sort": "1"
+          },
+          {
+            "parameter_name": "status",
+            "sort": "2"
+          },
+          {
+            "parameter_name": "company",
+            "sort": "3"
+          },
+          {
+            "parameter_name": "paytype",
+            "sort": "4"
+          }
+        ],
+        "add": [],
+        "edit": [],
+        "delete": [
+          {
+            "parameter_name": "login_id",
+            "sort": "0"
+          }
+        ],
+        "list_on_side": []
+      },
+      "buttons": [
+        {
+          "button_title": "編集",
+          "class_name": "simple_ec_shops",
+          "function_name": "edit",
+          "place": 1,
+          "code_type": [],
+          "reload": 0,
+          "close_button": 1,
+          "sort": 0,
+          "ui_mode": 0,
+          "show_button": 0,
+          "dialog_width": 1000,
+          "button_type": 0
+        },
+        {
+          "button_title": "ショップ追加",
+          "class_name": "simple_ec_shops",
+          "function_name": "add",
+          "place": 0,
+          "code_type": [],
+          "reload": 0,
+          "close_button": 1,
+          "sort": 0,
+          "ui_mode": 0,
+          "show_button": 0,
+          "dialog_width": 1000,
+          "button_type": 0
+        },
+        {
+          "button_title": "公開ページを確認",
+          "class_name": "simple_ec_admin",
+          "function_name": "public_link",
+          "place": 1,
+          "code_type": [],
+          "reload": 0,
+          "close_button": 1,
+          "sort": 1,
+          "ui_mode": 0,
+          "show_button": 0,
+          "dialog_width": 800,
+          "button_type": 0
+        }
+      ]
+    },
+    {
+      "table": {
+        "tb_name": "sec_products",
+        "menu_name": "商品",
+        "sort": 1,
+        "show_menu": 0,
+        "sortkey": "sort",
+        "sort_order": 0,
+        "screen_build_type": 0,
+        "list_type": 1,
+        "list_width": 1200,
+        "edit_width": 1000,
+        "show_id": 0,
+        "show_search_id": 0,
+        "show_duplicate": 1,
+        "show_icon_on_parent_list": 0,
+        "post_action_class": "simple_ec_hooks",
+        "description": "Simple EC Shop sample"
+      },
+      "fields": [
+        {
+          "parameter_name": "parent_id",
+          "parameter_title": "Parent ID",
+          "type": "number",
+          "length": 24,
+          "sort": 0
+        },
+        {
+          "parameter_name": "payment_available",
+          "parameter_title": "受付可否（内部管理）",
+          "type": "number",
+          "length": 1,
+          "sort": 0
+        },
+        {
+          "parameter_name": "owner_account",
+          "parameter_title": "ショップ",
+          "constant_array_name": "table/sec_shops",
+          "display_fields_for_dropdown": "{$shopname} ({$shop_code})",
+          "type": "dropdown",
+          "length": 24,
+          "sort": 0
+        },
+        {
+          "parameter_name": "photo",
+          "parameter_title": "商品画像",
+          "type": "image",
+          "length": 24,
+          "sort": 32,
+          "image_width": 300,
+          "image_width_thumbnail": 120
+        },
+        {
+          "parameter_name": "time",
+          "parameter_title": "開催時間",
+          "type": "text",
+          "length": 255,
+          "sort": 31
+        },
+        {
+          "parameter_name": "date",
+          "parameter_title": "開催日",
+          "type": "date",
+          "length": 15,
+          "sort": 30
+        },
+        {
+          "parameter_name": "hyoji",
+          "parameter_title": "表示状態",
+          "constant_array_name": "sec_products_hyoji",
+          "type": "dropdown",
+          "length": 1,
+          "sort": 29
+        },
+        {
+          "parameter_name": "teiki_shokai",
+          "parameter_title": "契約時課金",
+          "constant_array_name": "sec_products_teiki_shokai",
+          "type": "dropdown",
+          "length": 1,
+          "sort": 27
+        },
+        {
+          "parameter_name": "teiki_getugaku",
+          "parameter_title": "月額料金（税別）",
+          "type": "number",
+          "length": 24,
+          "sort": 26
+        },
+        {
+          "parameter_name": "teiki_shohin",
+          "parameter_title": "定期購入ボタン名",
+          "type": "text",
+          "length": 255,
+          "sort": 25
+        },
+        {
+          "parameter_name": "zaiko_check",
+          "parameter_title": "在庫上限",
+          "constant_array_name": "sec_products_zaiko_check",
+          "type": "dropdown",
+          "length": 1,
+          "sort": 24
+        },
+        {
+          "parameter_name": "purchase_limit",
+          "parameter_title": "購入上限",
+          "type": "number",
+          "length": 255,
+          "sort": 23
+        },
+        {
+          "parameter_name": "unit",
+          "parameter_title": "単位",
+          "type": "text",
+          "length": 255,
+          "sort": 22
+        },
+        {
+          "parameter_name": "sort",
+          "parameter_title": "表示順",
+          "type": "number",
+          "length": 24,
+          "sort": 21
+        },
+        {
+          "parameter_name": "category_id",
+          "parameter_title": "カテゴリー",
+          "constant_array_name": "table/sec_categories",
+          "display_fields_for_dropdown": "{$category}",
+          "type": "dropdown",
+          "length": 24,
+          "sort": 20
+        },
+        {
+          "parameter_name": "zaiko5",
+          "parameter_title": "種類5の在庫・参加枠",
+          "type": "number",
+          "length": 255,
+          "sort": 19
+        },
+        {
+          "parameter_name": "price5",
+          "parameter_title": "種類5の価格（税別）",
+          "type": "number",
+          "length": 255,
+          "sort": 18
+        },
+        {
+          "parameter_name": "code5",
+          "parameter_title": "種類5（ボタン表示）",
+          "type": "text",
+          "length": 255,
+          "sort": 17
+        },
+        {
+          "parameter_name": "zaiko4",
+          "parameter_title": "種類4の在庫・参加枠",
+          "type": "number",
+          "length": 255,
+          "sort": 16
+        },
+        {
+          "parameter_name": "price4",
+          "parameter_title": "種類4の価格（税別）",
+          "type": "number",
+          "length": 255,
+          "sort": 15
+        },
+        {
+          "parameter_name": "code4",
+          "parameter_title": "種類4（ボタン表示）",
+          "type": "text",
+          "length": 255,
+          "sort": 14
+        },
+        {
+          "parameter_name": "zaiko3",
+          "parameter_title": "種類3の在庫・参加枠",
+          "type": "number",
+          "length": 255,
+          "sort": 13
+        },
+        {
+          "parameter_name": "price3",
+          "parameter_title": "種類3の価格（税別）",
+          "type": "number",
+          "length": 255,
+          "sort": 12
+        },
+        {
+          "parameter_name": "code3",
+          "parameter_title": "種類3（ボタン表示）",
+          "type": "text",
+          "length": 255,
+          "sort": 11
+        },
+        {
+          "parameter_name": "zaiko2",
+          "parameter_title": "種類2の在庫・参加枠",
+          "type": "number",
+          "length": 255,
+          "sort": 10
+        },
+        {
+          "parameter_name": "price2",
+          "parameter_title": "種類2の価格（税別）",
+          "type": "number",
+          "length": 255,
+          "sort": 9
+        },
+        {
+          "parameter_name": "code2",
+          "parameter_title": "種類2（ボタン表示）",
+          "type": "text",
+          "length": 255,
+          "sort": 8
+        },
+        {
+          "parameter_name": "zaiko1",
+          "parameter_title": "種類1の在庫・参加枠",
+          "type": "number",
+          "length": 255,
+          "sort": 7
+        },
+        {
+          "parameter_name": "price1",
+          "parameter_title": "種類1の価格（税別）",
+          "type": "number",
+          "length": 255,
+          "sort": 6
+        },
+        {
+          "parameter_name": "code1",
+          "parameter_title": "種類1（ボタン表示）",
+          "type": "text",
+          "length": 255,
+          "sort": 5
+        },
+        {
+          "parameter_name": "detail",
+          "parameter_title": "商品説明",
+          "type": "textarea",
+          "length": 5000,
+          "sort": 4
+        },
+        {
+          "parameter_name": "zeiritu",
+          "parameter_title": "税率（％）",
+          "type": "number",
+          "length": 2,
+          "sort": 3
+        },
+        {
+          "parameter_name": "name",
+          "parameter_title": "商品名",
+          "type": "text",
+          "length": 255,
+          "sort": 2
+        },
+        {
+          "parameter_name": "type",
+          "parameter_title": "受付種別",
+          "constant_array_name": "sec_product_types",
+          "type": "dropdown",
+          "length": 1,
+          "sort": 1
+        },
+        {
+          "parameter_name": "login_id",
+          "parameter_title": "ショップアカウント",
+          "type": "text",
+          "length": 255,
+          "sort": 0
+        }
+      ],
+      "screens": {
+        "list": [
+          {
+            "parameter_name": "owner_account",
+            "sort": "0"
+          },
+          {
+            "parameter_name": "name",
+            "sort": "1"
+          },
+          {
+            "parameter_name": "type",
+            "sort": "2"
+          },
+          {
+            "parameter_name": "price1",
+            "sort": "3"
+          },
+          {
+            "parameter_name": "hyoji",
+            "sort": "4"
+          }
+        ],
+        "search": [
+          {
+            "parameter_name": "name",
+            "sort": "1"
+          },
+          {
+            "parameter_name": "type",
+            "sort": "2"
+          },
+          {
+            "parameter_name": "hyoji",
+            "sort": "4"
+          }
+        ],
+        "add": [],
+        "edit": [],
+        "delete": [
+          {
+            "parameter_name": "login_id",
+            "sort": "0"
+          }
+        ],
+        "list_on_side": [
+          {
+            "parameter_name": "name",
+            "sort": "0"
+          },
+          {
+            "parameter_name": "type",
+            "sort": "1"
+          },
+          {
+            "parameter_name": "hyoji",
+            "sort": "2"
+          }
+        ]
+      },
+      "buttons": [
+        {
+          "button_title": "編集",
+          "class_name": "simple_ec_products",
+          "function_name": "edit",
+          "place": 3,
+          "code_type": [],
+          "reload": 0,
+          "close_button": 1,
+          "sort": 0,
+          "ui_mode": 0,
+          "show_button": 0,
+          "dialog_width": 1000,
+          "button_type": 0
+        },
+        {
+          "button_title": "商品追加",
+          "class_name": "simple_ec_products",
+          "function_name": "add",
+          "place": 2,
+          "code_type": [],
+          "reload": 0,
+          "close_button": 1,
+          "sort": 0,
+          "ui_mode": 0,
+          "show_button": 0,
+          "dialog_width": 1000,
+          "button_type": 0
+        }
+      ],
+      "parent": "sec_shops"
+    },
+    {
+      "table": {
+        "tb_name": "sec_categories",
+        "menu_name": "カテゴリー",
+        "sort": 2,
+        "show_menu": 0,
+        "sortkey": "sort",
+        "sort_order": 0,
+        "screen_build_type": 0,
+        "list_type": 1,
+        "list_width": 1200,
+        "edit_width": 1000,
+        "show_id": 0,
+        "show_search_id": 0,
+        "show_duplicate": 0,
+        "show_icon_on_parent_list": 0,
+        "post_action_class": "simple_ec_hooks",
+        "description": "Simple EC Shop sample"
+      },
+      "fields": [
+        {
+          "parameter_name": "parent_id",
+          "parameter_title": "Parent ID",
+          "type": "number",
+          "length": 24,
+          "sort": 0
+        },
+        {
+          "parameter_name": "owner_account",
+          "parameter_title": "ショップ",
+          "constant_array_name": "table/sec_shops",
+          "display_fields_for_dropdown": "{$shopname} ({$shop_code})",
+          "type": "dropdown",
+          "length": 24,
+          "sort": 0
+        },
+        {
+          "parameter_name": "login_id",
+          "parameter_title": "ショップアカウント",
+          "type": "text",
+          "length": 255,
+          "sort": 2
+        },
+        {
+          "parameter_name": "sort",
+          "parameter_title": "表示順",
+          "type": "number",
+          "length": 10,
+          "sort": 1
+        },
+        {
+          "parameter_name": "category",
+          "parameter_title": "カテゴリー名",
+          "type": "text",
+          "length": 255,
+          "sort": 0
+        }
+      ],
+      "screens": {
+        "list": [
+          {
+            "parameter_name": "owner_account",
+            "sort": "0"
+          },
+          {
+            "parameter_name": "category",
+            "sort": "1"
+          }
+        ],
+        "search": [
+          {
+            "parameter_name": "category",
+            "sort": "1"
+          }
+        ],
+        "add": [
+          {
+            "parameter_name": "category",
+            "sort": "0"
+          }
+        ],
+        "edit": [
+          {
+            "parameter_name": "category",
+            "sort": "0"
+          }
+        ],
+        "delete": [
+          {
+            "parameter_name": "login_id",
+            "sort": "0"
+          }
+        ],
+        "list_on_side": [
+          {
+            "parameter_name": "category",
+            "sort": "0"
+          }
+        ]
+      },
+      "buttons": [],
+      "parent": "sec_shops"
+    },
+    {
+      "table": {
+        "tb_name": "sec_orders",
+        "menu_name": "受注",
+        "sort": 3,
+        "show_menu": 1,
+        "sortkey": "id",
+        "sort_order": 3,
+        "screen_build_type": 0,
+        "list_type": 0,
+        "list_width": 1000,
+        "edit_width": 1000,
+        "show_id": 1,
+        "show_search_id": 0,
+        "show_duplicate": 0,
+        "show_icon_on_parent_list": 0,
+        "post_action_class": "",
+        "description": "Simple EC Shop sample"
+      },
+      "fields": [
+        {
+          "parameter_name": "owner_account",
+          "parameter_title": "ショップ",
+          "constant_array_name": "table/sec_shops",
+          "display_fields_for_dropdown": "{$shopname} ({$shop_code})",
+          "type": "dropdown",
+          "length": 24,
+          "sort": 0
+        },
+        {
+          "parameter_name": "metadata_json",
+          "parameter_title": "処理メタデータ",
+          "type": "textarea",
+          "length": 65000,
+          "sort": 26
+        },
+        {
+          "parameter_name": "record_key",
+          "parameter_title": "内部識別キー",
+          "type": "text",
+          "length": 255,
+          "sort": 25
+        },
+        {
+          "parameter_name": "type",
+          "parameter_title": "受付種別",
+          "constant_array_name": "sec_product_types",
+          "type": "dropdown",
+          "length": 1,
+          "sort": 24
+        },
+        {
+          "parameter_name": "paytype",
+          "parameter_title": "決済方法",
+          "type": "text",
+          "length": 255,
+          "sort": 21
+        },
+        {
+          "parameter_name": "memo",
+          "parameter_title": "備考",
+          "type": "textarea",
+          "length": 1000,
+          "sort": 20
+        },
+        {
+          "parameter_name": "gokei",
+          "parameter_title": "合計",
+          "type": "number",
+          "length": 255,
+          "sort": 19
+        },
+        {
+          "parameter_name": "zei",
+          "parameter_title": "消費税",
+          "type": "number",
+          "length": 255,
+          "sort": 18
+        },
+        {
+          "parameter_name": "soryo",
+          "parameter_title": "送料",
+          "type": "number",
+          "length": 255,
+          "sort": 17
+        },
+        {
+          "parameter_name": "shokei",
+          "parameter_title": "小計",
+          "type": "number",
+          "length": 255,
+          "sort": 16
+        },
+        {
+          "parameter_name": "order_time",
+          "parameter_title": "注文時刻",
+          "type": "text",
+          "length": 255,
+          "sort": 15
+        },
+        {
+          "parameter_name": "order_date",
+          "parameter_title": "注文日",
+          "type": "text",
+          "length": 255,
+          "sort": 14
+        },
+        {
+          "parameter_name": "mail",
+          "parameter_title": "メール",
+          "type": "text",
+          "length": 255,
+          "sort": 13,
+          "format_check": "email"
+        },
+        {
+          "parameter_name": "tel",
+          "parameter_title": "電話",
+          "type": "text",
+          "length": 255,
+          "sort": 12
+        },
+        {
+          "parameter_name": "address",
+          "parameter_title": "住所",
+          "type": "text",
+          "length": 255,
+          "sort": 11
+        },
+        {
+          "parameter_name": "zipcode",
+          "parameter_title": "郵便番号",
+          "type": "text",
+          "length": 255,
+          "sort": 10
+        },
+        {
+          "parameter_name": "furigana",
+          "parameter_title": "ふりがな",
+          "type": "text",
+          "length": 255,
+          "sort": 9
+        },
+        {
+          "parameter_name": "name",
+          "parameter_title": "送付先名称",
+          "type": "text",
+          "length": 255,
+          "sort": 8
+        },
+        {
+          "parameter_name": "from_tel",
+          "parameter_title": "申込者電話",
+          "type": "text",
+          "length": 255,
+          "sort": 7
+        },
+        {
+          "parameter_name": "from_address",
+          "parameter_title": "申込者住所",
+          "type": "text",
+          "length": 255,
+          "sort": 6
+        },
+        {
+          "parameter_name": "from_zipcode",
+          "parameter_title": "申込者郵便番号",
+          "type": "text",
+          "length": 255,
+          "sort": 5
+        },
+        {
+          "parameter_name": "from_furigana",
+          "parameter_title": "申込者ふりがな",
+          "type": "text",
+          "length": 255,
+          "sort": 4
+        },
+        {
+          "parameter_name": "from_name",
+          "parameter_title": "申込者氏名",
+          "type": "text",
+          "length": 255,
+          "sort": 3
+        },
+        {
+          "parameter_name": "order_code",
+          "parameter_title": "受注番号",
+          "type": "text",
+          "length": 255,
+          "sort": 2
+        },
+        {
+          "parameter_name": "status",
+          "parameter_title": "状態",
+          "constant_array_name": "sec_orders_status",
+          "type": "dropdown",
+          "length": 1,
+          "sort": 1
+        },
+        {
+          "parameter_name": "login_id",
+          "parameter_title": "ショップアカウント",
+          "type": "text",
+          "length": 255,
+          "sort": 0
+        }
+      ],
+      "screens": {
+        "list": [
+          {
+            "parameter_name": "order_date",
+            "sort": "-1",
+            "no_wrap": 1
+          },
+          {
+            "parameter_name": "owner_account",
+            "sort": "0"
+          },
+          {
+            "parameter_name": "order_code",
+            "sort": "1",
+            "no_wrap": 1
+          },
+          {
+            "parameter_name": "name",
+            "sort": "2"
+          },
+          {
+            "parameter_name": "from_name",
+            "sort": "2.5"
+          },
+          {
+            "parameter_name": "gokei",
+            "sort": "3"
+          },
+          {
+            "parameter_name": "status",
+            "sort": "4"
+          }
+        ],
+        "search": [
+          {
+            "parameter_name": "owner_account",
+            "sort": "0"
+          },
+          {
+            "parameter_name": "order_code",
+            "sort": "1"
+          },
+          {
+            "parameter_name": "from_name",
+            "sort": "2"
+          },
+          {
+            "parameter_name": "status",
+            "sort": "3"
+          },
+          {
+            "parameter_name": "gokei",
+            "sort": "4"
+          }
+        ],
+        "add": [],
+        "edit": [
+          {
+            "parameter_name": "status",
+            "sort": "1"
+          },
+          {
+            "parameter_name": "from_name",
+            "sort": "3"
+          },
+          {
+            "parameter_name": "from_furigana",
+            "sort": "4"
+          },
+          {
+            "parameter_name": "from_zipcode",
+            "sort": "5"
+          },
+          {
+            "parameter_name": "from_address",
+            "sort": "6"
+          },
+          {
+            "parameter_name": "from_tel",
+            "sort": "7"
+          },
+          {
+            "parameter_name": "name",
+            "sort": "8"
+          },
+          {
+            "parameter_name": "furigana",
+            "sort": "9"
+          },
+          {
+            "parameter_name": "zipcode",
+            "sort": "10"
+          },
+          {
+            "parameter_name": "address",
+            "sort": "11"
+          },
+          {
+            "parameter_name": "tel",
+            "sort": "12"
+          },
+          {
+            "parameter_name": "mail",
+            "sort": "13"
+          },
+          {
+            "parameter_name": "memo",
+            "sort": "20"
+          }
+        ],
+        "delete": [],
+        "list_on_side": []
+      },
+      "buttons": [
+        {
+          "button_title": "受注CSV",
+          "class_name": "simple_ec_admin",
+          "function_name": "csv_dialog",
+          "place": 0,
+          "code_type": [],
+          "reload": 0,
+          "close_button": 1,
+          "sort": 0,
+          "ui_mode": 0,
+          "show_button": 0,
+          "dialog_width": 800,
+          "button_type": 0
+        },
+        {
+          "button_title": "帳票",
+          "class_name": "simple_ec_admin",
+          "function_name": "pdf_dialog",
+          "place": 1,
+          "code_type": [],
+          "reload": 0,
+          "close_button": 1,
+          "sort": 1,
+          "ui_mode": 0,
+          "show_button": 0,
+          "dialog_width": 800,
+          "button_type": 0
+        },
+        {
+          "button_title": "明細",
+          "class_name": "simple_ec_admin",
+          "function_name": "details",
+          "place": 1,
+          "code_type": [],
+          "reload": 0,
+          "close_button": 1,
+          "sort": 1,
+          "ui_mode": 0,
+          "show_button": 0,
+          "dialog_width": 800,
+          "button_type": 0
+        }
+      ]
+    },
+    {
+      "table": {
+        "tb_name": "sec_items",
+        "menu_name": "受注明細",
+        "sort": 4,
+        "show_menu": 0,
+        "sortkey": "id",
+        "sort_order": 0,
+        "screen_build_type": 0,
+        "list_type": 0,
+        "list_width": 1000,
+        "edit_width": 1000,
+        "show_id": 0,
+        "show_search_id": 0,
+        "show_duplicate": 0,
+        "show_icon_on_parent_list": 0,
+        "post_action_class": "",
+        "description": "Simple EC Shop sample"
+      },
+      "fields": [
+        {
+          "parameter_name": "owner_account",
+          "parameter_title": "ショップ",
+          "constant_array_name": "table/sec_shops",
+          "display_fields_for_dropdown": "{$shopname} ({$shop_code})",
+          "type": "dropdown",
+          "length": 24,
+          "sort": 0
+        },
+        {
+          "parameter_name": "metadata_json",
+          "parameter_title": "処理メタデータ",
+          "type": "textarea",
+          "length": 65000,
+          "sort": 9
+        },
+        {
+          "parameter_name": "record_key",
+          "parameter_title": "内部識別キー",
+          "type": "text",
+          "length": 255,
+          "sort": 8
+        },
+        {
+          "parameter_name": "price",
+          "parameter_title": "price",
+          "type": "number",
+          "length": 255,
+          "sort": 7
+        },
+        {
+          "parameter_name": "count",
+          "parameter_title": "count",
+          "type": "number",
+          "length": 255,
+          "sort": 6
+        },
+        {
+          "parameter_name": "option",
+          "parameter_title": "option",
+          "type": "text",
+          "length": 255,
+          "sort": 5
+        },
+        {
+          "parameter_name": "code",
+          "parameter_title": "code",
+          "type": "text",
+          "length": 255,
+          "sort": 4
+        },
+        {
+          "parameter_name": "name",
+          "parameter_title": "商品名",
+          "type": "text",
+          "length": 255,
+          "sort": 3
+        },
+        {
+          "parameter_name": "shohin_id",
+          "parameter_title": "商品",
+          "constant_array_name": "table/sec_products",
+          "display_fields_for_dropdown": "{$name}",
+          "type": "dropdown",
+          "length": 24,
+          "sort": 2
+        },
+        {
+          "parameter_name": "order_id",
+          "parameter_title": "受注",
+          "constant_array_name": "table/sec_orders",
+          "display_fields_for_dropdown": "{$order_code}",
+          "type": "dropdown",
+          "length": 24,
+          "sort": 1
+        },
+        {
+          "parameter_name": "login_id",
+          "parameter_title": "ショップアカウント",
+          "type": "text",
+          "length": 255,
+          "sort": 0
+        }
+      ],
+      "screens": {
+        "list": [
+          {
+            "parameter_name": "owner_account",
+            "sort": "0"
+          },
+          {
+            "parameter_name": "order_id",
+            "sort": "1"
+          },
+          {
+            "parameter_name": "name",
+            "sort": "2"
+          },
+          {
+            "parameter_name": "count",
+            "sort": "3"
+          },
+          {
+            "parameter_name": "price",
+            "sort": "4"
+          }
+        ],
+        "search": [
+          {
+            "parameter_name": "owner_account",
+            "sort": "0"
+          },
+          {
+            "parameter_name": "order_id",
+            "sort": "1"
+          },
+          {
+            "parameter_name": "name",
+            "sort": "2"
+          },
+          {
+            "parameter_name": "count",
+            "sort": "3"
+          },
+          {
+            "parameter_name": "price",
+            "sort": "4"
+          }
+        ],
+        "add": [],
+        "edit": [],
+        "delete": [],
+        "list_on_side": []
+      },
+      "buttons": []
+    },
+    {
+      "table": {
+        "tb_name": "sec_contracts",
+        "menu_name": "サブスクリプション",
+        "sort": 5,
+        "show_menu": 1,
+        "sortkey": "id",
+        "sort_order": 3,
+        "screen_build_type": 0,
+        "list_type": 0,
+        "list_width": 1000,
+        "edit_width": 1000,
+        "show_id": 1,
+        "show_search_id": 0,
+        "show_duplicate": 0,
+        "show_icon_on_parent_list": 0,
+        "post_action_class": "",
+        "description": "Simple EC Shop sample"
+      },
+      "fields": [
+        {
+          "parameter_name": "product_id",
+          "parameter_title": "申込商品",
+          "type": "number",
+          "length": 24,
+          "sort": 0
+        },
+        {
+          "parameter_name": "owner_account",
+          "parameter_title": "ショップ",
+          "constant_array_name": "table/sec_shops",
+          "display_fields_for_dropdown": "{$shopname} ({$shop_code})",
+          "type": "dropdown",
+          "length": 24,
+          "sort": 0
+        },
+        {
+          "parameter_name": "metadata_json",
+          "parameter_title": "処理メタデータ",
+          "type": "textarea",
+          "length": 65000,
+          "sort": 20
+        },
+        {
+          "parameter_name": "record_key",
+          "parameter_title": "内部識別キー",
+          "type": "text",
+          "length": 255,
+          "sort": 19
+        },
+        {
+          "parameter_name": "card_token",
+          "parameter_title": "カード登録リンク",
+          "type": "text",
+          "length": 128,
+          "sort": 18
+        },
+        {
+          "parameter_name": "error",
+          "parameter_title": "決済エラー",
+          "type": "text",
+          "length": 255,
+          "sort": 15
+        },
+        {
+          "parameter_name": "date_last_kessai",
+          "parameter_title": "前回決済日",
+          "type": "date",
+          "length": 15,
+          "sort": 14
+        },
+        {
+          "parameter_name": "date_shoki_kessai",
+          "parameter_title": "初回決済日",
+          "type": "date",
+          "length": 15,
+          "sort": 13
+        },
+        {
+          "parameter_name": "end_date",
+          "parameter_title": "終了日",
+          "type": "date",
+          "length": 15,
+          "sort": 12
+        },
+        {
+          "parameter_name": "regist_date",
+          "parameter_title": "契約日",
+          "type": "date",
+          "length": 15,
+          "sort": 11
+        },
+        {
+          "parameter_name": "getugaku",
+          "parameter_title": "月額料金（税込）",
+          "type": "number",
+          "length": 24,
+          "sort": 10
+        },
+        {
+          "parameter_name": "memo",
+          "parameter_title": "備考",
+          "type": "textarea",
+          "length": 1000,
+          "sort": 9
+        },
+        {
+          "parameter_name": "address",
+          "parameter_title": "住所",
+          "type": "text",
+          "length": 255,
+          "sort": 8
+        },
+        {
+          "parameter_name": "zipcode",
+          "parameter_title": "郵便番号",
+          "type": "text",
+          "length": 255,
+          "sort": 7
+        },
+        {
+          "parameter_name": "tel",
+          "parameter_title": "電話",
+          "type": "text",
+          "length": 255,
+          "sort": 6
+        },
+        {
+          "parameter_name": "mail",
+          "parameter_title": "メール",
+          "type": "text",
+          "length": 255,
+          "sort": 5,
+          "format_check": "email"
+        },
+        {
+          "parameter_name": "name",
+          "parameter_title": "契約者氏名",
+          "type": "text",
+          "length": 255,
+          "sort": 4
+        },
+        {
+          "parameter_name": "item_name",
+          "parameter_title": "契約名",
+          "type": "text",
+          "length": 255,
+          "sort": 3
+        },
+        {
+          "parameter_name": "login_id",
+          "parameter_title": "ショップアカウント",
+          "type": "text",
+          "length": 255,
+          "sort": 1
+        },
+        {
+          "parameter_name": "status",
+          "parameter_title": "状態",
+          "constant_array_name": "sec_contracts_status",
+          "type": "dropdown",
+          "length": 1,
+          "sort": 0
+        }
+      ],
+      "screens": {
+        "list": [
+          {
+            "parameter_name": "owner_account",
+            "sort": "0"
+          },
+          {
+            "parameter_name": "item_name",
+            "sort": "1"
+          },
+          {
+            "parameter_name": "name",
+            "sort": "2"
+          },
+          {
+            "parameter_name": "getugaku",
+            "sort": "3"
+          },
+          {
+            "parameter_name": "status",
+            "sort": "4"
+          }
+        ],
+        "search": [
+          {
+            "parameter_name": "owner_account",
+            "sort": "0"
+          },
+          {
+            "parameter_name": "item_name",
+            "sort": "1"
+          },
+          {
+            "parameter_name": "name",
+            "sort": "2"
+          },
+          {
+            "parameter_name": "status",
+            "sort": "3"
+          }
+        ],
+        "add": [],
+        "edit": [],
+        "delete": [],
+        "list_on_side": []
+      },
+      "buttons": [
+        {
+          "button_title": "決済履歴",
+          "class_name": "simple_ec_admin",
+          "function_name": "contract_history",
+          "place": 1,
+          "code_type": [],
+          "reload": 0,
+          "close_button": 1,
+          "sort": 0,
+          "ui_mode": 0,
+          "show_button": 0,
+          "dialog_width": 1000,
+          "button_type": 0
+        },
+        {
+          "button_title": "カード登録リンク",
+          "class_name": "simple_ec_admin",
+          "function_name": "card_link",
+          "place": 1,
+          "code_type": [],
+          "reload": 0,
+          "close_button": 1,
+          "sort": 1,
+          "ui_mode": 0,
+          "show_button": 0,
+          "dialog_width": 800,
+          "button_type": 0
+        },
+        {
+          "button_title": "契約編集",
+          "class_name": "simple_ec_admin",
+          "function_name": "contract_dialog",
+          "place": 1,
+          "code_type": [],
+          "reload": 0,
+          "close_button": 1,
+          "sort": 1,
+          "ui_mode": 0,
+          "show_button": 0,
+          "dialog_width": 800,
+          "button_type": 0
+        }
+      ]
+    },
+    {
+      "table": {
+        "tb_name": "sec_payments",
+        "menu_name": "決済履歴",
+        "sort": 7,
+        "show_menu": 1,
+        "sortkey": "id",
+        "sort_order": 0,
+        "screen_build_type": 0,
+        "list_type": 0,
+        "list_width": 1000,
+        "edit_width": 1000,
+        "show_id": 0,
+        "show_search_id": 0,
+        "show_duplicate": 0,
+        "show_icon_on_parent_list": 0,
+        "post_action_class": "",
+        "description": "Simple EC Shop sample"
+      },
+      "fields": [
+        {
+          "parameter_name": "refunded_at",
+          "parameter_title": "返金日時",
+          "type": "datetime",
+          "length": 15,
+          "sort": 0
+        },
+        {
+          "parameter_name": "refund_error",
+          "parameter_title": "返金エラー",
+          "type": "textarea",
+          "length": 2000,
+          "sort": 0
+        },
+        {
+          "parameter_name": "refund_state",
+          "parameter_title": "返金処理状態",
+          "type": "text",
+          "length": 20,
+          "sort": 0
+        },
+        {
+          "parameter_name": "refund_id",
+          "parameter_title": "返金ID",
+          "type": "text",
+          "length": 255,
+          "sort": 0
+        },
+        {
+          "parameter_name": "refund_key",
+          "parameter_title": "返金処理キー",
+          "type": "text",
+          "length": 40,
+          "sort": 0
+        },
+        {
+          "parameter_name": "environment",
+          "parameter_title": "決済環境",
+          "type": "text",
+          "length": 20,
+          "sort": 0
+        },
+        {
+          "parameter_name": "status",
+          "parameter_title": "ステータス",
+          "constant_array_name": "sec_payments_status",
+          "type": "dropdown",
+          "default_value": "1",
+          "length": 24,
+          "sort": 0
+        },
+        {
+          "parameter_name": "mail",
+          "parameter_title": "メールアドレス",
+          "type": "text",
+          "length": 255,
+          "sort": 0,
+          "format_check": "email"
+        },
+        {
+          "parameter_name": "name",
+          "parameter_title": "支払者氏名",
+          "type": "text",
+          "length": 255,
+          "sort": 0
+        },
+        {
+          "parameter_name": "result",
+          "parameter_title": "結果",
+          "type": "text",
+          "length": 100,
+          "sort": 0
+        },
+        {
+          "parameter_name": "source",
+          "parameter_title": "記録種別",
+          "type": "text",
+          "length": 60,
+          "sort": 0
+        },
+        {
+          "parameter_name": "created_at",
+          "parameter_title": "日時",
+          "type": "datetime",
+          "length": 15,
+          "sort": 9
+        },
+        {
+          "parameter_name": "error",
+          "parameter_title": "決済エラー",
+          "type": "textarea",
+          "length": 2000,
+          "sort": 8
+        },
+        {
+          "parameter_name": "payment_id",
+          "parameter_title": "決済ID",
+          "type": "text",
+          "length": 255,
+          "sort": 7
+        },
+        {
+          "parameter_name": "idempotency_key",
+          "parameter_title": "処理キー",
+          "type": "text",
+          "length": 255,
+          "sort": 6
+        },
+        {
+          "parameter_name": "state",
+          "parameter_title": "結果",
+          "type": "text",
+          "length": 40,
+          "sort": 5
+        },
+        {
+          "parameter_name": "amount",
+          "parameter_title": "金額",
+          "type": "number",
+          "length": 24,
+          "sort": 4,
+          "display_format": 2
+        },
+        {
+          "parameter_name": "period",
+          "parameter_title": "対象月",
+          "type": "text",
+          "length": 20,
+          "sort": 3
+        },
+        {
+          "parameter_name": "order_id",
+          "parameter_title": "受注",
+          "constant_array_name": "table/sec_orders",
+          "display_fields_for_dropdown": "{$order_code}",
+          "type": "dropdown",
+          "length": 24,
+          "sort": 2
+        },
+        {
+          "parameter_name": "contract_id",
+          "parameter_title": "サブスクリプション",
+          "constant_array_name": "table/sec_contracts",
+          "display_fields_for_dropdown": "{$item_name} / {$name}",
+          "type": "dropdown",
+          "length": 24,
+          "sort": 1
+        },
+        {
+          "parameter_name": "login_id",
+          "parameter_title": "ショップアカウント",
+          "type": "text",
+          "length": 255,
+          "sort": 0
+        }
+      ],
+      "screens": {
+        "list": [
+          {
+            "parameter_name": "created_at",
+            "sort": "0"
+          },
+          {
+            "parameter_name": "name",
+            "sort": "1"
+          },
+          {
+            "parameter_name": "mail",
+            "sort": "2"
+          },
+          {
+            "parameter_name": "amount",
+            "sort": "3"
+          },
+          {
+            "parameter_name": "status",
+            "sort": "4"
+          }
+        ],
+        "search": [
+          {
+            "parameter_name": "name",
+            "sort": "1"
+          },
+          {
+            "parameter_name": "mail",
+            "sort": "2"
+          },
+          {
+            "parameter_name": "amount",
+            "sort": "3"
+          },
+          {
+            "parameter_name": "status",
+            "sort": "4"
+          }
+        ],
+        "add": [],
+        "edit": [],
+        "delete": [],
+        "list_on_side": []
+      },
+      "buttons": [
+        {
+          "button_title": "返金",
+          "class_name": "simple_ec_admin",
+          "function_name": "refund_dialog",
+          "place": 1,
+          "code_type": [],
+          "reload": 0,
+          "close_button": 1,
+          "sort": 0,
+          "ui_mode": 0,
+          "show_button": 0,
+          "dialog_width": 700,
+          "button_type": 0
+        }
+      ]
+    },
+    {
+      "table": {
+        "tb_name": "sec_runtime",
+        "menu_name": "ショップ運用設定",
+        "sort": 8,
+        "show_menu": 1,
+        "sortkey": "id",
+        "sort_order": 0,
+        "screen_build_type": 0,
+        "list_type": 3,
+        "list_width": 1000,
+        "edit_width": 1000,
+        "show_id": 0,
+        "show_search_id": 0,
+        "show_duplicate": 0,
+        "show_icon_on_parent_list": 0,
+        "post_action_class": "",
+        "description": "Simple EC Shop sample"
+      },
+      "fields": [
+        {
+          "parameter_name": "mail_enabled",
+          "parameter_title": "顧客通知",
+          "constant_array_name": "sec_runtime_mail_enabled",
+          "type": "dropdown",
+          "default_value": "0",
+          "length": 24,
+          "sort": 3
+        },
+        {
+          "parameter_name": "cron_enabled",
+          "parameter_title": "定期決済",
+          "constant_array_name": "sec_runtime_cron_enabled",
+          "type": "dropdown",
+          "default_value": "0",
+          "length": 24,
+          "sort": 2
+        },
+        {
+          "parameter_name": "live_enabled",
+          "parameter_title": "受付・決済",
+          "constant_array_name": "sec_runtime_live_enabled",
+          "type": "dropdown",
+          "default_value": "0",
+          "length": 24,
+          "sort": 1
+        },
+        {
+          "parameter_name": "recurring_start_date",
+          "parameter_title": "定期課金開始日",
+          "parameter_description": "この日付の属する月から課金対象。定期課金を使う場合に設定。",
+          "type": "date",
+          "length": 15,
+          "sort": 10
+        }
+      ],
+      "screens": {
+        "list": [],
+        "search": [],
+        "add": [],
+        "edit": [
+          {
+            "parameter_name": "live_enabled",
+            "sort": 0
+          },
+          {
+            "parameter_name": "mail_enabled",
+            "sort": 1
+          },
+          {
+            "parameter_name": "cron_enabled",
+            "sort": 2
+          },
+          {
+            "parameter_name": "recurring_start_date",
+            "sort": 3
+          }
+        ],
+        "delete": [],
+        "list_on_side": []
+      },
+      "buttons": []
+    },
+    {
+      "table": {
+        "tb_name": "sec_outbox",
+        "menu_name": "通知履歴",
+        "sort": 9,
+        "show_menu": 0,
+        "sortkey": "id",
+        "sort_order": 0,
+        "screen_build_type": 0,
+        "list_type": 0,
+        "list_width": 1000,
+        "edit_width": 1000,
+        "show_id": 0,
+        "show_search_id": 0,
+        "show_duplicate": 0,
+        "show_icon_on_parent_list": 0,
+        "post_action_class": "",
+        "description": "Simple EC Shop sample"
+      },
+      "fields": [
+        {
+          "parameter_name": "state",
+          "parameter_title": "送信状態",
+          "type": "text",
+          "length": 40,
+          "sort": 5
+        },
+        {
+          "parameter_name": "body",
+          "parameter_title": "本文",
+          "type": "textarea",
+          "length": 16000,
+          "sort": 4
+        },
+        {
+          "parameter_name": "subject",
+          "parameter_title": "件名",
+          "type": "text",
+          "length": 255,
+          "sort": 3
+        },
+        {
+          "parameter_name": "recipient",
+          "parameter_title": "宛先",
+          "type": "text",
+          "length": 255,
+          "sort": 2
+        },
+        {
+          "parameter_name": "event_key",
+          "parameter_title": "通知キー",
+          "type": "text",
+          "length": 255,
+          "sort": 1
+        },
+        {
+          "parameter_name": "login_id",
+          "parameter_title": "ショップアカウント",
+          "type": "text",
+          "length": 255,
+          "sort": 0
+        }
+      ],
+      "screens": {
+        "list": [
+          {
+            "parameter_name": "login_id",
+            "sort": "0"
+          },
+          {
+            "parameter_name": "event_key",
+            "sort": "1"
+          },
+          {
+            "parameter_name": "recipient",
+            "sort": "2"
+          },
+          {
+            "parameter_name": "subject",
+            "sort": "3"
+          }
+        ],
+        "search": [
+          {
+            "parameter_name": "login_id",
+            "sort": "0"
+          },
+          {
+            "parameter_name": "event_key",
+            "sort": "1"
+          },
+          {
+            "parameter_name": "recipient",
+            "sort": "2"
+          },
+          {
+            "parameter_name": "subject",
+            "sort": "3"
+          }
+        ],
+        "add": [],
+        "edit": [],
+        "delete": [],
+        "list_on_side": []
+      },
+      "buttons": []
+    },
+    {
+      "table": {
+        "tb_name": "sec_secrets",
+        "menu_name": "カード参照情報（内部）",
+        "sort": 10,
+        "show_menu": 0,
+        "sortkey": "id",
+        "sort_order": 0,
+        "screen_build_type": 0,
+        "list_type": 0,
+        "list_width": 1000,
+        "edit_width": 1000,
+        "show_id": 0,
+        "show_search_id": 0,
+        "show_duplicate": 0,
+        "show_icon_on_parent_list": 0,
+        "post_action_class": "",
+        "description": "Simple EC Shop sample"
+      },
+      "fields": [
+        {
+          "parameter_name": "metadata_json",
+          "parameter_title": "処理メタデータ",
+          "type": "textarea",
+          "length": 65000,
+          "sort": 5
+        },
+        {
+          "parameter_name": "record_key",
+          "parameter_title": "内部識別キー",
+          "type": "text",
+          "length": 255,
+          "sort": 4
+        },
+        {
+          "parameter_name": "payload",
+          "parameter_title": "カード参照情報",
+          "type": "textarea",
+          "length": 12000,
+          "sort": 3
+        },
+        {
+          "parameter_name": "source_id",
+          "parameter_title": "参照ID",
+          "type": "text",
+          "length": 40,
+          "sort": 2
+        },
+        {
+          "parameter_name": "source_table",
+          "parameter_title": "用途",
+          "type": "text",
+          "length": 40,
+          "sort": 1
+        },
+        {
+          "parameter_name": "login_id",
+          "parameter_title": "ショップアカウント",
+          "type": "text",
+          "length": 255,
+          "sort": 0
+        }
+      ],
+      "screens": {
+        "list": [
+          {
+            "parameter_name": "login_id",
+            "sort": "0"
+          },
+          {
+            "parameter_name": "source_table",
+            "sort": "1"
+          },
+          {
+            "parameter_name": "source_id",
+            "sort": "2"
+          },
+          {
+            "parameter_name": "payload",
+            "sort": "3"
+          }
+        ],
+        "search": [
+          {
+            "parameter_name": "login_id",
+            "sort": "0"
+          },
+          {
+            "parameter_name": "source_table",
+            "sort": "1"
+          },
+          {
+            "parameter_name": "source_id",
+            "sort": "2"
+          },
+          {
+            "parameter_name": "payload",
+            "sort": "3"
+          }
+        ],
+        "add": [],
+        "edit": [],
+        "delete": [],
+        "list_on_side": []
+      },
+      "buttons": []
+    }
+  ],
+  "email_formats": [
+    {
+      "key": "sec_notice",
+      "template_name": "ショップ通知",
+      "subject": "{$notice_subject}",
+      "body": "{$notice_body nofilter}"
+    },
+    {
+      "key": "sec_test_notice",
+      "template_name": "ショップ通知（Sandbox）",
+      "subject": "{$notice_subject}",
+      "body": "{$notice_body nofilter}"
+    }
+  ],
+  "cron": {
+    "title": "シンプルEC 定期決済",
+    "class_name": "simple_ec_cron",
+    "function_name": "run",
+    "hour": [
+      "6"
+    ],
+    "min": [
+      "0"
+    ],
+    "day": [],
+    "month": [],
+    "week": []
+  },
+  "files": [
+    "classes/app/sec_categories_visibility_filter/sec_categories_visibility_filter.php",
+    "classes/app/sec_contracts_visibility_filter/sec_contracts_visibility_filter.php",
+    "classes/app/sec_items_visibility_filter/sec_items_visibility_filter.php",
+    "classes/app/sec_orders_visibility_filter/sec_orders_visibility_filter.php",
+    "classes/app/sec_outbox_visibility_filter/sec_outbox_visibility_filter.php",
+    "classes/app/sec_payments_visibility_filter/sec_payments_visibility_filter.php",
+    "classes/app/sec_products_visibility_filter/sec_products_visibility_filter.php",
+    "classes/app/sec_runtime_visibility_filter/sec_runtime_visibility_filter.php",
+    "classes/app/sec_secrets_visibility_filter/sec_secrets_visibility_filter.php",
+    "classes/app/sec_shops_visibility_filter/sec_shops_visibility_filter.php",
+    "classes/app/simple_ec/Mail.php",
+    "classes/app/simple_ec/MailContent.php",
+    "classes/app/simple_ec/OrderCsvRange.php",
+    "classes/app/simple_ec/OrderReport.php",
+    "classes/app/simple_ec/PaymentGuard.php",
+    "classes/app/simple_ec/ProductionPayment.php",
+    "classes/app/simple_ec/RecurringEngine.php",
+    "classes/app/simple_ec/Refund.php",
+    "classes/app/simple_ec/SandboxPayment.php",
+    "classes/app/simple_ec/Store.php",
+    "classes/app/simple_ec/Types.php",
+    "classes/app/simple_ec/Visibility.php",
+    "classes/app/simple_ec/mail_templates/order_customer.tpl",
+    "classes/app/simple_ec/mail_templates/order_shop.tpl",
+    "classes/app/simple_ec/mail_templates/recurring_error.tpl",
+    "classes/app/simple_ec_admin/Templates/card_link.tpl",
+    "classes/app/simple_ec_admin/Templates/contract.tpl",
+    "classes/app/simple_ec_admin/Templates/contract_history.tpl",
+    "classes/app/simple_ec_admin/Templates/csv.tpl",
+    "classes/app/simple_ec_admin/Templates/details.tpl",
+    "classes/app/simple_ec_admin/Templates/download.tpl",
+    "classes/app/simple_ec_admin/Templates/error.tpl",
+    "classes/app/simple_ec_admin/Templates/public_link.tpl",
+    "classes/app/simple_ec_admin/Templates/refund.tpl",
+    "classes/app/simple_ec_admin/Templates/share_url.tpl",
+    "classes/app/simple_ec_admin/simple_ec_admin.php",
+    "classes/app/simple_ec_cron/simple_ec_cron.php",
+    "classes/app/simple_ec_hooks/simple_ec_hooks.php",
+    "classes/app/simple_ec_products/Templates/edit.tpl",
+    "classes/app/simple_ec_products/simple_ec_products.php",
+    "classes/app/simple_ec_public/Templates/card.tpl",
+    "classes/app/simple_ec_public/Templates/cart.tpl",
+    "classes/app/simple_ec_public/Templates/catalog.tpl",
+    "classes/app/simple_ec_public/Templates/confirm.tpl",
+    "classes/app/simple_ec_public/Templates/error.tpl",
+    "classes/app/simple_ec_public/Templates/finish.tpl",
+    "classes/app/simple_ec_public/Templates/head.tpl",
+    "classes/app/simple_ec_public/Templates/shell.tpl",
+    "classes/app/simple_ec_public/Templates/shops.tpl",
+    "classes/app/simple_ec_public/Templates/theme.tpl",
+    "classes/app/simple_ec_public/Templates/totals.tpl",
+    "classes/app/simple_ec_public/script.js",
+    "classes/app/simple_ec_public/simple_ec_public.php",
+    "classes/app/simple_ec_public/style.css",
+    "classes/app/simple_ec_shops/Templates/edit.tpl",
+    "classes/app/simple_ec_shops/simple_ec_shops.php"
+  ],
+  "verification_files": [
+    "tests/checkout.php",
+    "tests/concurrency.php",
+    "tests/domain.php",
+    "tests/recurring.php",
+    "tests/refunds.php"
+  ]
+}

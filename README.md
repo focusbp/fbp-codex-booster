@@ -200,6 +200,21 @@ Do not add LINE secrets or tokens to code.
 Verify the LINE member management screen, webhook_rule list, DB schema, and PHP syntax with the FBP CLI.
 ```
 
+### シンプルECショップ / Simple EC Shop
+
+Copy the whole block below and paste it into Codex:
+
+```text
+Read fbp/docs/.agents/skills/fbp-app-samples/SKILL.md, references/simple-ec-shop.md and references/simple-ec-shop-db.md in that skill.
+Use the Simple EC Shop template to create a guest-checkout shop. Ask which product types are needed, or use physical-only when unspecified.
+Use the bundled generic assets, manifest and install_simple_ec_shop.php. Place code in the source with --code-root, sync using the target environment's normal workflow, then configure only the test runtime with --configure-test-root and --types=physical,event (choose the required subset).
+Keep the semantic option IDs fixed: physical=0, event=1, inquiry=2, quote=3, subscription=4. Register only selected options in sec_product_types; never renumber the subset. Apply the same enabled types to forms, product saves, public checkout, contract menus and cron.
+Include Standard Screen management, product dialogs, guest cart, common Square/bank-transfer payments, applicant/shipping separation, plain-text buyer/shop notifications, authenticated PDF/CSV and full refunds. Include optional recurring billing only when subscription is selected, with a deployment-specific start date.
+Use sec_ tables and simple_ec_ classes; do not overwrite existing public_pages, import production data, hard-code users/credentials, register OS cron automatically, or enable operations before configuration and testing.
+Run scripts/test_simple_ec_shop.php with an explicit temporary directory and framework root. Verify a fresh temporary install, refusal of existing targets, selected-type forms/catalog and forged-type rejection, guest bank checkout, safe defaults, and configured subscription behavior. Use mocks for provider/SMTP checks; live transactions require the target deployment's authorized scope.
+When authoring or revising this reusable template, maintain its source assets, manifest, flow/DB references, installer, offline tests, SKILL.md entry and this Make Samples prompt. Keep it independent of any source customer app.
+```
+
 ### Web Commerce Basic
 
 Copy the whole block below and paste it into Codex:

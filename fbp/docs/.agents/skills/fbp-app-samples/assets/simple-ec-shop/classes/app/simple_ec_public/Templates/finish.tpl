@@ -1,0 +1,1 @@
+<main class="sec sec-checkout-panel"><h1>お申込みを受け付けました</h1><p>受付番号：{$order.order_code|escape}</p>{include file="totals.tpl" subtotal=$order.shokei tax=$order.zei shipping=$order.soryo total=$order.gokei}</main>

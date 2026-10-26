@@ -1,0 +1,1 @@
+<p>受注番号：{$order.order_code|escape}</p><form id="sec_pdf_download" onsubmit="return false"><input type="hidden" name="id" value="{$order_token|escape}"><button type="button" class="download-link" data-class="simple_ec_admin" data-function="pdf" data-form="sec_pdf_download" data-filename="納品書・領収書.pdf" data-open_new_tab="true">納品書・領収書を表示</button></form>

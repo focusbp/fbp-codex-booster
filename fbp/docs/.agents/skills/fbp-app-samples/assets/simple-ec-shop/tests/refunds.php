@@ -1,0 +1,23 @@
+<?php
+require __DIR__.'/../classes/app/simple_ec/Refund.php';
+class RefundMemoryDb {
+    public array $rows=[];
+    function __construct(array $rows=[]){foreach($rows as $r)$this->rows[$r['id']]=$r;}
+    function get($id){return $this->rows[$id]??null;}
+    function update(&$r){$this->rows[$r['id']]=$r;}
+}
+function check($condition,$label){if(!$condition)throw new RuntimeException($label);}
+function deny(callable $f,string $message=''){try{$f();}catch(Throwable $e){if($message)check(str_contains($e->getMessage(),$message),'unexpected rejection: '.$e->getMessage());return;}throw new RuntimeException('Expected rejection');}
+function fixture(){return ['payments'=>new RefundMemoryDb([['id'=>1,'login_id'=>'shop','payment_id'=>'payment-1','amount'=>110,'state'=>'sandbox_succeeded','status'=>0,'order_id'=>2]]),'orders'=>new RefundMemoryDb([['id'=>2,'login_id'=>'shop','status'=>1]])];}
+function provider(string $state, &$calls): callable{return static function($action,$p)use($state,&$calls){$calls[]=$action;if($action==='payment')return ['id'=>'payment-1','status'=>'COMPLETED','amount_money'=>['amount'=>110,'currency'=>'JPY']];return ['id'=>'refund-1','payment_id'=>'payment-1','status'=>$state,'amount_money'=>['amount'=>110,'currency'=>'JPY']];};}
+$calls=[];$d=fixture();$p=SimpleEcRefund::execute($d,1,provider('COMPLETED',$calls));check($p['status']===2 && $d['orders']->get(2)['status']===4,'refund and source order complete');deny(fn()=>SimpleEcRefund::execute($d,1,provider('COMPLETED',$calls)),'返金済');check(count($calls)===2,'no duplicate refund');
+// A payment-success recovery must never reset a refunded status or resubmit a charge.
+$d['orders']->rows[2]['status']=1;deny(fn()=>SimpleEcRefund::execute($d,1,provider('COMPLETED',$calls)));check($d['orders']->get(2)['status']===4,'recover interruption between ledger and order update');
+foreach([1,2] as $status){$d=fixture();$d['payments']->rows[1]['status']=$status;$calls=[];deny(fn()=>SimpleEcRefund::execute($d,1,provider('COMPLETED',$calls)));check(!$calls,'reject failed/refunded before API');}
+$d=fixture();$calls=[];$p=SimpleEcRefund::execute($d,1,provider('PENDING',$calls));check($p['status']===0 && $d['orders']->get(2)['status']===1,'pending is not completed');$p=SimpleEcRefund::execute($d,1,provider('COMPLETED',$calls));check($calls===['payment','refund','retrieve'],'pending only retrieves existing refund');check($p['status']===2,'pending eventually completed');
+foreach(['FAILED','REJECTED'] as $state){$d=fixture();$calls=[];$p=SimpleEcRefund::execute($d,1,provider($state,$calls));check($p['status']===0 && $d['orders']->get(2)['status']===1,'refund failure preserves paid order');deny(fn()=>SimpleEcRefund::execute($d,1,provider('COMPLETED',$calls)));check(count($calls)===2,'terminal refund failure not resubmitted');}
+$d=fixture();$calls=[];$key='';$timeout=static function($a,$p)use(&$key){if($a==='payment')return ['id'=>'payment-1','status'=>'COMPLETED','amount_money'=>['amount'=>110,'currency'=>'JPY']];$key=$p['refund_key'];throw new RuntimeException('timeout');};deny(fn()=>SimpleEcRefund::execute($d,1,$timeout));check($key!=='' && $d['payments']->get(1)['refund_state']==='UNKNOWN','persist key before uncertain call');$p=SimpleEcRefund::execute($d,1,provider('COMPLETED',$calls));check($p['refund_key']===$key,'retry same idempotency key');
+foreach(['amount','currency','id','external_refund','missing_order','owner'] as $bad){$d=fixture();$calls=0;if($bad==='missing_order')unset($d['orders']->rows[2]);if($bad==='owner')$d['orders']->rows[2]['login_id']='other';$fn=static function($a,$p)use($bad,&$calls){if($a!=='payment'){$calls++;throw new RuntimeException('Unexpected refund');}$r=['id'=>'payment-1','status'=>'COMPLETED','amount_money'=>['amount'=>110,'currency'=>'JPY']];if($bad==='amount')$r['amount_money']['amount']=111;if($bad==='currency')$r['amount_money']['currency']='USD';if($bad==='id')$r['id']='other';if($bad==='external_refund')$r['refunded_money']['amount']=1;return $r;};deny(fn()=>SimpleEcRefund::execute($d,1,$fn));check($calls===0,'reject mismatch before refund');}
+$d=fixture();$calls=[];deny(fn()=>SimpleEcRefund::execute($d,1,static function($a,$p){if($a==='payment')return ['id'=>'payment-1','status'=>'COMPLETED','amount_money'=>['amount'=>110,'currency'=>'JPY']];return ['id'=>'refund-other','payment_id'=>'wrong','status'=>'COMPLETED','amount_money'=>['amount'=>110,'currency'=>'JPY']];}));
+check($d['payments']->get(1)['status']===0 && $d['orders']->get(2)['status']===1,'mismatched refund not marked complete');
+echo "Refund: completion, source-order sync, duplicates, pending reconciliation, timeout replay, failure and mismatches passed offline\n";

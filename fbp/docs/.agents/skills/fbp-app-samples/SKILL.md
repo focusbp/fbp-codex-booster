@@ -46,6 +46,10 @@ When creating a new reusable sample from an existing app or feature, read `refer
   - Read `references/line-bot-basic-db.md` for note/table structure.
   - Use `assets/line-bot-basic/` for starter code.
   - Prefer `scripts/install_line_bot_basic.php` when creating the default sample in a clean Codex Booster app.
+- **シンプルECショップ / Simple EC Shop** (`simple-ec-shop`): 会員登録なしの複数ショップ、選択した種別だけの物販・イベント・問い合わせ・見積・定期購入、カート、共通Square／銀行振込、受注、テキスト通知、帳票・CSV・全額返金。受付種別は `sec_product_types` の必要な固定キーだけを登録し、画面と保存・購入・定期処理で共通判定する。
+  - [フロー・導入手順](references/simple-ec-shop.md)、[DB・画面](references/simple-ec-shop-db.md)、`assets/simple-ec-shop/`。
+  - `scripts/install_simple_ec_shop.php` は `--code-root` と `--configure-test-root --types=physical,event` を分離し、実データ・認証情報・OS cronを変更しない。既存クラス・同名定義は上書きしない。
+  - `scripts/test_simple_ec_shop.php` でモック決済／通知とFFM並行実行を検証する。詳細な制約・拡張範囲はreferenceを読む。
 - **Web Commerce Basic**: A normal web storefront with email/password members, single-store products, variants with `stock_quantity`, cart, Square payment, paid orders, and member order history. All sample-owned tables use the `shop_` prefix.
   - Read `references/web-commerce-basic.md` for flow and implementation scope.
   - Read `references/web-commerce-basic-db.md` for note/table structure.

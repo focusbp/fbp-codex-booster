@@ -1,0 +1,1 @@
+<main class="sec"><h1>カード登録・変更</h1><p>{$contract.item_name|escape}</p><p>月額 {$contract.getugaku|number_format}円</p>{if $card_available}<button class="ajax-link" data-class="simple_ec_public" data-function="register_card">カード登録へ</button>{else}<p>現在、カード登録・変更を受け付けていません。</p>{/if}</main>

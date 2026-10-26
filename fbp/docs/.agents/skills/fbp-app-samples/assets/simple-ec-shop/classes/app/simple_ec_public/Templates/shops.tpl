@@ -1,0 +1,1 @@
+<main class="sec"><h1>ショップ一覧</h1><div class="sec-grid">{foreach $shops as $s}<a class="sec-card" href="{$s.url|escape}"><h2>{$s.shopname|escape}</h2><p>{$s.shop_code|escape}</p></a>{/foreach}</div></main>
