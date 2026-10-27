@@ -847,6 +847,21 @@ function Cell($w, $h=0, $txt='', $border=0, $ln=0, $align='', $fill=false, $link
 		$this->x += $w;
 }
 
+// A legal CJK boundary complements space-delimited wrapping in mixed text.
+// Unicode font paths only; core-font/Western word wrapping remains unchanged.
+protected function isCjkLineBreakBoundary($before, $after)
+{
+	if ($before === '' || $after === '' || preg_match('/\s/u', $before.$after))
+		return false;
+	if (!preg_match('/[\p{Han}\p{Hiragana}\p{Katakana}\x{3000}-\x{303F}\x{FF00}-\x{FFEF}]/u', $before.$after))
+		return false;
+	$cannotStart = ",)）]｝、〕〉》」』】〙〗〟’”｠»ゝゞーァィゥェォッャュョヮヵヶぁぃぅぇぉっゃゅょゎゕゖㇰㇱㇲㇳㇴㇵㇶㇷㇸㇹㇷ゚ㇺㇻㇼㇽㇾㇿ々〻‐゠–〜～?!‼⁇⁈⁉・:;/。.";
+	$cannotEnd = "([{（［｛〔〈《「『【〖〘〚‘“｟«";
+	return strpos($cannotStart, $after) === false
+		&& strpos($cannotEnd, $before) === false
+		&& !preg_match('/^\p{M}$/u', $after);
+}
+
 function MultiCell($w, $h, $txt, $border=0, $align='J', $fill=false, $span_x=0,$span_y=0,$flg_dulble_line=true)
 {
 	
@@ -943,6 +958,10 @@ function MultiCell($w, $h, $txt, $border=0, $align='J', $fill=false, $span_x=0,$
 	}
 
 	$sep = -1;
+	$cjkSep = -1;
+	$cjkWidth = 0;
+	$cjkSpaces = 0;
+	$previous = '';
 	$i = 0;
 	$j = 0;
 	$l = 0;
@@ -978,6 +997,8 @@ function MultiCell($w, $h, $txt, $border=0, $align='J', $fill=false, $span_x=0,$
 			}
 			$i++;
 			$sep = -1;
+			$cjkSep = -1;
+			$previous = '';
 			$j = $i;
 			$l = 0;
 			$ns = 0;
@@ -992,6 +1013,14 @@ function MultiCell($w, $h, $txt, $border=0, $align='J', $fill=false, $span_x=0,$
 		}
 		
 				
+		// A CJK character boundary can be newer than an English word separator.
+		// Keep its exact position: unlike a space, no character may be discarded.
+		if ($this->unifontSubset && $i > $j && $this->isCjkLineBreakBoundary($previous, $c)) {
+			$cjkSep = $i;
+			$cjkWidth = $l;
+			$cjkSpaces = $ns;
+		}
+
 		if(preg_match('/\s/',$c)) //空白
 		{
 			$sep = $i;
@@ -1020,7 +1049,17 @@ function MultiCell($w, $h, $txt, $border=0, $align='J', $fill=false, $span_x=0,$
 		{
 			
 			// Automatic line break
-			if($sep==-1)
+			if($cjkSep > $sep)
+			{
+				if($align=='J')
+				{
+					$this->ws = $cjkSpaces > 0 ? ($wmax-$cjkWidth)/$cjkSpaces : 0;
+					$this->_out(sprintf('%.3F Tw',$this->ws*$this->k));
+				}
+				$this->Cell($w,$h,mb_substr($s,$j,$cjkSep-$j,'UTF-8'),$b,2,$align,$fill);
+				$i = $cjkSep;
+			}
+			elseif($sep==-1)
 			{
 				if($i==$j)
 					$i++;
@@ -1053,6 +1092,8 @@ function MultiCell($w, $h, $txt, $border=0, $align='J', $fill=false, $span_x=0,$
 			}
 			
 			$sep = -1;
+			$cjkSep = -1;
+			$previous = '';
 			$j = $i;
 			$l = 0;
 			$ns = 0;
@@ -1064,6 +1105,7 @@ function MultiCell($w, $h, $txt, $border=0, $align='J', $fill=false, $span_x=0,$
 					$this->page_max_height[$this->page] = $this->y+$this->CSMargin_y;
 				}
 		}else{
+			$previous = $c;
 			$i++;
 		}
 			if(!isset($this->page_max_height[$this->page]) || $this->page_max_height[$this->page] < $this->y){

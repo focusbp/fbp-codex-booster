@@ -870,3 +870,9 @@ button.fbp-original-select-option:hover,
 	height: fit-content;
 	margin: auto;
 }
+
+.fr_notification {
+	text-align: center;
+	padding: 20px;
+	border-radius: 10px;
+}
