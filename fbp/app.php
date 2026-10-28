@@ -184,7 +184,7 @@ header("Cache-Control: post-check=0, pre-check=0", false);
 header("Pragma:no-cache");
 
 // デフォルトでエスケープ（エスケープを解除するには、{$var nofilter}のようにする
-// テキストの改行は {$var|escape|nl2br nofilter}
+// テキストの改行は {$var|escape:"force"|nl2br nofilter}（nofilter使用時も明示エスケープを維持）
 $smarty->escape_html  = true;
 
 //エラー設定

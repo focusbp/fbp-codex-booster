@@ -19,11 +19,11 @@ $row : array of the values.
 	{html_display_value field=$field value=$row[$name]}
 	
 {else if $type == "textarea"}
-	{$row.$name|escape|nl2br nofilter}
+	{$row.$name|escape:"force"|nl2br nofilter}
 
 	
 {else if $type == "textarea_links"}
-	{$row.$name|nl2br|url_link nofilter}
+	{$row.$name|escape:"force"|nl2br|url_link nofilter}
 	
 {else if $type == "markdown"}
 	{$row.$name|markdown nofilter}

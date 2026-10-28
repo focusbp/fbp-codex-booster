@@ -409,7 +409,7 @@
 						<tbody>
 							{foreach $mcp_servers_info as $server}
 								<tr>
-									<td><div class="setting_readonly_value">{$server.title|escape}</div>{if $server.description|default:'' != ''}<div style="font-size:11px;color:#6b7280;line-height:1.4;">{$server.description|escape|nl2br nofilter}</div>{/if}</td>
+									<td><div class="setting_readonly_value">{$server.title|escape}</div>{if $server.description|default:'' != ''}<div style="font-size:11px;color:#6b7280;line-height:1.4;">{$server.description|escape:"force"|nl2br nofilter}</div>{/if}</td>
 									<td><div class="setting_readonly_value">{$server.status|escape}</div></td>
 									<td><div class="setting_readonly_value">{$server.auth_mode|escape}</div></td>
 									<td>

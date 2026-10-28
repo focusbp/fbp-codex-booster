@@ -41,7 +41,7 @@
 				<td><code>{$item.class_name|escape}</code></td>
 				<td>{$item.required_scope|escape}</td>
 				<td>{if $item.enabled == 1}{$enabled_opt[1]}{else}{$enabled_opt[0]}{/if}<div style="font-size:11px;color:{if $item.ready_status == 'ready'}#047857{else}#b45309{/if};">{$item.ready_status|escape}</div></td>
-				<td style="font-size:12px;line-height:1.5;">{$item.description|escape|nl2br nofilter}</td>
+				<td style="font-size:12px;line-height:1.5;">{$item.description|escape:"force"|nl2br nofilter}</td>
 				<td><button class="ajax-link listbutton" data-class="{$class}" data-function="delete_function" data-id="{$item.id}" style="float:right;color:black;margin-right:5px;"><span class="ui-icon ui-icon-trash"></span></button><button class="ajax-link listbutton" data-class="{$class}" data-function="edit_function" data-id="{$item.id}" style="float:right;color:black;"><span class="ui-icon ui-icon-pencil"></span></button></td>
 			</tr>
 		{/foreach}

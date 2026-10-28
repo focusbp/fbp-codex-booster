@@ -28,7 +28,7 @@
 				<td>{$item.title}</td>
 				<td>{$item.class_name}</td>
 				<td>{$item.function_name}</td>
-				<td>{$item.last_log|escape|nl2br nofilter}</td>
+				<td>{$item.last_log|escape:"force"|nl2br nofilter}</td>
 				<td>
 					<button class="ajax-link listbutton" data-class="{$class}" data-function="delete" data-id="{$item.id}" style="float:right;color:black;margin-right:5px;"><span class="ui-icon ui-icon-trash"></span></button>
 

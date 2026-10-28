@@ -19,11 +19,11 @@ $row : array of the values.
 	<p style="white-space: nowrap;text-align: right;" class="number_max_width">{html_display_value field=$field value=$row[$name]}</p>
 	
 {else if $type == "textarea"}
-	<p>{$row.$name|escape|nl2br nofilter}</p>
+	<p>{$row.$name|escape:"force"|nl2br nofilter}</p>
 
 	
 {else if $type == "textarea_links"}
-	<p>{$row.$name|nl2br|url_link nofilter}</p>
+	<p>{$row.$name|escape:"force"|nl2br|url_link nofilter}</p>
 	
 {else if $type == "markdown"}
 	<p>{$row.$name|markdown nofilter}</p>
