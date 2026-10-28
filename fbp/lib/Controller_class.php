@@ -2207,6 +2207,11 @@ class Controller_class implements Controller {
 		}
 	}
 
+    /** Peer credentials grant no general management DSP subject. Callers scope access themselves. */
+    public function verify_peer_hmac_request(string $key, string $secret): bool {
+        return $this->verify_hmac_request($key, $secret) === true;
+    }
+
 	private function verify_hmac_request($expected_api_key, $expected_api_secret) {
 		if ($expected_api_key === "" || $expected_api_secret === "") {
 			return $this->res_unauthorized_api_request();

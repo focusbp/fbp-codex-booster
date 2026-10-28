@@ -313,6 +313,11 @@ class db {
 			return;
 		}
 
+        if ((int)($post['list_type']??0)===4) {
+            $ctl->show_notification_text('Excel風ノートはメニューの「ノートを追加」から作成してください。');
+            return;
+        }
+
 		$data["sortkey"] = "id";
 		$data["sort_order"] = 4; // SORT_ASC
 		// Default
@@ -1407,10 +1412,11 @@ class db {
 	}
 
 	/** Safe programmatic schema API used by trusted integrations such as MCP. */
-	function create_spreadsheet_note(Controller $ctl, string $title): array {
+	function create_spreadsheet_note(Controller $ctl, string $title, string $internalName = ''): array {
         ExcelDefinitionGuard::assertNoteCreationAllowed($ctl);
         ExcelDefinitionGuard::assertEditable($ctl->dirs->datadir);
-		$row = $this->mcp_schema_create_table($ctl, ['tb_name' => 'sheet_' . bin2hex(random_bytes(8)), 'title' => $title]);
+        if (!preg_match('/^sheet_[a-f0-9]{24}$/D',$internalName)) throw new RuntimeException('ノート追加の同期受付が必要です。');
+		$row = $this->mcp_schema_create_table($ctl, ['tb_name' => $internalName, 'title' => $title]);
 		$row['list_type'] = 4;
 		$row['menu_visibility'] = 0;
 		$sort = 0;

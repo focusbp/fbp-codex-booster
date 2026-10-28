@@ -190,8 +190,9 @@ class base {
         if (ExcelDefinitionGuard::isDeveloper($ctl->dirs->datadir)) { $ctl->show_notification_text((new ExcelDefinitionReadOnly())->getMessage()); return; }
         try { ExcelDefinitionGuard::assertNoteCreationAllowed($ctl); }
         catch (RuntimeException $e) { $ctl->show_notification_text($e->getMessage()); return; }
-		$token = bin2hex(random_bytes(24));
-		$ctl->set_session('spreadsheet_note_ticket', ['token' => $token, 'time' => time()]);
+        $previous=$ctl->get_session('spreadsheet_note_ticket')?:[];
+		$token = !empty($previous['pending']) ? $previous['token'] : bin2hex(random_bytes(24));
+		$ctl->set_session('spreadsheet_note_ticket', ['token' => $token, 'time' => time(), 'pending'=>!empty($previous['pending'])]);
 		$ctl->assign('note_token', $token);
 		$ctl->show_multi_dialog('spreadsheet-note', 'spreadsheet_note.tpl', 'ノートを追加', 400);
 	}
@@ -202,19 +203,20 @@ class base {
 		try {
             ExcelDefinitionGuard::assertNoteCreationAllowed($ctl);
 			$ticket = $ctl->get_session('spreadsheet_note_ticket') ?: [];
-			if (empty($ticket['token']) || !hash_equals($ticket['token'], (string)$ctl->POST('note_token')) || $ticket['time'] < time() - 3600) {
+			if (empty($ticket['token']) || !hash_equals($ticket['token'], (string)$ctl->POST('note_token')) || (empty($ticket['pending']) && $ticket['time'] < time() - 3600)) {
 				throw new RuntimeException('操作の有効期限が切れました。開き直してください。');
 			}
 			$name = $ctl->POST('menu_name');
 			if (!is_string($name) || trim($name) === '') throw new RuntimeException('メニュー名を入力してください。');
 			$name = trim($name);
 			if (strlen($name) > 255) throw new RuntimeException('メニュー名は255バイト以内で入力してください。');
-			require_once __DIR__ . '/../db/db.php';
-			$schema = new db($ctl);
-			$schema->create_spreadsheet_note($ctl, $name);
+			require_once __DIR__ . '/../../lib/NoteSyncClient.php';
+            $ctl->set_session('spreadsheet_note_ticket',array_replace($ticket,['pending'=>true]));
+			$note=(new NoteSyncClient($ctl))->create($name, $ticket['token']);
 			$ctl->set_session('spreadsheet_note_ticket', null);
 			$ctl->close_multi_dialog('spreadsheet-note');
 			$ctl->reload_menu();
+			$ctl->show_notification_text(($note['_note_sync_state']??'')==='done'?'ノートの追加・同期が完了しました。':'ノートを追加しました。開発環境へ同期中です。');
 		} catch (Throwable $e) {
 			$ctl->res_error_message('menu_name', $e->getMessage());
 		}
