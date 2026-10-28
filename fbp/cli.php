@@ -2306,6 +2306,19 @@ if ($command === "method_call") {
 	cli_output_json($out, $out["ok"] ? 0 : 1);
 }
 
+if ($command === 'excel_standard_import') {
+    define('FBP_EXCEL_STANDARD_IMPORT_COMMAND', true);
+    [$ok,$err,$data] = cli_get_json_arg($argv);
+    try {
+        if (!$ok || !is_file($data['file'] ?? '') || !is_file($data['columns_file'] ?? '')) throw new RuntimeException('本番のノート・列定義取得JSONを指定してください。');
+        $note = json_decode(file_get_contents($data['file']), true, 64, JSON_THROW_ON_ERROR);
+        $snapshot = json_decode(file_get_contents($data['columns_file']), true, 64, JSON_THROW_ON_ERROR);
+        if (($note['ok'] ?? null) !== true || ($note['table'] ?? '') !== 'db' || !is_array($note['item'] ?? null)) throw new RuntimeException('本番のノート定義取得結果を指定してください。');
+        $result = ExcelDefinitionGuard::importStandardNote($dir->datadir, $ffm_db_admin, $note['item'], $snapshot);
+        cli_output_json(['ok'=>true]+$result, 0);
+    } catch (Throwable $e) { cli_output_json(['ok'=>false,'error'=>$e->getMessage()],1); }
+}
+
 if ($command === 'excel_note_import') {
     define('FBP_EXCEL_NOTE_IMPORT_COMMAND', true);
     [$ok,$err,$data] = cli_get_json_arg($argv);

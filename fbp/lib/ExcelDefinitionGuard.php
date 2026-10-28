@@ -9,6 +9,7 @@ final class ExcelDefinitionReadOnly extends RuntimeException {
 final class ExcelDefinitionGuard {
     private static ?array $import = null;
     private static ?array $noteImport = null;
+    private static ?array $standardImport = null;
     private static bool $reading = false;
     public static function readingContext(): bool { return self::$reading; }
 
@@ -81,6 +82,9 @@ final class ExcelDefinitionGuard {
         $target = $context['target'];
         if ($operation === 'clear') throw new ExcelDefinitionReadOnly();
         if ($target === 'db/db') {
+            if ($operation === 'update' && self::$standardImport !== null
+                && self::$standardImport['root'] === $context['root']
+                && $after == self::$standardImport['content']) return;
             if ($operation === 'insert' && self::$noteImport !== null && self::$noteImport['root'] === $context['root']) {
                 $candidate = $after ?? []; unset($candidate['id']);
                 if ($candidate == self::$noteImport['content']) return;
@@ -131,6 +135,36 @@ final class ExcelDefinitionGuard {
             return ['id'=>$id,'created'=>true];
         }
         finally { self::$noteImport = null; }
+    }
+
+    /** Import only a production-confirmed pattern change; retain runtime-owned columns. */
+    public static function importStandardNote(string $dataRoot, fixed_file_manager $db, array $note, array $snapshot): array {
+        if (PHP_SAPI !== 'cli' || !defined('FBP_EXCEL_STANDARD_IMPORT_COMMAND') || FBP_EXCEL_STANDARD_IMPORT_COMMAND !== true) throw new ExcelDefinitionReadOnly();
+        $root = realpath($dataRoot);
+        if ($root === false || realpath($db->get_path_dat()) !== $root.'/db/db.dat') throw new RuntimeException('取込み先のノート定義DBが一致しません。');
+        $name = (string)($note['tb_name'] ?? '');
+        if (($snapshot['ok'] ?? null) !== true || ($snapshot['schema_version'] ?? null) !== 1
+            || ($snapshot['tb_name'] ?? null) !== $name || (int)($snapshot['list_type'] ?? -1) !== 0
+            || !preg_match('/^[a-z][a-z0-9_]*$/', $name)
+            || (int)($note['id'] ?? 0) < 1 || (int)($note['screen_build_type'] ?? -1) !== 0
+            || (int)($note['list_type'] ?? -1) !== 0 || !empty($note['parent_tb_id'])) throw new RuntimeException('本番で検索＋一覧へ変更済みの親ノート定義を指定してください。');
+        return self::references($root, function ($rows, $refs) use ($root, $db, $note, $snapshot, $name) {
+            $current = $db->get((int)$note['id']);
+            if (!$current || ($current['tb_name'] ?? '') !== $name || (int)$current['screen_build_type'] !== 0
+                || !in_array((int)$current['list_type'], [0,4], true) || !empty($current['parent_tb_id'])) throw new RuntimeException('既存ノートのID・内部名・画面パターンが一致しません。');
+            $matches = array_values(array_filter($rows['excel_grid/settings'] ?? [], fn($cfg) => ($cfg['tb_name'] ?? '') === $name));
+            $config = count($matches) === 1 ? $refs['excel_grid/settings']->get((int)$matches[0]['id']) : [];
+            if (count($matches) !== 1 || !is_array($snapshot['columns'] ?? null)
+                || ($config['columns'] ?? null) != $snapshot['columns']
+                || ExcelGrid::orderedNames($config) !== ($snapshot['column_order'] ?? null)) throw new RuntimeException('本番と開発環境の列定義が一致しません。変更前の列定義を先に同期してください。');
+            if ((int)$current['list_type'] === 0) return ['id'=>(int)$current['id'], 'changed'=>false];
+            if (self::$standardImport !== null) throw new RuntimeException('画面パターン取込みの再入はできません。');
+            $after = $current; $after['list_type'] = 0;
+            self::$standardImport = ['root'=>$root, 'content'=>$after];
+            try { $db->update($after); }
+            finally { self::$standardImport = null; }
+            return ['id'=>(int)$current['id'], 'changed'=>true];
+        });
     }
 
     /** Internal import entry; not a general-purpose bypass for app_call/method_call. */

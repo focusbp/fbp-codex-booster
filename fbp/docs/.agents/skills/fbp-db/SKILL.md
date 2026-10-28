@@ -89,6 +89,7 @@ description: Manage the FBP DB lifecycle, schema and screen reflection, and appl
 - 検索＋一覧で検証するときは、ノート画面の「検証用に検索＋一覧で表示」または `excel_preview_set` を使う。「本番の表示に戻す」／`excel_preview_reset` で復帰する。表示指定はセッションのみで、db定義・本番リリースへ含めない。
 - 型・選択肢・計算式・幅・列順・生成状態をdb_fields、汎用API、直接FFM、fmt編集から変更して迂回しない。既存の生成済み列へのデータ操作やコード・画面配置の開発は可能。未生成列への入力は拒否する。
 - 制限を避ける目的でモードをProduction Modeへ変更しない。実際の画面パターンや列定義の変更は、本番で行ってから対応する定義を同期する。
+- 本番でExcel由来の親ノートを検索＋一覧（list_type=0）へ変更した場合は、`excel_standard_import` に本番ノート取得JSONの `file` と列定義取得JSONの `columns_file` を指定して変更を同期できる。同じID・内部名の取込み済みノートがあり、保存済み列定義・列順が本番と一致する場合に限り、画面パターンだけを変更する。既存列・登録データは変更しない。通常の `db_tables_edit` やモード変更による迂回は引き続き禁止。未取込み・不一致なら本番変更前のExcel同期から整える。
 
 ## state field policy
 - `enabled` / `is_active` / `active` / `有効` などの有効状態項目は、数値テキスト入力ではなく dropdown または checkbox として扱える型・定数にする。
