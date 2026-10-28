@@ -38,7 +38,11 @@ class NoteSyncClient {
     public function create(string $title,string $key): array {
         ExcelDefinitionGuard::assertEditable($this->ctl->dirs->datadir);
         if (!preg_match('/^[a-f0-9]{48}$/D',$key)) throw new RuntimeException('追加受付番号が不正です。');
-        $app=(string)$this->ctl->get_appcode();
+        // Controller keeps the historical prefix-free name on app-* hosts;
+        // management inventory and reservation receipts use the full appcode.
+        $app=trim((string)$this->ctl->get_appcode());
+        if (!str_starts_with($app,'app-')) $app='app-'.$app;
+        if (!preg_match('/^app-[A-Za-z0-9][A-Za-z0-9_-]*$/D',$app)) throw new RuntimeException('アプリ識別名が不正です。');
         $base=['appcode'=>$app,'request_key'=>$key];
         // Saving and releasing local FFM locks before a remote call also permits
         // the synchronizer to fetch definitions while a browser is still open.
