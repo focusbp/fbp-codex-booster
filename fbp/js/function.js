@@ -2894,6 +2894,11 @@ function appcon_execute(url, fd, nextfunction, isCurrentResponse) {
 		dfd.resolve();
 
 	}).fail(function ($xhr, textStatus, errorThrown) {
+		$("#loading").hide();
+		clearInterval(waitTimer);
+		waitTimer = null;
+		$("#download_view").hide();
+		$('#download_progress').css({'width': '0%'});
 
 		var data = $xhr.responseText;
 		var statusLine = "AJAX request failed";
@@ -2908,6 +2913,12 @@ function appcon_execute(url, fd, nextfunction, isCurrentResponse) {
 		}
 
 		append_debug_window(statusLine, data || "", "error");
+
+		// Transport diagnostics are for the test environment only.
+		if ($("#testserver").html() != "true") {
+			dfd.resolve();
+			return;
+		}
 
 		var detail = "";
 		if (typeof data === "string" && data !== "") {
