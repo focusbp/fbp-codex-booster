@@ -7,6 +7,7 @@ use RuntimeException;
 
 require_once __DIR__ . '/ImageEffects.php';
 require_once __DIR__ . '/CompositionTools.php';
+require_once __DIR__ . '/CompositionPanel.php';
 
 /** Deterministic local image placement; no generated pixels or external services. */
 final class ImageComposition
@@ -142,6 +143,10 @@ final class ImageComposition
             foreach ($layers as &$layer) {
                 if (!is_array($layer)) throw new InvalidArgumentException('Layer must be an object.');
                 $type=$layer['type']??'image';
+                if ($type === 'panel') {
+                    $layer = CompositionPanel::validate($layer, $w, $h);
+                    continue;
+                }
                 if (in_array($type, ['arrow','rect'], true)) {
                     self::keys($layer, ['type','x','y','x2','y2','color','stroke_width','head_length','head_angle']);
                     foreach (['x','x2'] as $key) $layer[$key] = self::integer($layer[$key] ?? null, 0, $w-1);
@@ -213,6 +218,9 @@ final class ImageComposition
                 $inputs = [];
                 if ($job['base']) $inputs[] = ['path' => $job['base'], 'sha256' => hash_file('sha256', $job['base'])];
                 foreach ($job['layers'] as $layer) {
+                    if (($layer['type'] ?? '') === 'panel') {
+                        CompositionPanel::draw($canvas, $layer); continue;
+                    }
                     if (in_array($layer['type'] ?? '', ['arrow','rect'], true)) {
                         CompositionTools::shape($canvas, $layer); continue;
                     }

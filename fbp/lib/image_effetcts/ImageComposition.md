@@ -2,6 +2,37 @@
 
 `compose_batch --config jobs.json --output new-directory [--zip]`。
 
+## 背景・ボタン用パネル
+
+`type: "panel"` は `x/y/width/height` の領域へ塗り・角丸・内側の枠線を描く。
+画像素材を作らずセクション背景・ボタン・文字下の半透明帯を設定できる。
+
+```json
+{"type":"panel","x":40,"y":30,"width":320,"height":80,
+ "fill":"#F5F1E8","radius":8,"stroke":"#8A794E","stroke_width":2,
+ "opacity":1,"shadow":{"x":0,"y":5,"blur":10,"color":"#000000","opacity":0.15}}
+```
+
+- x/yは整数（既定0）、width/heightは必須の正整数、領域はキャンバス内。
+- fillは#RRGGBBまたはtransparent（既定transparent）。strokeも同形式（既定黒）。
+  stroke_widthは0〜64pxかつ短辺の半分以下（既定0）。radiusは0〜短辺の半分（既定0）。
+- opacityは0〜1（既定1）、パネルと影の両方へ適用する。写真・文字レイヤーの透明度ではない。
+- gradientは任意の `{ "from":"#FFFFFF", "to":"#EDE5D5", "direction":"vertical" }`。
+  不透明2色間の線形補間でfillを置換する。directionはvertical（既定）/horizontal。
+  半透明にする場合はパネルのopacityを指定する。
+- shadowは任意。x/yは−128〜128の整数px（既定0）、blurは0〜64px（既定8）、
+  colorは既定黒、opacityは0〜1（既定0.2）。ぼかしは輪郭からの距離によるソフトな減衰でありGaussianではない。
+  影はパネルの外へ広がり、キャンバス端ではクリップされる。余白を取って配置する。
+- 重なりはlayersの順。ボタン文字はパネルの後に別textレイヤーで配置する。
+
+## セクション単位の合成
+
+長いページはヘッダー・メイン・紹介・予約・フッター等を別jobで合成し、
+次のcompose_batchで出力済みの各画像を並べる。同じバッチ内の未生成ファイルは参照できない。
+各jobの32レイヤー上限は維持し、必要ならさらに小さい単位へ分ける。
+セクション元の素材・文字・設定と中間画像を保持し、修正したセクションと全体だけを再合成する。
+完成画像では背景の切替・ボタンの枠や塗り・文字の可読性・セクション境界の余白も確認する。
+
 ### 矢印・囲みレイヤー
 
 `type: "arrow"` / `"rect"` は元画像の原寸pxで `x,y,x2,y2`（整数、画像内）を指定する。
