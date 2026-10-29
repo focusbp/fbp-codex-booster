@@ -49,6 +49,13 @@ Update docs when the work changes future behavior or support judgment:
 
 Keep entries short. Prefer one or two bullets over detailed transcripts.
 
+## Image deliverables and support metadata
+
+For project-bound image generation, editing, or compositing, follow
+[references/image-records.md](references/image-records.md). Keep reusable inputs and
+processing metadata with the project; record a short support-history entry pointing
+to them. This also applies to image-only tasks without application code changes.
+
 ## What not to write
 
 Do not hard-code environment-dependent or sensitive information in project docs:

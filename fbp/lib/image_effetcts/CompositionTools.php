@@ -124,6 +124,27 @@ final class CompositionTools
         }
     }
 
+    /** Stroke is clipped to the canvas, as with an SVG overlay at an image edge. */
+    public static function shape(GdImage $canvas, array $layer): void
+    {
+        $color = self::color($layer['color']);
+        imagealphablending($canvas, true);
+        imagesetthickness($canvas, $layer['stroke_width']);
+        try {
+            [$x,$y,$x2,$y2] = [$layer['x'],$layer['y'],$layer['x2'],$layer['y2']];
+            if ($layer['type'] === 'rect') {
+                imagerectangle($canvas, min($x,$x2), min($y,$y2), max($x,$x2), max($y,$y2), $color);
+            } else {
+                imageline($canvas, $x,$y,$x2,$y2,$color);
+                $angle = atan2($y2-$y, $x2-$x);
+                foreach ([-1,1] as $sign) {
+                    $a = $angle + $sign*$layer['head_angle'];
+                    imageline($canvas, $x2,$y2, (int)round($x2-$layer['head_length']*cos($a)), (int)round($y2-$layer['head_length']*sin($a)), $color);
+                }
+            }
+        } finally { imagesetthickness($canvas, 1); }
+    }
+
     public static function encode(GdImage $image, string $format, int $quality, int $minimum, ?int $maximum, string $matte): array
     {
         $flat = null;

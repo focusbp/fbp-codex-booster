@@ -1,6 +1,19 @@
 # 任意サイズの画像配置・一括出力
 
 `compose_batch --config jobs.json --output new-directory [--zip]`。
+
+### 矢印・囲みレイヤー
+
+`type: "arrow"` / `"rect"` は元画像の原寸pxで `x,y,x2,y2`（整数、画像内）を指定する。
+囲みは2点を対角とする枠線、矢印は1点目から2点目へ向く開いた矢尻を描く。
+`color` は既定 `#DE3029`、`stroke_width` は1〜64px（既定4）。
+矢印のみ `head_length` は1〜1000px（既定18）、`head_angle` は0より大きくπ/2未満のラジアン（既定0.5）。同一点への矢印は拒否する。
+線の画像外部分はクリップされる。指定順に画像・図形・既存の日本語textレイヤーを重ねられる。
+SVGファイル自体は読み込まず、呼出し側で注釈座標を原寸に換算する。
+
+```json
+{"type":"arrow","x":30,"y":90,"x2":180,"y2":40,"stroke_width":4,"head_length":18}
+```
 画像の切り抜き、リサイズ、配置、文字入れ、PNG/JPEG/WebP出力をPHP/GDで行う。
 明示的なRGB ICC→sRGB変換のみLittle CMSを使用する。画像生成・隠れた部分の復元は行わない。
 

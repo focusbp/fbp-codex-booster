@@ -142,6 +142,23 @@ final class ImageComposition
             foreach ($layers as &$layer) {
                 if (!is_array($layer)) throw new InvalidArgumentException('Layer must be an object.');
                 $type=$layer['type']??'image';
+                if (in_array($type, ['arrow','rect'], true)) {
+                    self::keys($layer, ['type','x','y','x2','y2','color','stroke_width','head_length','head_angle']);
+                    foreach (['x','x2'] as $key) $layer[$key] = self::integer($layer[$key] ?? null, 0, $w-1);
+                    foreach (['y','y2'] as $key) $layer[$key] = self::integer($layer[$key] ?? null, 0, $h-1);
+                    $layer['stroke_width'] = self::integer($layer['stroke_width'] ?? 4, 1, 64);
+                    $layer['color'] = $layer['color'] ?? '#DE3029';
+                    CompositionTools::color($layer['color']);
+                    if ($layer['color'] === 'transparent') throw new InvalidArgumentException('Shape color must be opaque.');
+                    if ($type === 'arrow') {
+                        $layer['head_length'] = self::integer($layer['head_length'] ?? 18, 1, 1000);
+                        $angle = $layer['head_angle'] ?? 0.5;
+                        if ((!is_int($angle) && !is_float($angle)) || !is_finite((float)$angle) || $angle <= 0 || $angle >= M_PI/2) throw new InvalidArgumentException('head_angle must be radians between 0 and pi/2.');
+                        $layer['head_angle'] = $angle;
+                        if ($layer['x'] === $layer['x2'] && $layer['y'] === $layer['y2']) throw new InvalidArgumentException('Arrow endpoints must differ.');
+                    } elseif (isset($layer['head_length']) || isset($layer['head_angle'])) throw new InvalidArgumentException('Arrow head settings require arrow type.');
+                    continue;
+                }
                 if(!in_array($type,['image','text'],true))throw new InvalidArgumentException('Layer type must be image/text.');
                 self::keys($layer,$type==='image'?['type','input','x','y','width','height','fit','crop','position','focus','rotate','flip']:['type','text','font','font_size','body_width','color','align','line_height','outlines','x','y','width','height']);
                 $layer['x'] = self::integer($layer['x'] ?? 0, 0, $w - 1); $layer['y'] = self::integer($layer['y'] ?? 0, 0, $h - 1);
@@ -196,6 +213,9 @@ final class ImageComposition
                 $inputs = [];
                 if ($job['base']) $inputs[] = ['path' => $job['base'], 'sha256' => hash_file('sha256', $job['base'])];
                 foreach ($job['layers'] as $layer) {
+                    if (in_array($layer['type'] ?? '', ['arrow','rect'], true)) {
+                        CompositionTools::shape($canvas, $layer); continue;
+                    }
                     if(($layer['type']??'image')==='text'){
                         CompositionTools::text($canvas,$layer);$inputs[]=['path'=>$layer['font'],'sha256'=>hash_file('sha256',$layer['font'])];continue;
                     }
