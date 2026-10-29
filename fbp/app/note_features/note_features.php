@@ -43,7 +43,7 @@ class note_features {
             $app=(string)$ctl->get_appcode();if(!str_starts_with($app,'app-'))$app='app-'.$app;if(!preg_match('/^app-[A-Za-z0-9][A-Za-z0-9_-]*$/D',$app))throw new RuntimeException('対象プロジェクトを確認してください。');
             $payload=['schema_version'=>1,'request_key'=>$p['request_key'],'appcode'=>$app,'feature_id'=>$feature['id'],'note'=>$note,'options'=>$options,'request_text'=>trim($text),'code_change_allowed'=>true,'production_release_allowed'=>true,'requested_by'=>['user_id'=>(int)$ctl->get_login_user_id(),'login_id'=>(string)$ctl->get_login_id(),'is_app_admin'=>true]];
             $digest=hash('sha256',json_encode($payload,JSON_UNESCAPED_UNICODE));if(isset($p['digest'])&&!hash_equals($p['digest'],$digest))throw new RuntimeException('受付状況を確認中の依頼は内容を変更できません。同じ内容で再試行してください。');$p['digest']=$digest;$ctl->set_session('note_feature_request',$p);
-            $result=$p['result']??$this->sendRequest($ctl,$payload);$p['result']=$result;$ctl->set_session('note_feature_request',$p);$ctl->assign('share_url',$result['support_url']);$ctl->assign('share_url_help','AIに実装を依頼しました。進捗は下記からご覧ください。');$ctl->assign('share_url_open_label','プロジェクトサポートで進捗を見る');$ctl->show_multi_dialog('note-feature-result','result.tpl','実装を依頼しました',680);
+            $result=$p['result']??$this->sendRequest($ctl,$payload);$p['result']=$result;$ctl->set_session('note_feature_request',$p);$ctl->assign('share_url',$result['support_url']);$ctl->assign('share_url_help','AIに実装を依頼しました。進捗は下記からご覧ください。');$ctl->assign('share_url_open_label','プロジェクトサポートで進捗を見る');$ctl->show_multi_dialog('note-feature-editor','result.tpl','実装を依頼しました',680);
         }catch(Throwable $e){$ctl->res_error_message('request',$e->getMessage());}
     }
 }
