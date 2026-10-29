@@ -33,14 +33,17 @@ final class ExcelGrid {
     }
     public static function config(Controller $ctl, string $table): array {
         if (!is_file($ctl->dirs->datadir . '/excel_grid/settings.dat')) return [];
-        return $ctl->db('settings', 'excel_grid')->select('tb_name', $table)[0] ?? [];
+        $config=$ctl->db('settings', 'excel_grid')->select('tb_name', $table)[0] ?? [];
+        // Fields appended to an existing FFM format are initially empty strings.
+        if ($config) $config['standard_screens']=is_array($config['standard_screens']??null)?$config['standard_screens']:[];
+        return $config;
     }
     public static function saveConfig(Controller $ctl, string $table, array $columns, ?array $columnOrder = null, ?array $standardScreens = null, ?string $standardKey = null): array {
         $db = $ctl->db('settings', 'excel_grid');
         $db->set_strict_field_length(true);
         $current = $db->select('tb_name', $table)[0] ?? [];
         $row = ['tb_name'=>$table,'columns'=>$columns,'revision'=>(int)($current['revision'] ?? 0)+1];
-        $row['standard_screens']=$standardScreens??($current['standard_screens']??[]);
+        $row['standard_screens']=$standardScreens??(is_array($current['standard_screens']??null)?$current['standard_screens']:[]);
         $row['standard_request_key']=$standardKey??($current['standard_request_key']??'');
         if ($columnOrder!==null) { self::validateOrder($columnOrder); $row['column_order']=$columnOrder; }
         if ($current) { $row['id']=$current['id']; $db->update($row); } else $row['id']=$db->insert($row);
