@@ -3,3 +3,5 @@ tb_name,255,T
 columns,131072,A
 revision,24,N
 column_order,1024,A
+standard_screens,8192,A
+standard_request_key,64,T

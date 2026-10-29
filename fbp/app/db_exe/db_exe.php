@@ -6,8 +6,11 @@ require_once __DIR__ . "/../../lib/SingleRecordScreen.php";
 require_once __DIR__ . "/ExcelGridActions.php";
 require_once __DIR__ . "/../../lib/ExcelPreview.php";
 
+require_once __DIR__.'/ExcelConversionActions.php';
+
 class db_exe {
     use ExcelGridActions;
+    use ExcelConversionActions;
 	private const READ_ONLY_FUNCTIONS = [
 		"page", "search", "search_child", "search_weekly_calendar", "rows",
 		"add", "edit", "delete", "rows_child", "add_child", "edit_child", "delete_child",
@@ -1134,6 +1137,7 @@ class db_exe {
 		// Getting Post data
 		$post = $ctl->POST();
 		$post = $this->normalize_year_month_post_fields($ctl, "add", $post);
+        if (!empty(ExcelGrid::config($ctl,$this->table_name)['standard_screens'])) $post=ExcelStandardLayout::writablePost($post,$ctl->get_field_list($this->table_name));
 		
 		// Validate
 		$ctl->validate($this->table_name, "add", $post);
@@ -1192,6 +1196,7 @@ class db_exe {
 		// Getting Post data
 		$post = $ctl->POST();
 		$post = $this->normalize_year_month_post_fields($ctl, "edit", $post);
+        if (!empty(ExcelGrid::config($ctl,$this->table_name)['standard_screens'])) $post=ExcelStandardLayout::writablePost($post,$ctl->get_field_list($this->table_name));
 		$fields = $ctl->get_field_list($this->table_name, "edit");
 		foreach($fields as $field){
 			$parameter_name = $field["parameter_name"] ?? "";

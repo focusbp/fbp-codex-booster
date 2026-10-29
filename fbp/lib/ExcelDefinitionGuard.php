@@ -98,7 +98,7 @@ final class ExcelDefinitionGuard {
             }
         } elseif ($target === 'excel_grid/settings') {
             $allowed = self::$import;
-            $candidate = array_intersect_key($after ?? [], array_flip(['tb_name', 'columns', 'column_order']));
+            $candidate = array_intersect_key($after ?? [], array_flip(['tb_name', 'columns', 'column_order', 'standard_screens', 'standard_request_key']));
             if ($operation !== 'delete' && $allowed !== null && $allowed['root'] === $context['root'] && $candidate == $allowed['content']) return;
             throw new ExcelDefinitionReadOnly();
         } else {
@@ -167,13 +167,33 @@ final class ExcelDefinitionGuard {
         });
     }
 
+    /** Dedicated CLI-only import of a verified production layout and pattern. */
+    public static function importLayoutNote(Controller $ctl,array $source,array $snapshot): array {
+        if (PHP_SAPI!=='cli' || !defined('FBP_EXCEL_CONVERSION_IMPORT_COMMAND') || !defined('CLI_APP_CALL')) throw new ExcelDefinitionReadOnly();
+        $db=$ctl->db('db','db');$current=$db->get((int)($source['id']??0));
+        if (!$current || ($current['tb_name']??'')!==($source['tb_name']??null) || !empty($current['parent_tb_id'])
+            || (int)$current['screen_build_type']!==0 || !in_array((int)$current['list_type'],[0,4],true)
+            || !empty($source['parent_tb_id']) || (int)$source['screen_build_type']!==0
+            || !in_array((int)$source['list_type'],[0,4],true) || (int)$snapshot['list_type']!==(int)$source['list_type']) throw new RuntimeException('本番と開発環境のノートID・内部名・画面形式が一致しません。');
+        $config=ExcelGrid::config($ctl,$current['tb_name']);
+        if (($config['columns']??null)!=$snapshot['columns'] || ($config['standard_screens']??null)!=$snapshot['standard_screens']
+            || ($config['standard_request_key']??'')!==$snapshot['standard_request_key']) throw new RuntimeException('取込み済みの表示定義が一致しません。');
+        $after=$current;$after['list_type']=(int)$source['list_type'];$after['sortkey']='excel_sort';$after['sort_order']=SORT_ASC;
+        if (self::$standardImport!==null) throw new RuntimeException('画面形式取込みの再入はできません。');
+        self::$standardImport=['root'=>realpath($ctl->dirs->datadir),'content'=>$after];
+        try { $db->update($after); } finally { self::$standardImport=null; }
+        return $after;
+    }
+
     /** Internal import entry; not a general-purpose bypass for app_call/method_call. */
-    public static function import(Controller $ctl, string $table, array $columns, array $order): array {
+    public static function import(Controller $ctl, string $table, array $columns, array $order, ?array $screens=null, ?string $key=null): array {
         if (PHP_SAPI !== 'cli' || !defined('FBP_EXCEL_IMPORT_COMMAND') || FBP_EXCEL_IMPORT_COMMAND !== true || !defined('CLI_APP_CALL')) throw new ExcelDefinitionReadOnly();
         $root = realpath($ctl->dirs->datadir) ?: $ctl->dirs->datadir;
         if (self::$import !== null) throw new RuntimeException('設定取込みの再入はできません。');
-        self::$import = ['root' => $root, 'content' => ['tb_name' => $table, 'columns' => $columns, 'column_order' => $order]];
-        try { return ExcelGrid::saveConfig($ctl, $table, $columns, $order); }
+        $current=ExcelGrid::config($ctl,$table);
+        $screens=$screens??($current['standard_screens']??[]);$key=$key??($current['standard_request_key']??'');
+        self::$import = ['root' => $root, 'content' => ['tb_name' => $table, 'columns' => $columns, 'column_order' => $order, 'standard_screens'=>$screens, 'standard_request_key'=>$key]];
+        try { return ExcelGrid::saveConfig($ctl, $table, $columns, $order, $screens, $key); }
         finally { self::$import = null; }
     }
 }

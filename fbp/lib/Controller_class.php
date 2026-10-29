@@ -4390,6 +4390,13 @@ class Controller_class implements Controller {
         if (ExcelGrid::config($this, $table_name)) {
             $base = $fmt_fields->select("db_id", $db["id"]);
             $all = ExcelGrid::fields($this, $table_name, $base, is_array($screen_or_fieldnamearray) ? $screen_or_fieldnamearray : null);
+            $config=ExcelGrid::config($this,$table_name);
+            if (is_string($screen_or_fieldnamearray) && isset($config['standard_screens'][$screen_or_fieldnamearray])) {
+                $names=$config['standard_screens'][$screen_or_fieldnamearray]??[];
+                $map=array_column($all,null,'parameter_name');$selected=[];
+                foreach ($names as $name) if (isset($map[$name])) $selected[]=$map[$name];
+                return $selected;
+            }
             if ($screen_or_fieldnamearray === "search") return array_values(array_filter($all, fn($f) => !in_array($f["parameter_name"], ["id", "excel_sort", "sort"], true)));
             return $all;
         }

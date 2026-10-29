@@ -14,7 +14,7 @@ class db_api {
         $note=$ctl->get_db_setting($table);
         $cfg=ExcelGrid::config($ctl,$table);
         if (!$note || (int)($note['screen_build_type'] ?? -1)!==0 || !in_array((int)($note['list_type'] ?? -1),[0,4],true) || !$cfg) $this->respond_error(404,'excel_settings_not_found','Excel settings have not been initialized.');
-        $this->respond_json(['ok'=>true,'schema_version'=>1,'tb_name'=>$table,'list_type'=>(int)$note['list_type'],'column_order'=>ExcelGrid::orderedNames($cfg),'columns'=>(object)($cfg['columns'] ?: []),'revision'=>(int)$cfg['revision'],'fetched_at'=>gmdate('c')]);
+        $this->respond_json(['ok'=>true,'schema_version'=>1,'tb_name'=>$table,'list_type'=>(int)$note['list_type'],'column_order'=>ExcelGrid::orderedNames($cfg),'columns'=>(object)($cfg['columns'] ?: []),'standard_screens'=>$cfg['standard_screens']??[],'standard_request_key'=>$cfg['standard_request_key']??'','revision'=>(int)$cfg['revision'],'fetched_at'=>gmdate('c')]);
     }
 
 	function tables(Controller $ctl) {

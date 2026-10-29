@@ -2306,6 +2306,21 @@ if ($command === "method_call") {
 	cli_output_json($out, $out["ok"] ? 0 : 1);
 }
 
+if ($command === 'excel_conversion_import') {
+    define('FBP_EXCEL_IMPORT_COMMAND',true);define('FBP_EXCEL_CONVERSION_IMPORT_COMMAND',true);
+    [$ok,$err,$data]=cli_get_json_arg($argv);
+    try {
+        if (!$ok || !is_file($data['file']??'') || !is_file($data['columns_file']??'')) throw new RuntimeException('本番のノート・列定義JSONを指定してください。');
+        $note=json_decode(file_get_contents($data['file']),true,64,JSON_THROW_ON_ERROR);
+        $snapshot=json_decode(file_get_contents($data['columns_file']),true,64,JSON_THROW_ON_ERROR);
+        if (($note['ok']??false)!==true || ($note['table']??'')!=='db' || !is_array($note['item']??null)) throw new RuntimeException('本番のノート取得結果を指定してください。');
+        $out=cli_app_call_execute(['class'=>'db_exe','function'=>'excel_conversion_import','post'=>['db_id'=>$note['item']['id'],'source_note'=>json_encode($note['item']),'snapshot'=>json_encode($snapshot)]],$dir,$smarty);
+        $response=$out['response_json']??[];
+        if (($response['ok']??true)===false || !empty($response['errormessage'])) throw new RuntimeException('表示定義の取込みに失敗しました。');
+        cli_output_json($out,0);
+    } catch (Throwable $e) { cli_output_json(['ok'=>false,'error'=>$e->getMessage()],1); }
+}
+
 if ($command === 'excel_standard_import') {
     define('FBP_EXCEL_STANDARD_IMPORT_COMMAND', true);
     [$ok,$err,$data] = cli_get_json_arg($argv);
@@ -2353,7 +2368,7 @@ if ($command === 'excel_settings_export') {
         $settings=create_db('settings',$dir->datadir.'/excel_grid',__DIR__.'/app/excel_grid/fmt');
         $cfg=$settings->select('tb_name',$table)[0] ?? [];
         if (!$cfg) throw new RuntimeException('Excel列定義がありません。');
-        cli_output_json(['ok'=>true,'schema_version'=>1,'tb_name'=>$table,'list_type'=>ExcelGrid::PATTERN,'column_order'=>ExcelGrid::orderedNames($cfg),'columns'=>(object)($cfg['columns'] ?: []),'revision'=>(int)$cfg['revision'],'fetched_at'=>gmdate('c')],0);
+        cli_output_json(['ok'=>true,'schema_version'=>1,'tb_name'=>$table,'list_type'=>(int)($ffm_db_admin->select('tb_name',$table)[0]['list_type']??4),'column_order'=>ExcelGrid::orderedNames($cfg),'columns'=>(object)($cfg['columns'] ?: []),'standard_screens'=>$cfg['standard_screens']??[],'standard_request_key'=>$cfg['standard_request_key']??'','revision'=>(int)$cfg['revision'],'fetched_at'=>gmdate('c')],0);
     } catch (Throwable $e) { cli_output_json(['ok'=>false,'error'=>$e->getMessage()],1); }
 }
 

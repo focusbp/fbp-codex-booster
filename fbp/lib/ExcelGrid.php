@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/ExcelFormula.php';
+require_once __DIR__ . '/ExcelStandardLayout.php';
 /** Runtime-owned definitions. This data directory is deliberately outside release datasets. */
 final class ExcelGrid {
     public const PATTERN = 4;
@@ -34,11 +35,13 @@ final class ExcelGrid {
         if (!is_file($ctl->dirs->datadir . '/excel_grid/settings.dat')) return [];
         return $ctl->db('settings', 'excel_grid')->select('tb_name', $table)[0] ?? [];
     }
-    public static function saveConfig(Controller $ctl, string $table, array $columns, ?array $columnOrder = null): array {
+    public static function saveConfig(Controller $ctl, string $table, array $columns, ?array $columnOrder = null, ?array $standardScreens = null, ?string $standardKey = null): array {
         $db = $ctl->db('settings', 'excel_grid');
         $db->set_strict_field_length(true);
         $current = $db->select('tb_name', $table)[0] ?? [];
         $row = ['tb_name'=>$table,'columns'=>$columns,'revision'=>(int)($current['revision'] ?? 0)+1];
+        $row['standard_screens']=$standardScreens??($current['standard_screens']??[]);
+        $row['standard_request_key']=$standardKey??($current['standard_request_key']??'');
         if ($columnOrder!==null) { self::validateOrder($columnOrder); $row['column_order']=$columnOrder; }
         if ($current) { $row['id']=$current['id']; $db->update($row); } else $row['id']=$db->insert($row);
         return $row;

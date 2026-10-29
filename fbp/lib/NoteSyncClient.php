@@ -27,7 +27,7 @@ class NoteSyncClient {
         curl_setopt_array($curl,[CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>$body,CURLOPT_RETURNTRANSFER=>true,
             CURLOPT_CONNECTTIMEOUT=>5,CURLOPT_TIMEOUT=>20,CURLOPT_FOLLOWLOCATION=>false,
             CURLOPT_HTTPHEADER=>['Content-Type: application/json','X-API-KEY: '.$this->credentials['key'],'X-API-TS: '.$ts,'X-API-SIGN: '.$signature]]);
-        $raw=curl_exec($curl); $status=curl_getinfo($curl,CURLINFO_HTTP_CODE); curl_close($curl);
+        $raw=curl_exec($curl); $status=curl_getinfo($curl,CURLINFO_HTTP_CODE);
         $data=is_string($raw)?json_decode($raw,true):null;
         if ($status!==200 || ($data['ok']??false)!==true || !is_array($data['request']??null)) {
             $message=($status===409 && is_string($data['error']??null))?$data['error']:'同期受付を確認できません。同じ画面から再試行してください。';
@@ -68,4 +68,22 @@ class NoteSyncClient {
         $note['_note_sync_state']=$ready['state']??'queued';
         return $note;
     }
+    public function convert(int $id,string $name,array $screens,int $revision,string $key): array {
+        ExcelDefinitionGuard::assertEditable($this->ctl->dirs->datadir);
+        if (!preg_match('/^[a-f0-9]{48}$/D',$key)) throw new RuntimeException('変換受付番号が不正です。');
+        $app=trim((string)$this->ctl->get_appcode());if (!str_starts_with($app,'app-')) $app='app-'.$app;
+        if (!preg_match('/^app-[A-Za-z0-9][A-Za-z0-9_-]*$/D',$app)) throw new RuntimeException('アプリ識別名が不正です。');
+        $base=['appcode'=>$app,'request_key'=>$key];
+        $this->ctl->close_all_db();
+        $receipt=$this->request($base+['action'=>'reserve_conversion','note_id'=>$id,'tb_name'=>$name]);
+        if (($receipt['appcode']??'')!==$app || ($receipt['request_key']??'')!==$key || ($receipt['operation']??'')!=='convert'
+            || (int)($receipt['note_id']??0)!==$id || ($receipt['tb_name']??'')!==$name) throw new RuntimeException('同期受付のノート情報が一致しません。');
+        if (($receipt['state']??'')==='failed') throw new RuntimeException('ノート同期が停止しています。プロジェクトサポートで確認してください。');
+        $note=ExcelStandardLayout::apply($this->ctl,$id,$name,$screens,$revision,$key);
+        $this->ctl->close_all_db();
+        $ready=$this->request($base+['action'=>'ready','note_id'=>$id,'tb_name'=>$name]);
+        if (($ready['state']??'')==='failed') throw new RuntimeException('変換済みです。同期状況をプロジェクトサポートで確認してください。');
+        return $note;
+    }
+
 }

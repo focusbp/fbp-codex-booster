@@ -86,9 +86,21 @@ trait ExcelGridActions {
 
     function excel_import(Controller $ctl) {
         if (PHP_SAPI !== 'cli' || !defined('CLI_APP_CALL') || !defined('FBP_EXCEL_IMPORT_COMMAND')) throw new ExcelDefinitionReadOnly('取込みは専用のexcel_settings_importコマンドで実行してください。');
-        if (!$this->excelReady($ctl)) throw new RuntimeException('画面パターンをスプレッドシートにしてください。');
+        $conversion=defined('FBP_EXCEL_CONVERSION_IMPORT_COMMAND');
+        if ($conversion) {
+            if (!$this->can_execute($ctl)) throw new RuntimeException('操作権限がありません。');
+            foreach ([['settings','excel_grid'],['setting','setting'],['db','db']] as [$table,$class]) $ctl->db($table,$class);
+        } elseif (!$this->excelReady($ctl)) throw new RuntimeException('画面パターンをスプレッドシートにしてください。');
         $snapshot=json_decode((string)$ctl->POST('snapshot'),true,64,JSON_THROW_ON_ERROR);
         if (($snapshot['schema_version'] ?? null)!==1 || ($snapshot['tb_name'] ?? '')!==$this->table_name || !is_array($snapshot['columns'] ?? null)) throw new RuntimeException('対象ノートまたは設定形式が一致しません。');
+        if ($conversion) {
+            $source=json_decode((string)$ctl->POST('source_note'),true,64,JSON_THROW_ON_ERROR);
+            $current=$ctl->db('db','db')->get((int)$this->db_setting_id);
+            if (($snapshot['ok']??false)!==true || ($source['tb_name']??'')!==$this->table_name || (int)($source['id']??0)!==(int)$this->db_setting_id
+                || !empty($source['parent_tb_id']) || (int)($source['screen_build_type']??-1)!==0 || !in_array((int)($source['list_type']??-1),[0,4],true)
+                || !empty($current['parent_tb_id']) || (int)$current['screen_build_type']!==0 || !in_array((int)$current['list_type'],[0,4],true)
+                || (int)($snapshot['list_type']??-1)!==(int)$source['list_type'] || !preg_match('/^[a-f0-9]{48}$/D',(string)($snapshot['standard_request_key']??''))) throw new RuntimeException('変換定義のノート情報が一致しません。');
+        }
         $columns=[];
         foreach ($snapshot['columns'] as $name=>$input) {
             if (!in_array($name,ExcelGrid::names(),true) || !is_array($input)) throw new RuntimeException('列定義が不正です。');
@@ -106,8 +118,16 @@ trait ExcelGridActions {
         $order=$snapshot['column_order'] ?? ExcelGrid::names();
         if (!is_array($order)) throw new RuntimeException('列順が不正です。');
         ExcelGrid::validateOrder($order);
-        ExcelDefinitionGuard::import($ctl,$this->table_name,$columns,$order); $this->excelReopen($ctl);
+        $screens=$conversion?ExcelStandardLayout::screens($snapshot['standard_screens']??[],['columns'=>$columns,'column_order'=>$order]):null;
+        if ($conversion && $screens!==$snapshot['standard_screens']) throw new RuntimeException('表示項目定義が不正です。');
+        ExcelDefinitionGuard::import($ctl,$this->table_name,$columns,$order,$screens,$conversion?$snapshot['standard_request_key']:null);
+        if ($conversion) ExcelDefinitionGuard::importLayoutNote($ctl,$source,$snapshot);
+        $this->excelReopen($ctl);
         $ctl->show_notification_text('列定義を取り込みました。');
+    }
+    function excel_conversion_import(Controller $ctl) {
+        if (!defined('FBP_EXCEL_CONVERSION_IMPORT_COMMAND')) throw new ExcelDefinitionReadOnly();
+        $this->excel_import($ctl);
     }
     function excel_page(Controller $ctl) {
         if (!ExcelGrid::isSpreadsheet($this->db_setting) && ExcelGrid::isSpreadsheet($this->source_db_setting)) { $this->page($ctl); return; }
