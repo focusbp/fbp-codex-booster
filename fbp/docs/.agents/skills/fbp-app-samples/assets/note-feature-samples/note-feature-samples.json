@@ -1,0 +1,66 @@
+{
+  "version": 2,
+  "name": "note-feature-samples",
+  "features": [
+    "csv-upload",
+    "csv-download",
+    "pdf-list",
+    "mcp-crud",
+    "public-form",
+    "single-item-shop-sandbox",
+    "dynamic-excel-ocr",
+    "excel-mail-send",
+    "excel-mail-receive"
+  ],
+  "files": [
+    "classes/app/feature_excel_ocr/Templates/review.tpl",
+    "classes/app/feature_excel_ocr/Templates/upload.tpl",
+    "classes/app/feature_excel_ocr/feature_excel_ocr.php",
+    "classes/app/feature_mail_samples/Templates/receive.tpl",
+    "classes/app/feature_mail_samples/Templates/send.tpl",
+    "classes/app/feature_mail_samples/Templates/send_confirm.tpl",
+    "classes/app/feature_mail_samples/feature_mail_samples.php",
+    "classes/app/feature_product_mcp/feature_product_mcp.php",
+    "classes/app/feature_product_schema/feature_product_schema.php",
+    "classes/app/feature_products_ocr/feature_products_ocr.php",
+    "classes/app/feature_sample_payment/feature_sample_payment.php",
+    "classes/app/feature_samples/Templates/download.tpl",
+    "classes/app/feature_samples/Templates/error.tpl",
+    "classes/app/feature_samples/Templates/form_link.tpl",
+    "classes/app/feature_samples/Templates/mcp_link.tpl",
+    "classes/app/feature_samples/Templates/pdf.tpl",
+    "classes/app/feature_samples/Templates/shop_link.tpl",
+    "classes/app/feature_samples/Templates/upload.tpl",
+    "classes/app/feature_samples/feature_samples.php",
+    "classes/app/mcp_sample_products_add/mcp_sample_products_add.php",
+    "classes/app/mcp_sample_products_delete/mcp_sample_products_delete.php",
+    "classes/app/mcp_sample_products_list/mcp_sample_products_list.php",
+    "classes/app/mcp_sample_products_update/mcp_sample_products_update.php",
+    "classes/app/public_pages/Templates/sample_complete.tpl",
+    "classes/app/public_pages/Templates/sample_confirm.tpl",
+    "classes/app/public_pages/Templates/sample_form.tpl",
+    "classes/app/public_pages/Templates/sample_head.tpl",
+    "classes/app/public_pages/Templates/sample_shop.tpl",
+    "classes/app/public_pages/public_pages.php",
+    "mcp-functions.json"
+  ],
+  "notes": [
+    "feature_sample_products",
+    "feature_sample_orders"
+  ],
+  "ocr": {
+    "target": "explicit installer argument",
+    "source": "ExcelGrid::config for Excel notes; current add-screen field definitions for standard notes",
+    "columns": "generated input only",
+    "rows": "single or multiple (1–20), chosen alongside file selection"
+  },
+  "external_services": [
+    "Square Sandbox",
+    "OpenAI image analysis"
+  ],
+  "sample_data": "explicit opt-in only",
+  "field_order": "runtime Excel column order, standard add-screen order as fallback",
+  "submissions": "Public form and shop save current fields into feature_sample_products; hidden checkout_key prevents duplicate rows.",
+  "catalog": "fbp/config/note_feature_catalog.json",
+  "adaption": "Resolve current note field identities and business roles; integrate functions without overwriting existing app classes."
+}

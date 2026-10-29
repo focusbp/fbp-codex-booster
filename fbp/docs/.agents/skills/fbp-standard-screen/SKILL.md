@@ -145,18 +145,22 @@ description: Build, maintain, or adjust FBP Standard Screen note management usin
 
 ## スプレッドシート
 
-- システム設定「Excel風ノートの追加」は既定On（`spreadsheet_note_add_disabled` の未設定/0）、Offは1。Offではノート追加の＋と追加処理を禁止する。既存ノートの編集は維持する。共通定義を複数プロジェクトへ配布する構成では配布先ごとにOffを設定する。Developer Modeの追加禁止はOnでも維持する。
+- システム設定「Excel風ノートの追加」は既定On（`spreadsheet_note_add_disabled` の未設定/0）、Offは1。Offではノート追加の＋と追加処理を禁止する。既存ノートの編集は維持する。共通定義を複数プロジェクトへ配布する構成では配布先ごとにOffを設定する。Developer ModeでもOnなら開発環境にノートを追加できる。
 
-- 親ノートの「画面パターン」をスプレッドシート（`list_type=4`）にする。`db_exe/page`から直接開く。Production Modeでは一覧との表示切替や有効・無効フラグを設けない。Developer Modeでは下記の検証用表示だけを許可する。行順は内部`excel_sort`を使い、検索・列ソートは設けない。全行を表示し、ページ分割・ページ番号・総行数表示は設けない。
+- 親ノートの「画面パターン」をスプレッドシート（`list_type=4`）にする。`db_exe/page`から直接開く。Production Modeでは一覧との表示切替や有効・無効フラグを設けない。Developer Modeでは通常の定義編集に加え、下記の検証用表示も利用できる。行順は内部`excel_sort`を使い、検索・列ソートは設けない。全行を表示し、ページ分割・ページ番号・総行数表示は設けない。
 - A〜AZの列記号から項目設定、データセルから小型入力を開く。「確定」と行ペーストは即時保存。行番号メニューは追加・削除・コピー・ペースト、行・列それぞれのハンドルで表示順を移動する。列の内部名と式の参照は維持し、タイトル行の行番号は空欄、データ行は1から表示する。行ボタンは出さず `db_additionals place=0` を表示する。
 - 列見出し右端のドラッグで列幅を調整し、終了時に列定義の`column_width`（px）へ保存する。未設定132px、64〜1200px。ダブルクリックはタイトルと表示中データに合わせる。幅は列移動・定義同期でも維持し、未使用列を生成する理由にはしない。
-- Excel列の正本は実行環境の `excel_grid/settings`。通常のdb_fieldsへ二重登録しない。Production Modeではタイトル・型を利用者が変更できる。Developer Modeでは列設定を変更しない。整数・小数だけ入力方法 input / calculation を表示し、他の型は非表示・input固定。型変更で計算を使えなくなったらinputへ戻す。functionはプロジェクトサポート専用の内部設定で、通常画面では選択・解除できない。設定済みの説明とセルの手動編集禁止を維持する。Excel列に必須指定はない。
+- Excel列の正本は実行環境の `excel_grid/settings`。通常のdb_fieldsへ二重登録しない。Production Modeではタイトル・型を利用者が変更できる。Developer Modeでも列設定を変更できる。本番同期では本番定義で上書きし、定義を含むリリースではテスト定義を本番へ反映する。整数・小数だけ入力方法 input / calculation を表示し、他の型は非表示・input固定。型変更で計算を使えなくなったらinputへ戻す。functionはプロジェクトサポート専用の内部設定で、通常画面では選択・解除できない。設定済みの説明とセルの手動編集禁止を維持する。Excel列に必須指定はない。
 - calculationは数値型だけ。四則演算・括弧・同じ行の入力/計算列参照に対応し、関数列参照と循環は拒否。小数桁数と丸め方法を列で設定する。空欄参照は空欄、計算失敗は別管理の状態によってERROR表示する。
 - functionはノートのpost_action_classをサーバー内で同期実行する。フックは `_post_action_table`、`_post_action_from`、変更前後のJSONを利用し、共通の `ExcelGrid::config()` で現在の入力方法を確認して関数列を更新する。Excelの計算エラーは `_post_action_excel_errors` で受け取れる。画面専用の後続Ajaxへ計算完了を委ねない。
-- 本番のExcel列定義と生成形式は通常リリースで置換しない。サポート開始時に本番から取得してテストへ取り込み、コードを検証する。リリース時の定義一致チェックや専用ロックは設けない。
+- 本番同期は本番→テスト、定義を含むリリースはテスト→本番とする。テストで整えた列定義・列順・生成形式をリリースし、直前の本番取り込みで消さない。定義配布Offでは本番定義を保持し、業務レコード・計算状態は配布しない。
 - CLIは `excel_settings_export`（tb_name）、`excel_settings_import`（tb_name/file）。取込みはローカルCLI専用で、既存テストデータを壊す定義変更は拒否する。ローカルの本番取得入口は環境側スクリプトに従う。
 - 実装・検証の詳細はプロジェクトの `docs/excel-style-standard-screen-design.md` と `docs/history.md` を参照する。
 
-- Developer Mode（force_testmode=1）は本番由来のExcel定義を保持し、新規作成・列設定・画面パターンの定義変更を拒否する。詳細は `fbp-db` の「Developer ModeのExcel定義保護」に従う。
+- Developer Mode（force_testmode=1）でも手動・CLIから新規作成・列設定・画面パターンを変更できる。詳細は `fbp-db` の「Developer ModeのExcel編集・同期・リリース」に従う。
 - 検証用の検索＋一覧はセッション内の表示指定で、元のlist_type=4を保存したまま使う。「本番の表示に戻す」で指定を解除する。検索型で表示しても計算／関数列の手動入力禁止やpost_actionは維持する。
 - CLIは `excel_preview_set`／`excel_preview_reset` にtb_nameを指定する。続けてapp_callで検証するときは同じsession_id・windowcodeを指定する。ブラウザーの利用者・ウィンドウとは独立する。本番設定の再取り込みでは古い表示指定が無効になる。
+
+## 管理者限定の構成操作
+
+Excel風ノートの新規作成＋、機能追加依頼＋、データベース形式への変換は管理者限定。ボタンの表示だけでなく受付・各ステップ・実行でも拒否する。通常の行追加や既存データ編集の権限とは別に扱う。

@@ -3,7 +3,7 @@
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 try {
     $sample=$argv[1]??'';
-    if(!in_array($sample,['parent-child-history','status-transition','public-intake'],true))throw new RuntimeException('Choose parent-child-history, status-transition or public-intake.');
+    if(!in_array($sample,['parent-child-history','status-transition','public-intake','incoming-mail'],true))throw new RuntimeException('Choose parent-child-history, status-transition, public-intake or incoming-mail.');
     $options=[];
     foreach(array_slice($argv,2) as $arg){
         if(!preg_match('/^--(code-root|configure-test-root)=(.+)$/D',$arg,$m)||$options)throw new RuntimeException('Specify exactly one --code-root=PATH or --configure-test-root=PATH.');

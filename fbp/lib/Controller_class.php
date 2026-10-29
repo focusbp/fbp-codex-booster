@@ -2716,6 +2716,24 @@ class Controller_class implements Controller {
 		return $arr;
 	}
 
+	/** Fetch unconfirmed incoming messages without changing read/deleted flags or receive state. */
+	function receive_mail(int $limit = 20, ?array $account = null): array {
+		require_once __DIR__ . '/ReceiveMail.php';
+		return (new ReceiveMail($this, $account))->receive($limit);
+	}
+
+	/** Acknowledge only after the application's processing has succeeded. */
+	function confirm_received_mail(string $id, ?array $account = null): bool {
+		require_once __DIR__ . '/ReceiveMail.php';
+		return (new ReceiveMail($this, $account))->confirm($id);
+	}
+
+	/** Explicitly remove one message by the signed identity returned by receive_mail(). */
+	function delete_received_mail(string $id, ?array $account = null): bool {
+		require_once __DIR__ . '/ReceiveMail.php';
+		return (new ReceiveMail($this, $account))->delete($id);
+	}
+
 	function send_mail_prepared_format($to, $format_key, $attachment_files = null, $default_subject = "", $default_template = null, array $options = []) {
 
 		$setting = $this->get_setting();

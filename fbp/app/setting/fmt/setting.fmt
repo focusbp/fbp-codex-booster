@@ -73,3 +73,11 @@ line_bot_greeting_message,1000,T
 line_forward_unknown_to_manager,1,N
 dsp_disabled,1,N
 spreadsheet_note_add_disabled,1,N
+receive_protocol,4,T
+receive_server,255,T
+receive_port,5,N
+receive_secure,8,T
+receive_user,255,T
+receive_password,255,T
+receive_folder,255,T
+receive_state,65535,T

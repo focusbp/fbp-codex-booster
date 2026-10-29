@@ -391,13 +391,6 @@ class db {
             $table['list_type'] = 0;
         }
         $errors = array_merge($errors, ExcelGrid::configurationErrors($table));
-        if (ExcelDefinitionGuard::isDeveloper($ctl->dirs->datadir)) {
-            $oldExcel = (int)($current['list_type'] ?? -1) === 4;
-            if ((!$oldExcel && (int)($table['list_type'] ?? -1) === 4)
-                || ($oldExcel && ((int)($table['list_type'] ?? -1) !== 4 || (int)($table['screen_build_type'] ?? 0) !== 0))) {
-                $errors['list_type'] = 'Developer Modeでは画面パターンを変更できません。検証用の表示切替を利用してください。';
-            }
-        }
         if (!$errors) {
             foreach (SingleRecordScreen::configuration_errors($table,
                 fn($name) => $ctl->db($name),

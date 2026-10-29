@@ -1,12 +1,5 @@
 
-{if $testserver || $setting.show_developer_panel == 1}
-	<div class="db_edit_button_area">
-		<button class="ajax-link" invoke-class="db" invoke-function="edit" data-id="{$db_id}" data-mode="database">
-			<span class="material-symbols-outlined">description</span>
-		</button>
-	</div>
-	<div style="clear:both;"></div>
-{/if}
+
 
 {if $show_search_box }
 	<div class="search_box" style="margin:8px 0 14px 0;padding:10px 14px 12px 14px;border:1px solid #d7deea;border-radius:10px;background:#f8fafc;display:flex;flex-direction:column;justify-content:center;">

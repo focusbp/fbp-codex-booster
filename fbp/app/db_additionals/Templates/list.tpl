@@ -60,4 +60,32 @@
 		background: #eef5ff;
 	}
 </style>
+{else}
+<div class="db-additionals-overview">
+    <div style="margin:12px 0;display:flex;justify-content:flex-end;">
+        <button type="button" class="ajax-link" data-class="db_additionals" data-function="add" data-target_area="{$target_area|escape}" data-list_scope="all">{t key="db_additionals.add_button"}</button>
+    </div>
+    <div style="overflow-x:auto;">
+    <table class="db-additionals-overview-table">
+        <thead><tr><th>{t key="db.table_name"}</th><th>{t key="db_additionals.button_title"}</th><th>{t key="db_additionals.place"}</th><th>{t key="db_additionals.action_name"} / {t key="db_additionals.function_name"}</th><th>{t key="db_additionals.show_button"}</th><th></th></tr></thead>
+        <tbody>
+        {foreach $items as $a}
+        <tr data-additional-id="{$a.id}" data-tb-name="{$a.tb_name|escape}">
+            <td>{$table_labels[$a.tb_name]|default:$a.tb_name|escape}<br><small>{$a.tb_name|escape}</small></td>
+            <td>{$a.button_title|escape}</td>
+            <td>{$place_opt[$a.place]|default:$a.place|escape}</td>
+            <td>{$a.class_name|escape} / {$a.function_name|default:'run'|escape}</td>
+            <td>{$show_button_opt[$a.show_button]|default:$a.show_button|escape}</td>
+            <td><div style="display:flex;gap:6px;justify-content:flex-end;">
+                <button type="button" class="ajax-link" data-class="db_additionals" data-function="edit" data-id="{$a.id}" data-list_scope="all" data-target_area="{$target_area|escape}">{t key="common.edit"}</button>
+                <button type="button" class="ajax-link" data-class="db_additionals" data-function="delete" data-id="{$a.id}" data-list_scope="all" data-target_area="{$target_area|escape}">{t key="common.delete"}</button>
+            </div></td>
+        </tr>
+        {foreachelse}
+        <tr><td colspan="6">{t key="db_additionals.empty"}</td></tr>
+        {/foreach}
+        </tbody>
+    </table>
+    </div>
+</div>
 {/if}

@@ -1,0 +1,4 @@
+<title>{$page_title|escape}</title>
+{literal}<style>
+.sample-public{box-sizing:border-box;width:min(100%,720px);margin:32px auto;padding:24px;font-family:sans-serif;line-height:1.7;color:#263243}.sample-public h1{font-size:1.7rem}.sample-public .public-field{margin-bottom:18px}.sample-public button,.public-form .public-actions button{margin:0;padding:11px 20px;border:0;border-radius:7px;background:#1762b8;color:white;cursor:pointer}.public-actions{display:flex;justify-content:flex-end;gap:12px;margin:20px 0 12px}.sample-confirm dd{margin:4px 0 16px;overflow-wrap:anywhere}.sample-confirm dt{font-weight:600}.sample-product{background:#f3f6fa;border-radius:12px;padding:20px;margin-bottom:24px}.sample-product .price{font-size:1.8rem;font-weight:700}@media(max-width:600px){.sample-public{margin:12px auto;padding:16px}}
+</style>{/literal}

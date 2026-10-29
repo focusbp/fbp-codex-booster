@@ -81,6 +81,15 @@ interface ctl_media {
 	 */
 	function close_multi_dialog($dialog_name, $class = null);
 
+	/** Fetch unconfirmed POP/IMAP mail without changing server flags or receive progress. */
+	function receive_mail(int $limit = 20, ?array $account = null): array;
+
+	/** Confirm one signed message id only after successful application processing. */
+	function confirm_received_mail(string $id, ?array $account = null): bool;
+
+	/** Explicitly delete one signed message id; retrying an already deleted id succeeds. */
+	function delete_received_mail(string $id, ?array $account = null): bool;
+
 	/**
 	 * Sends an email with the provided content and optional attachments.
 	 *

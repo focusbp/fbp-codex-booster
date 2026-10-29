@@ -38,8 +38,10 @@ class db_additionals {
 	}
 
 	private function reload_list_area(Controller $ctl, string $tb_name = "", string $target_area = "#tabs-buttons", int $reload_db_id = 0): void {
+		if ($ctl->POST('list_scope') === 'all') $tb_name = '';
 		$post = [
 			"tb_name" => $tb_name,
+			"list_scope" => $tb_name === '' ? 'all' : '',
 			"target_area" => $target_area,
 		];
 		if ($reload_db_id > 0) {
@@ -49,6 +51,7 @@ class db_additionals {
 	}
 
 	function __construct(Controller $ctl) {
+		$ctl->assign("list_scope", $ctl->POST("list_scope") === "all" ? "all" : "");
 		$ctl->assign("place_opt", $this->place_opt);
 		$ctl->assign("button_type_opt",$this->button_type_opt);
 		$ctl->assign("show_button_opt",$this->show_button_opt);
@@ -76,7 +79,12 @@ class db_additionals {
 			}
 		}
 
-		$ctl->assign("items", $items);
+		$table_labels = [];
+        if ($tb_name === '') {
+            foreach ($ctl->db('db', 'db')->getall() as $table) $table_labels[$table['tb_name']] = $table['menu_name'] ?: $table['tb_name'];
+        }
+        $ctl->assign('table_labels', $table_labels);
+        $ctl->assign("items", $items);
 		$ctl->assign("tb_name", $tb_name);
 		$ctl->assign("target_area", $target_area);
 		$ctl->assign("reload_db_id", $reload_db_id);

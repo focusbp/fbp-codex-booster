@@ -1,9 +1,9 @@
 <?php
 
-/** Framework invariant, independent of project DSP and caller privileges. */
+/** Dedicated import validation and compatibility hooks for Excel definitions. */
 final class ExcelDefinitionReadOnly extends RuntimeException {
     public const ERROR_CODE = 'excel_definition_read_only';
-    public function __construct(string $message = 'Developer ModeではExcel風ノートの作成・列設定の変更はできません。本番の列設定を取り込んでください。') { parent::__construct($message); }
+    public function __construct(string $message = 'このExcel定義操作は専用の実行経路から行ってください。') { parent::__construct($message); }
 }
 
 final class ExcelDefinitionGuard {
@@ -55,60 +55,21 @@ final class ExcelDefinitionGuard {
         return !in_array($setting['spreadsheet_note_add_disabled'] ?? null, [1, '1'], true);
     }
     public static function assertNoteCreationAllowed(Controller $ctl): void {
+        if (!$ctl->is_app_admin()) throw new RuntimeException('ノートの追加は管理者のみ実行できます。');
         $setting = $ctl->db('setting', 'setting')->get(1) ?: [];
         if (!self::noteCreationEnabled($setting)) throw new RuntimeException('Excel風ノートの追加はシステム設定で無効になっています。');
     }
     public static function assertEditable(string $dataRoot): void {
-        if (self::isDeveloper($dataRoot)) throw new ExcelDefinitionReadOnly();
+        // Both runtime modes permit local definition edits. Keep invalid-mode detection.
+        self::isDeveloper($dataRoot);
     }
+    /** Compatibility hook: ordinary FFM authorization still applies in both modes. */
     public static function write(string $table, string $directory, callable $callback): mixed {
-        $target = self::target($table, $directory);
-        if ($target === null) return $callback(null);
-        return self::references(self::root($directory), fn($rows, $refs) => $callback(['target' => $target, 'root' => self::root($directory), 'refs' => $refs]));
-    }
-    private static function changed(array $before, array $after): bool {
-        // FFM normalizes numeric fields and JSON array keys on disk.
-        return $before != $after;
+        return $callback(null);
     }
     public static function check(?array $context, string $operation, ?array $before, ?array $after): void {
-        if ($context === null) return;
-        // DSP preparation may have reordered locks; reread metadata under current locks.
-        $rows = [];
-        self::$reading = true;
-        try { foreach ($context['refs'] as $name => $ffm) $rows[$name] = $ffm->excel_guard_snapshot(); }
-        finally { self::$reading = false; }
-        if (!self::developer($rows) || ($before !== null && $after !== null && !self::changed($before, $after))) return;
-        $context['rows'] = $rows;
-        $target = $context['target'];
-        if ($operation === 'clear') throw new ExcelDefinitionReadOnly();
-        if ($target === 'db/db') {
-            if ($operation === 'update' && self::$standardImport !== null
-                && self::$standardImport['root'] === $context['root']
-                && $after == self::$standardImport['content']) return;
-            if ($operation === 'insert' && self::$noteImport !== null && self::$noteImport['root'] === $context['root']) {
-                $candidate = $after ?? []; unset($candidate['id']);
-                if ($candidate == self::$noteImport['content']) return;
-            }
-            if ($operation === 'delete') return;
-            $oldExcel = (int)($before['list_type'] ?? -1) === 4;
-            $newExcel = (int)($after['list_type'] ?? -1) === 4;
-            if ((!$oldExcel && $newExcel) || ($oldExcel && (!$newExcel || (int)($after['screen_build_type'] ?? 0) !== 0))) throw new ExcelDefinitionReadOnly();
-            foreach ($context['rows']['excel_grid/settings'] ?? [] as $cfg) {
-                if (($cfg['tb_name'] ?? '') === ($before['tb_name'] ?? '') && ($after['tb_name'] ?? '') !== ($before['tb_name'] ?? '')) throw new ExcelDefinitionReadOnly();
-            }
-        } elseif ($target === 'excel_grid/settings') {
-            $allowed = self::$import;
-            $candidate = array_intersect_key($after ?? [], array_flip(['tb_name', 'columns', 'column_order', 'standard_screens', 'standard_request_key']));
-            if ($operation !== 'delete' && $allowed !== null && $allowed['root'] === $context['root'] && $candidate == $allowed['content']) return;
-            throw new ExcelDefinitionReadOnly();
-        } else {
-            foreach ([$before, $after] as $field) {
-                if (!$field || !preg_match('/^(?:[a-z]|a[a-z])$/', (string)($field['parameter_name'] ?? ''))) continue;
-                $note = $context['rows']['db/db'][(int)($field['db_id'] ?? 0)] ?? [];
-                if ((int)($note['list_type'] ?? -1) === 4) throw new ExcelDefinitionReadOnly();
-                foreach ($context['rows']['excel_grid/settings'] ?? [] as $cfg) if (($cfg['tb_name'] ?? '') === ($note['tb_name'] ?? '')) throw new ExcelDefinitionReadOnly();
-            }
-        }
+        // Developer Mode now permits the same definition writes as Production Mode.
+        // Production sync/import validation below remains separate from ordinary writes.
     }
     /** Import an existing production spreadsheet note identity, never renumber local notes. */
     public static function importNote(string $dataRoot, fixed_file_manager $db, array $note): array {
@@ -120,7 +81,10 @@ final class ExcelDefinitionGuard {
         $byName = $db->select('tb_name', $note['tb_name']);
         if ($existing !== null || $byName) {
             unset($note['_id_enc']); $current = $existing ?? []; unset($current['_id_enc']);
-            if (($current['tb_name'] ?? '') === $note['tb_name'] && ExcelGrid::isSpreadsheet($current) && !$current['parent_tb_id']) return ['id'=>(int)$note['id'], 'created'=>false];
+            if (($current['tb_name'] ?? '') === $note['tb_name'] && (int)($current['screen_build_type']??0)===0 && empty($current['parent_tb_id'])) {
+                if ((int)$current['list_type']!==4) { $current['list_type']=4; $db->update($current); }
+                return ['id'=>(int)$note['id'], 'created'=>false];
+            }
             throw new RuntimeException('ノートIDまたは名前が既存定義と衝突しています。上書きせず停止しました。');
         }
         $sourceId = (int)$note['id'];
@@ -169,15 +133,15 @@ final class ExcelDefinitionGuard {
 
     /** Dedicated CLI-only import of a verified production layout and pattern. */
     public static function importLayoutNote(Controller $ctl,array $source,array $snapshot): array {
-        if (PHP_SAPI!=='cli' || !defined('FBP_EXCEL_CONVERSION_IMPORT_COMMAND') || !defined('CLI_APP_CALL')) throw new ExcelDefinitionReadOnly();
+        if (PHP_SAPI!=='cli' || (!defined('FBP_EXCEL_CONVERSION_IMPORT_COMMAND') && !defined('FBP_EXCEL_STANDARD_IMPORT_COMMAND')) || !defined('CLI_APP_CALL')) throw new ExcelDefinitionReadOnly();
         $db=$ctl->db('db','db');$current=$db->get((int)($source['id']??0));
         if (!$current || ($current['tb_name']??'')!==($source['tb_name']??null) || !empty($current['parent_tb_id'])
-            || (int)$current['screen_build_type']!==0 || !in_array((int)$current['list_type'],[0,4],true)
+            || (int)$current['screen_build_type']!==0 || !in_array((int)$current['list_type'],[0,1,2,3,4],true)
             || !empty($source['parent_tb_id']) || (int)$source['screen_build_type']!==0
             || !in_array((int)$source['list_type'],[0,4],true) || (int)$snapshot['list_type']!==(int)$source['list_type']) throw new RuntimeException('本番と開発環境のノートID・内部名・画面形式が一致しません。');
         $config=ExcelGrid::config($ctl,$current['tb_name']);
-        if (($config['columns']??null)!=$snapshot['columns'] || ($config['standard_screens']??null)!=$snapshot['standard_screens']
-            || ($config['standard_request_key']??'')!==$snapshot['standard_request_key']) throw new RuntimeException('取込み済みの表示定義が一致しません。');
+        if (($config['columns']??null)!=$snapshot['columns'] || ($config['standard_screens']??[])!=($snapshot['standard_screens']??[])
+            || ($config['standard_request_key']??'')!==($snapshot['standard_request_key']??'')) throw new RuntimeException('取込み済みの表示定義が一致しません。');
         $after=$current;$after['list_type']=(int)$source['list_type'];$after['sortkey']='excel_sort';$after['sort_order']=SORT_ASC;
         if (self::$standardImport!==null) throw new RuntimeException('画面形式取込みの再入はできません。');
         self::$standardImport=['root'=>realpath($ctl->dirs->datadir),'content'=>$after];

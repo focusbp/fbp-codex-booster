@@ -1,8 +1,4 @@
-{if $testserver || $setting.show_developer_panel == 1}
-<div class="db_edit_button_area">
-    <button class="ajax-link" invoke-class="db" invoke-function="edit" data-id="{$db_id}" data-mode="database"><span class="material-symbols-outlined">description</span></button>
-</div>
-{/if}
+
 <div class="db_exe_page_context single_record_screen" data-db-id="{$db_id}" data-tb-name="{$tb_name|escape}" data-class="{$class|escape}">
     <div class="single_record_top_buttons" style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
         {foreach $additionals as $a}

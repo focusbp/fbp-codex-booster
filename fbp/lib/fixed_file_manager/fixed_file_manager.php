@@ -3250,7 +3250,7 @@ class fixed_file_manager implements FFM {
 			}
 		}
 		if ($this->filename === "setting" && basename(rtrim($this->datadir, "/")) === "setting") {
-			foreach (["smtp_password","chatgpt_api_key","line_accesstoken","line_channel_secret","square_access_token","square_application_secret","api_key_map","vimeo_access_token","vimeo_client_secret","secret","iv","api_key","api_secret","release_api_key","release_api_secret"] as $field) {
+			foreach (["smtp_password","receive_password","chatgpt_api_key","line_accesstoken","line_channel_secret","square_access_token","square_application_secret","api_key_map","vimeo_access_token","vimeo_client_secret","secret","iv","api_key","api_secret","release_api_key","release_api_secret"] as $field) {
 				if (array_key_exists($field, $row)) $row[$field] = "[masked]";
 			}
 		}

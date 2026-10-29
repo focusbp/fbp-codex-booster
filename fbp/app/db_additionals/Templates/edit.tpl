@@ -1,5 +1,6 @@
 <div style="display: block;overflow: hidden;">
 	<form id="additional_form_{$timestamp}">
+<input type="hidden" name="list_scope" value="{$list_scope|default:''|escape}">
 
 		<input type="hidden" name="id" value="{$post.id}">
 		<input type="hidden" name="target_area" value="{$target_area|default:''}">

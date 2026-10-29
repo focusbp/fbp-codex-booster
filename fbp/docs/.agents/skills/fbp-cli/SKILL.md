@@ -41,9 +41,11 @@ description: Execute and verify FBP features through cli.php commands including 
 
 ## Excel風ノートの開発時検証
 
-Developer ModeではExcel定義の新規作成・変更を拒否する。`db_tables_edit`で画面パターンを変えず、`excel_preview_set --json='{"tb_name":"example","session_id":"ExcelCheck","windowcode":"ExcelCheck"}'` で検証用の検索＋一覧を使う。同じsession_id・windowcodeのapp_callに引き継がれ、`excel_preview_reset`で元のExcel風へ戻せる。これらの指定はブラウザーのセッションやリリース定義には影響しない。
+Developer Modeでも、web側CLIの `db_tables_add`／`db_tables_edit` でExcel風（list_type=4）の作成・画面パターン変更ができる。列設定はExcel画面の正規処理を使い、db_fieldsへ二重登録しない。Codexの通常作業として扱い、モード変更や特例の許可は不要。
 
-本番の列定義取得は環境側の専用スクリプト、取り込みは `excel_settings_import` を使う。汎用app_callのexcel_importは拒否する。取得JSONを変更したり、モード変更で定義保護を回避したりしない。
+表示だけ検証する場合は `excel_preview_set --json='{"tb_name":"example","session_id":"ExcelCheck","windowcode":"ExcelCheck"}'` を使い、同じsession_id・windowcodeのapp_callへ引き継ぐ。`excel_preview_reset` でExcel風へ戻せる。
+
+本番同期は本番→テストへ定義を上書きする。定義を含むリリースはテスト→本番であり、修正したテスト定義を反映する。専用取り込みコマンドの検証とHTTP／汎用app_callからの取込み拒否は維持する。
 
 ## bulk execution safety
 - 長い複合コマンドを `bash -lc '...'` に多重クォートして実行しない（特に `php -r` / ヒアドキュメント混在を禁止）。

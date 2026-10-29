@@ -2322,15 +2322,18 @@ if ($command === 'excel_conversion_import') {
 }
 
 if ($command === 'excel_standard_import') {
-    define('FBP_EXCEL_STANDARD_IMPORT_COMMAND', true);
+    define('FBP_EXCEL_STANDARD_IMPORT_COMMAND', true); define('FBP_EXCEL_IMPORT_COMMAND', true);
     [$ok,$err,$data] = cli_get_json_arg($argv);
     try {
         if (!$ok || !is_file($data['file'] ?? '') || !is_file($data['columns_file'] ?? '')) throw new RuntimeException('本番のノート・列定義取得JSONを指定してください。');
         $note = json_decode(file_get_contents($data['file']), true, 64, JSON_THROW_ON_ERROR);
         $snapshot = json_decode(file_get_contents($data['columns_file']), true, 64, JSON_THROW_ON_ERROR);
-        if (($note['ok'] ?? null) !== true || ($note['table'] ?? '') !== 'db' || !is_array($note['item'] ?? null)) throw new RuntimeException('本番のノート定義取得結果を指定してください。');
-        $result = ExcelDefinitionGuard::importStandardNote($dir->datadir, $ffm_db_admin, $note['item'], $snapshot);
-        cli_output_json(['ok'=>true]+$result, 0);
+        if (($note['ok'] ?? null) !== true || ($note['table'] ?? '') !== 'db' || !is_array($note['item'] ?? null)
+            || (int)($note['item']['list_type']??-1)!==0 || (int)($snapshot['list_type']??-1)!==0) throw new RuntimeException('本番の検索＋一覧ノート定義取得結果を指定してください。');
+        $out=cli_app_call_execute(['class'=>'db_exe','function'=>'excel_import','post'=>['db_id'=>$note['item']['id'],'source_note'=>json_encode($note['item']),'snapshot'=>json_encode($snapshot)]],$dir,$smarty);
+        $response=$out['response_json']??[];
+        if (($response['ok']??true)===false || !empty($response['errormessage'])) throw new RuntimeException('本番定義の取込みに失敗しました。');
+        cli_output_json(['ok'=>true,'id'=>(int)$note['item']['id'],'changed'=>true],0);
     } catch (Throwable $e) { cli_output_json(['ok'=>false,'error'=>$e->getMessage()],1); }
 }
 

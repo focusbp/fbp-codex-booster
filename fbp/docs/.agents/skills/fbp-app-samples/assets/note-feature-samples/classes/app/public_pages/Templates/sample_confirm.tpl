@@ -1,0 +1,4 @@
+<form id="sample_public_confirm" class="public-form" onsubmit="return false;">
+<input type="hidden" name="token" value="{$token|escape}"><p class="error_message error_token"></p>
+<dl class="sample-confirm">{if $kind == 'shop'}<dt>商品</dt><dd>{$row.product_name|escape}</dd><dt>金額</dt><dd>{$row.total|escape} 円</dd>{/if}{foreach $input_display as $input}<dt>{$input.title|escape}</dt><dd>{$input.value|escape|nl2br}</dd>{/foreach}</dl>
+<div class="public-actions"><button type="button" class="ajax-link button_link" data-class="public_pages" data-function="sample_{$kind|escape}_save" data-form="sample_public_confirm">{if $kind == 'shop'}Squareテスト決済へ{else}送信する{/if}</button></div></form>

@@ -12,6 +12,7 @@ class restore {
 		"line_accesstoken",
 		"line_channel_secret",
 		"smtp_password",
+		"receive_password",
 		"square_application_secret",
 		"square_access_token",
 		"square_oauth_application_secret",

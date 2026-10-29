@@ -80,6 +80,7 @@ class ReleaseManager {
 	function create_release_zip_from_info(array $info): string {
 		$info["deploy_email_templates"] = $this->deployEmailTemplates($info);
 		$info["deploy_db_definitions"] = $this->deployDbDefinitions($info);
+        $info["deploy_excel_definitions"] = $info["deploy_db_definitions"];
 		$this->releaseInfo = $info;
 		$zip = new ZipArchive();
 
@@ -130,6 +131,7 @@ class ReleaseManager {
 		$this->addSelectedDataFilesToZip($zip);
 		if ($this->deployDbDefinitions($this->releaseInfo)) {
 			$this->addCommonFormatFilesToZip($zip);
+            $this->addExcelDefinitionFilesToZip($zip);
 		}
 		$this->addDirectoryFilesToZip($zip, $this->public_assets_dir);
 		$this->addRootFilesToZip($zip);
@@ -191,6 +193,7 @@ class ReleaseManager {
 		if (!is_array($info)) throw new RuntimeException("Invalid release metadata.");
 		$deployEmail = $this->deployEmailTemplates($info);
 		$deployDbDefinitions = $this->deployDbDefinitions($info);
+        $this->releaseInfo=$info;
 		$stageDir = $this->createReleaseStageDirectory();
 		try {
 			$rootEntries = $this->extractReleaseZipToDirectory($zip, $ctl, $zipFile, $stageDir);
@@ -206,6 +209,13 @@ class ReleaseManager {
 			$this->deployStagedDirectory($stageDir . "/data/public_pages/assets", $this->public_assets_dir, $ctl, $zipFile, true);
 			if ($deployDbDefinitions) {
 				$this->copyStagedDirectoryFiles($stageDir . "/data/_common/fmt", $this->datadir . "/_common/fmt");
+                if ($this->deployExcelDefinitions($info)) {
+                    // Definitions follow the release source; states and business rows never do.
+                    $this->copyStagedDirectoryFiles($stageDir . "/data/excel_grid", $this->datadir . "/excel_grid");
+                    if (!is_file($stageDir . "/data/excel_grid/settings.dat") && is_file($this->datadir . "/excel_grid/settings.dat")) {
+                        if (!unlink($this->datadir . "/excel_grid/settings.dat")) throw new RuntimeException("Cannot clear obsolete Excel definitions.");
+                    }
+                }
 			}
 			$this->copyStagedDirectoryFiles($stageDir . "/data/mcp_manage", $this->datadir . "/mcp_manage");
 			$this->deleteDirectory($this->datadir . "/templates_c");
@@ -323,6 +333,16 @@ class ReleaseManager {
 		}
 	}
 
+    private function addExcelDefinitionFilesToZip(ZipArchive $zip): void {
+        if (!$this->deployExcelDefinitions($this->releaseInfo)) return;
+        $files=glob($this->datadir.'/excel_grid/fmt/*.fmt') ?: [];
+        if (is_file($this->datadir.'/excel_grid/settings.dat')) $files[]=$this->datadir.'/excel_grid/settings.dat';
+        foreach ($files as $file) if (is_file($file)) $zip->addFile($file,substr($file,strlen($this->extractdir)+1));
+    }
+    private function deployExcelDefinitions(array $info): bool {
+        // Old archives keep the historical production-preserving behavior.
+        return $this->deployDbDefinitions($info) && in_array($info['deploy_excel_definitions']??false,[true,1,'1'],true);
+    }
 	private function addCommonFormatFilesToZip(ZipArchive $zip): void {
 		$fmtDir = $this->datadir . "/_common/fmt";
 		if (!is_dir($fmtDir)) {
@@ -456,10 +476,13 @@ class ReleaseManager {
 
 	private function isExcludedArchivePath(string $relativePath): bool {
 		$path = ltrim(str_replace("\\", "/", $relativePath), "/");
+        if ($path==='data/excel_grid' || str_starts_with($path,'data/excel_grid/')) {
+            return !$this->deployExcelDefinitions($this->releaseInfo)
+                || !($path==='data/excel_grid/settings.dat' || preg_match('#^data/excel_grid/fmt/[a-z][a-z0-9_]*\.fmt$#D',$path));
+        }
 		return $path === "log/ffm" || strpos($path, "log/ffm/") === 0
 			|| $path === "data/external_keys" || strpos($path, "data/external_keys/") === 0
 			|| $path === "data/integration_settings" || strpos($path, "data/integration_settings/") === 0
-			|| $path === "data/excel_grid" || strpos($path, "data/excel_grid/") === 0
 			|| $path === "data/project_integration" || strpos($path, "data/project_integration/") === 0;
 	}
 

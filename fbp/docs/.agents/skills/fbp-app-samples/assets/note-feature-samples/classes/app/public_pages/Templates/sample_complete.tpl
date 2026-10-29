@@ -1,0 +1,1 @@
+<main class="sample-public"><h1>{if $completed}受付が完了しました{else}受付結果を確認できません{/if}</h1><p>{if $completed}内容を受け付けました。管理側の受付一覧で確認できます。{else}元の入力画面からお手続きください。{/if}</p></main>

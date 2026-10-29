@@ -5,6 +5,7 @@ trait ExcelConversionActions {
     private function conversionSession(): string { return 'excel_conversion_'.$this->db_setting_id; }
     private function conversionAllowed(Controller $ctl): bool {
         if (!$this->can_execute($ctl)) return false;
+        if (!$ctl->is_app_admin()) throw new RuntimeException('表示形式の変換は管理者のみ実行できます。');
         if (!$ctl->get_login_user_id()) throw new RuntimeException('ログインして操作してください。');
         ExcelDefinitionGuard::assertEditable($ctl->dirs->datadir);
         return true;
@@ -68,11 +69,13 @@ trait ExcelConversionActions {
             $config=ExcelGrid::config($ctl,$this->table_name);
             if (empty($flow['pending']) && (int)$config['revision']!==$flow['revision']) throw new RuntimeException('列設定が変更されました。変換リンクから項目を選び直してください。');
             $flow['pending']=true;$ctl->set_session($this->conversionSession(),$flow);
-            (new NoteSyncClient($ctl))->convert((int)$this->db_setting_id,$flow['name'],$flow['screens'],$flow['revision'],$flow['key']);
+            $local=ExcelDefinitionGuard::isDeveloper($ctl->dirs->datadir);
+            if ($local) ExcelStandardLayout::apply($ctl,(int)$this->db_setting_id,$flow['name'],$flow['screens'],$flow['revision'],$flow['key']);
+            else (new NoteSyncClient($ctl))->convert((int)$this->db_setting_id,$flow['name'],$flow['screens'],$flow['revision'],$flow['key']);
             $ctl->set_session($this->conversionSession(),null);
             $ctl->close_multi_dialog('excel-conversion');
             $ctl->invoke('page',['db_id'=>$this->db_setting_id],'db_exe');
-            $ctl->show_notification_text('データベース形式に変換しました。テスト環境への同期を受け付けました。');
+            $ctl->show_notification_text($local?'開発環境でデータベース形式に変換しました。':'データベース形式に変換しました。テスト環境への同期を受け付けました。');
         } catch (Throwable $e) { $ctl->res_error_message('conversion_error',$e->getMessage()); }
     }
 }

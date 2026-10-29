@@ -1,0 +1,134 @@
+{
+  "version": 1,
+  "features": [
+    {
+      "id": "csv_upload",
+      "title": "CSVアップロード",
+      "skills": [
+        "fbp-csv"
+      ],
+      "required_settings": [],
+      "prompt": "現在の入力項目・型・列順に合わせたCSV取込と検証を追加してください。全行を検証後に保存し、既存の計算・関数を実行してください。",
+      "sample": "note-feature-samples",
+      "sample_reference": "fbp-app-samples/references/note-feature-samples.md"
+    },
+    {
+      "id": "csv_download",
+      "title": "CSVダウンロード",
+      "skills": [
+        "fbp-csv"
+      ],
+      "required_settings": [],
+      "prompt": "現在の表示項目と列順に合わせたCSVダウンロードを追加してください。日本語とCSV数式インジェクション対策に対応してください。",
+      "sample": "note-feature-samples",
+      "sample_reference": "fbp-app-samples/references/note-feature-samples.md"
+    },
+    {
+      "id": "pdf_list",
+      "title": "PDF一覧印刷",
+      "skills": [
+        "fbp-pdf"
+      ],
+      "required_settings": [],
+      "prompt": "現在の表示項目と列順でA4横向きのPDF一覧を作成し、別タブに表示してください。",
+      "sample": "note-feature-samples",
+      "sample_reference": "fbp-app-samples/references/note-feature-samples.md"
+    },
+    {
+      "id": "mcp",
+      "title": "MCP連携",
+      "skills": [
+        "fbp-mcp-server"
+      ],
+      "required_settings": [],
+      "prompt": "このノートの追加・変更・検索（一覧）・削除をMCP関数として追加してください。OAuth、操作権限、確認指定、現在の項目・型に対応し、URL表示はdialog Skillの共有・コピーのデザインにしてください。",
+      "sample": "note-feature-samples",
+      "sample_reference": "fbp-app-samples/references/note-feature-samples.md"
+    },
+    {
+      "id": "public_form",
+      "title": "フォーム作成（公開側）",
+      "skills": [
+        "fbp-public-pages"
+      ],
+      "required_settings": [],
+      "prompt": "現在の入力項目・型・並び順から公開フォームを作成してください。確認・修正・保存に対応し、入力内容はこのノートに保存してください。重複登録を防止してください。",
+      "sample": "note-feature-samples",
+      "sample_reference": "fbp-app-samples/references/note-feature-samples.md"
+    },
+    {
+      "id": "single_shop",
+      "title": "単品ショップ作成（公開側）",
+      "skills": [
+        "fbp-public-pages",
+        "fbp-square-payment"
+      ],
+      "required_settings": [
+        "square_application_id",
+        "square_access_token",
+        "square_location_id"
+      ],
+      "prompt": "指定の商品を販売する単品ショップを作成してください。購入時の入力項目はこのノートに合わせ、入力内容をこのノートに保存してください。Square決済はサーバー側で固定価格を使い、二重課金を防止してください。",
+      "sample": "note-feature-samples",
+      "sample_reference": "fbp-app-samples/references/note-feature-samples.md"
+    },
+    {
+      "id": "ai_ocr",
+      "title": "AI-OCR読み込み",
+      "skills": [
+        "fbp-media"
+      ],
+      "required_settings": [
+        "chatgpt_api_key",
+        "chatgpt_api_url",
+        "chatgpt_api_model"
+      ],
+      "prompt": "このノートの現在の入力項目・型・並び順に合わせて画像を読み取るAI-OCRを追加してください。ファイル選択画面で単件/複数件を選択でき、確認・修正してこのノートへ保存してください。計算列は抽出せず、後から増えた項目にも追随してください。",
+      "sample": "note-feature-samples",
+      "sample_reference": "fbp-app-samples/references/note-feature-samples.md"
+    },
+    {
+      "id": "mail_send",
+      "title": "メール送信",
+      "skills": [
+        "fbp-send_email"
+      ],
+      "required_settings": [
+        "smtp_server",
+        "smtp_port",
+        "smtp_from"
+      ],
+      "prompt": "このノート全件のメールアドレスを重複排除し、個別に送信するボタンを追加してください。件名・本文の初期値は空欄。全宛先・件数と本文を確認して送信し、再実行による二重送信を防止してください。",
+      "sample": "note-feature-samples",
+      "sample_reference": "fbp-app-samples/references/note-feature-samples.md"
+    },
+    {
+      "id": "mail_receive",
+      "title": "メール受信",
+      "skills": [
+        "fbp-receive-mail"
+      ],
+      "required_settings": [
+        "receive_server",
+        "receive_port",
+        "receive_user",
+        "receive_password"
+      ],
+      "prompt": "システム設定の受信アカウントからメールを取得し、このノートの項目に対応する日付・タイトル・内容を保存するボタンを追加してください。保存後に受信確定し、再実行時の重複を防止してください。サーバー上のメールは削除しないでください。",
+      "sample": "note-feature-samples",
+      "sample_reference": "fbp-app-samples/references/note-feature-samples.md"
+    },
+    {
+      "id": "other",
+      "title": "その他",
+      "skills": [
+        "fbp-standard-screen",
+        "fbp-dialog"
+      ],
+      "required_settings": [],
+      "prompt": "",
+      "sample": "custom-note-feature",
+      "sample_reference": "fbp-standard-screen/SKILL.md"
+    }
+  ]
+}

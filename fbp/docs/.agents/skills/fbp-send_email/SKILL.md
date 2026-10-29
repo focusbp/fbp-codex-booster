@@ -5,6 +5,8 @@ description: Configure email_format templates and implement prepared-format emai
 
 # fbp-send_email
 
+受信（POP／IMAP・処理済み確定・削除）は [fbp-receive-mail](../fbp-receive-mail/SKILL.md) を使う。
+
 ## trigger conditions
 - テンプレートメール送信を実装する
 - `email_format` の追加・編集や置換検証が必要

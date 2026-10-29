@@ -82,14 +82,16 @@ description: Manage the FBP DB lifecycle, schema and screen reflection, and appl
 - `Manual Sort` を使うテーブルでは、`sort` 項目を `screen_fields` に入れない。
 - 並び替えは画面の `Manual Sort` 操作で行う前提とし、`list` / `add` / `edit` / `search` に `sort` を出さない。
 
-## Developer ModeのExcel定義保護
+## Developer ModeのExcel編集・同期・リリース
 
-- `force_testmode=1` ではExcel風ノートの新規作成、列定義変更、Excel風への画面パターン変更はエラーになる。既存Excel風から非Excel風への定義変更も行わない。本番を正本とし、本番取得結果を専用の `excel_settings_import` で取り込む。取得JSONは開発用に改変しない。
-- 本番にだけ存在するExcel風ノートの基本定義は、専用の `excel_note_import` で同じIDに取り込む。通常のdb_tables_addやモード変更で作り直さない。ID／名前の衝突、孤立した項目、採番の飛越しがあれば停止する。appリリース直前の強制同期は環境側のリリーススクリプトに従う。
-- 検索＋一覧で検証するときは、ノート画面の「検証用に検索＋一覧で表示」または `excel_preview_set` を使う。「本番の表示に戻す」／`excel_preview_reset` で復帰する。表示指定はセッションのみで、db定義・本番リリースへ含めない。
-- 型・選択肢・計算式・幅・列順・生成状態をdb_fields、汎用API、直接FFM、fmt編集から変更して迂回しない。既存の生成済み列へのデータ操作やコード・画面配置の開発は可能。未生成列への入力は拒否する。
-- 制限を避ける目的でモードをProduction Modeへ変更しない。実際の画面パターンや列定義の変更は、本番で行ってから対応する定義を同期する。
-- 本番でExcel由来の親ノートを検索＋一覧（list_type=0）へ変更した場合は、`excel_standard_import` に本番ノート取得JSONの `file` と列定義取得JSONの `columns_file` を指定して変更を同期できる。同じID・内部名の取込み済みノートがあり、保存済み列定義・列順が本番と一致する場合に限り、画面パターンだけを変更する。既存列・登録データは変更しない。通常の `db_tables_edit` やモード変更による迂回は引き続き禁止。未取込み・不一致なら本番変更前のExcel同期から整える。
+- `force_testmode=1` でもExcel風ノートの作成、標準画面→Excel風／Excel風→標準画面、列名・型・選択肢・式・丸め・列幅・列順・未生成列の入力を変更できる。開発パネルの手動操作とCodexのweb側CLIを同じ通常作業として扱い、定義変更のためにモードを切り替えたり、例外承認を求めたりしない。
+- 標準画面の非Excel項目をExcel列へ移行する場合、画面パターン変更だけでは項目名や値の対応付けは変わらない。必要なA〜AZ列への対応と、既存データを保持する移行を実装・検証する。
+- Excel列の正本はその実行環境の `excel_grid/settings`。通常のdb_fieldsやfmtへ二重登録せず、既存のExcel画面・APIで変更する。型・式・選択肢・既存データの検証、ノート権限とDSPは維持する。
+- 本番からの同期は本番→テスト。開発側で変更した列定義・列順・画面パターンを本番定義で上書きする。ID／名前の衝突、取得失敗、不正な定義、既存データとの不整合は検出して停止する。
+- 定義を含むリリースはテスト→本番。テスト側で整えたdb・画面項目・Excel列定義・生成形式を反映し、リリース直前の本番取り込みで修正を消さない。定義を配布しない設定なら本番の定義を保持する。業務レコード・OAuth・連携認証情報・計算状態は配布しない。
+- Developer Modeのメニュー＋とExcel→標準の変換は開発環境だけで完結し、本番向けの同期予約タスクを作らない。Production Modeの受付・同期経路は維持する。
+- セッションだけの検索＋一覧プレビューも利用できる。`excel_preview_set`／`excel_preview_reset` を同じsession_id・windowcodeで使い、定義を変えず表示を確認する用途に限定する。実際の画面パターン変更を禁止する理由にはしない。
+- 本番の基本定義・列設定の取得／取り込みは環境の専用スクリプトと `excel_note_import`／`excel_settings_import`／`excel_standard_import`／`excel_conversion_import` を使う。任意の取得JSONの改変や手動でのノートID付替えは行わない。
 
 ## state field policy
 - `enabled` / `is_active` / `active` / `有効` などの有効状態項目は、数値テキスト入力ではなく dropdown または checkbox として扱える型・定数にする。

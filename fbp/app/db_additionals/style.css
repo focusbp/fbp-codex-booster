@@ -23,3 +23,8 @@ code {
 
 #button_sort {
 }
+.db-additionals-overview-table { width:100%; min-width:1000px; table-layout:auto; border-collapse:collapse; }
+.db-additionals-overview-table th, .db-additionals-overview-table td { padding:10px; border-bottom:1px solid #d7dce5; text-align:left; vertical-align:top; }
+.db-additionals-overview-table small { color:#64748b; }
+.db-additionals-overview button { float:none; white-space:nowrap; }
+.db-additionals-overview-table td:nth-child(3), .db-additionals-overview-table th:nth-child(3) { white-space:nowrap; }

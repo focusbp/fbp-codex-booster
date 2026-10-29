@@ -21,6 +21,7 @@ class setting {
 		"line_accesstoken",
 			"line_channel_secret",
 			"smtp_password",
+			"receive_password",
 			"square_application_secret",
 			"square_access_token",
 			"vimeo_access_token",
@@ -50,6 +51,8 @@ class setting {
 		$ctl->assign("arr_onoff", [0 => "On", 1 => "Off"]);
 		$ctl->assign("arr_display_errors", $this->arr_display_errors);
 		$ctl->assign("arr_smtp_secure", $this->arr_smtp_secure);
+		$ctl->assign("arr_receive_protocol", ["" => $ctl->t("setting.receive.unconfigured"), "pop" => "POP", "imap" => "IMAP"]);
+		$ctl->assign("arr_receive_secure", ["" => $ctl->t("setting.receive.unconfigured"), "ssl" => "SSL/TLS", "tls" => "STARTTLS", "none" => $ctl->t("setting.receive.none")]);
 		$this->arr_framework_language_code = I18nSimple::get_language_options();
 		$this->arr_locale_code = I18nSimple::get_locale_options();
 		$ctl->assign("arr_framework_language_code", $this->arr_framework_language_code);
@@ -97,7 +100,12 @@ class setting {
 	}
 
 	function update(Controller $ctl) {
-		$setting = $this->save_posted_setting($ctl);
+		try {
+			$setting = $this->save_posted_setting($ctl);
+		} catch (InvalidArgumentException $e) {
+			$ctl->show_notification_text($e->getMessage());
+			return;
+		}
 		$this->regenerate_setting_files($ctl, $setting);
 
 		// Login Logo
@@ -149,14 +157,35 @@ class setting {
 
 	private function save_posted_setting(Controller $ctl): array {
 		$values = $ctl->POST();
-		// HMAC credentials are managed through provisioning/API, never the settings UI.
-		foreach (["api_key", "api_secret", "api_key_map", "release_api_key", "release_api_secret"] as $key) {
+		// HMAC credentials and receive progress are managed internally/API, never the settings UI.
+		foreach (["api_key", "api_secret", "api_key_map", "release_api_key", "release_api_secret", "receive_state"] as $key) {
 			unset($values[$key]);
 		}
 		return $this->save_setting_values($ctl, $values, false);
 	}
 
+	private function validate_receive_values(Controller $ctl, array $values): array {
+		foreach (["receive_protocol" => ["", "pop", "imap"], "receive_secure" => ["", "none", "tls", "ssl"]] as $key => $allowed) {
+			if (isset($values[$key]) && (!is_string($values[$key]) || !in_array($values[$key], $allowed, true))) {
+				throw new InvalidArgumentException($ctl->t("setting.receive.invalid"));
+			}
+		}
+		foreach (["receive_server", "receive_user", "receive_folder", "receive_password", "receive_password_web"] as $key) {
+			if (isset($values[$key]) && (!is_string($values[$key]) || strlen($values[$key]) > 255)) {
+				throw new InvalidArgumentException($ctl->t("setting.receive.invalid"));
+			}
+		}
+		if (isset($values["receive_port"]) && $values["receive_port"] !== "") {
+			$port = $values["receive_port"];
+			if (!is_scalar($port) || !preg_match('/^[0-9]{1,5}$/D', (string) $port) || (int) $port < 1 || (int) $port > 65535) {
+				throw new InvalidArgumentException($ctl->t("setting.receive.invalid_port"));
+			}
+		}
+		return $values;
+	}
+
 	private function save_setting_values(Controller $ctl, array $values, bool $filter_known_fields): array {
+		$values = $this->validate_receive_values($ctl, $values);
 		$setting = $this->ffm->get(1);
 		if ($setting == null) {
 			$setting = array();
@@ -165,6 +194,9 @@ class setting {
 		$known_fields = $filter_known_fields ? $this->get_setting_field_names() : null;
 		foreach ($values as $key => $val) {
 			$key = (string) $key;
+			if ($key === "receive_password_web") {
+				$key = "receive_password";
+			}
 			if ($key === "smtp_password_web") {
 				$key = "smtp_password";
 			}
@@ -633,6 +665,24 @@ class setting {
 			throw new RuntimeException("Invalid API response");
 		}
 		return $decoded;
+	}
+
+	function receive_connection_test(Controller $ctl) {
+		try {
+			$values = $this->save_posted_setting($ctl);
+		} catch (InvalidArgumentException $e) {
+			$ctl->show_notification_text($e->getMessage());
+			return;
+		}
+		$this->regenerate_setting_files($ctl, $values);
+		try {
+			require_once __DIR__ . "/../../lib/ReceiveConnectionTest.php";
+			fbp_test_receive_connection($values);
+			$ctl->show_notification_text($ctl->t("setting.receive.test_success"), 8, "#2E7D32", "#FFF", 16, 920);
+		} catch (Throwable $e) {
+			$key = $e instanceof DomainException ? $e->getMessage() : "setting.receive.test_failed";
+			$ctl->show_notification_text($ctl->t($key), 8, "#D14343", "#FFF", 16, 920);
+		}
 	}
 
 	function openai_connection_test(Controller $ctl) {

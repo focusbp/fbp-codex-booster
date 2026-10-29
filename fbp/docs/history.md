@@ -355,3 +355,9 @@
 
 ## 2026-06-16
 - MCP Note CRUD `create` and `update` now accept `file` / `image` fields as base64 upload objects, and `list` / `get` return file metadata plus public download/view URLs for saved media.
+
+- 2026-10-30: Excel風のページボタンを標準画面と同じ順序で右寄せ。7機能サンプルの公開フォーム・ショップ・MCPを独立ボタンにし、PDFを別タブ表示へ変更。ショップは商品名と単価をコードで固定。
+
+- 2026-10-30: 公開フォームも対象ノートの入力項目・型・順序へ追随し、確認内容を受付へ保存。固定の購入数量欄は廃止。MCP接続URLはdialog Skillの全文折り返し・別タブリンク・コピーアイコン・成功/失敗通知を採用。Developer Modeの説明文と検証表示への切替ボタンを非表示化。
+
+- 2026-10-30: AI-OCRに単件/複数件（最大20件）の選択と行別確認・保存を追加。説明文を簡略化。MCPを検索・追加・変更・削除へ拡張し、実OAuth経由で往復検証済み。

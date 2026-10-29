@@ -1,0 +1,245 @@
+{
+  "version": 1,
+  "sample": "incoming-mail",
+  "files": [
+    "classes/app/sample_mail_import/sample_mail_import.php",
+    "classes/app/sample_mail_import/Templates/configure.tpl",
+    "classes/app/sample_mail_messages_visibility_filter/sample_mail_messages_visibility_filter.php",
+    "classes/app/sample_mail_accounts_visibility_filter/sample_mail_accounts_visibility_filter.php",
+    "classes/app/sample_mail_import/style.css"
+  ],
+  "options": {
+    "sample_mail_enabled": [
+      {
+        "key": "0",
+        "value": "停止"
+      },
+      {
+        "key": "1",
+        "value": "有効"
+      }
+    ]
+  },
+  "notes": [
+    {
+      "table": {
+        "tb_name": "sample_mail_accounts",
+        "menu_name": "サンプル：受信アカウント",
+        "description": "Reusable incoming mail sample",
+        "show_menu": 1,
+        "menu_visibility": 1,
+        "screen_build_type": 0,
+        "list_type": 0,
+        "side_list_type": 0,
+        "parent_tb_id": 0,
+        "show_icon_on_parent_list": 0,
+        "cascade_delete_flag": 0,
+        "list_width": 1000,
+        "edit_width": 800,
+        "sortkey": "id",
+        "sort_order": 3,
+        "show_duplicate": 0
+      },
+      "fields": [
+        {
+          "parameter_name": "title",
+          "parameter_title": "アカウント名",
+          "type": "text",
+          "length": 300,
+          "validation": 1
+        },
+        {
+          "parameter_name": "enabled",
+          "parameter_title": "受信",
+          "type": "dropdown",
+          "length": 24,
+          "constant_array_name": "sample_mail_enabled",
+          "default_value": "0"
+        },
+        {
+          "parameter_name": "receive_protocol",
+          "parameter_title": "受信方式",
+          "type": "text",
+          "length": 4
+        },
+        {
+          "parameter_name": "receive_server",
+          "parameter_title": "サーバー",
+          "type": "text",
+          "length": 255
+        },
+        {
+          "parameter_name": "receive_port",
+          "parameter_title": "ポート",
+          "type": "text",
+          "length": 5
+        },
+        {
+          "parameter_name": "receive_secure",
+          "parameter_title": "暗号化",
+          "type": "text",
+          "length": 8
+        },
+        {
+          "parameter_name": "receive_user",
+          "parameter_title": "ユーザー名",
+          "type": "text",
+          "length": 255
+        },
+        {
+          "parameter_name": "receive_password",
+          "parameter_title": "暗号化パスワード",
+          "type": "text",
+          "length": 1024
+        },
+        {
+          "parameter_name": "receive_folder",
+          "parameter_title": "IMAPフォルダー",
+          "type": "text",
+          "length": 255
+        },
+        {
+          "parameter_name": "receive_state",
+          "parameter_title": "受信状態",
+          "type": "text",
+          "length": 65535
+        },
+        {
+          "parameter_name": "last_received_at",
+          "parameter_title": "最終受信",
+          "type": "datetime",
+          "length": 24
+        },
+        {
+          "parameter_name": "last_error",
+          "parameter_title": "受信結果",
+          "type": "text",
+          "length": 1000
+        }
+      ],
+      "screens": {
+        "list": [
+          "title",
+          "enabled",
+          "last_received_at",
+          "last_error"
+        ],
+        "add": [
+          "title",
+          "enabled"
+        ],
+        "edit": [
+          "title",
+          "enabled"
+        ],
+        "search": [
+          "title",
+          "enabled"
+        ]
+      },
+      "buttons": [
+        {
+          "button_title": "接続設定",
+          "class_name": "sample_mail_import",
+          "function_name": "configure",
+          "place": 1,
+          "user_request": "受信接続情報を設定する"
+        },
+        {
+          "button_title": "今すぐ受信",
+          "class_name": "sample_mail_import",
+          "function_name": "run",
+          "place": 1,
+          "user_request": "有効なアカウントのメールを保存する"
+        }
+      ]
+    },
+    {
+      "table": {
+        "tb_name": "sample_mail_messages",
+        "menu_name": "サンプル：受信メール",
+        "description": "Reusable incoming mail sample",
+        "show_menu": 1,
+        "menu_visibility": 1,
+        "screen_build_type": 0,
+        "list_type": 0,
+        "side_list_type": 0,
+        "parent_tb_id": 0,
+        "show_icon_on_parent_list": 0,
+        "cascade_delete_flag": 0,
+        "list_width": 1000,
+        "edit_width": 800,
+        "sortkey": "id",
+        "sort_order": 3,
+        "show_duplicate": 0
+      },
+      "fields": [
+        {
+          "parameter_name": "account_id",
+          "parameter_title": "アカウント",
+          "type": "dropdown",
+          "length": 24,
+          "constant_array_name": "table/sample_mail_accounts",
+          "display_fields_for_dropdown": "{$title}"
+        },
+        {
+          "parameter_name": "message_key",
+          "parameter_title": "重複防止キー",
+          "type": "text",
+          "length": 64
+        },
+        {
+          "parameter_name": "receipt",
+          "parameter_title": "受信識別情報",
+          "type": "text",
+          "length": 2048
+        },
+        {
+          "parameter_name": "subject",
+          "parameter_title": "件名",
+          "type": "text",
+          "length": 3000
+        },
+        {
+          "parameter_name": "sender",
+          "parameter_title": "差出人",
+          "type": "text",
+          "length": 1000
+        },
+        {
+          "parameter_name": "body",
+          "parameter_title": "本文",
+          "type": "textarea",
+          "length": 65535
+        },
+        {
+          "parameter_name": "attachment_names",
+          "parameter_title": "添付名",
+          "type": "textarea",
+          "length": 6000
+        },
+        {
+          "parameter_name": "received_at",
+          "parameter_title": "保存日時",
+          "type": "datetime",
+          "length": 24
+        }
+      ],
+      "screens": {
+        "list": [
+          "account_id",
+          "subject",
+          "sender",
+          "body",
+          "attachment_names",
+          "received_at"
+        ],
+        "search": [
+          "account_id",
+          "subject",
+          "sender"
+        ]
+      }
+    }
+  ]
+}

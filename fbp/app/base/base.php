@@ -187,7 +187,6 @@ class base {
 
 	function spreadsheet_note_add(Controller $ctl) {
 		if (!$ctl->get_login_id()) { $ctl->deny_forbidden_access(); return; }
-        if (ExcelDefinitionGuard::isDeveloper($ctl->dirs->datadir)) { $ctl->show_notification_text((new ExcelDefinitionReadOnly())->getMessage()); return; }
         try { ExcelDefinitionGuard::assertNoteCreationAllowed($ctl); }
         catch (RuntimeException $e) { $ctl->show_notification_text($e->getMessage()); return; }
         $previous=$ctl->get_session('spreadsheet_note_ticket')?:[];
@@ -212,11 +211,20 @@ class base {
 			if (strlen($name) > 255) throw new RuntimeException('メニュー名は255バイト以内で入力してください。');
 			require_once __DIR__ . '/../../lib/NoteSyncClient.php';
             $ctl->set_session('spreadsheet_note_ticket',array_replace($ticket,['pending'=>true]));
-			$note=(new NoteSyncClient($ctl))->create($name, $ticket['token']);
+			if (ExcelDefinitionGuard::isDeveloper($ctl->dirs->datadir)) {
+                require_once __DIR__.'/../db/db.php';
+                $schema=new db($ctl);$internal='sheet_'.substr($ticket['token'],0,24);
+                $note=$ctl->db('db','db')->select('tb_name',$internal)[0]??[];
+                if ($note && !ExcelGrid::isSpreadsheet($note)) throw new RuntimeException('同じ内部名に別のノートが存在します。');
+                if (!$note) $note=$schema->create_spreadsheet_note($ctl,$name,$internal);
+                if (!ExcelGrid::config($ctl,$internal)) ExcelGrid::saveConfig($ctl,$internal,[]);
+                $note['_note_sync_state']='local';
+            } else $note=(new NoteSyncClient($ctl))->create($name, $ticket['token']);
 			$ctl->set_session('spreadsheet_note_ticket', null);
 			$ctl->close_multi_dialog('spreadsheet-note');
 			$ctl->reload_menu();
-			$ctl->show_notification_text(($note['_note_sync_state']??'')==='done'?'ノートの追加・同期が完了しました。':'ノートを追加しました。開発環境へ同期中です。');
+			$state=$note['_note_sync_state']??'';
+            $ctl->show_notification_text($state==='local'?'開発環境にノートを追加しました。':($state==='done'?'ノートの追加・同期が完了しました。':'ノートを追加しました。開発環境へ同期中です。'));
 		} catch (Throwable $e) {
 			$ctl->res_error_message('menu_name', $e->getMessage());
 		}
@@ -273,7 +281,7 @@ class base {
 		
 		$setting = $ctl->get_setting();
         $noteSetting = $ctl->db('setting', 'setting')->get(1) ?: [];
-        $ctl->assign('spreadsheet_note_add_allowed', ExcelDefinitionGuard::noteCreationEnabled($noteSetting) && (int)($noteSetting['force_testmode'] ?? 1) === 0);
+        $ctl->assign('spreadsheet_note_add_allowed', $ctl->is_app_admin() && ExcelDefinitionGuard::noteCreationEnabled($noteSetting));
 		$project_portal_url = $this->normalize_external_url($setting["project_portal_url"] ?? "");
 		$homepage_url = $this->normalize_external_url($setting["website_url"] ?? "");
 		$show_homepage_menu = ((int) ($setting["show_menu_homepage"] ?? 0) === 1 && $homepage_url !== "");

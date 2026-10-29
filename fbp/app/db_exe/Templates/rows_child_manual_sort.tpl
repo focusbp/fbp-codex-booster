@@ -1,13 +1,7 @@
 
 <h6 style="margin-top:10px;">{$table_title}</h6>
 
-{if $testserver || $setting.show_developer_panel == 1}
-	<div class="db_edit_button_area">
-		<button class="ajax-link" invoke-class="db" invoke-function="edit" data-id="{$db_id}" data-mode="database">
-		<span class="material-symbols-outlined">description</span>
-		</button>
-	</div>
-{/if}
+
 
 
 {if $show_search_box || $testserver}

@@ -1,11 +1,5 @@
 <h6 style="margin-top:10px;">{$table_title}</h6>
-{if $testserver || $setting.show_developer_panel == 1}
-	<div class="db_edit_button_area">
-		<button class="ajax-link" invoke-class="db" invoke-function="edit" data-id="{$db_id}" data-mode="database">
-		<span class="material-symbols-outlined">description</span>
-		</button>
-	</div>
-{/if}
+
 
 		<div class="side_panel_button_area" style="display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap;margin-bottom:10px;">
 			{if $flg_add_button}

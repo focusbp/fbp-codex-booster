@@ -69,6 +69,44 @@ codex
 
 ## Make Samples
 
+### Incoming Mail
+
+```text
+Use fbp-app-samples and fbp-receive-mail. Read references/incoming-mail.md and
+incoming-mail-db.md. Build the incoming-mail sample from its manifest and assets:
+app-owned POP/IMAP account settings, encrypted password dialog, received-message
+Standard Screen, duplicate-safe save before confirmation, manual receive and a
+verified-cron entrypoint. Use install_incoming_mail.php separately for source
+placement and test definition configuration. Do not insert credentials, example
+messages or cron jobs automatically, and do not overwrite existing implementations.
+Keep customer logic, endpoints and live application dependencies out. Maintain
+assets, manifest, installer, references and this Make Samples prompt together.
+Verify isolated account state, retry without duplicate insertion, authorization,
+secret retention, installer refusal, and representative CLI/browser operations.
+```
+
+### Nine note features and the feature-request UI
+
+Create reusable `note-feature-samples` for CSV upload/download, A4 landscape PDF
+in a new tab, OAuth MCP CRUD, public form, a single-item Square shop, single/multi-row
+AI-OCR, and email send/receive. Use the versioned catalog in
+`fbp/config/note_feature_catalog.json` as the shared feature-ID, prompt, prerequisite
+and Skill contract. Bind current note fields and order instead of copying demo keys.
+Require product name and tax-inclusive JPY price for a shop. Public form/shop input
+must save into the target note; keep payment state internal. Email sends to all
+unique addresses with blank initial subject/body. Do not copy credentials, live
+records, local paths, or overwrite app classes. Maintain assets, manifest,
+installers, flow/DB references, and meaningful isolated tests.
+
+Maintain the Excel toolbar “+” flow: nine functions plus “Other”, editable request,
+prerequisite checks before submission, signed app-scoped support registration,
+idempotency, and progress URL. Only administrators with note access can request
+implementation/testing/production release. For Other, use the note title followed
+by `に下記の機能を追加してください。` and two newlines. Verify UI on PC/mobile,
+non-admin access, missing setup, forged tokens, note changes, parallel request
+retries, and preservation of unrelated app definitions/data. Test task creation
+in disposable storage; do not create real support tasks just to validate the UI.
+
 Use these prompts to have Codex generate working sample apps from the bundled
 skills and assets. Start with the customer sample, then add more samples as
 needed.

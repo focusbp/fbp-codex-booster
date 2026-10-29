@@ -183,22 +183,6 @@ tr{
 	cursor: pointer;
 }
 
-.db_edit_button_area{
-	float:left;
-}
-
-.db_edit_button_area button {
-	background: #FFF;
-	color:#666;
-	padding:0px;
-	width:inherit;
-}
-
-.db_edit_button_area button span {
-	font-size:33px;
-	width:inherit;
-}
-
 .hide_button50 {
 	opacity: 0.3;
 }

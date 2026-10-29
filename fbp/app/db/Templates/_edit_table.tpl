@@ -14,7 +14,7 @@
 		{/if}
 		<p class="lang">{t key="db.description_or_memo"}</p>
 		<input type="text" name="description" value="{$data.description}">
-		{if $excel_developer_mode && $data.list_type == 4}<p>本番の画面パターン：Excel風。検証にはノート画面の「検証用に検索＋一覧で表示」を利用してください。</p>{/if}
+		{if $excel_developer_mode && $data.list_type == 4}<p>Developer Modeでの変更は、本番同期時に本番の定義で上書きされます。</p>{/if}
 		<p>作成方法</p>
 		{html_options id="screen_build_type" name="screen_build_type" options=$screen_build_type_opt selected=$data["screen_build_type"]}
 		<p class="lang">{t key="db.parent_table"}</p>

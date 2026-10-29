@@ -1,0 +1,44 @@
+{
+  "functions": [
+    {
+      "function_name": "sample_products_list",
+      "title": "商品サンプル検索・一覧",
+      "description": "対象ノートをqueryで部分一致検索。行IDと現在の項目・並び順で一覧を返します。",
+      "required_scope": "mcp.read",
+      "enabled": true,
+      "read_only": true,
+      "destructive": false,
+      "requires_confirmation": false
+    },
+    {
+      "function_name": "sample_products_add",
+      "title": "商品サンプル追加",
+      "description": "管理者のOAuth認証とconfirm=trueで対象ノートを追加します。",
+      "required_scope": "mcp.write",
+      "enabled": true,
+      "read_only": false,
+      "destructive": false,
+      "requires_confirmation": true
+    },
+    {
+      "function_name": "sample_products_update",
+      "title": "商品サンプル変更",
+      "description": "管理者のOAuth認証とconfirm=trueで対象ノートを変更します。",
+      "required_scope": "mcp.write",
+      "enabled": true,
+      "read_only": false,
+      "destructive": false,
+      "requires_confirmation": true
+    },
+    {
+      "function_name": "sample_products_delete",
+      "title": "商品サンプル削除",
+      "description": "管理者のOAuth認証とconfirm=trueで対象ノートを削除します。",
+      "required_scope": "mcp.write",
+      "enabled": true,
+      "read_only": false,
+      "destructive": true,
+      "requires_confirmation": true
+    }
+  ]
+}

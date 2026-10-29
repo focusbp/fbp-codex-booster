@@ -1,0 +1,4 @@
+interface:
+  display_name: "FBP Mail Receiving"
+  short_description: "Implement POP/IMAP receiving, confirmation and deletion"
+  default_prompt: "Use $fbp-receive-mail to implement incoming mail processing with explicit confirmation."

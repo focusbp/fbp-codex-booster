@@ -87,19 +87,20 @@ trait ExcelGridActions {
     function excel_import(Controller $ctl) {
         if (PHP_SAPI !== 'cli' || !defined('CLI_APP_CALL') || !defined('FBP_EXCEL_IMPORT_COMMAND')) throw new ExcelDefinitionReadOnly('取込みは専用のexcel_settings_importコマンドで実行してください。');
         $conversion=defined('FBP_EXCEL_CONVERSION_IMPORT_COMMAND');
-        if ($conversion) {
+        $standardSync=defined('FBP_EXCEL_STANDARD_IMPORT_COMMAND');
+        if ($conversion || $standardSync) {
             if (!$this->can_execute($ctl)) throw new RuntimeException('操作権限がありません。');
             foreach ([['settings','excel_grid'],['setting','setting'],['db','db']] as [$table,$class]) $ctl->db($table,$class);
         } elseif (!$this->excelReady($ctl)) throw new RuntimeException('画面パターンをスプレッドシートにしてください。');
         $snapshot=json_decode((string)$ctl->POST('snapshot'),true,64,JSON_THROW_ON_ERROR);
         if (($snapshot['schema_version'] ?? null)!==1 || ($snapshot['tb_name'] ?? '')!==$this->table_name || !is_array($snapshot['columns'] ?? null)) throw new RuntimeException('対象ノートまたは設定形式が一致しません。');
-        if ($conversion) {
+        if ($conversion || $standardSync) {
             $source=json_decode((string)$ctl->POST('source_note'),true,64,JSON_THROW_ON_ERROR);
             $current=$ctl->db('db','db')->get((int)$this->db_setting_id);
             if (($snapshot['ok']??false)!==true || ($source['tb_name']??'')!==$this->table_name || (int)($source['id']??0)!==(int)$this->db_setting_id
                 || !empty($source['parent_tb_id']) || (int)($source['screen_build_type']??-1)!==0 || !in_array((int)($source['list_type']??-1),[0,4],true)
-                || !empty($current['parent_tb_id']) || (int)$current['screen_build_type']!==0 || !in_array((int)$current['list_type'],[0,4],true)
-                || (int)($snapshot['list_type']??-1)!==(int)$source['list_type'] || !preg_match('/^[a-f0-9]{48}$/D',(string)($snapshot['standard_request_key']??''))) throw new RuntimeException('変換定義のノート情報が一致しません。');
+                || !empty($current['parent_tb_id']) || (int)$current['screen_build_type']!==0 || !in_array((int)$current['list_type'],[0,1,2,3,4],true)
+                || (int)($snapshot['list_type']??-1)!==(int)$source['list_type'] || ($conversion && !preg_match('/^[a-f0-9]{48}$/D',(string)($snapshot['standard_request_key']??'')))) throw new RuntimeException('変換定義のノート情報が一致しません。');
         }
         $columns=[];
         foreach ($snapshot['columns'] as $name=>$input) {
@@ -118,10 +119,11 @@ trait ExcelGridActions {
         $order=$snapshot['column_order'] ?? ExcelGrid::names();
         if (!is_array($order)) throw new RuntimeException('列順が不正です。');
         ExcelGrid::validateOrder($order);
-        $screens=$conversion?ExcelStandardLayout::screens($snapshot['standard_screens']??[],['columns'=>$columns,'column_order'=>$order]):null;
-        if ($conversion && $screens!==$snapshot['standard_screens']) throw new RuntimeException('表示項目定義が不正です。');
-        ExcelDefinitionGuard::import($ctl,$this->table_name,$columns,$order,$screens,$conversion?$snapshot['standard_request_key']:null);
-        if ($conversion) ExcelDefinitionGuard::importLayoutNote($ctl,$source,$snapshot);
+        $hasLayout=!empty($snapshot['standard_screens']);
+        $screens=$hasLayout?ExcelStandardLayout::screens($snapshot['standard_screens'],['columns'=>$columns,'column_order'=>$order]):[];
+        if ($hasLayout && $screens!==$snapshot['standard_screens']) throw new RuntimeException('表示項目定義が不正です。');
+        ExcelDefinitionGuard::import($ctl,$this->table_name,$columns,$order,$screens,(string)($snapshot['standard_request_key']??''));
+        if ($conversion || $standardSync) ExcelDefinitionGuard::importLayoutNote($ctl,$source,$snapshot);
         $this->excelReopen($ctl);
         $ctl->show_notification_text('列定義を取り込みました。');
     }
@@ -144,6 +146,7 @@ trait ExcelGridActions {
             foreach (ExcelGrid::orderedNames($cfg) as $name) $fields[]=ExcelGrid::field($name,ExcelGrid::column($name,$cfg['columns'][$name] ?? []));
             $additionals=$ctl->db('additionals','db_additionals')->select(['tb_name','place'],[$this->table_name,0],true,'AND','sort',SORT_DESC);
             $this->add_show_button_class($ctl,$additionals);
+            $ctl->assign('excel_admin_controls',$ctl->is_app_admin());
             $ctl->assign('additionals',$additionals); $ctl->assign('excel_fields',$fields); $ctl->assign('excel_rows',$rows);
             $ctl->assign('excel_columns',$cfg['columns'] ?: []);
             $ctl->assign('excel_table_width',66+array_sum(array_column($fields,'column_width')));
@@ -231,7 +234,6 @@ trait ExcelGridActions {
             $cfg=$this->excelConfig($ctl); $name=strtolower((string)$ctl->POST('column'));
             if (!in_array($name,ExcelGrid::names(),true)) throw new RuntimeException('列が不正です。');
             $c=ExcelGrid::column($name,$cfg['columns'][$name] ?? []); $id=(int)$ctl->POST('row_id');
-            if (!$c['generated'] && ExcelDefinitionGuard::isDeveloper($ctl->dirs->datadir)) throw new ExcelDefinitionReadOnly('Developer Modeでは未設定の列へ入力できません。本番の列設定を取り込んでください。');
             $row=$id ? $this->excelRow($ctl,$id) : [];
             $errors=$id ? ExcelGrid::errors($ctl,$this->table_name,$id) : [];
             $ctl->assign('excel_field',ExcelGrid::field($name,$c)); $ctl->assign('excel_readonly',$c['mode']!=='input');

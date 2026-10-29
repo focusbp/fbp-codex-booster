@@ -268,6 +268,40 @@
 					<div class="setting_tab_actions">
 						<button class="ajax-link lang" data-class="setting" data-function="update" data-form="setting_form" data-send_test_mail="1">{t key="setting.submit_and_send_test_mail"}</button>
 					</div>
+					<table class="setting_detail_table" id="receive_account_settings" style="margin-top:20px">
+						<tr>
+							<th rowspan="7">{t key="setting.receive.title"}</th>
+							<td>{t key="setting.receive.protocol"}</td>
+							<td>{html_options name="receive_protocol" options=$arr_receive_protocol selected=$setting.receive_protocol}</td>
+						</tr>
+						<tr>
+							<td>{t key="setting.receive.server"}</td>
+							<td><input type="text" name="receive_server" value="{$setting.receive_server|escape}" maxlength="255"></td>
+						</tr>
+						<tr>
+							<td>{t key="setting.receive.port"}</td>
+							<td><input type="number" name="receive_port" value="{$setting.receive_port|escape}" min="1" max="65535"><br><small>{t key="setting.receive.port_help"}</small></td>
+						</tr>
+						<tr>
+							<td>{t key="setting.receive.secure"}</td>
+							<td>{html_options name="receive_secure" options=$arr_receive_secure selected=$setting.receive_secure}</td>
+						</tr>
+						<tr>
+							<td>{t key="setting.receive.user"}</td>
+							<td><input type="text" name="receive_user" value="{$setting.receive_user|escape}" maxlength="255" autocomplete="off"></td>
+						</tr>
+						<tr>
+							<td>{t key="setting.receive.password"}</td>
+							<td><input type="password" name="receive_password_web" value="" placeholder="{$masked_setting.receive_password|escape}" maxlength="255" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly');"></td>
+						</tr>
+						<tr>
+							<td>{t key="setting.receive.folder"}</td>
+							<td><input type="text" name="receive_folder" value="{$setting.receive_folder|escape}" maxlength="255" placeholder="INBOX"><br><small>{t key="setting.receive.folder_help"}</small></td>
+						</tr>
+					</table>
+					<div class="setting_tab_actions">
+						<button type="button" class="ajax-link lang" data-class="setting" data-function="receive_connection_test" data-form="setting_form">{t key="setting.receive.test"}</button>
+					</div>
 				</div>
 			</div>
 

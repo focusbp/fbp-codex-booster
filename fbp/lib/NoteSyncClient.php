@@ -36,7 +36,7 @@ class NoteSyncClient {
         return $data['request'];
     }
     public function create(string $title,string $key): array {
-        ExcelDefinitionGuard::assertEditable($this->ctl->dirs->datadir);
+        if (ExcelDefinitionGuard::isDeveloper($this->ctl->dirs->datadir)) throw new ExcelDefinitionReadOnly('本番向けの同期受付はProduction Mode専用です。Developer Modeではローカルの定義を変更してください。');
         if (!preg_match('/^[a-f0-9]{48}$/D',$key)) throw new RuntimeException('追加受付番号が不正です。');
         // Controller keeps the historical prefix-free name on app-* hosts;
         // management inventory and reservation receipts use the full appcode.
@@ -69,7 +69,7 @@ class NoteSyncClient {
         return $note;
     }
     public function convert(int $id,string $name,array $screens,int $revision,string $key): array {
-        ExcelDefinitionGuard::assertEditable($this->ctl->dirs->datadir);
+        if (ExcelDefinitionGuard::isDeveloper($this->ctl->dirs->datadir)) throw new ExcelDefinitionReadOnly('本番向けの同期受付はProduction Mode専用です。Developer Modeではローカルの定義を変更してください。');
         if (!preg_match('/^[a-f0-9]{48}$/D',$key)) throw new RuntimeException('変換受付番号が不正です。');
         $app=trim((string)$this->ctl->get_appcode());if (!str_starts_with($app,'app-')) $app='app-'.$app;
         if (!preg_match('/^app-[A-Za-z0-9][A-Za-z0-9_-]*$/D',$app)) throw new RuntimeException('アプリ識別名が不正です。');
