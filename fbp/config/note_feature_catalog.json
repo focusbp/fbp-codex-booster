@@ -58,7 +58,7 @@
     },
     {
       "id": "single_shop",
-      "title": "単品ショップ作成（公開側）",
+      "title": "簡易EC",
       "skills": [
         "fbp-public-pages",
         "fbp-square-payment"

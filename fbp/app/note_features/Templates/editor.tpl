@@ -9,6 +9,7 @@
 <input type="hidden" name="db_id" value="{$note.id}"><input type="hidden" name="token" value="{$token|escape}"><input type="hidden" name="feature_id" value="{$feature.id|escape}">
 <p class="error_message error_db_id"></p><p class="error_message error_token"></p><p class="error_message error_feature_id"></p>
 <p class="error_message error_options"></p>
+{if $feature.id == 'single_shop'}<p>商品欄に商品名と価格を追記すると、複数の商品を指定できます。</p>{/if}
 <label for="note_feature_request_text">依頼内容（編集できます）</label><textarea id="note_feature_request_text" name="request_text" rows="9" style="width:100%;box-sizing:border-box;">{$default_request|escape}</textarea><p class="error_message error_request_text"></p>
 <p>「{$note.title|escape}」の現在の項目に合わせて実装します。実行すると、AIへ実装・検証・本番リリースまで依頼します。</p><p class="error_message error_request"></p>
 <div style="display:flex;justify-content:flex-end;margin-top:16px;"><button type="button" class="ajax-link" data-class="note_features" data-function="submit" data-form="note_feature_editor">実行</button></div></form>
