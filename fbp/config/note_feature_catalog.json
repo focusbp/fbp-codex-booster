@@ -8,7 +8,7 @@
         "fbp-csv"
       ],
       "required_settings": [],
-      "prompt": "現在の入力項目・型・列順に合わせたCSV取込と検証を追加してください。全行を検証後に保存し、既存の計算・関数を実行してください。",
+      "prompt": "項目：現在の入力項目・型・列順に合わせる\n重複チェック：なし\n入力チェック：全行を確認し、エラーがなければ登録\n登録後の処理：通常の追加登録と同じ",
       "sample": "note-feature-samples",
       "sample_reference": "fbp-app-samples/references/note-feature-samples.md"
     },
@@ -19,7 +19,7 @@
         "fbp-csv"
       ],
       "required_settings": [],
-      "prompt": "現在の表示項目と列順に合わせたCSVダウンロードを追加してください。日本語とCSV数式インジェクション対策に対応してください。",
+      "prompt": "項目：現在の表示項目・列順に合わせる\n日本語：文字化けせずに出力\n安全対策：入力値がExcelなどで数式として実行されないようにする",
       "sample": "note-feature-samples",
       "sample_reference": "fbp-app-samples/references/note-feature-samples.md"
     },
@@ -30,7 +30,7 @@
         "fbp-pdf"
       ],
       "required_settings": [],
-      "prompt": "現在の表示項目と列順でA4横向きのPDF一覧を作成し、別タブに表示してください。",
+      "prompt": "項目：現在の表示項目・列順に合わせる\n用紙：A4・横向き\n表示方法：別タブで開く",
       "sample": "note-feature-samples",
       "sample_reference": "fbp-app-samples/references/note-feature-samples.md"
     },
@@ -41,7 +41,7 @@
         "fbp-mcp-server"
       ],
       "required_settings": [],
-      "prompt": "このノートの追加・変更・検索（一覧）・削除をMCP関数として追加してください。OAuth、操作権限、確認指定、現在の項目・型に対応し、URL表示はdialog Skillの共有・コピーのデザインにしてください。",
+      "prompt": "操作：追加・変更・検索（一覧）・削除\n項目：現在の項目・型に合わせる\n認証：OAuth\n操作権限：利用者の権限に従う\n操作の確認：確認が必要な操作に対応\n接続URL：共有・コピーできるダイアログで表示",
       "sample": "note-feature-samples",
       "sample_reference": "fbp-app-samples/references/note-feature-samples.md"
     },
@@ -52,7 +52,7 @@
         "fbp-public-pages"
       ],
       "required_settings": [],
-      "prompt": "現在の入力項目・型・並び順から公開フォームを作成してください。確認・修正・保存に対応し、入力内容はこのノートに保存してください。重複登録を防止してください。",
+      "prompt": "項目：現在の入力項目・型・並び順に合わせる\n登録の流れ：入力→確認・修正→保存\n保存先：このノート\n二重登録：同じ送信の再実行による重複を防止",
       "sample": "note-feature-samples",
       "sample_reference": "fbp-app-samples/references/note-feature-samples.md"
     },
@@ -68,7 +68,7 @@
         "square_access_token",
         "square_location_id"
       ],
-      "prompt": "指定の商品を販売する単品ショップを作成してください。購入時の入力項目はこのノートに合わせ、入力内容をこのノートに保存してください。Square決済はサーバー側で固定価格を使い、二重課金を防止してください。",
+      "prompt": "販売商品：指定の商品名・税込価格を使用\n購入時の入力項目：現在のノートの項目に合わせる\n入力内容の保存先：このノート\n決済方法：Square\n決済金額：サーバー側で設定した固定価格を使用\n二重課金：防止する",
       "sample": "note-feature-samples",
       "sample_reference": "fbp-app-samples/references/note-feature-samples.md"
     },
@@ -83,7 +83,7 @@
         "chatgpt_api_url",
         "chatgpt_api_model"
       ],
-      "prompt": "このノートの現在の入力項目・型・並び順に合わせて画像を読み取るAI-OCRを追加してください。ファイル選択画面で単件/複数件を選択でき、確認・修正してこのノートへ保存してください。計算列は抽出せず、後から増えた項目にも追随してください。",
+      "prompt": "読み取り項目：現在の入力項目・型・並び順に合わせる\n読み取り件数：ファイル選択画面で1件・複数件を選択\n登録の流れ：読み取り→確認・修正→保存\n保存先：このノート\n計算・関数の項目：読み取り対象外\n項目の追加・変更：動的に追随する",
       "sample": "note-feature-samples",
       "sample_reference": "fbp-app-samples/references/note-feature-samples.md"
     },
@@ -98,7 +98,7 @@
         "smtp_port",
         "smtp_from"
       ],
-      "prompt": "このノート全件のメールアドレスを重複排除し、個別に送信するボタンを追加してください。件名・本文の初期値は空欄。全宛先・件数と本文を確認して送信し、再実行による二重送信を防止してください。",
+      "prompt": "宛先：このノート全件のメールアドレス\n宛先の重複：除外する\n送信方法：宛先ごとに個別送信\n件名・本文の初期値：空欄\n送信前の確認：全宛先・件数・本文を確認\n二重送信：再実行による重複を防止",
       "sample": "note-feature-samples",
       "sample_reference": "fbp-app-samples/references/note-feature-samples.md"
     },
@@ -114,7 +114,7 @@
         "receive_user",
         "receive_password"
       ],
-      "prompt": "システム設定の受信アカウントからメールを取得し、このノートの項目に対応する日付・タイトル・内容を保存するボタンを追加してください。保存後に受信確定し、再実行時の重複を防止してください。サーバー上のメールは削除しないでください。",
+      "prompt": "受信元：システム設定の受信アカウント\n保存項目：このノートの項目に対応する日付・タイトル・内容\n保存先：このノート\n受信確定：保存後に行う\n重複受信：再実行による重複を防止\nサーバー上のメール：削除しない",
       "sample": "note-feature-samples",
       "sample_reference": "fbp-app-samples/references/note-feature-samples.md"
     },

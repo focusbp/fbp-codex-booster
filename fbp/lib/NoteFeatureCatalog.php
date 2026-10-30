@@ -25,7 +25,7 @@ final class NoteFeatureCatalog {
     }
     static function draft(array $feature,string $noteTitle,array $options):string {
         if($feature['id']==='other')return $noteTitle.'に下記の機能を追加してください。'."\n\n";
-        $text='「'.$noteTitle.'」に'.$feature['title'].'を追加してください。' . "\n\n".$feature['prompt'];
+        $text='「'.$noteTitle.'」に'.$feature['title'].'のボタンと機能を追加してください。' . "\n\n".$feature['prompt'];
         if($options)$text.="\n商品名：".$options['product_name']."\n価格（税込）：".$options['price_tax_included'].'円';
         return $text;
     }
