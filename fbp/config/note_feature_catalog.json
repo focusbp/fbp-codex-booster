@@ -68,7 +68,7 @@
         "square_access_token",
         "square_location_id"
       ],
-      "prompt": "販売商品：指定の商品名・税込価格を使用\n購入時の入力項目：現在のノートの項目に合わせる\n入力内容の保存先：このノート\n決済方法：Square\n決済金額：サーバー側で設定した固定価格を使用\n二重課金：防止する",
+      "prompt": "商品\n---------------------\n商品名：サンプル商品\n価格（税別）：5000円\n---------------------\n税率：10%\n商品データ：コードに記述\n購入時の入力項目：現在のノートの項目に合わせる\n入力内容の保存先：このノート\n決済方法：Square\n二重課金：防止する",
       "sample": "note-feature-samples",
       "sample_reference": "fbp-app-samples/references/note-feature-samples.md"
     },

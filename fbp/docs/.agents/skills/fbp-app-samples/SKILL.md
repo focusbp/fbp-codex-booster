@@ -15,7 +15,7 @@ When creating a new reusable sample from an existing app or feature, read `refer
 
 - **Incoming Mail** (`incoming-mail`): アプリ独自のPOP／IMAPアカウント、受信メールのノート保存、重複防止と処理済み確定、手動／cron入口。[フロー](references/incoming-mail.md)・[DB](references/incoming-mail-db.md)、`assets/incoming-mail/`、`scripts/install_incoming_mail.php`。認証情報・実データ・cronは自動登録しない。
 
-- **ノートに追加する9機能** (`note-feature-samples`): CSV入出力、A4横PDF、CRUD MCP、公開フォーム、単品Squareショップ、単件/複数件AI-OCR、メール送受信。[フロー・必要情報](references/note-feature-samples.md)、[DB・画面](references/note-feature-samples-db.md)、`assets/note-feature-samples/`。`scripts/install_note_feature_samples.php` はコードだけ、`scripts/configure_note_feature_samples.py` はテスト定義だけを配置する。既存ノートへ適用するときは現在の項目・型・順序に対応させる。機能ID・定型文・必要設定・Skillの正本はframeworkの `config/note_feature_catalog.json`（「その他」を含む）。単品ショップは商品名と税込価格を必須入力にする。
+- **ノートに追加する9機能** (`note-feature-samples`): CSV入出力、A4横PDF、CRUD MCP、公開フォーム、単品Squareショップ、単件/複数件AI-OCR、メール送受信。[フロー・必要情報](references/note-feature-samples.md)、[DB・画面](references/note-feature-samples-db.md)、`assets/note-feature-samples/`。`scripts/install_note_feature_samples.php` はコードだけ、`scripts/configure_note_feature_samples.py` はテスト定義だけを配置する。既存ノートへ適用するときは現在の項目・型・順序に対応させる。機能ID・定型文・必要設定・Skillの正本はframeworkの `config/note_feature_catalog.json`（「その他」を含む）。単品ショップの商品名・税別価格・税率は編集可能な依頼文で指定し、別入力欄を設けない。
 
 - **複合グラフ・回帰線**: 左右2軸の棒＋折れ線、等間隔データの最小二乗回帰と延長。[手順と制約](references/advanced-charts.md)、`assets/advanced-charts/`。
 - **vCard入りQR**: UTF-8・エスケープ・行折返し付きvCard 3.0をQR付きPDFへ出力。[手順と検証](references/vcard-qr.md)、`assets/vcard-qr/`。

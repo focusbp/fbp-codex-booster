@@ -105,13 +105,13 @@ Developer Modeの定義変更禁止は後続の利用者指示で撤廃済み。
 | pdf_list | feature_samples::pdf | A4横・別タブinlineを既定 |
 | mcp | mcp_sample_products_* / feature_product_mcp | MCPサーバー有効化・OAuth設定。追加/変更/一覧検索/削除 |
 | public_form | public_pages::sample_form | 現在の入力項目・型・並び順。保存先は対象ノート |
-| single_shop | public_pages::sample_shop / feature_sample_payment | 商品名・価格（税込円・整数）は必須。Square認証と環境に合う設定 |
+| single_shop | public_pages::sample_shop / feature_sample_payment | 依頼文内の商品名・税別価格・税率。Square認証と環境に合う設定 |
 | ai_ocr | feature_excel_ocr | OpenAIキー・API URL・画像対応モデル。単件/複数件 |
 | mail_send | feature_mail_samples | SMTPサーバー・ポート・送信元、認証使用時のパスワード。全件・重複排除・個別送信 |
 | mail_receive | feature_mail_samples / fbp-receive-mail | POP/IMAP方式・サーバー・ポート・認証。保存後確定、サーバー削除なし |
 | other | fbp-standard-screen / fbp-dialog | 自由な追加依頼。必要な外部連携設定は実装前に確認 |
 
-Codexは対象ノートの既存クラスと項目を確認し、サンプル専用テーブル名・a/bなどの項目IDをそのまま流用しない。現在の項目IDを業務上の意味に対応付け、列位置に依存しない。既存public_pagesや同名クラスへは必要な関数だけを統合する。単品ショップの入力商品名・税込価格はサーバー側の販売設定へ反映し、購入者のPOSTで上書きさせない。認証情報は取得・複製・依頼本文へ埋込みせず、対象アプリのシステム設定を使う。
+Codexは対象ノートの既存クラスと項目を確認し、サンプル専用テーブル名・a/bなどの項目IDをそのまま流用しない。現在の項目IDを業務上の意味に対応付け、列位置に依存しない。既存public_pagesや同名クラスへは必要な関数だけを統合する。単品ショップは依頼文内の商品名・税別価格・税率から税込決済額を決め、商品データをコードへ記述する。決済額はサーバー側で固定し、購入者のPOSTで上書きさせない。旧形式の構造化optionsがある場合も依頼文との不一致を確認する。認証情報は取得・複製・依頼本文へ埋込みせず、対象アプリのシステム設定を使う。
 
 「＋」は対象ノートの閲覧権限がある管理者に表示。必要な設定が不足していれば依頼登録を止め、管理者には設定入口、権限のないユーザーには管理者への依頼を案内。依頼には実装・検証・本番リリースの許可を付け、画面でその範囲を明示する。対象ノートの項目定義は利用者の編集文とは別の構造化情報として署名付きで渡す。実データや秘密値は送らない。
 

@@ -18,7 +18,8 @@ final class NoteFeatureCatalog {
     }
     static function options(array $feature,array $post):array {
         if($feature['id']!=='single_shop')return [];
-        $name=$post['product_name']??'';$price=$post['price_tax_included']??'';
+        $name=$post['product_name']??null;$price=$post['price_tax_included']??null;
+        if($name===null&&$price===null)return [];
         if(!is_string($name)||trim($name)===''||strlen(trim($name))>255)throw new InvalidArgumentException('商品名を255バイト以内で入力してください。');
         if(!is_scalar($price)||!preg_match('/^[1-9][0-9]{0,6}$/D',(string)$price))throw new InvalidArgumentException('税込価格を1〜9,999,999円の整数で入力してください。');
         return ['product_name'=>trim($name),'price_tax_included'=>(int)$price,'currency'=>'JPY'];
