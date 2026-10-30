@@ -27,11 +27,11 @@ class note_features {
         catch(Throwable $e){$ctl->show_notification_text($e->getMessage());}
     }
     function prepare(Controller $ctl):void {
-        try{$note=$this->context($ctl);$p=$this->pending($ctl,$note);$feature=NoteFeatureCatalog::get((string)$ctl->POST('feature_id'));$ctl->assign('note',$note);$ctl->assign('token',$p['token']);$ctl->assign('feature',$feature);$ctl->assign('missing',$this->requirements($ctl,$feature));$configClass=$feature['id']==='mcp'?'mcp_manage':'setting';$ctl->assign('config_class',$configClass);$ctl->assign('can_configure',$ctl->authorize_management_access($configClass,'page'));$ctl->assign('default_request',NoteFeatureCatalog::draft($feature,$note['title'],[]));$ctl->show_multi_dialog('note-feature-editor','editor.tpl',$feature['title'].'を依頼する',760);}
+        try{$note=$this->context($ctl);$p=$this->pending($ctl,$note);$feature=NoteFeatureCatalog::get((string)$ctl->POST('feature_id'));$ctl->assign('note',$note);$ctl->assign('token',$p['token']);$ctl->assign('feature',$feature);$ctl->assign('missing',$this->requirements($ctl,$feature));$configClass=$feature['id']==='mcp'?'mcp_manage':'setting';$ctl->assign('config_class',$configClass);$ctl->assign('can_configure',$ctl->authorize_management_access($configClass,'page'));$ctl->assign('default_request',NoteFeatureCatalog::draft($feature,$note['title'],[]));$ctl->show_multi_dialog('note-feature-picker','editor.tpl',$feature['title'].'を依頼する',760);}
         catch(Throwable $e){$ctl->show_notification_text($e->getMessage());}
     }
     function configure(Controller $ctl):void {
-        try{$note=$this->context($ctl);$this->pending($ctl,$note);$feature=NoteFeatureCatalog::get((string)$ctl->POST('feature_id'));$target=$feature['id']==='mcp'?'mcp_manage':'setting';if(!$ctl->authorize_management_access($target,'page'))throw new RuntimeException('管理者に設定を依頼してください。');$ctl->close_multi_dialog('note-feature-editor');$ctl->close_multi_dialog('note-feature-picker');$ctl->invoke('page',[],$target);}
+        try{$note=$this->context($ctl);$this->pending($ctl,$note);$feature=NoteFeatureCatalog::get((string)$ctl->POST('feature_id'));$target=$feature['id']==='mcp'?'mcp_manage':'setting';if(!$ctl->authorize_management_access($target,'page'))throw new RuntimeException('管理者に設定を依頼してください。');$ctl->close_multi_dialog('note-feature-picker');$ctl->invoke('page',[],$target);}
         catch(Throwable $e){$ctl->show_notification_text($e->getMessage());}
     }
     protected function sendRequest(Controller $ctl,array $payload):array {return (new NoteFeatureRequestClient($ctl))->submit($payload);}
@@ -43,7 +43,7 @@ class note_features {
             $app=(string)$ctl->get_appcode();if(!str_starts_with($app,'app-'))$app='app-'.$app;if(!preg_match('/^app-[A-Za-z0-9][A-Za-z0-9_-]*$/D',$app))throw new RuntimeException('対象プロジェクトを確認してください。');
             $payload=['schema_version'=>1,'request_key'=>$p['request_key'],'appcode'=>$app,'feature_id'=>$feature['id'],'note'=>$note,'options'=>$options,'request_text'=>trim($text),'code_change_allowed'=>true,'production_release_allowed'=>true,'requested_by'=>['user_id'=>(int)$ctl->get_login_user_id(),'login_id'=>(string)$ctl->get_login_id(),'is_app_admin'=>true]];
             $digest=hash('sha256',json_encode($payload,JSON_UNESCAPED_UNICODE));if(isset($p['digest'])&&!hash_equals($p['digest'],$digest))throw new RuntimeException('受付状況を確認中の依頼は内容を変更できません。同じ内容で再試行してください。');$p['digest']=$digest;$ctl->set_session('note_feature_request',$p);
-            $result=$p['result']??$this->sendRequest($ctl,$payload);$p['result']=$result;$ctl->set_session('note_feature_request',$p);$ctl->assign('share_url',$result['support_url']);$ctl->assign('share_url_help','AIに実装を依頼しました。進捗は下記からご覧ください。');$ctl->assign('share_url_open_label','プロジェクトサポートで進捗を見る');$ctl->show_multi_dialog('note-feature-editor','result.tpl','実装を依頼しました',680);
+            $result=$p['result']??$this->sendRequest($ctl,$payload);$p['result']=$result;$ctl->set_session('note_feature_request',$p);$ctl->assign('share_url',$result['support_url']);$ctl->assign('share_url_help','AIに実装を依頼しました。進捗は下記からご覧ください。');$ctl->assign('share_url_open_label','プロジェクトサポートで進捗を見る');$ctl->show_multi_dialog('note-feature-picker','result.tpl','実装を依頼しました',680);
         }catch(Throwable $e){$ctl->res_error_message('request',$e->getMessage());}
     }
 }
