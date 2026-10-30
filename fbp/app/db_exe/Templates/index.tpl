@@ -4,6 +4,7 @@
 <div class="db_exe_page_context db_exe_responsive_list" data-db-id="{$db_id}" data-tb-name="{$tb_name|escape}" data-class="{$class|escape}">
 	<div style="float:right;margin-bottom: 8px;">
 
+        {if $note_feature_add_allowed}<button type="button" class="ajax-link" data-class="note_features" data-function="page" data-db_id="{$db_id}" title="機能を追加する" aria-label="機能を追加する" style="padding:8px 12px;font-size:20px;min-width:38px;">＋</button>{/if}
 		{if $flg_add_button}
 			<button class="ajax-link lang" data-class="{$class}" data-function="add" data-db_id="{$db_id}"><span class="material-symbols-outlined" style="font-size:18px;vertical-align:text-bottom;margin-right:2px;">add_circle</span>{t key="common.add"}</button>
 		{else}

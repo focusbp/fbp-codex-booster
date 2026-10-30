@@ -824,6 +824,7 @@ class db_exe {
 		$additional_list = $ffm_additionals->select(["tb_name","place"],[$this->table_name,0],true,"AND","sort",SORT_DESC);
 		$this->add_show_button_class($ctl,$additional_list);
 		$ctl->assign("additionals",$additional_list);
+        $ctl->assign('note_feature_add_allowed', $ctl->is_app_admin() && empty($this->db_setting['parent_tb_id']) && in_array((int)$this->db_setting['list_type'], [0,1,2], true));
 		$this->assign_properties_management_summary($ctl);
 		$ctl->assign("horizontal_scroll_main", ((int) ($this->db_setting["horizontal_scroll"] ?? 0)) === 1);
 		

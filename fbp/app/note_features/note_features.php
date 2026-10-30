@@ -8,9 +8,17 @@ class note_features {
         if(!$ctl->is_app_admin())throw new RuntimeException('機能の追加依頼は管理者のみ実行できます。');
         if(!$ctl->authorize_management_access('db_exe','page'))throw new RuntimeException('このノートの閲覧権限がありません。');
         $id=$ctl->POST('db_id');if(!is_scalar($id)||!ctype_digit((string)$id))throw new RuntimeException('対象ノートを確認してください。');
-        $note=$ctl->db('db','db')->get((int)$id);if(!$note||!ExcelGrid::isSpreadsheet($note)||!empty($note['parent_tb_id']))throw new RuntimeException('対象のExcel風ノートを確認してください。');
+        $note=$ctl->db('db','db')->get((int)$id);if(!$note||((int)($note['screen_build_type']??0)!==0||!in_array((int)($note['list_type']??0),[0,1,2,4],true))||!empty($note['parent_tb_id']))throw new RuntimeException('対象のノートを確認してください。');
         $class=$note['tb_name'].'_visibility_filter';$file=$ctl->dirs->appdir_user.'/'.$class.'/'.$class.'.php';if(is_file($file)){require_once $file;$filter=new $class();if(method_exists($filter,'can_access')&&!$filter->can_access($ctl,'page',$note['tb_name'],$note))throw new RuntimeException('このノートの閲覧権限がありません。');}
-        $cfg=ExcelGrid::config($ctl,$note['tb_name']);$fields=[];foreach(ExcelGrid::orderedNames($cfg) as $key){$c=ExcelGrid::column($key,$cfg['columns'][$key]??[]);if(!$c['generated'])continue;$fields[]=['key'=>$key,'title'=>$c['title'],'type'=>$c['type'],'length'=>$c['length'],'mode'=>$c['mode'],'options'=>$c['options']??[]];}
+        $cfg=ExcelGrid::isSpreadsheet($note)?ExcelGrid::config($ctl,$note['tb_name']):[];$fields=[];foreach(ExcelGrid::orderedNames($cfg) as $key){$c=ExcelGrid::column($key,$cfg['columns'][$key]??[]);if(!$c['generated'])continue;$fields[]=['key'=>$key,'title'=>$c['title'],'type'=>$c['type'],'length'=>$c['length'],'mode'=>$c['mode'],'options'=>$c['options']??[]];}
+        if(!ExcelGrid::isSpreadsheet($note)) {
+            $fields=[];
+            foreach($ctl->db('db_fields','db')->select('db_id',(int)$note['id'],true,'AND','sort',SORT_ASC) as $field) {
+                $name=(string)($field['parameter_name']??'');
+                if($name===''||in_array($name,['id','parent_id','sort','created_at','updated_at'],true))continue;
+                $fields[]=['key'=>$name,'title'=>(string)($field['parameter_title']??$name),'type'=>(string)($field['type']??'text'),'length'=>(int)($field['length']??0),'mode'=>'input','options'=>[],'constant_array_name'=>(string)($field['constant_array_name']??'')];
+            }
+        }
         return ['id'=>(int)$note['id'],'table'=>$note['tb_name'],'title'=>$note['menu_name'],'fields'=>$fields];
     }
     private function requirements(Controller $ctl,array $feature):array {
