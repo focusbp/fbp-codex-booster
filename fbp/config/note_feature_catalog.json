@@ -19,7 +19,7 @@
         "fbp-csv"
       ],
       "required_settings": [],
-      "prompt": "項目：現在の表示項目・列順に合わせる\n日本語：文字化けせずに出力\n安全対策：入力値がExcelなどで数式として実行されないようにする",
+      "prompt": "項目：現在の表示項目・列順に合わせる\n文字コード： UTF-8\n安全対策：入力値がExcelなどで数式として実行されないようにする",
       "sample": "note-feature-samples",
       "sample_reference": "fbp-app-samples/references/note-feature-samples.md"
     },
