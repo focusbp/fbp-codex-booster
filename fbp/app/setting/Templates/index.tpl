@@ -91,7 +91,7 @@
 							<td><input type="text" name="currency_decimal_digits" value="{$setting.currency_decimal_digits}"></td>
 						</tr>
 						<tr>
-							<th rowspan="8">{t key="setting.mode"}</th>
+							<th rowspan="10">{t key="setting.mode"}</th>
 							<td>{t key="setting.mode"}</td>
 							<td>{html_options name="force_testmode" options=$arr_force_testmode selected=$setting.force_testmode}</td>
 						</tr>
@@ -123,6 +123,8 @@
 							<td>{t key="setting.project_portal_url"}</td>
 							<td><input type="text" name="project_portal_url" value="{$setting.project_portal_url|escape}"></td>
 						</tr>
+						<tr><td>{t key="setting.note_sync_url"}</td><td><input type="url" name="note_sync_url" value="{$setting.note_sync_url|escape}"></td></tr>
+						<tr><td>{t key="setting.server_error_report_url"}</td><td><input type="url" name="server_error_report_url" value="{$setting.server_error_report_url|escape}"></td></tr>
 					</table>
 				</div>
 			</div>

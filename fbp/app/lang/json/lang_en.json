@@ -516,6 +516,8 @@
   "setting.source_code_directory_help": "This folder contains the classes directory.",
   "setting.show_homepage_link": "Show the homepage link on the menu",
   "setting.project_portal_url": "Project support URL",
+  "setting.note_sync_url": "Note synchronization URL",
+  "setting.server_error_report_url": "ServerError reporting URL",
   "setting.rewrite_for_root_access": "Rewrite for Root Access",
   "setting.class_name_default_login": "Class Name (default:login)",
   "setting.class": "Class:",

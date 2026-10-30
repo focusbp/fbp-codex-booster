@@ -4,6 +4,7 @@ require_once __DIR__ . "/PollingSecurity.php";
 require_once __DIR__ . "/StandardScreenLayout.php";
 require_once __DIR__ . '/DspRuntime.php';
 require_once __DIR__ . '/ExcelGrid.php';
+require_once __DIR__ . '/ProjectEndpoints.php';
 
 class Controller_class implements Controller {
 
@@ -2057,7 +2058,7 @@ class Controller_class implements Controller {
 
 	function get_server_error_report_settings() {
 		$settings = [
-			"url" => $this->get_env_value("FBP_SERVER_ERROR_REPORT_URL"),
+			"url" => trim((string) ($this->db("setting", "setting")->get(1)["server_error_report_url"] ?? "")) ?: $this->get_env_value("FBP_SERVER_ERROR_REPORT_URL"),
 			"api_key" => $this->get_env_value("FBP_SERVER_ERROR_API_KEY"),
 			"api_secret" => $this->get_env_value("FBP_SERVER_ERROR_API_SECRET"),
 		];

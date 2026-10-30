@@ -516,6 +516,8 @@
   "setting.source_code_directory_help": "このフォルダには classes ディレクトリが含まれます。",
   "setting.show_homepage_link": "メニューにホームページリンクを表示",
   "setting.project_portal_url": "プロジェクトサポートURL",
+  "setting.note_sync_url": "ノート同期先URL",
+  "setting.server_error_report_url": "ServerError通知先URL",
   "setting.rewrite_for_root_access": "ルートアクセス時のリライト",
   "setting.class_name_default_login": "クラス名 (default:login)",
   "setting.class": "Class:",

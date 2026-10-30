@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . "/lib/ProjectEndpoints.php";
 
 if (PHP_SAPI !== 'cli') {
 	http_response_code(404);
@@ -485,6 +486,7 @@ function cli_initial_project_setup_write_htaccess(Dirs $dir, array $data): bool 
 }
 
 function cli_initial_project_setup(Dirs $dir, array $data): array {
+	$data = ProjectEndpoints::validate($data);
 	cli_prepare_setting($dir);
 
 	$appcode = cli_initial_project_setup_value($data, "appcode");
@@ -559,6 +561,7 @@ function cli_initial_project_setup(Dirs $dir, array $data): array {
 	if ($api_secret !== "") {
 		$setting["api_secret"] = $api_secret;
 	}
+	$setting = array_replace($setting, array_intersect_key($data, array_flip(ProjectEndpoints::FIELDS)));
 	$setting["release_api_key"] = $release_api_key;
 	$setting["release_api_secret"] = $release_api_secret;
 	$setting["smtp_from"] = $smtp_from;
@@ -2487,6 +2490,13 @@ if ($command === "setting_edit") {
 	}
 	if (count($data) === 0) {
 		fwrite(STDERR, "Empty --json is not allowed\n");
+		exit(1);
+	}
+
+	try {
+		$data = ProjectEndpoints::validate($data);
+	} catch (InvalidArgumentException $e) {
+		fwrite(STDERR, $e->getMessage() . "\n");
 		exit(1);
 	}
 

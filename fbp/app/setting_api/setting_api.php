@@ -32,7 +32,11 @@ class setting_api {
 		}
 
 		$setting_app = new setting($ctl);
-		$result = $setting_app->api_update_setting($ctl, $data);
+		try {
+			$result = $setting_app->api_update_setting($ctl, $data);
+		} catch (InvalidArgumentException $e) {
+			$this->respond_error(400, "invalid_arguments", $e->getMessage());
+		}
 		$this->respond_json(array_merge([
 			"ok" => true,
 		], $result));

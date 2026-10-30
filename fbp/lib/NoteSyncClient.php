@@ -6,7 +6,8 @@ class NoteSyncClient {
     public function __construct(private Controller $ctl) {
         $report=$ctl->get_server_error_report_settings();
         $configured=$_SERVER['FBP_NOTE_SYNC_URL']??getenv('FBP_NOTE_SYNC_URL');
-        $url=trim(is_string($configured)?$configured:'');
+        $url=trim((string)($ctl->db('setting','setting')->get(1)['note_sync_url']??''));
+        if ($url==='') $url=trim(is_string($configured)?$configured:'');
         if ($url==='') $url=(string)($report['url']??'');
         $parts=parse_url($url);
         if (!$parts || ($parts['scheme']??'')!=='https' || empty($parts['host']) || isset($parts['user']) || isset($parts['pass']))

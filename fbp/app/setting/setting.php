@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . "/../../lib/ProjectEndpoints.php";
 
 /*
  *  YOU CAN'T CHANGE THIS PROJECT.
@@ -185,7 +186,7 @@ class setting {
 	}
 
 	private function save_setting_values(Controller $ctl, array $values, bool $filter_known_fields): array {
-		$values = $this->validate_receive_values($ctl, $values);
+		$values = ProjectEndpoints::validate($this->validate_receive_values($ctl, $values));
 		$setting = $this->ffm->get(1);
 		if ($setting == null) {
 			$setting = array();
