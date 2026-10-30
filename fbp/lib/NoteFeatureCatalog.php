@@ -27,6 +27,6 @@ final class NoteFeatureCatalog {
         if($feature['id']==='other')return $noteTitle.'に下記の機能を追加してください。'."\n\n";
         $text='「'.$noteTitle.'」に'.$feature['title'].'を追加してください。' . "\n\n".$feature['prompt'];
         if($options)$text.="\n商品名：".$options['product_name']."\n価格（税込）：".$options['price_tax_included'].'円';
-        return $text."\n\n実装・テスト後、本番リリースまでお願いします。";
+        return $text;
     }
 }
