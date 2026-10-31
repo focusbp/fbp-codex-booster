@@ -16,7 +16,10 @@ class project_support_login {
             while(count($_SESSION['support_sso_starts']??[])>=20)array_shift($_SESSION['support_sso_starts']);
             $_SESSION['support_sso_starts'][$state]=['user_id'=>(int)$u['id'],'epoch'=>(string)$ctl->get_session('passkey_epoch'),'expires'=>time()+180];
             foreach($_SESSION['support_sso_starts'] as $k=>$v)if($v['expires']<time())unset($_SESSION['support_sso_starts'][$k]);
-            $r=$client->request(['action'=>'begin','callback'=>$callback,'state'=>$state]);
+            $request=['action'=>'begin','callback'=>$callback,'state'=>$state];
+            $link=(string)$ctl->GET('request');
+            if($link!=='')$request['project_code']=$client->requestProject($link,(int)$u['id']);
+            $r=$client->request($request);
             if(!preg_match('/^[a-f0-9]{64}$/D',(string)($r['ticket']??'')))throw new DomainException('認証応答を確認できませんでした。');
             header('Location: '.$client->endpoint().'?'.http_build_query(['class'=>'project_support_sso','function'=>'prepare','ticket'=>$r['ticket']]),true,303);exit;
         }catch(Throwable $e){$this->fail($e);}
