@@ -13,6 +13,8 @@ When creating a new reusable sample from an existing app or feature, read `refer
 
 ## Samples
 
+- **多対多突合＋通帳CSV** (`many-to-many-reconciliation`): 金額不一致でも双方から複数追加・個別解除し、連結した全体の合計・差額を両側一覧へ表示。通帳CSVのプレビュー・重複防止・出金対象外化を含む。[フロー](references/many-to-many-reconciliation.md)・[DB](references/many-to-many-reconciliation-db.md)、`assets/many-to-many-reconciliation/`。`scripts/install_many_to_many_reconciliation.php`でコードとテスト定義を別々に配置。業務データは自動投入しない。
+
 - **Incoming Mail** (`incoming-mail`): アプリ独自のPOP／IMAPアカウント、受信メールのノート保存、重複防止と処理済み確定、手動／cron入口。[フロー](references/incoming-mail.md)・[DB](references/incoming-mail-db.md)、`assets/incoming-mail/`、`scripts/install_incoming_mail.php`。認証情報・実データ・cronは自動登録しない。
 
 - **ノートに追加する9機能** (`note-feature-samples`): CSV入出力、A4横PDF、CRUD MCP、公開フォーム、単品Squareショップ、単件/複数件AI-OCR、メール送受信。[フロー・必要情報](references/note-feature-samples.md)、[DB・画面](references/note-feature-samples-db.md)、`assets/note-feature-samples/`。`scripts/install_note_feature_samples.php` はコードだけ、`scripts/configure_note_feature_samples.py` はテスト定義だけを配置する。既存ノートへ適用するときは現在の項目・型・順序に対応させる。機能ID・定型文・必要設定・Skillの正本はframeworkの `config/note_feature_catalog.json`（「その他」を含む）。単品ショップの商品名・税別価格・税率は編集可能な依頼文で指定し、別入力欄を設けない。

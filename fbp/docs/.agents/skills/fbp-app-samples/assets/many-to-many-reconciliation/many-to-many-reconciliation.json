@@ -1,0 +1,679 @@
+{
+  "version": 1,
+  "sample": "many-to-many-reconciliation",
+  "files": [
+    "classes/app/sample_receipt_items_visibility_filter/sample_receipt_items_visibility_filter.php",
+    "classes/app/sample_recognition_items_visibility_filter/sample_recognition_items_visibility_filter.php",
+    "classes/app/sample_reconciliation/Graph.php",
+    "classes/app/sample_reconciliation/Guard.php",
+    "classes/app/sample_reconciliation/Store.php",
+    "classes/app/sample_reconciliation/Templates/dialog.tpl",
+    "classes/app/sample_reconciliation/sample_reconciliation.php",
+    "classes/app/sample_reconciliation_events_visibility_filter/sample_reconciliation_events_visibility_filter.php",
+    "classes/app/sample_reconciliation_links_visibility_filter/sample_reconciliation_links_visibility_filter.php",
+    "classes/app/sample_reconciliation_post_action/sample_reconciliation_post_action.php",
+    "classes/app/sample_statement_csv/Parser.php",
+    "classes/app/sample_statement_csv/Templates/preview.tpl",
+    "classes/app/sample_statement_csv/Templates/upload.tpl",
+    "classes/app/sample_statement_csv/sample_statement_csv.php"
+  ],
+  "options": {
+    "sample_reconciliation_eligibility": [
+      {
+        "key": "0",
+        "value": "通常"
+      },
+      {
+        "key": "1",
+        "value": "保留"
+      },
+      {
+        "key": "2",
+        "value": "対象外"
+      }
+    ],
+    "sample_reconciliation_active": [
+      {
+        "key": "0",
+        "value": "解除済み"
+      },
+      {
+        "key": "1",
+        "value": "有効"
+      }
+    ]
+  },
+  "notes": [
+    {
+      "table": {
+        "tb_name": "sample_recognition_items",
+        "menu_name": "サンプル：計上明細",
+        "description": "Reusable many-to-many reconciliation sample",
+        "show_menu": 1,
+        "menu_visibility": 1,
+        "screen_build_type": 0,
+        "list_type": 0,
+        "side_list_type": 0,
+        "parent_tb_id": 0,
+        "show_icon_on_parent_list": 0,
+        "cascade_delete_flag": 0,
+        "list_width": 1200,
+        "edit_width": 800,
+        "sortkey": "id",
+        "sort_order": 3,
+        "show_duplicate": 0,
+        "post_action_class": "sample_reconciliation_post_action"
+      },
+      "fields": [
+        {
+          "parameter_name": "scope_key",
+          "parameter_title": "管理範囲",
+          "type": "text",
+          "length": 120,
+          "default_value": "sample",
+          "validation": 1
+        },
+        {
+          "parameter_name": "currency",
+          "parameter_title": "通貨",
+          "type": "text",
+          "length": 12,
+          "default_value": "JPY",
+          "validation": 1
+        },
+        {
+          "parameter_name": "occurred_on",
+          "parameter_title": "計上日",
+          "type": "date",
+          "length": 24
+        },
+        {
+          "parameter_name": "counterparty",
+          "parameter_title": "相手先",
+          "type": "text",
+          "length": 300,
+          "validation": 1
+        },
+        {
+          "parameter_name": "description",
+          "parameter_title": "内容",
+          "type": "textarea",
+          "length": 1500
+        },
+        {
+          "parameter_name": "amount",
+          "parameter_title": "計上額",
+          "type": "number",
+          "length": 24,
+          "default_value": "0",
+          "validation": 1
+        },
+        {
+          "parameter_name": "eligibility",
+          "parameter_title": "対象区分",
+          "type": "dropdown",
+          "length": 24,
+          "constant_array_name": "sample_reconciliation_eligibility",
+          "default_value": "0"
+        },
+        {
+          "parameter_name": "group_recognition",
+          "parameter_title": "グループ計上合計",
+          "type": "number",
+          "length": 24
+        },
+        {
+          "parameter_name": "group_receipt",
+          "parameter_title": "グループ入金合計",
+          "type": "number",
+          "length": 24
+        },
+        {
+          "parameter_name": "group_difference",
+          "parameter_title": "グループ差額",
+          "type": "number",
+          "length": 24
+        },
+        {
+          "parameter_name": "link_count",
+          "parameter_title": "直接紐付け件数",
+          "type": "number",
+          "length": 24
+        },
+        {
+          "parameter_name": "relation_state",
+          "parameter_title": "紐付け状態",
+          "type": "text",
+          "length": 90
+        },
+        {
+          "parameter_name": "balance_state",
+          "parameter_title": "差額判定",
+          "type": "text",
+          "length": 90
+        }
+      ],
+      "screens": {
+        "list": [
+          "occurred_on",
+          "counterparty",
+          "description",
+          "amount",
+          "group_recognition",
+          "group_receipt",
+          "group_difference",
+          "balance_state",
+          "link_count",
+          "eligibility"
+        ],
+        "add": [
+          "scope_key",
+          "currency",
+          "occurred_on",
+          "counterparty",
+          "description",
+          "amount",
+          "eligibility"
+        ],
+        "edit": [
+          "scope_key",
+          "currency",
+          "occurred_on",
+          "counterparty",
+          "description",
+          "amount",
+          "eligibility"
+        ],
+        "delete": [
+          "counterparty",
+          "description",
+          "amount"
+        ],
+        "search": [
+          "scope_key",
+          "occurred_on",
+          "counterparty",
+          "description",
+          "amount",
+          "eligibility",
+          "balance_state"
+        ]
+      },
+      "buttons": [
+        {
+          "button_title": "突合",
+          "class_name": "sample_reconciliation",
+          "function_name": "left",
+          "place": 1,
+          "dialog_width": 1100,
+          "user_request": "双方から複数追加・個別解除、連結した全体の合計と差額を確認"
+        },
+        {
+          "button_title": "突合解除",
+          "class_name": "sample_reconciliation",
+          "function_name": "unlink_left",
+          "place": 1,
+          "dialog_width": 1100,
+          "user_request": "双方から複数追加・個別解除、連結した全体の合計と差額を確認"
+        },
+        {
+          "button_title": "グループ詳細",
+          "class_name": "sample_reconciliation",
+          "function_name": "detail_left",
+          "place": 1,
+          "dialog_width": 1100,
+          "user_request": "双方から複数追加・個別解除、連結した全体の合計と差額を確認"
+        }
+      ]
+    },
+    {
+      "table": {
+        "tb_name": "sample_receipt_items",
+        "menu_name": "サンプル：入金明細",
+        "description": "Reusable many-to-many reconciliation sample",
+        "show_menu": 1,
+        "menu_visibility": 1,
+        "screen_build_type": 0,
+        "list_type": 0,
+        "side_list_type": 0,
+        "parent_tb_id": 0,
+        "show_icon_on_parent_list": 0,
+        "cascade_delete_flag": 0,
+        "list_width": 1200,
+        "edit_width": 800,
+        "sortkey": "id",
+        "sort_order": 3,
+        "show_duplicate": 0,
+        "post_action_class": "sample_reconciliation_post_action"
+      },
+      "fields": [
+        {
+          "parameter_name": "scope_key",
+          "parameter_title": "管理範囲",
+          "type": "text",
+          "length": 120,
+          "default_value": "sample",
+          "validation": 1
+        },
+        {
+          "parameter_name": "currency",
+          "parameter_title": "通貨",
+          "type": "text",
+          "length": 12,
+          "default_value": "JPY",
+          "validation": 1
+        },
+        {
+          "parameter_name": "occurred_on",
+          "parameter_title": "入金日",
+          "type": "date",
+          "length": 24
+        },
+        {
+          "parameter_name": "counterparty",
+          "parameter_title": "入金名義",
+          "type": "text",
+          "length": 300,
+          "validation": 1
+        },
+        {
+          "parameter_name": "description",
+          "parameter_title": "内容",
+          "type": "textarea",
+          "length": 1500
+        },
+        {
+          "parameter_name": "amount",
+          "parameter_title": "入金額",
+          "type": "number",
+          "length": 24,
+          "default_value": "0",
+          "validation": 1
+        },
+        {
+          "parameter_name": "eligibility",
+          "parameter_title": "対象区分",
+          "type": "dropdown",
+          "length": 24,
+          "constant_array_name": "sample_reconciliation_eligibility",
+          "default_value": "0"
+        },
+        {
+          "parameter_name": "group_recognition",
+          "parameter_title": "グループ計上合計",
+          "type": "number",
+          "length": 24
+        },
+        {
+          "parameter_name": "group_receipt",
+          "parameter_title": "グループ入金合計",
+          "type": "number",
+          "length": 24
+        },
+        {
+          "parameter_name": "group_difference",
+          "parameter_title": "グループ差額",
+          "type": "number",
+          "length": 24
+        },
+        {
+          "parameter_name": "link_count",
+          "parameter_title": "直接紐付け件数",
+          "type": "number",
+          "length": 24
+        },
+        {
+          "parameter_name": "relation_state",
+          "parameter_title": "紐付け状態",
+          "type": "text",
+          "length": 90
+        },
+        {
+          "parameter_name": "balance_state",
+          "parameter_title": "差額判定",
+          "type": "text",
+          "length": 90
+        },
+        {
+          "parameter_name": "withdrawal_amount",
+          "parameter_title": "出金額",
+          "type": "number",
+          "length": 24
+        },
+        {
+          "parameter_name": "balance_amount",
+          "parameter_title": "残高",
+          "type": "number",
+          "length": 24
+        },
+        {
+          "parameter_name": "import_account_key",
+          "parameter_title": "取込口座識別子",
+          "type": "text",
+          "length": 120
+        },
+        {
+          "parameter_name": "external_transaction_id",
+          "parameter_title": "銀行取引ID",
+          "type": "text",
+          "length": 300
+        },
+        {
+          "parameter_name": "source_key",
+          "parameter_title": "取込一意キー",
+          "type": "text",
+          "length": 64
+        },
+        {
+          "parameter_name": "source_facts",
+          "parameter_title": "元明細内容ハッシュ",
+          "type": "text",
+          "length": 64
+        },
+        {
+          "parameter_name": "source_file",
+          "parameter_title": "取込ファイル",
+          "type": "text",
+          "length": 300
+        },
+        {
+          "parameter_name": "source_row",
+          "parameter_title": "CSV行番号",
+          "type": "number",
+          "length": 24
+        }
+      ],
+      "screens": {
+        "list": [
+          "occurred_on",
+          "counterparty",
+          "description",
+          "amount",
+          "withdrawal_amount",
+          "balance_amount",
+          "group_recognition",
+          "group_receipt",
+          "group_difference",
+          "balance_state",
+          "link_count",
+          "eligibility"
+        ],
+        "add": [
+          "scope_key",
+          "currency",
+          "occurred_on",
+          "counterparty",
+          "description",
+          "amount",
+          "eligibility"
+        ],
+        "edit": [
+          "scope_key",
+          "currency",
+          "occurred_on",
+          "counterparty",
+          "description",
+          "amount",
+          "eligibility"
+        ],
+        "delete": [
+          "counterparty",
+          "description",
+          "amount"
+        ],
+        "search": [
+          "scope_key",
+          "occurred_on",
+          "counterparty",
+          "description",
+          "amount",
+          "eligibility",
+          "balance_state"
+        ]
+      },
+      "buttons": [
+        {
+          "button_title": "通帳CSV取込",
+          "class_name": "sample_statement_csv",
+          "function_name": "run",
+          "place": 0,
+          "dialog_width": 1000,
+          "user_request": "銀行の通帳CSVをプレビュー後に取り込む。出金・利息を対象外にでき、再取込は重複を防止する。"
+        },
+        {
+          "button_title": "突合",
+          "class_name": "sample_reconciliation",
+          "function_name": "right",
+          "place": 1,
+          "dialog_width": 1100,
+          "user_request": "双方から複数追加・個別解除、連結した全体の合計と差額を確認"
+        },
+        {
+          "button_title": "突合解除",
+          "class_name": "sample_reconciliation",
+          "function_name": "unlink_right",
+          "place": 1,
+          "dialog_width": 1100,
+          "user_request": "双方から複数追加・個別解除、連結した全体の合計と差額を確認"
+        },
+        {
+          "button_title": "グループ詳細",
+          "class_name": "sample_reconciliation",
+          "function_name": "detail_right",
+          "place": 1,
+          "dialog_width": 1100,
+          "user_request": "双方から複数追加・個別解除、連結した全体の合計と差額を確認"
+        }
+      ]
+    },
+    {
+      "table": {
+        "tb_name": "sample_reconciliation_links",
+        "menu_name": "サンプル：突合関係",
+        "description": "Reusable many-to-many reconciliation sample",
+        "show_menu": 0,
+        "menu_visibility": 1,
+        "screen_build_type": 0,
+        "list_type": 0,
+        "side_list_type": 0,
+        "parent_tb_id": 0,
+        "show_icon_on_parent_list": 0,
+        "cascade_delete_flag": 0,
+        "list_width": 1200,
+        "edit_width": 800,
+        "sortkey": "id",
+        "sort_order": 3,
+        "show_duplicate": 0,
+        "post_action_class": ""
+      },
+      "fields": [
+        {
+          "parameter_name": "scope_key",
+          "parameter_title": "管理範囲",
+          "type": "text",
+          "length": 120
+        },
+        {
+          "parameter_name": "recognition_id",
+          "parameter_title": "計上明細ID",
+          "type": "number",
+          "length": 24
+        },
+        {
+          "parameter_name": "receipt_id",
+          "parameter_title": "入金明細ID",
+          "type": "number",
+          "length": 24
+        },
+        {
+          "parameter_name": "active",
+          "parameter_title": "有効",
+          "type": "dropdown",
+          "length": 24,
+          "constant_array_name": "sample_reconciliation_active"
+        },
+        {
+          "parameter_name": "revision",
+          "parameter_title": "関係の版",
+          "type": "number",
+          "length": 24
+        },
+        {
+          "parameter_name": "created_at",
+          "parameter_title": "作成日時",
+          "type": "world_datetime",
+          "length": 24
+        },
+        {
+          "parameter_name": "created_by",
+          "parameter_title": "作成者ID",
+          "type": "number",
+          "length": 24
+        },
+        {
+          "parameter_name": "updated_at",
+          "parameter_title": "更新日時",
+          "type": "world_datetime",
+          "length": 24
+        },
+        {
+          "parameter_name": "updated_by",
+          "parameter_title": "更新者ID",
+          "type": "number",
+          "length": 24
+        },
+        {
+          "parameter_name": "pending_event",
+          "parameter_title": "履歴書込待ち",
+          "type": "textarea",
+          "length": 6000
+        }
+      ],
+      "screens": {
+        "list": [
+          "recognition_id",
+          "receipt_id",
+          "active",
+          "revision",
+          "updated_at"
+        ],
+        "search": [
+          "recognition_id",
+          "receipt_id",
+          "active"
+        ]
+      },
+      "buttons": []
+    },
+    {
+      "table": {
+        "tb_name": "sample_reconciliation_events",
+        "menu_name": "サンプル：突合履歴",
+        "description": "Reusable many-to-many reconciliation sample",
+        "show_menu": 0,
+        "menu_visibility": 1,
+        "screen_build_type": 0,
+        "list_type": 0,
+        "side_list_type": 0,
+        "parent_tb_id": 0,
+        "show_icon_on_parent_list": 0,
+        "cascade_delete_flag": 0,
+        "list_width": 1200,
+        "edit_width": 800,
+        "sortkey": "id",
+        "sort_order": 3,
+        "show_duplicate": 0,
+        "post_action_class": ""
+      },
+      "fields": [
+        {
+          "parameter_name": "event_key",
+          "parameter_title": "イベント一意キー",
+          "type": "text",
+          "length": 120
+        },
+        {
+          "parameter_name": "link_id",
+          "parameter_title": "関係ID",
+          "type": "number",
+          "length": 24
+        },
+        {
+          "parameter_name": "action",
+          "parameter_title": "操作",
+          "type": "text",
+          "length": 30
+        },
+        {
+          "parameter_name": "actor_id",
+          "parameter_title": "操作者ID",
+          "type": "number",
+          "length": 24
+        },
+        {
+          "parameter_name": "occurred_at",
+          "parameter_title": "操作日時",
+          "type": "world_datetime",
+          "length": 24
+        },
+        {
+          "parameter_name": "operation_id",
+          "parameter_title": "操作識別子",
+          "type": "text",
+          "length": 120
+        },
+        {
+          "parameter_name": "recognition_id",
+          "parameter_title": "計上ID",
+          "type": "number",
+          "length": 24
+        },
+        {
+          "parameter_name": "receipt_id",
+          "parameter_title": "入金ID",
+          "type": "number",
+          "length": 24
+        },
+        {
+          "parameter_name": "recognition_amount",
+          "parameter_title": "操作時計上額",
+          "type": "number",
+          "length": 24
+        },
+        {
+          "parameter_name": "receipt_amount",
+          "parameter_title": "操作時入金額",
+          "type": "number",
+          "length": 24
+        },
+        {
+          "parameter_name": "method",
+          "parameter_title": "操作方法",
+          "type": "text",
+          "length": 30
+        }
+      ],
+      "screens": {
+        "list": [
+          "occurred_at",
+          "action",
+          "link_id",
+          "actor_id"
+        ],
+        "search": [
+          "link_id",
+          "operation_id"
+        ]
+      },
+      "buttons": []
+    }
+  ],
+  "tests": [
+    "tests/domain.php",
+    "tests/csv.php",
+    "tests/concurrency.php"
+  ],
+  "examples": [
+    "examples/bank-statement.csv"
+  ]
+}

@@ -69,6 +69,26 @@ codex
 
 ## Make Samples
 
+### Many-to-many reconciliation and bank statement CSV
+
+```text
+Use fbp-app-samples, fbp-standard-screen, fbp-dialog, fbp-db and fbp-csv.
+Read many-to-many-reconciliation.md and many-to-many-reconciliation-db.md.
+Install the many-to-many-reconciliation assets and manifest: recognition items,
+bank statement receipts, one relationship per pair, and audit events. Keep both
+Standard Screen lists, multiple add and individual unlink from either side,
+connected-component totals/difference, and bank CSV upload/preview/import.
+Allow amount differences; never rewrite amounts to force equality. Keep source
+money separate from derived display caches. Configure bank-specific columns and
+stable transaction IDs explicitly; preserve withdrawals as excluded records.
+Use install_many_to_many_reconciliation.php separately for source placement and
+test definitions. Do not insert business data or overwrite existing names.
+Keep live-app dependencies and customer rules out. Maintain manifest, assets,
+references, installer, tests, SKILL.md and this prompt together. Verify graph
+merge/split, both-side amounts, mismatches, replay/stale requests, permissions,
+audit recovery, real FFM concurrency, CSV duplication and browser operations.
+```
+
 ### Incoming Mail
 
 ```text
