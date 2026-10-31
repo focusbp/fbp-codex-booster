@@ -63,7 +63,7 @@ description: Design, implement, or adjust FBP side menu items, menu-only screens
 ## homepage and links
 - ホームページURLをメニューに出す場合は、アプリ設定の `website_url` と `show_menu_homepage` を使う。
 - フレームワークの base menu は `setting.website_url` を `normalize_external_url()` し、`show_menu_homepage=1` の場合にホームページメニューを表示する。
-- Project Portal URL は `project_portal_url` として base menu に渡される。
+- Project Portal URL (`setting.project_portal_url`) はサポートの接続先設定として使う。管理メニューのリンク先は `project_support_login/start` とし、admin限定のSSOを経由する。サポート側の受付・配布先ごとの有効化が必要で、認証失敗時に旧公開URLへ戻さない。
 - 独自リンクを増やすときは、既存の base menu / DBメニュー / Dashboard登録 / 設定値で実現できるかを先に確認する。
 - `/common/menu.tpl` の追加は既存互換用と考え、通常のメニュー追加では優先しない。
 

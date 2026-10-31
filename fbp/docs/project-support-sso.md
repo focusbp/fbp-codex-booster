@@ -1,0 +1,11 @@
+# Project support SSO
+
+The administrator menu calls `project_support_login/start` instead of linking directly to the public support URL. `start` and `callback` require a current active administrator, including the installed management-session guard. The runtime deployment directory identifies the destination app; shared code_dir and project_release_code do not identify the customer.
+
+`ProjectSupportSsoClient` uses project_portal_url to locate the trusted HTTPS support endpoint and uses this destination's api_key/api_secret for signed POSTs. Legacy class*function URLs and explicit app.php URLs are supported. A configured project_code selects a support window only after the receiver confirms its app identity. Requests bind the body digest into the signed query. Secrets stay server-side. Test-gateway Basic credentials may be forwarded only in test mode and to the exact incoming HTTPS host.
+
+The support receiver (currently in the management app) issues a preparation ticket, binds a browser cookie during a top-level visit, then issues a short-lived one-time code after the source validates its pending state again. The browser POSTs the code to the receiver. The receiver checks its browser binding and consumes the code under FFM locking. It establishes a project-scoped tab grant, not a management login.
+
+The tab keeps its proof in sessionStorage. Server requests require both the PHP session and the tab proof; the receiver protects HTML, updates, polling and attachments. Reloads use a data-free shell to attach the proof. Periodic requests extend the server lease while the tab remains available. Closing notifications are not reliable; browser duplicate/restore behavior follows sessionStorage semantics. Source logout does not immediately revoke an existing support tab.
+
+Deploy receiver support before enabling the menu on production destinations, then enable each destination's SSO requirement after testing. The receiver validates app/server/callback against inventory and rejects shared API credentials. Do not fall back to a public URL after an SSO failure. Framework tests run in the dedicated framework test app; receiver policy and rollout settings belong to the management app. No framework-wide production deployment is implied by development or testing.

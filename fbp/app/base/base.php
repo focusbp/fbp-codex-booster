@@ -73,7 +73,7 @@ class base {
 		$ctl->assign("standard_screen_responsive", fbp_normalize_standard_screen_responsive($setting["standard_screen_responsive"] ?? null));
 		$project_portal_url = $this->normalize_external_url($setting["project_portal_url"] ?? "");
 		$ctl->assign("setting",$setting);
-		$ctl->assign("project_portal_url", $project_portal_url);
+		$ctl->assign("project_portal_url", $project_portal_url === "" ? "" : $ctl->get_APP_URL("project_support_login", "start"));
 		$ctl->assign("base_i18n", [
 			"app_name" => $ctl->t("base.app_name"),
 			"tagline" => $ctl->t("base.tagline"),
@@ -286,7 +286,7 @@ class base {
 		$homepage_url = $this->normalize_external_url($setting["website_url"] ?? "");
 		$show_homepage_menu = ((int) ($setting["show_menu_homepage"] ?? 0) === 1 && $homepage_url !== "");
 		$ctl->assign("setting",$setting);
-		$ctl->assign("project_portal_url", $project_portal_url);
+		$ctl->assign("project_portal_url", $project_portal_url === "" ? "" : $ctl->get_APP_URL("project_support_login", "start"));
 		$ctl->assign("homepage_url", $homepage_url);
 		$ctl->assign("show_homepage_menu", $show_homepage_menu);
 		$ctl->assign("base_menu_i18n", [
@@ -349,7 +349,7 @@ class base {
 		}
 
 		$admin_items = [];
-		$can_show_project_portal = $project_portal_url !== "" && $ctl->authorize_management_access("panel", "page");
+		$can_show_project_portal = $project_portal_url !== "" && $ctl->is_app_admin() && $ctl->authorize_management_access("panel", "page");
 		$can_show_development_panel = (
 			$setting["force_testmode"] == 1 ||
 			($setting["force_testmode"] == 0 && $setting["show_developer_panel"] == 1)
@@ -362,7 +362,7 @@ class base {
 			$admin_items[] = [
 				"type" => "external",
 				"label" => $ctl->t("base.menu.project_portal"),
-				"url" => $project_portal_url,
+				"url" => $ctl->get_APP_URL("project_support_login", "start"),
 				"attributes" => [
 					"target" => "_blank",
 					"rel" => "noopener",
