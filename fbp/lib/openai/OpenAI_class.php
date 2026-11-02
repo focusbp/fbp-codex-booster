@@ -555,9 +555,12 @@ class OpenAI_class implements \openai\OpenAI {
 	private function readable_output($output) {
 		if (is_array($output)) {
 			foreach ($output as $key => &$arr) {
+				if (!is_array($arr)) {
+					continue;
+				}
 
-				if ($arr["type"] == "reasoning") {
-					if (is_array($arr["summary"])) {
+				if (($arr["type"] ?? null) === "reasoning") {
+					if (is_array($arr["summary"] ?? null)) {
 						if (count($arr["summary"]) == 0) {
 							unset($output[$key]);
 							continue;
@@ -565,28 +568,31 @@ class OpenAI_class implements \openai\OpenAI {
 					}
 				}
 
-				if (is_string($arr["output"])) {
+				if (is_string($arr["output"] ?? null)) {
 					try {
-						$decoded = json_decode($arr["output"], true);
+						$decoded = json_decode($arr["output"], true, 512, JSON_THROW_ON_ERROR);
 						unset($arr["output"]);
 						$arr["payload"] = $decoded;
-					} catch (Exception $e) {
+					} catch (\JsonException $e) {
 						//
 					}
 				}
-				if (is_string($arr["arguments"])) {
+				if (is_string($arr["arguments"] ?? null)) {
 					try {
-						$decoded = json_decode($arr["arguments"], true);
+						$decoded = json_decode($arr["arguments"], true, 512, JSON_THROW_ON_ERROR);
 						$arr["arguments"] = $decoded;
-					} catch (Exception $e) {
+					} catch (\JsonException $e) {
 						//
 					}
 				}
 			}
 			return $output;
 		}
+		if (!is_string($output)) {
+			return $output;
+		}
 		try {
-			$decoded = json_decode($output, true);
+			$decoded = json_decode($output, true, 512, JSON_THROW_ON_ERROR);
 			return $decoded;
 		} catch (\Throwable $e) {
 			// 失敗したらそのまま文字列で出す
