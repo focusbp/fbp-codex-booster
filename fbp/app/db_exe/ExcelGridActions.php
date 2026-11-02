@@ -147,6 +147,7 @@ trait ExcelGridActions {
             $additionals=$ctl->db('additionals','db_additionals')->select(['tb_name','place'],[$this->table_name,0],true,'AND','sort',SORT_DESC);
             $this->add_show_button_class($ctl,$additionals);
             $ctl->assign('excel_admin_controls',$ctl->is_app_admin());
+            $ctl->assign('note_feature_add_allowed',$ctl->is_app_admin() || $ctl->has_developer_permission());
             $ctl->assign('additionals',$additionals); $ctl->assign('excel_fields',$fields); $ctl->assign('excel_rows',$rows);
             $ctl->assign('excel_columns',$cfg['columns'] ?: []);
             $ctl->assign('excel_table_width',66+array_sum(array_column($fields,'column_width')));

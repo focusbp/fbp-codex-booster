@@ -6,7 +6,8 @@ require_once __DIR__.'/../../lib/NoteFeatureRequestClient.php';
 class note_features {
     private function context(Controller $ctl):array {
         if(!$ctl->get_session('login'))throw new RuntimeException('ログインしてください。');
-        if(!$ctl->is_app_admin())throw new RuntimeException('機能の追加依頼は管理者のみ実行できます。');
+        if(!$ctl->is_app_admin()&&!$ctl->has_developer_permission())throw new RuntimeException('機能の追加依頼には管理者または開発権限が必要です。');
+        $ctl->assign('can_view_project_support',$ctl->is_app_admin());
         if(!$ctl->authorize_management_access('db_exe','page'))throw new RuntimeException('このノートの閲覧権限がありません。');
         $id=$ctl->POST('db_id');if(!is_scalar($id)||!ctype_digit((string)$id))throw new RuntimeException('対象ノートを確認してください。');
         $note=$ctl->db('db','db')->get((int)$id);if(!$note||((int)($note['screen_build_type']??0)!==0||!in_array((int)($note['list_type']??0),[0,1,2,4],true))||!empty($note['parent_tb_id']))throw new RuntimeException('対象のノートを確認してください。');
@@ -50,7 +51,7 @@ class note_features {
             $text=$ctl->POST('request_text');if(!is_string($text)||trim($text)===''||strlen($text)>6000){$ctl->res_error_message('request_text','依頼内容を6,000バイト以内で入力してください。');return;}
             if($feature['id']==='other'&&trim($text)===trim(NoteFeatureCatalog::draft($feature,$note['title'],[]))){$ctl->res_error_message('request_text','追加したい機能を入力してください。');return;}
             $app=(string)$ctl->get_appcode();if(!str_starts_with($app,'app-'))$app='app-'.$app;if(!preg_match('/^app-[A-Za-z0-9][A-Za-z0-9_-]*$/D',$app))throw new RuntimeException('対象プロジェクトを確認してください。');
-            $payload=['schema_version'=>1,'request_key'=>$p['request_key'],'appcode'=>$app,'feature_id'=>$feature['id'],'note'=>$note,'options'=>$options,'request_text'=>trim($text),'code_change_allowed'=>true,'production_release_allowed'=>true,'requested_by'=>['user_id'=>(int)$ctl->get_login_user_id(),'login_id'=>(string)$ctl->get_login_id(),'is_app_admin'=>true]];
+            $payload=['schema_version'=>1,'request_key'=>$p['request_key'],'appcode'=>$app,'feature_id'=>$feature['id'],'note'=>$note,'options'=>$options,'request_text'=>trim($text),'code_change_allowed'=>true,'production_release_allowed'=>true,'requested_by'=>['user_id'=>(int)$ctl->get_login_user_id(),'login_id'=>(string)$ctl->get_login_id(),'is_app_admin'=>$ctl->is_app_admin(),'has_developer_permission'=>$ctl->has_developer_permission()]];
             $digest=hash('sha256',json_encode($payload,JSON_UNESCAPED_UNICODE));if(isset($p['digest'])&&!hash_equals($p['digest'],$digest))throw new RuntimeException('受付状況を確認中の依頼は内容を変更できません。同じ内容で再試行してください。');$p['digest']=$digest;$ctl->set_session('note_feature_request',$p);
             $result=$p['result']??$this->sendRequest($ctl,$payload);$p['result']=$result;$ctl->set_session('note_feature_request',$p);$ctl->assign('share_url',ProjectSupportSsoClient::featureLink($ctl,$result));$ctl->assign('share_url_help','AIに実装を依頼しました。進捗は下記からご覧ください。');$ctl->assign('share_url_open_label','プロジェクトサポートで進捗を見る');$ctl->show_multi_dialog('note-feature-picker','result.tpl','実装を依頼しました',680);
         }catch(Throwable $e){$ctl->res_error_message('request',$e->getMessage());}

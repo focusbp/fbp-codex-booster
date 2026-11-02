@@ -2,7 +2,7 @@
 
 <div class="excel-grid" data-db-id="{$db_id}" data-move-token="{$excel_move_token}" data-column-move-token="{$excel_column_move_token}" data-column-width-token="{$excel_column_width_token}" data-min-column-width="{$excel_min_column_width}" data-max-column-width="{$excel_max_column_width}">
  <div class="excel-toolbar">
-  <div>{if $excel_admin_controls}<button type="button" class="ajax-link excel-feature-add" data-class="note_features" data-function="page" data-db_id="{$db_id}" title="機能を追加する" aria-label="機能を追加する">＋</button>{/if}{foreach $additionals as $a}<button class="ajax-link {$a.show_button_class}" data-class="{$a.class_name}" data-function="{$a.function_name}">{if $a.button_type == 0}{$a.button_title|escape}{else}<span class="material-symbols-outlined">{$a.button_title|escape}</span>{/if}</button>{/foreach}</div>
+  <div>{if $note_feature_add_allowed}<button type="button" class="ajax-link excel-feature-add" data-class="note_features" data-function="page" data-db_id="{$db_id}" title="機能を追加する" aria-label="機能を追加する">＋</button>{/if}{foreach $additionals as $a}<button class="ajax-link {$a.show_button_class}" data-class="{$a.class_name}" data-function="{$a.function_name}">{if $a.button_type == 0}{$a.button_title|escape}{else}<span class="material-symbols-outlined">{$a.button_title|escape}</span>{/if}</button>{/foreach}</div>
  </div>
  <p class="excel-width-status" role="alert" hidden></p>
  <div class="excel-scroll">

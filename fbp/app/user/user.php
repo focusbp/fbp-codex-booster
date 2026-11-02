@@ -20,6 +20,7 @@ class user {
 	private $fmt_values;
 
 	function __construct(Controller $ctl) {
+		$this->developer_permission_opt = [0 => $ctl->t('user.permission_not_allowed'), 1 => $ctl->t('user.developer')];
 		$ctl->assign("arr_status", $this->arr_status);
 		$ctl->assign("user_type_opt",$this->arr_user_type);
 		$ctl->assign("user_type_opt_colors",$this->user_type_opt_colors);

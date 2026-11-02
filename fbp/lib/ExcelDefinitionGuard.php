@@ -55,7 +55,7 @@ final class ExcelDefinitionGuard {
         return !in_array($setting['spreadsheet_note_add_disabled'] ?? null, [1, '1'], true);
     }
     public static function assertNoteCreationAllowed(Controller $ctl): void {
-        if (!$ctl->is_app_admin()) throw new RuntimeException('ノートの追加は管理者のみ実行できます。');
+        if (!$ctl->is_app_admin() && !$ctl->has_developer_permission()) throw new RuntimeException('ノートの追加には管理者または開発権限が必要です。');
         $setting = $ctl->db('setting', 'setting')->get(1) ?: [];
         if (!self::noteCreationEnabled($setting)) throw new RuntimeException('Excel風ノートの追加はシステム設定で無効になっています。');
     }

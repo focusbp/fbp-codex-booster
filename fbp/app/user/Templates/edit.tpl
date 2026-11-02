@@ -20,10 +20,10 @@
 	{html_options name="status" options=$arr_status selected=$data.status}
 	
 	<div class="permission-row">
-	<p>{t key="user.developer_permission"}</p>
+	<p>{t key="user.developer"}</p>
 	{html_options name="developer_permission" options=$developer_permission_opt selected=$data.developer_permission}
 	
-	<p>{t key="user.data_manager_permission"}</p>
+	<p>{t key="user.release_backup"}</p>
 	{html_options name="data_manager_permission" options=$data_manager_permission_opt selected=$data.data_manager_permission}
 	</div>
 	

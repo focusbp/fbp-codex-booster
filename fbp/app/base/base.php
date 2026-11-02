@@ -281,7 +281,7 @@ class base {
 		
 		$setting = $ctl->get_setting();
         $noteSetting = $ctl->db('setting', 'setting')->get(1) ?: [];
-        $ctl->assign('spreadsheet_note_add_allowed', $ctl->is_app_admin() && ExcelDefinitionGuard::noteCreationEnabled($noteSetting));
+        $ctl->assign('spreadsheet_note_add_allowed', ($ctl->is_app_admin() || $ctl->has_developer_permission()) && ExcelDefinitionGuard::noteCreationEnabled($noteSetting));
 		$project_portal_url = $this->normalize_external_url($setting["project_portal_url"] ?? "");
 		$homepage_url = $this->normalize_external_url($setting["website_url"] ?? "");
 		$show_homepage_menu = ((int) ($setting["show_menu_homepage"] ?? 0) === 1 && $homepage_url !== "");
