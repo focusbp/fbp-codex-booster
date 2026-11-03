@@ -703,6 +703,30 @@ button.fbp-original-select-button:hover,
 	box-sizing: border-box;
 }
 
+
+.fbp-original-datepicker-panel .fbp-original-datepicker-year,
+.fbp-original-datepicker-panel .fbp-original-datepicker-month {
+	box-sizing: border-box;
+	width: auto;
+	min-height: 36px;
+	margin: 0;
+	padding: 6px 8px;
+	border: 1px solid #cbd5e1;
+	border-radius: 6px;
+	background-color: #fff;
+	color: #0f172a;
+	font-family: inherit;
+	font-size: 14px;
+	line-height: 1.4;
+	cursor: pointer;
+}
+
+.fbp-original-datepicker-panel .fbp-original-datepicker-year:focus,
+.fbp-original-datepicker-panel .fbp-original-datepicker-month:focus {
+	outline: 2px solid #2563eb;
+	outline-offset: 1px;
+}
+
 .fbp-original-datepicker-prev,
 .fbp-original-datepicker-next {
 	padding: 8px;
