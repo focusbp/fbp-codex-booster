@@ -11,6 +11,16 @@ DSP complements normal FFM data access; it is not isolation from arbitrary PHP c
 
 Undefined DBs preserve existing behavior. Registered policies allow or throw DspException. A registered policy's missing implementation, invalid registry or evaluation failure stops safely; never downgrade an error to undefined.
 
+## Preserve configured integrations
+
+Before policy creation, changes or audits, inspect System Settings and related integration settings to identify enabled or used features, including LINE, MCP, external APIs, mail send/receive, payments and webhooks. Credentials being present alone do not establish active use or verified identity. Compare configuration state with actual application call paths; never print secret values.
+
+For each relevant integration, trace the actual entry class/function and channel, verified subject, internal handlers, and required DB operations, rows and fields. Compare these with definitions and runtime policies. Preserve legitimate existing behavior; absence of an administrator browser session is not grounds to deny an authenticated integration. Check standard and legacy/alternate entries actually used by the application, not only the entry named in policy tests. For MCP, use the verified MCP subject and applicable scopes, never browser login as a substitute.
+
+Do not grant blanket integration access or disable DSP to preserve functionality. Permit only the necessary scope after the integration's signature, OAuth or API authentication has succeeded. Keep unverified and out-of-scope access denied, and restore request-local exceptions in finally. Preserve the framework-owned integration-settings exception described below rather than recreating it in application policies.
+
+Verification must exercise the application entry-to-handler connection as well as policy decisions, using isolated data/mocks where live sending or payment would cause side effects. Cover representative successful operations, important authentication/authorization refusals and temporary-scope cleanup. Inspect integration logs that catch exceptions; no ServerError does not prove success. Distinguish simulated checks from live connectivity and report unverified paths. Do not declare behavior preserved or an audit clean while necessary integration paths remain unverified. Audit remains read-only; these checks do not authorize external sends, payments, configuration changes or releases.
+
 ## Application switch
 
 The administrator system setting "Database Security Policy (DSP)" enables or disables enforcement for that application. `dsp_disabled=0` is ON and `1` is OFF; missing/invalid values keep ON. OFF retains definitions and PHP but skips registry/policy loading, judgments and dependency opens, including explicitly supplied policies. Existing application authentication/authorization remains active. Use OFF only when explicitly requested for that app; do not change another app's setting or infer permission to leave it OFF from a general audit request.
