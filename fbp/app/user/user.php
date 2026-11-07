@@ -1,7 +1,7 @@
 <?php
 
-require_once __DIR__ . '/../passkey/PasskeyService.php';
-require_once __DIR__ . '/../passkey/PasskeyAccess.php';
+require_once (new Dirs())->get_class_dir('passkey') . '/PasskeyService.php';
+require_once (new Dirs())->get_class_dir('passkey') . '/PasskeyAccess.php';
 
 class user {
 
