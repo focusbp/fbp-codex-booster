@@ -10,7 +10,7 @@ FBP管理ユーザーのパスキー認証・パスワード認証停止・全�
 ## 実装の位置とデータ
 
 - 共通実装はframeworkの `app/passkey`、`app/login`、`app/password_reset`。app-soshikikaikakuの実証版を基に移植し、app-fwtestで検証した。本番配布済みとは扱わず、対象のクラス優先解決・配置・配布状況を確認する。
-- RP設定はアプリの `classes/app/passkey/config.php`。共通配置の `config.example.php` を参考に明示設定し、共通版利用時はアプリ側に `passkey.php` を置かない。認証付き `release_api::passkey_config` で設定だけを保存・GET読戻しできる。独自login/passkeyのアプリでは保存を拒否する。環境側の配布元にも設定を保持し、次回app配布で消えないようにする。
+- 共通認証のパスキーは常時有効で、有効／無効フラグを持たない。旧設定のenabledも利用可否には使わない。RP設定はアプリの `classes/app/passkey/config.php`。環境の登録済みドメインから新規作成・ドメイン追加の工程で自動生成する。共通配置の `config.example.php` を参考にし、共通版利用時はアプリ側に `passkey.php` を置かない。認証付き `release_api::passkey_config` で設定だけを保存・GET読戻しできる。独自login/passkeyのアプリでは保存を拒否する。環境側の配布元にも設定を保持し、次回app配布で消えないようにする。更新時は既存RPホスト・信頼TLS peerを保持し、任意のHost／転送ヘッダーを設定元にしない。設定が未作成なら許可ドメインの自動配置を修復し、リクエストから許可を推測しない。
 - 管理セッションのepoch照合は標準loginが選ばれるアプリにだけ適用する。独自login/user/password_resetを持つアプリの認証条件を共通版へ置換しない。
 - 管理セッション確認は管理入口と保護DB/DSPの認証境界で実行し、画面権限判定 `authorize_management_access` から分離する。DSP内ではDBを読まない。検証結果は同一Controller・同一user_id/epoch・ログイン継続中に限り再利用し、未検証を許可しない。adminの認証保証とデータ固有の権限制限は区別する。
 - 既存userの固定形式は変更しない。`passkey/identity` はuser_idと1対1で、user_handle、epoch、password_login_disabledを保持する。`passkey/user_passkey` はuserと1対多で、RP IDごとの資格情報を保持する。

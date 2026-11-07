@@ -1,5 +1,5 @@
 <?php
-/** Explicit, authenticated deployment of per-application RP settings. */
+/** Authenticated deployment of always-on, per-application RP settings. */
 final class PasskeyConfiguration {
     public static function normalize(array $input): array {
         $code=$input['app_code']??null;
@@ -7,7 +7,7 @@ final class PasskeyConfiguration {
         $out=['app_code'=>$code];
         foreach(['production','test']as$environment){
             $row=$input[$environment]??null;
-            if(!is_array($row)||!is_bool($row['enabled']??null)||!is_array($row['hosts']??null)||!is_array($row['tls_peers']??null)||count($row['hosts'])>100||count($row['tls_peers'])>32)throw new InvalidArgumentException('Invalid environment configuration.');
+            if(!is_array($row)||!is_array($row['hosts']??null)||!is_array($row['tls_peers']??null)||count($row['hosts'])>100||count($row['tls_peers'])>32)throw new InvalidArgumentException('Invalid environment configuration.');
             $hosts=[];
             foreach($row['hosts']as$host){
                 if(!is_string($host)||strlen($host)>253||!preg_match('/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*$/D',$host))throw new InvalidArgumentException('Invalid allowed host.');
@@ -16,9 +16,9 @@ final class PasskeyConfiguration {
             }
             $peers=[];foreach($row['tls_peers']as$peer){if(!is_string($peer)||filter_var($peer,FILTER_VALIDATE_IP)===false)throw new InvalidArgumentException('Invalid TLS peer.');$peers[]=$peer;}
             $hosts=array_values(array_unique($hosts));sort($hosts);$peers=array_values(array_unique($peers));sort($peers);
-            if($row['enabled']&&$hosts===[])throw new InvalidArgumentException('Enabled environment requires explicit hosts.');
-            $out[$environment]=['enabled'=>$row['enabled'],'hosts'=>$hosts,'tls_peers'=>$peers];
+            $out[$environment]=['hosts'=>$hosts,'tls_peers'=>$peers];
         }
+        if ($out['production']['hosts']===[] && $out['test']['hosts']===[]) throw new InvalidArgumentException('Explicit hosts are required.');
         return $out;
     }
     public static function save(Controller $ctl,array $input): array {
