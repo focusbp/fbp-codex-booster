@@ -35,11 +35,11 @@ final class DspRuntime {
         try { return $callback(); }
         finally { if (--self::$pure[$key] === 0) unset(self::$pure[$key]); }
     }
-    public static function prepare(?Controller $ctl, DspPreparedInterface $policy): void {
+    public static function prepare(?Controller $ctl, DspPreparedInterface $policy, array $target = []): void {
         if ($ctl === null) throw new DspException("context", "controller_required");
         $key = spl_object_id($ctl);
         $profile = DspProfile::start();
-        try { self::invoke($ctl, "prepare", [], static function () use ($ctl, $key, $policy) {
+        try { self::invoke($ctl, "prepare", $target, static function () use ($ctl, $key, $policy) {
             self::$preparing[$key] = true;
             try { $policy->prepareContext(static fn($table, $class = "common") => $ctl->db($table, $class)->dsp_context_snapshot()); }
             finally { unset(self::$preparing[$key]); }

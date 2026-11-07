@@ -99,7 +99,7 @@ class fixed_file_manager implements FFM {
         if ($this->dsp === null) return null;
         if (DspRuntime::forbidsRead($this->ctl)) throw new DspException('policy_purity', 'database_access_during_judgment');
         if (($operation !== 'get' || $id === null) && $this->dsp instanceof DspPreparedInterface) {
-            DspRuntime::prepare($this->ctl, $this->dsp);
+            DspRuntime::prepare($this->ctl, $this->dsp, ['class'=>$this->info_classname,'table'=>$this->filename]);
         }
         if ($this->dsp_evaluating) throw new DspException('recursion', 'recursive_policy');
         $position = is_resource($this->hf) ? ftell($this->hf) : null;

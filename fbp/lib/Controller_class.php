@@ -201,6 +201,10 @@ class Controller_class implements Controller {
         if ($class === 'passkey' && in_array($name, ['identity', 'user_passkey', 'rate', 'device_transfer'], true)) {
             $this->require_dsp_admin_session(['class' => $class, 'table' => $name]);
         }
+        $session_guard = $this->get_app_management_session_guard();
+        if ($session_guard !== null && $session_guard->isAuthenticationTarget(['class'=>$class,'table'=>$name])) {
+            $this->require_dsp_admin_session(['class'=>$class,'table'=>$name]);
+        }
 		$key = $ddir . "/" . $name;
         if ($class === "common") $fdir = ExcelGrid::formatDir($this, $name, $fdir);
 		if (!isset($this->dbarr[$key])) {
@@ -2365,6 +2369,13 @@ class Controller_class implements Controller {
 		return $guard->authorize($this, $class, $function);
 	}
 
+    private function get_app_management_session_guard() {
+        $file = $this->dirs->appdir_user . '/app_management_session_guard/app_management_session_guard.php';
+        if (!is_file($file)) return null;
+        require_once $file;
+        return new app_management_session_guard();
+    }
+
     /** Authenticate before policy evaluation; cached only for this Controller/request. */
     public function verify_management_session(): bool {
         if (!$this->get_session('login')) return false;
@@ -2377,6 +2388,9 @@ class Controller_class implements Controller {
             if (realpath($this->dirs->get_class_dir('login')) === realpath($this->dirs->appdir_fw . '/login')) {
                 require_once __DIR__ . '/../app/passkey/PasskeySession.php';
                 if (PasskeySession::authorize($this) === false) return false;
+            } else {
+                $guard = $this->get_app_management_session_guard();
+                if ($guard !== null && $guard->authorize($this) === false) return false;
             }
             $this->verified_management_session = $session;
             return true;
@@ -2390,6 +2404,10 @@ class Controller_class implements Controller {
         if ($this->verifying_management_session && class_exists('PasskeyAccess', false) && PasskeyAccess::active()
             && ($target['class'] ?? null) === 'passkey'
             && in_array($target['table'] ?? null, ['identity', 'user_passkey', 'rate', 'device_transfer'], true)) return;
+        if ($this->verifying_management_session) {
+            $guard = $this->get_app_management_session_guard();
+            if ($guard !== null && $guard->allowsBootstrap($target)) return;
+        }
         if (!$this->verify_management_session()) throw new ManagementAuthenticationRequired();
     }
 

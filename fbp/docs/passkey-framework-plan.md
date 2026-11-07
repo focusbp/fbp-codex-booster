@@ -72,3 +72,9 @@ RPはアクセス先ホストごとに分離される。標準URLの資格情報
 ## 呼称と当面の運用方針（2026-11-07）
 
 利用者と「標準URL」「独自ドメイン」の呼称に統一することで合意。標準URLはアプリ作成時に用意されるURLであり、独自ドメイン追加後も継続して残す。当面は手動で対応し、パスワード併用者は独自ドメインへログインしてパスキーを登録する。パスワード停止済みで独自ドメインの鍵がない利用者は、標準URLから管理画面を利用する。独自ドメインでの認証が必要になった場合に個別の移行対応を検討する。自動移行の導線が実装済みであるとは扱わない。運用上の判断はfbp-passkey Skillにも記録した。
+
+## 独自認証のセッションガード（2026-11-08）
+
+独自loginを持つアプリは、任意のapp_management_session_guardクラスでauthorize(Controller)、isAuthenticationTarget(array)、allowsBootstrap(array)を実装できる。共通Controllerは管理入口・保護DBの境界からauthorizeを呼び、falseなら拒否する。ガードのない独自認証と標準loginの認証条件は変わらない。
+
+isAuthenticationTargetは認証中に開くDBだけを指定し、FFM生成前に照合を済ませるために使う。allowsBootstrapは認証実行中かつサーバー所有スコープが有効な場合の同じDBだけを許可する。画面権限ガードとは分離する。FFMはDSPのprepareにも対象class/tableを渡すため、認証用userに準備型DSPがあっても無関係なDBを一律許可せず検証できる。FOCUS2の認証コード・DSPはアプリ側が所有し、共通パスキー実装は参照しない。
