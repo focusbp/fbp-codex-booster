@@ -16,6 +16,25 @@ class release_api {
 		$this->respond_json(["ok" => true, "deploy_email_templates" => true, "deploy_db_definitions" => true, "deploy_excel_definitions" => true]);
 	}
 
+    function passkey_config(Controller $ctl) {
+        if ($ctl->verify_release_api_request() !== true) exit;
+        try {
+            require_once __DIR__ . '/../passkey/PasskeyConfiguration.php';
+            if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+                $input=json_decode((string)$ctl->POST('config_json'),true,32,JSON_THROW_ON_ERROR);
+                if (!is_array($input)) throw new InvalidArgumentException('Configuration must be an object.');
+                $config=PasskeyConfiguration::save($ctl,$input);
+            } elseif (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET') {
+                $file=(new Dirs())->appdir_user.'/passkey/config.php';
+                $config=is_file($file)?PasskeyConfiguration::normalize(require $file):null;
+            } else { http_response_code(405); $this->respond_json(['ok'=>false,'error'=>'Method not allowed.']); return; }
+            $this->respond_json(['ok'=>true,'config'=>$config]);
+        } catch (Throwable $e) {
+            http_response_code(422);
+            $this->respond_json(['ok'=>false,'error'=>$e->getMessage()]);
+        }
+    }
+
 	function upload(Controller $ctl) {
 		$setting = $ctl->get_setting();
 		$release_api_key = (string) ($setting["release_api_key"] ?? "");
