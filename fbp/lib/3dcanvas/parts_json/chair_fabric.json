@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "objects": [
+    {
+      "id": "seat",
+      "type": "box",
+      "size": [
+        470,
+        60,
+        470
+      ],
+      "position": [
+        0,
+        455,
+        0
+      ],
+      "material": {
+        "texture": "fabric_linen"
+      }
+    },
+    {
+      "id": "back",
+      "type": "box",
+      "size": [
+        470,
+        390,
+        55
+      ],
+      "position": [
+        0,
+        685,
+        -210
+      ],
+      "material": {
+        "texture": "fabric_linen"
+      }
+    },
+    {
+      "id": "leg0",
+      "type": "box",
+      "size": [
+        32,
+        430,
+        32
+      ],
+      "position": [
+        -190,
+        215,
+        -190
+      ],
+      "material": {
+        "color": "#899093",
+        "roughness": 0.3,
+        "metalness": 0.75
+      }
+    },
+    {
+      "id": "leg1",
+      "type": "box",
+      "size": [
+        32,
+        430,
+        32
+      ],
+      "position": [
+        -190,
+        215,
+        190
+      ],
+      "material": {
+        "color": "#899093",
+        "roughness": 0.3,
+        "metalness": 0.75
+      }
+    },
+    {
+      "id": "leg2",
+      "type": "box",
+      "size": [
+        32,
+        430,
+        32
+      ],
+      "position": [
+        190,
+        215,
+        -190
+      ],
+      "material": {
+        "color": "#899093",
+        "roughness": 0.3,
+        "metalness": 0.75
+      }
+    },
+    {
+      "id": "leg3",
+      "type": "box",
+      "size": [
+        32,
+        430,
+        32
+      ],
+      "position": [
+        190,
+        215,
+        190
+      ],
+      "material": {
+        "color": "#899093",
+        "roughness": 0.3,
+        "metalness": 0.75
+      }
+    }
+  ]
+}

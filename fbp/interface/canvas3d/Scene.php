@@ -14,6 +14,9 @@ interface Scene {
     public function add_torus(string $id, array $options = []): Scene;
     public function add_rounded_box(string $id, array $options = []): Scene;
     public function add_extrude(string $id, array $options = []): Scene;
+    public function add_part(string $part_id, string $id, array $options = []): Scene;
+    public function set_render(array $options): Scene;
+    public function set_lighting(array $options): Scene;
     public function set_view(string $name, array $options): Scene;
     public function set_background(string $color): Scene;
     public function animate(string $id, array $options): Scene;

@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "objects": [
+    {
+      "id": "glass",
+      "type": "box",
+      "size": [
+        1640,
+        1110,
+        10
+      ],
+      "position": [
+        0,
+        650,
+        0
+      ],
+      "material": {
+        "color": "#c7e3ec",
+        "opacity": 0.3,
+        "roughness": 0.15
+      },
+      "cast_shadow": false
+    },
+    {
+      "id": "bottom",
+      "type": "box",
+      "size": [
+        1800,
+        65,
+        160
+      ],
+      "position": [
+        0,
+        32,
+        0
+      ],
+      "material": {
+        "color": "#eeede7",
+        "roughness": 0.6
+      }
+    },
+    {
+      "id": "top",
+      "type": "box",
+      "size": [
+        1800,
+        65,
+        160
+      ],
+      "position": [
+        0,
+        1267,
+        0
+      ],
+      "material": {
+        "color": "#eeede7",
+        "roughness": 0.6
+      }
+    },
+    {
+      "id": "left",
+      "type": "box",
+      "size": [
+        65,
+        1300,
+        160
+      ],
+      "position": [
+        -867,
+        650,
+        0
+      ],
+      "material": {
+        "color": "#eeede7",
+        "roughness": 0.6
+      }
+    },
+    {
+      "id": "right",
+      "type": "box",
+      "size": [
+        65,
+        1300,
+        160
+      ],
+      "position": [
+        867,
+        650,
+        0
+      ],
+      "material": {
+        "color": "#eeede7",
+        "roughness": 0.6
+      }
+    },
+    {
+      "id": "center",
+      "type": "box",
+      "size": [
+        50,
+        1180,
+        85
+      ],
+      "position": [
+        0,
+        650,
+        0
+      ],
+      "material": {
+        "color": "#eeede7",
+        "roughness": 0.6
+      }
+    }
+  ]
+}

@@ -8,12 +8,12 @@
 // Small bridge only: the engine is imported once, when the first canvas3d response arrives.
 window.FBP3DCanvas = (() => {
 	const script = document.currentScript;
-	const moduleURL = new URL('3dcanvas-runtime.js?v=1', script ? script.src : location.href).href;
+	const moduleURL = new URL('3dcanvas-runtime.js?v=2', script ? script.src : location.href).href;
 	const records = new Map();
 	let modulePromise = null, observer = null;
 	function dispose(element) {
 		const record = records.get(element);
-		if (record) { record.cancelled = true; record.instance?.destroy(); records.delete(element); }
+		if (record) { record.cancelled = true; record.abort.abort(); record.instance?.destroy(); records.delete(element); }
 	}
 	function watch() {
 		if (observer) return;
@@ -32,17 +32,20 @@ window.FBP3DCanvas = (() => {
 			dispose(element);
 			if (command.action === 'destroy') { element.replaceChildren(); continue; }
 			if (command.action !== 'draw') continue;
-			const record = {cancelled:false, instance:null, promise:null};
+			const record = {cancelled:false, instance:null, promise:null, abort:new AbortController()};
 			records.set(element, record); watch();
 			element.textContent = '3Dを読み込んでいます…';
+			element.dataset.canvas3dMode = 'loading';
 			if (!modulePromise) modulePromise = import(moduleURL).catch(error => {modulePromise = null; throw error;});
-			record.promise = modulePromise.then(module => {
+			record.promise = modulePromise.then(async module => {
 				if (record.cancelled || !element.isConnected || records.get(element) !== record) return null;
-				record.instance = module.mount(element, command.scene, command.options || {});
+				const instance = await module.mount(element, command.scene, command.options || {}, command.assets || {}, record.abort.signal);
+				if (record.cancelled || !element.isConnected || records.get(element) !== record) {instance.destroy(); return null;}
+				record.instance = instance;
 				return record.instance;
 			}).catch(error => {
 				if (!record.cancelled && element.isConnected) {element.textContent = '3Dを表示できませんでした。';element.dataset.canvas3dMode = 'error';}
-				console.error('3D Canvas:', error.message);
+				if (error.name !== 'AbortError') console.error('3D Canvas:', error.message);
 				return null;
 			});
 		}

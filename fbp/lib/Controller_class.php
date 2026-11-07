@@ -4702,8 +4702,32 @@ class Controller_class implements Controller {
 		foreach (['interactive', 'animate'] as $key) if (isset($options[$key]) && !is_bool($options[$key])) throw new InvalidArgumentException('Invalid 3D option');
 		$data = \canvas3d\Scene_class::from_array($scene->to_array())->to_array();
 		if (isset($options['view']) && !isset($data['views'][$options['view']])) throw new InvalidArgumentException('Unknown 3D view');
-		$this->arr['canvas3d'][] = ['action'=>'draw', 'tag_id'=>$tag_id, 'scene'=>$data,
+		$assets = [];
+		foreach ($data['objects'] as $object) {
+			$id = $object['material']['texture'] ?? null;
+			if ($id === null || in_array($id, ['wood', 'tile', 'checker'], true) || isset($assets[$id])) continue;
+			foreach (\canvas3d\Catalog::texture($id)['maps'] as $map => $_) {
+				$file = \canvas3d\Catalog::texture_file($id, $map);
+				$assets[$id][$map] = $this->get_APP_URL('canvas3d_assets', 'texture', ['id'=>$id, 'map'=>$map, 'v'=>substr(hash_file('sha256', $file), 0, 16)]);
+			}
+		}
+		$this->arr['canvas3d'][] = ['action'=>'draw', 'tag_id'=>$tag_id, 'scene'=>$data, 'assets'=>$assets,
 			'options'=>array_replace(['interactive'=>true, 'animate'=>true], $options)];
+	}
+
+	function res_3dcanvas_texture(string $id, string $map = 'color'): void {
+		require_once __DIR__ . '/3dcanvas/Catalog.php';
+		try { $file = \canvas3d\Catalog::texture_file($id, $map); }
+		catch (InvalidArgumentException|RuntimeException $e) {
+			http_response_code(404); header('Content-Type: text/plain; charset=UTF-8');
+			header('Cache-Control: no-store'); echo 'Texture not found'; exit();
+		}
+		$this->close_all_db();
+		if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
+		header_remove('Pragma'); header_remove('Expires');
+		header('Content-Type: image/png'); header('X-Content-Type-Options: nosniff');
+		header('Cache-Control: public, max-age=3600'); header('Content-Length: ' . filesize($file));
+		readfile($file); exit();
 	}
 
 	function destroy_3dcanvas(string $tag_id): void {

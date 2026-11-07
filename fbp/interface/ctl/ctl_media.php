@@ -250,6 +250,8 @@ interface ctl_media {
 	function save_3dcanvas_json(string $model_id, \canvas3d\Scene $scene, int $expected_revision): int;
 	function draw_3dcanvas(string $tag_id, \canvas3d\Scene $scene, array $options = []): void;
 	function destroy_3dcanvas(string $tag_id): void;
+	/** Respond with a registered, non-sensitive framework texture map. */
+	function res_3dcanvas_texture(string $id, string $map = 'color'): void;
 
 	/**
 	 * Creates a new instance of the OpenAI assistant-related object.

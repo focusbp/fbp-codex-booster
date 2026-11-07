@@ -1,0 +1,62 @@
+{
+  "door_single": {
+    "title": "片開きドア（開いた状態）",
+    "file": "door_single.json",
+    "size_mm": [
+      1000,
+      2170,
+      150
+    ],
+    "origin": "floor center",
+    "front": "+Z",
+    "source": "Original generic geometry"
+  },
+  "window_double": {
+    "title": "2枚窓",
+    "file": "window_double.json",
+    "size_mm": [
+      1800,
+      1300,
+      160
+    ],
+    "origin": "floor center",
+    "front": "+Z",
+    "source": "Original generic geometry"
+  },
+  "table_oak": {
+    "title": "オークのテーブル",
+    "file": "table_oak.json",
+    "size_mm": [
+      1400,
+      758,
+      800
+    ],
+    "origin": "floor center",
+    "front": "+Z",
+    "source": "Original generic geometry"
+  },
+  "chair_fabric": {
+    "title": "布張り椅子",
+    "file": "chair_fabric.json",
+    "size_mm": [
+      470,
+      880,
+      470
+    ],
+    "origin": "floor center",
+    "front": "+Z",
+    "source": "Original generic geometry"
+  },
+  "cabinet_low": {
+    "title": "ローカビネット",
+    "file": "cabinet_low.json",
+    "size_mm": [
+      1400,
+      800,
+      470
+    ],
+    "origin": "floor center",
+    "front": "+Z",
+    "source": "Original generic geometry"
+  }
+}

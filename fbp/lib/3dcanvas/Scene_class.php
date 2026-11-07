@@ -1,6 +1,7 @@
 <?php
 namespace canvas3d;
 require_once __DIR__.'/../../interface/canvas3d/Scene.php';
+require_once __DIR__.'/Catalog.php';
 
 /** Versioned, bounded JSON schema shared by builders, storage and appcon. No executable data. */
 final class Scene_class implements Scene {
@@ -10,16 +11,18 @@ final class Scene_class implements Scene {
 
     public function __construct() {
         $this->data = ['schema_version'=>1, 'revision'=>0, 'units'=>'mm', 'background'=>'#edf2f5',
-            'objects'=>[], 'views'=>[], 'animations'=>[]];
+            'objects'=>[], 'views'=>[], 'animations'=>[], 'render'=>self::render_defaults(), 'lighting'=>self::lighting_defaults()];
     }
     public static function from_array(array $data): self {
         $s = new self();
-        self::keys($data, ['schema_version','revision','units','background','objects','views','animations']);
+        self::keys($data, ['schema_version','revision','units','background','objects','views','animations','render','lighting']);
         if (($data['schema_version']??null)!==1 || ($data['units']??null)!=='mm') self::fail('Unsupported scene format');
         $rev=$data['revision']??0;
         if (!is_int($rev)||$rev<0) self::fail('Invalid revision');
         $s->data['revision']=$rev;
         $s->set_background($data['background']??'#edf2f5');
+        if(array_key_exists('render',$data)) {if(!is_array($data['render']))self::fail('Invalid render settings');$s->set_render($data['render']);}
+        if(array_key_exists('lighting',$data)) {if(!is_array($data['lighting']))self::fail('Invalid lighting settings');$s->set_lighting($data['lighting']);}
         foreach (['objects','views','animations'] as $key) if (!isset($data[$key])||!is_array($data[$key])) self::fail('Missing '.$key);
         if (count($data['objects'])>self::MAX_OBJECTS) self::fail('Too many objects');
         // Permit parent declarations after children, then validate the complete hierarchy.
@@ -63,15 +66,18 @@ final class Scene_class implements Scene {
     private static function boolean($v): bool {if (!is_bool($v)) self::fail('Expected boolean');return $v;}
     private static function material($m): array {
         if (!is_array($m)) self::fail('Invalid material');
-        self::keys($m,['color','roughness','metalness','opacity','emissive','emissive_intensity','texture','repeat','texture_rotation']);
+        self::keys($m,['color','roughness','metalness','opacity','emissive','emissive_intensity','texture','repeat','texture_rotation','texture_size','normal_strength']);
+        if(isset($m['texture'])&&!is_string($m['texture']))self::fail('Invalid texture id');
+        $entry=isset($m['texture'])&&!in_array($m['texture'],['checker','wood','tile'],true)?Catalog::texture($m['texture']):[];
+        $m=array_replace($entry['material']??[],$m);
         $r=['color'=>self::color($m['color']??'#dce5eb'),
             'roughness'=>self::number($m['roughness']??0.6,0,1), 'metalness'=>self::number($m['metalness']??0,0,1),
             'opacity'=>self::number($m['opacity']??1,0,1), 'emissive'=>self::color($m['emissive']??'#000000'),
             'emissive_intensity'=>self::number($m['emissive_intensity']??0,0,5)];
         if (isset($m['texture'])) {
-            if (!in_array($m['texture'],['checker','wood','tile'],true)) self::fail('Unknown texture');
             $r['texture']=$m['texture'];$r['repeat']=self::vector($m['repeat']??[1,1],2,0.01,100);
             $r['texture_rotation']=self::number($m['texture_rotation']??0,-360,360);
+            if($entry){$r['texture_size']=self::vector($m['texture_size']??$entry['size_mm'],2,1,100000);$r['normal_strength']=self::number($m['normal_strength']??0.5,0,2);}
         }
         return $r;
     }
@@ -86,10 +92,11 @@ final class Scene_class implements Scene {
             'cylinder','cone'=>['radius','height'], 'plane'=>['size'], 'torus'=>['radius','tube'],
             'extrude'=>['points','depth'], default=>[]
         };
-        self::keys($options,array_merge(['parent','position','rotation','scale','visible','material'],$shapeKeys));
+        self::keys($options,array_merge(['parent','position','rotation','scale','visible','material','cast_shadow','receive_shadow'],$shapeKeys));
         $o=['type'=>$type,'id'=>$id,'position'=>self::vector($options['position']??[0,0,0],3,-1000000,1000000),
             'rotation'=>self::vector($options['rotation']??[0,0,0],3,-3600,3600),
-            'scale'=>self::vector($options['scale']??[1,1,1],3,0.001,1000), 'visible'=>self::boolean($options['visible']??true)];
+            'scale'=>self::vector($options['scale']??[1,1,1],3,0.001,1000), 'visible'=>self::boolean($options['visible']??true),
+            'cast_shadow'=>self::boolean($options['cast_shadow']??true),'receive_shadow'=>self::boolean($options['receive_shadow']??true)];
         if (isset($options['parent'])) $o['parent']=self::identifier($options['parent']);
         if ($type!=='group') $o['material']=self::material($options['material']??[]);
         if (in_array($type,['box','rounded_box'],true)) $o['size']=self::vector($options['size']??[100,100,100],3,0.1,1000000);
@@ -122,6 +129,51 @@ final class Scene_class implements Scene {
     public function add_torus(string $id,array $options=[]): Scene {return $this->add('torus',$id,$options);}
     public function add_rounded_box(string $id,array $options=[]): Scene {return $this->add('rounded_box',$id,$options);}
     public function add_extrude(string $id,array $options=[]): Scene {return $this->add('extrude',$id,$options);}
+    public function add_part(string $part_id,string $id,array $options=[]): Scene {
+        self::identifier($id);self::keys($options,['parent','position','rotation','scale','visible']);
+        $part=Catalog::part($part_id);$copy=clone $this;$copy->add_group($id,$options);
+        $names=[];foreach($part['objects'] as $o){self::identifier($o['id']);if(isset($names[$o['id']]))self::fail('Duplicate part object');$names[$o['id']]=$id.'__'.$o['id'];}
+        foreach($part['objects'] as $o){
+            $local=$o['id'];$type=$o['type'];unset($o['id'],$o['type']);
+            $parent=$o['parent']??null;if($parent!==null&&!isset($names[$parent]))self::fail('Missing part parent');
+            $o['parent']=$parent===null?$id:$names[$parent];$copy->add($type,$names[$local],$o);
+        }
+        $copy->to_array();$this->data=$copy->data;return $this;
+    }
+    public static function render_defaults(): array {
+        return ['shadows'=>['enabled'=>false,'quality'=>'medium'], 'ao'=>['enabled'=>false,'intensity'=>0.8,'radius'=>300.0,'quality'=>'medium'],'exposure'=>1.0];
+    }
+    public static function lighting_defaults(): array {
+        return ['ambient'=>['color'=>'#ffffff','ground_color'=>'#8795aa','intensity'=>0.75],
+            'sun'=>['color'=>'#ffffff','intensity'=>1.8,'position'=>[3000.0,6000.0,5000.0],'target'=>[0.0,0.0,0.0]],
+            'environment'=>['preset'=>'studio','intensity'=>0.5]];
+    }
+    private static function quality($v): string {if(!in_array($v,['low','medium','high'],true))self::fail('Unknown quality');return $v;}
+    public function set_render(array $options): Scene {
+        self::keys($options,['shadows','ao','exposure']);$r=$this->data['render'];
+        if(array_key_exists('shadows',$options)){
+            $v=$options['shadows'];if(!is_array($v))self::fail('Invalid shadows');self::keys($v,['enabled','quality']);$v=array_replace($r['shadows'],$v);
+            $r['shadows']=['enabled'=>self::boolean($v['enabled']),'quality'=>self::quality($v['quality'])];
+        }
+        if(array_key_exists('ao',$options)){
+            $v=$options['ao'];if(!is_array($v))self::fail('Invalid AO');self::keys($v,['enabled','intensity','radius','quality']);$v=array_replace($r['ao'],$v);
+            $r['ao']=['enabled'=>self::boolean($v['enabled']),'intensity'=>self::number($v['intensity'],0,2),'radius'=>self::number($v['radius'],1,5000),'quality'=>self::quality($v['quality'])];
+        }
+        if(array_key_exists('exposure',$options))$r['exposure']=self::number($options['exposure'],0.1,4);
+        $this->data['render']=$r;return $this;
+    }
+    public function set_lighting(array $options): Scene {
+        self::keys($options,['ambient','sun','environment']);$l=$this->data['lighting'];
+        foreach($options as $key=>$v){
+            if(!is_array($v))self::fail('Invalid light');self::keys($v,array_keys($l[$key]));$v=array_replace($l[$key],$v);
+            $v['intensity']=self::number($v['intensity'],0,8);
+            if($key==='environment'){if(!in_array($v['preset'],['studio','none'],true))self::fail('Unknown environment');}
+            else{$v['color']=self::color($v['color']);if($key==='ambient')$v['ground_color']=self::color($v['ground_color']);}
+            if($key==='sun'){$v['position']=self::vector($v['position'],3,-1000000,1000000);$v['target']=self::vector($v['target'],3,-1000000,1000000);if($v['position']===$v['target'])self::fail('Light position equals target');}
+            $l[$key]=$v;
+        }
+        $this->data['lighting']=$l;return $this;
+    }
     public function set_background(string $color): Scene {$this->data['background']=self::color($color);return $this;}
     public function set_view(string $name,array $options): Scene {
         self::identifier($name);self::keys($options,['position','target','fov']);

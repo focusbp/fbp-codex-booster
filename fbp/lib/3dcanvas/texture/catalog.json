@@ -1,0 +1,97 @@
+{
+  "wood_oak": {
+    "title": "オークの木床",
+    "size_mm": [
+      1200,
+      1800
+    ],
+    "maps": {
+      "color": "wood/wood_oak_color.png",
+      "normal": "wood/wood_oak_normal.png",
+      "roughness": "wood/wood_oak_roughness.png"
+    },
+    "material": {
+      "color": "#ffffff",
+      "roughness": 1,
+      "metalness": 0
+    },
+    "source": "Original procedural material",
+    "license": "Framework project license"
+  },
+  "wood_walnut": {
+    "title": "ウォールナット",
+    "size_mm": [
+      1200,
+      1800
+    ],
+    "maps": {
+      "color": "wood/wood_walnut_color.png",
+      "normal": "wood/wood_walnut_normal.png",
+      "roughness": "wood/wood_walnut_roughness.png"
+    },
+    "material": {
+      "color": "#ffffff",
+      "roughness": 1,
+      "metalness": 0
+    },
+    "source": "Original procedural material",
+    "license": "Framework project license"
+  },
+  "wall_plaster": {
+    "title": "白い塗り壁",
+    "size_mm": [
+      1000,
+      1000
+    ],
+    "maps": {
+      "color": "wall/wall_plaster_color.png",
+      "normal": "wall/wall_plaster_normal.png",
+      "roughness": "wall/wall_plaster_roughness.png"
+    },
+    "material": {
+      "color": "#ffffff",
+      "roughness": 1,
+      "metalness": 0
+    },
+    "source": "Original procedural material",
+    "license": "Framework project license"
+  },
+  "tile_stone": {
+    "title": "石調タイル",
+    "size_mm": [
+      1200,
+      1200
+    ],
+    "maps": {
+      "color": "tile/tile_stone_color.png",
+      "normal": "tile/tile_stone_normal.png",
+      "roughness": "tile/tile_stone_roughness.png"
+    },
+    "material": {
+      "color": "#ffffff",
+      "roughness": 1,
+      "metalness": 0
+    },
+    "source": "Original procedural material",
+    "license": "Framework project license"
+  },
+  "fabric_linen": {
+    "title": "リネン調の布",
+    "size_mm": [
+      500,
+      500
+    ],
+    "maps": {
+      "color": "fabric/fabric_linen_color.png",
+      "normal": "fabric/fabric_linen_normal.png",
+      "roughness": "fabric/fabric_linen_roughness.png"
+    },
+    "material": {
+      "color": "#ffffff",
+      "roughness": 1,
+      "metalness": 0
+    },
+    "source": "Original procedural material",
+    "license": "Framework project license"
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "objects": [
+    {
+      "id": "body",
+      "type": "box",
+      "size": [
+        1400,
+        800,
+        430
+      ],
+      "position": [
+        0,
+        400,
+        0
+      ],
+      "material": {
+        "texture": "wood_oak"
+      }
+    },
+    {
+      "id": "left_door",
+      "type": "box",
+      "size": [
+        685,
+        760,
+        25
+      ],
+      "position": [
+        -350,
+        400,
+        228
+      ],
+      "material": {
+        "color": "#eeede7",
+        "roughness": 0.6
+      }
+    },
+    {
+      "id": "right_door",
+      "type": "box",
+      "size": [
+        685,
+        760,
+        25
+      ],
+      "position": [
+        350,
+        400,
+        228
+      ],
+      "material": {
+        "color": "#eeede7",
+        "roughness": 0.6
+      }
+    },
+    {
+      "id": "handle_left",
+      "type": "box",
+      "size": [
+        18,
+        130,
+        30
+      ],
+      "position": [
+        -35,
+        440,
+        255
+      ],
+      "material": {
+        "color": "#899093",
+        "roughness": 0.3,
+        "metalness": 0.75
+      }
+    },
+    {
+      "id": "handle_right",
+      "type": "box",
+      "size": [
+        18,
+        130,
+        30
+      ],
+      "position": [
+        35,
+        440,
+        255
+      ],
+      "material": {
+        "color": "#899093",
+        "roughness": 0.3,
+        "metalness": 0.75
+      }
+    }
+  ]
+}

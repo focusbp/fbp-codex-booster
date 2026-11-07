@@ -7,7 +7,7 @@
 - 共通実装は `fbp/lib/3dcanvas`、Sceneインターフェースは `fbp/interface/canvas3d/Scene.php`。
 - Three.js 0.180.0を同梱し、`build.sh`で `fbp/js/3dcanvas-runtime.js` を生成する。libの直接配信禁止を維持する。利用者のnpm実行や外部CDN接続は不要。
 - JSONは標準dataディレクトリの `_3dcanvas/<model_id>/scene.json` に限定する。DBには32文字のmodel_idだけを保持する。
-- schema_version=1、revision、units=mm、background、objects、views、animationsを保存する。Yが上の右手系、回転は度。平面XYの押し出し方向は+Z。
+- schema_version=1、revision、units=mm、background、objects、views、animations、render、lightingを保存する。Yが上の右手系、回転は度。平面XYの押し出し方向は+Z。旧JSONにはrender／lightingと影の参加設定を既定値で補う。
 
 ## Controller API
 
@@ -39,15 +39,15 @@ $ctl->draw_3dcanvas('scene_view', $scene);
 - `add_box`、`add_sphere`、`add_cylinder`、`add_cone`、`add_plane`、`add_circle`、`add_torus`、`add_rounded_box`、`add_extrude`、`add_group`。引数は `($id, $options)`、戻り値はScene。`add($type, $id, $options)` でも同じ固定種別を指定できる。
 - 共通指定はposition、rotation、scale（各3要素配列）、visible、parent（親groupのID）。図形ごとのsize、radius、height、tube、points、depthを指定する。
 - 建築の開口は箱を上下左右に分割し、階段は段ごとの箱で作る。建築専用APIは初期版に追加しない。
-- materialはcolor、roughness、metalness、opacity、emissive、emissive_intensity。textureは内蔵checker／wood／tileのみで、repeatとtexture_rotationに対応する。任意URL・ファイルパスは受け付けない。
-- 共通の照明と室内環境マップを用意する。鏡面のリアルタイム反射・外部テクスチャ素材管理は初期対象外。
+- materialはcolor、roughness、metalness、opacity、emissive、emissive_intensity。textureは旧checker／wood／tileに加え、texture/catalog.jsonの登録IDを指定できる。実寸UV、法線・粗さ画像、repeat、texture_rotation、texture_size、normal_strengthに対応する。任意URL・ファイルパスは受け付けない。
+- add_partでparts_jsonの固定部品を汎用図形へ展開する。set_renderとset_lightingで影・AO・照明をJSONに保持する。リストと詳細は [素材・表示設定](../lib/3dcanvas/docs/README.md)。鏡面のリアルタイム反射・任意の外部素材は対象外。
 - `set_view($name, ['position'=>[...], 'target'=>[...], 'fov'=>45])` で視点を登録する。
 - `animate($id, ['property'=>'rotation', 'axis'=>'y', 'amplitude'=>10, 'period'=>3, 'phase'=>0])` は元の姿勢を中心とする正弦波の動き。positionも指定可能。動作の瞬間状態は保存しない。
 - `to_array()` でデータ化し、POSTされたJSONは `Scene_class::from_json()` で復元する。未知の仕様・キー・参照不正・循環階層は拒否する。上限はJSON 2MB、部品1500、階層32、視点16、動作128。
 
 ## appconとブラウザーAPI
 
-appconがHTMLを反映した後にcanvas3d指示を処理する。必要時のみ共通モジュールを読み込み、sceneは応答にオブジェクトとして同梱する。HTMLへのJSON埋込み・eval・別fetchは不要。
+appconがHTMLを反映した後にcanvas3d指示を処理する。必要時のみ共通モジュールを読み込み、sceneは応答にオブジェクトとして同梱する。素材IDの配信URLはControllerが別のassets項目へ追加し、固定素材専用のcanvas3d_assets/textureから取得する。配信URLは保存JSONに入れない。
 
 ```js
 const element = document.getElementById('scene_view');
@@ -61,7 +61,7 @@ if (canvas) {
 
 デフォルトで左ドラッグ回転、ホイールズーム、右ドラッグ平行移動を有効にする。タッチは1本指で回転、2本指でズーム・移動。`interactive=false` で無効にできる。drawのviewは登録視点名、animate=falseは自動動作停止。
 
-表示APIはsetView、setColor、setVisible、getScene、exportImage、pause、resume、getState、destroy。getSceneは現在の視点をviews.currentへ反映する。表示内の色・視点変更はメモリー上だけで、保存はアプリのappcon送信処理から明示的に行う。従来のappconコールバックは3D準備完了を待たないためreadyを使う。
+表示APIはsetView、setColor、setVisible、setRender、setLighting、getScene、exportImage、pause、resume、getState、destroy。getSceneは現在の視点をviews.currentへ反映する。表示内の変更はメモリー上だけで、保存はアプリのappcon送信処理から明示的に行う。readyは素材の読込みと表示初期化を待つ。通常のappconコールバックの契約は変更しない。
 
 再描画・DOM削除・画面終了時は旧表示とGPU資源を破棄し、ロード中の古い指示も取り消す。サイズ変更に追従し、非表示・画面外では停止。静的sceneは必要時描画。動きを減らす設定で自動動作を停止する。WebGL非対応・コンテキスト喪失時は案内を表示し、元のsceneを保持する。
 

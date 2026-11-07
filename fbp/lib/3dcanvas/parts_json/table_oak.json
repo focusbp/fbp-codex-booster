@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "objects": [
+    {
+      "id": "top",
+      "type": "box",
+      "size": [
+        1400,
+        45,
+        800
+      ],
+      "position": [
+        0,
+        735,
+        0
+      ],
+      "material": {
+        "texture": "wood_oak"
+      }
+    },
+    {
+      "id": "leg0",
+      "type": "box",
+      "size": [
+        60,
+        710,
+        60
+      ],
+      "position": [
+        -610,
+        355,
+        -310
+      ],
+      "material": {
+        "texture": "wood_oak"
+      }
+    },
+    {
+      "id": "leg1",
+      "type": "box",
+      "size": [
+        60,
+        710,
+        60
+      ],
+      "position": [
+        -610,
+        355,
+        310
+      ],
+      "material": {
+        "texture": "wood_oak"
+      }
+    },
+    {
+      "id": "leg2",
+      "type": "box",
+      "size": [
+        60,
+        710,
+        60
+      ],
+      "position": [
+        610,
+        355,
+        -310
+      ],
+      "material": {
+        "texture": "wood_oak"
+      }
+    },
+    {
+      "id": "leg3",
+      "type": "box",
+      "size": [
+        60,
+        710,
+        60
+      ],
+      "position": [
+        610,
+        355,
+        310
+      ],
+      "material": {
+        "texture": "wood_oak"
+      }
+    }
+  ]
+}

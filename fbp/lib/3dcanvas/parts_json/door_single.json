@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "objects": [
+    {
+      "id": "frame_top",
+      "type": "box",
+      "size": [
+        1000,
+        70,
+        150
+      ],
+      "position": [
+        0,
+        2135,
+        0
+      ],
+      "material": {
+        "color": "#eeede7",
+        "roughness": 0.6
+      }
+    },
+    {
+      "id": "frame_left",
+      "type": "box",
+      "size": [
+        65,
+        2100,
+        150
+      ],
+      "position": [
+        -467,
+        1050,
+        0
+      ],
+      "material": {
+        "color": "#eeede7",
+        "roughness": 0.6
+      }
+    },
+    {
+      "id": "frame_right",
+      "type": "box",
+      "size": [
+        65,
+        2100,
+        150
+      ],
+      "position": [
+        467,
+        1050,
+        0
+      ],
+      "material": {
+        "color": "#eeede7",
+        "roughness": 0.6
+      }
+    },
+    {
+      "id": "hinge",
+      "type": "group",
+      "position": [
+        -435,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        -55,
+        0
+      ]
+    },
+    {
+      "id": "leaf",
+      "type": "box",
+      "size": [
+        870,
+        2060,
+        42
+      ],
+      "position": [
+        435,
+        1030,
+        0
+      ],
+      "material": {
+        "texture": "wood_oak"
+      },
+      "parent": "hinge"
+    },
+    {
+      "id": "handle",
+      "type": "box",
+      "size": [
+        105,
+        22,
+        28
+      ],
+      "position": [
+        765,
+        1000,
+        42
+      ],
+      "material": {
+        "color": "#899093",
+        "roughness": 0.3,
+        "metalness": 0.75
+      },
+      "parent": "hinge"
+    }
+  ]
+}
