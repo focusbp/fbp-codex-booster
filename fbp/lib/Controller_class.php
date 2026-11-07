@@ -195,6 +195,11 @@ class Controller_class implements Controller {
 		$ddir = $this->dirs->datadir . "/" . $class . $separated_by;
 		$fdir = $this->dirs->get_class_dir($class) . "/fmt";
 
+        // The session guard opens these same databases. Run it before constructing
+        // an FFM, so the completed guard connections are already in dbarr.
+        if ($class === 'passkey' && in_array($name, ['identity', 'user_passkey', 'rate', 'device_transfer'], true)) {
+            $this->require_dsp_admin_session(['class' => $class, 'table' => $name]);
+        }
 		$key = $ddir . "/" . $name;
         if ($class === "common") $fdir = ExcelGrid::formatDir($this, $name, $fdir);
 		if (!isset($this->dbarr[$key])) {
