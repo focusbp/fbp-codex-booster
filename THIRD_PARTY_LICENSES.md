@@ -6,6 +6,7 @@ This file lists third-party software bundled in this repository and where to fin
 
 | Component | License | Path | License File |
 |---|---|---|---|
+| Three.js 0.180.0 (including OrbitControls, RoundedBoxGeometry, RoomEnvironment) | MIT | `fbp/lib/3dcanvas/vendor` and generated `fbp/js/3dcanvas-runtime.js` | `fbp/lib/3dcanvas/vendor/LICENSE.txt` |
 | Smarty 4.3.1 | LGPL-3.0-or-later | `fbp/lib_ext/smarty-4.3.1` | `fbp/lib_ext/smarty-4.3.1/LICENSE` |
 | phpqrcode | LGPL-3.0 | `fbp/lib_ext/phpqrcode` | `fbp/lib_ext/phpqrcode/LICENSE` |
 | Parsedown (markdown) | MIT | `fbp/lib_ext/markdown` | `fbp/lib_ext/markdown/LICENSE.txt` |

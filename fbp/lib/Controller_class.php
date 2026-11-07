@@ -4667,6 +4667,52 @@ class Controller_class implements Controller {
 		];
 	}
 	
+	function create_3dcanvas(): \canvas3d\Scene {
+		require_once __DIR__ . '/3dcanvas/Scene_class.php';
+		return new \canvas3d\Scene_class();
+	}
+
+	private function canvas3d_store(bool $write = false): \canvas3d\Store {
+		require_once __DIR__ . '/3dcanvas/Store.php';
+		if ($write && $this->db_read_only) throw new RuntimeException('3D保存には書込み可能なControllerが必要です。');
+		$store = new \canvas3d\Store($this->dirs->datadir, $write);
+		// Open after the caller's business DBs, before reading the current file revision.
+		// Do not open another DB inside the read/compare/replace operation.
+		if ($write) $this->db('lock', '_3dcanvas')->check_hf();
+		return $store;
+	}
+
+	function create_3dcanvas_json(\canvas3d\Scene $scene): string {
+		return $this->canvas3d_store(true)->create($scene);
+	}
+
+	function get_3dcanvas_json(string $model_id): \canvas3d\Scene {
+		return $this->canvas3d_store()->read($model_id);
+	}
+
+	function save_3dcanvas_json(string $model_id, \canvas3d\Scene $scene, int $expected_revision): int {
+		return $this->canvas3d_store(true)->save($model_id, $scene, $expected_revision);
+	}
+
+	function draw_3dcanvas(string $tag_id, \canvas3d\Scene $scene, array $options = []): void {
+		require_once __DIR__ . '/3dcanvas/Scene_class.php';
+		$tag_id = ltrim($tag_id, '#');
+		\canvas3d\Scene_class::identifier($tag_id);
+		\canvas3d\Scene_class::keys($options, ['view', 'interactive', 'animate']);
+		foreach (['interactive', 'animate'] as $key) if (isset($options[$key]) && !is_bool($options[$key])) throw new InvalidArgumentException('Invalid 3D option');
+		$data = \canvas3d\Scene_class::from_array($scene->to_array())->to_array();
+		if (isset($options['view']) && !isset($data['views'][$options['view']])) throw new InvalidArgumentException('Unknown 3D view');
+		$this->arr['canvas3d'][] = ['action'=>'draw', 'tag_id'=>$tag_id, 'scene'=>$data,
+			'options'=>array_replace(['interactive'=>true, 'animate'=>true], $options)];
+	}
+
+	function destroy_3dcanvas(string $tag_id): void {
+		require_once __DIR__ . '/3dcanvas/Scene_class.php';
+		$tag_id = ltrim($tag_id, '#');
+		\canvas3d\Scene_class::identifier($tag_id);
+		$this->arr['canvas3d'][] = ['action'=>'destroy', 'tag_id'=>$tag_id];
+	}
+
 	private function array_filter_recursive($input) {
 		foreach ($input as &$value) {
 			if (is_array($value)) {

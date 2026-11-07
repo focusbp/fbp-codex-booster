@@ -5,6 +5,52 @@
 //------------------------------------
 
 // 自動翻訳を停止
+// Small bridge only: the engine is imported once, when the first canvas3d response arrives.
+window.FBP3DCanvas = (() => {
+	const script = document.currentScript;
+	const moduleURL = new URL('3dcanvas-runtime.js?v=1', script ? script.src : location.href).href;
+	const records = new Map();
+	let modulePromise = null, observer = null;
+	function dispose(element) {
+		const record = records.get(element);
+		if (record) { record.cancelled = true; record.instance?.destroy(); records.delete(element); }
+	}
+	function watch() {
+		if (observer) return;
+		observer = new MutationObserver(() => {
+			for (const element of records.keys()) if (!element.isConnected) dispose(element);
+			if (!records.size) { observer.disconnect(); observer = null; }
+		});
+		observer.observe(document.documentElement, {childList:true, subtree:true});
+	}
+	function apply(commands) {
+		for (const command of commands) {
+			if (!/^[a-zA-Z][a-zA-Z0-9_-]{0,63}$/.test(command.tag_id)) continue;
+			const elements = document.querySelectorAll('#' + command.tag_id);
+			if (elements.length !== 1) { console.error('3D target must be unique:', command.tag_id); continue; }
+			const element = elements[0];
+			dispose(element);
+			if (command.action === 'destroy') { element.replaceChildren(); continue; }
+			if (command.action !== 'draw') continue;
+			const record = {cancelled:false, instance:null, promise:null};
+			records.set(element, record); watch();
+			element.textContent = '3Dを読み込んでいます…';
+			if (!modulePromise) modulePromise = import(moduleURL).catch(error => {modulePromise = null; throw error;});
+			record.promise = modulePromise.then(module => {
+				if (record.cancelled || !element.isConnected || records.get(element) !== record) return null;
+				record.instance = module.mount(element, command.scene, command.options || {});
+				return record.instance;
+			}).catch(error => {
+				if (!record.cancelled && element.isConnected) {element.textContent = '3Dを表示できませんでした。';element.dataset.canvas3dMode = 'error';}
+				console.error('3D Canvas:', error.message);
+				return null;
+			});
+		}
+	}
+	return {apply, get:element => records.get(element)?.instance || null,
+		ready:element => records.get(element)?.promise || Promise.resolve(null), destroy:dispose};
+})();
+
 $(document).ready(function () {
 	// <html>タグにtranslate="no"属性を追加する
 	$('html').attr('translate', 'no');
@@ -2850,6 +2896,10 @@ function appcon_execute(url, fd, nextfunction, isCurrentResponse) {
 						}, 0);
 					});
 				}
+
+			if (Array.isArray(res["canvas3d"])) {
+				window.FBP3DCanvas.apply(res["canvas3d"]);
+			}
 
 			if (res["chartjs"] != null) {
 				setTimeout(function () {

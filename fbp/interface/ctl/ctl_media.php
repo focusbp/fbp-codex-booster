@@ -243,6 +243,14 @@ interface ctl_media {
 	 */
 	function chart_draw($canvas_tag_id, \chartjs\Chart $chart);
 
+	/** Generic 3D scene builder; millimetres and degrees. */
+	function create_3dcanvas(): \canvas3d\Scene;
+	function create_3dcanvas_json(\canvas3d\Scene $scene): string;
+	function get_3dcanvas_json(string $model_id): \canvas3d\Scene;
+	function save_3dcanvas_json(string $model_id, \canvas3d\Scene $scene, int $expected_revision): int;
+	function draw_3dcanvas(string $tag_id, \canvas3d\Scene $scene, array $options = []): void;
+	function destroy_3dcanvas(string $tag_id): void;
+
 	/**
 	 * Creates a new instance of the OpenAI assistant-related object.
 	 *
