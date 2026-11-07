@@ -537,7 +537,7 @@ try{
 		}else{
 			//ログインが必要なクラスを実行
 			if(method_exists($appobj,$function)){
-				if (!$ctl->authorize_management_access((string) $class, (string) $function)) {
+				if (!$ctl->verify_management_session() || !$ctl->authorize_management_access((string) $class, (string) $function)) {
 					$ctl->deny_forbidden_access();
 				}
 				$appobj->$function($ctl);

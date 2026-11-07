@@ -12,6 +12,7 @@ FBP管理ユーザーのパスキー認証・パスワード認証停止・全�
 - 共通実装はframeworkの `app/passkey`、`app/login`、`app/password_reset`。app-soshikikaikakuの実証版を基に移植し、app-fwtestで検証した。本番配布済みとは扱わず、対象のクラス優先解決・配置・配布状況を確認する。
 - RP設定はアプリの `classes/app/passkey/config.php`。共通配置の `config.example.php` を参考に明示設定し、共通版利用時はアプリ側に `passkey.php` を置かない。認証付き `release_api::passkey_config` で設定だけを保存・GET読戻しできる。独自login/passkeyのアプリでは保存を拒否する。環境側の配布元にも設定を保持し、次回app配布で消えないようにする。
 - 管理セッションのepoch照合は標準loginが選ばれるアプリにだけ適用する。独自login/user/password_resetを持つアプリの認証条件を共通版へ置換しない。
+- 管理セッション確認は管理入口と保護DB/DSPの認証境界で実行し、画面権限判定 `authorize_management_access` から分離する。DSP内ではDBを読まない。検証結果は同一Controller・同一user_id/epoch・ログイン継続中に限り再利用し、未検証を許可しない。adminの認証保証とデータ固有の権限制限は区別する。
 - 既存userの固定形式は変更しない。`passkey/identity` はuser_idと1対1で、user_handle、epoch、password_login_disabledを保持する。`passkey/user_passkey` はuserと1対多で、RP IDごとの資格情報を保持する。
 - user_handleはユーザー再作成時の旧鍵流用を防ぎ、epochはセッション・remember-meの失効に使う。両方を認証時に最新値と照合する。
 - ドメインごとにRP IDとoriginを検証する。パスキーは登録先RPの範囲で使い、パスワード認証停止はユーザー単位で全RPに適用する。

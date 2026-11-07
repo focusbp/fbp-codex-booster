@@ -131,6 +131,7 @@ final class DspRuntime {
     }
 
     public static function invoke(?Controller $ctl, string $operation, array $target, callable $callback): mixed {
+        if ($ctl !== null && method_exists($ctl, 'require_dsp_admin_session')) $ctl->require_dsp_admin_session($target);
         $previous = $ctl !== null ? $ctl->get_prohibit_new_db() : false;
         $key = $ctl !== null ? spl_object_id($ctl) : null;
         if ($ctl !== null) {

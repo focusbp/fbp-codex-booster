@@ -47,6 +47,8 @@ class Controller_class implements Controller {
 	private bool $prohibit_new_db = false;
 	private string $dsp_channel;
 	private bool $dsp_channel_frozen = false;
+    private ?array $verified_management_session = null;
+    private bool $verifying_management_session = false;
 	private ?array $dsp_mcp_subject = null;
 	private ?array $dsp_system_subject = null;
 
@@ -2357,12 +2359,35 @@ class Controller_class implements Controller {
 		return $guard->authorize($this, $class, $function);
 	}
 
+    /** Authenticate before policy evaluation; cached only for this Controller/request. */
+    public function verify_management_session(): bool {
+        if (!$this->get_session('login')) return false;
+        $session = [$this->get_session('user_id'), $this->get_session('passkey_epoch')];
+        if ($this->verified_management_session === $session) return true;
+        if ($this->verifying_management_session || DspRuntime::isEvaluating($this)) return false;
+        $this->verifying_management_session = true;
+        try {
+            // Independent login implementations retain their own authentication contract.
+            if (realpath($this->dirs->get_class_dir('login')) === realpath($this->dirs->appdir_fw . '/login')) {
+                require_once __DIR__ . '/../app/passkey/PasskeySession.php';
+                if (PasskeySession::authorize($this) === false) return false;
+            }
+            $this->verified_management_session = $session;
+            return true;
+        } finally { $this->verifying_management_session = false; }
+    }
+
+    /** Framework boundary: policies may trust admin without doing authentication IO. */
+    public function require_dsp_admin_session(array $target = []): void {
+        if ($this->dsp_channel !== 'admin') return;
+        // Only the server-owned revocation check may access its own policy-protected DBs.
+        if ($this->verifying_management_session && class_exists('PasskeyAccess', false) && PasskeyAccess::active()
+            && ($target['class'] ?? null) === 'passkey'
+            && in_array($target['table'] ?? null, ['identity', 'user_passkey', 'rate', 'device_transfer'], true)) return;
+        if (!$this->verify_management_session()) throw new DspException('admin_session', 'authentication_required');
+    }
+
 	function authorize_management_access(string $class, string $function): bool {
-        // App-owned login classes keep their own session/authentication semantics.
-        if (realpath($this->dirs->get_class_dir('login')) === realpath($this->dirs->appdir_fw . '/login')) {
-            require_once __DIR__ . '/../app/passkey/PasskeySession.php';
-            if (PasskeySession::authorize($this) === false) return false;
-        }
 		if ($class === "external_keys") return $this->authorize_management_access("setting", $function);
 		$app_guard_result = $this->authorize_with_app_management_access_guard($class, $function);
 		if ($app_guard_result !== null) {

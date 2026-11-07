@@ -403,7 +403,12 @@ class fixed_file_manager implements FFM {
             $policyFile = (new ReflectionClass($this->dsp))->getFileName();
             if (is_string($policyFile) && is_file($policyFile)) $this->dsp_policy_version = hash_file('sha256', $policyFile);
         }
-        if ($this->dsp !== null && $this->ctl !== null) $this->ctl->freeze_dsp_channel();
+        if ($this->dsp !== null && $this->ctl !== null) {
+            // Authenticate before opening the target/reading mutation before-images:
+            // authentication opens DBs and may cause ordered lock reacquisition.
+            if (method_exists($this->ctl, 'require_dsp_admin_session')) $this->ctl->require_dsp_admin_session(['class' => $options['database_class'] ?? null, 'table' => $filename]);
+            $this->ctl->freeze_dsp_channel();
+        }
 
 		$this->format_source = (string) ($options["format_source"] ?? "fmt");
 		if (!in_array($this->format_source, ["fmt", "dat_header"], true)) {
