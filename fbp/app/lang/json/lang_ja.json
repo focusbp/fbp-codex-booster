@@ -861,5 +861,12 @@
   "dsp.target": "対象ノート・独自DB",
   "dsp.custom_db": "独自DB",
   "dsp.target_required": "存在する対象ノート・独自DBを選択してください。",
-  "image.preview.open": "画像を拡大表示"
+  "image.preview.open": "画像を拡大表示",
+  "user.email.account_recovery_subject": "パスワードの再設定",
+  "user.email.account_recovery_intro": "パスワードを再設定するには、以下のリンクから新しいパスワードを設定してください。",
+  "user.email.account_recovery_link_label": "パスワード再設定リンク",
+  "user.email.account_recovery_greeting": "{name} 様",
+  "user.email.account_recovery_expires": "このリンクの有効期限は {datetime} です。",
+  "user.email.account_recovery_ignore": "このメールに心当たりがない場合は、そのまま破棄してください。",
+  "user.email.account_recovery_regards": "よろしくお願いいたします。"
 }

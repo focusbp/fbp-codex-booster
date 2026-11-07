@@ -270,7 +270,7 @@ class user {
 			return;
 		}
 		try {
-			$this->send_account_invite($ctl, (int) $data["id"]);
+			$this->send_account_access_mail($ctl, (int) $data["id"], "recovery");
 		} catch (Throwable $e) {
 			$ctl->res_error_message("email", $this->get_account_invite_error_message($ctl, $e, $data));
 			return;
@@ -467,7 +467,7 @@ class user {
 			$id = $this->ffm->insert($insert_data);
 
 			try{
-				$this->send_account_invite($ctl, (int) $id);
+				$this->send_account_access_mail($ctl, (int) $id);
 			}catch(Exception $e){
 				echo $e;
 			}
@@ -490,8 +490,8 @@ class user {
 		return $this->hash_password(bin2hex(random_bytes(24)));
 	}
 
-	private function send_account_invite(Controller $ctl, int $id): void {
-		$mail = $this->build_account_invite_mail($ctl, $id);
+	private function send_account_access_mail(Controller $ctl, int $id, string $purpose = "invite"): void {
+		$mail = $this->build_account_access_mail($ctl, $id, $purpose);
 		$ctl->send_mail_text((string) $mail["email"], (string) $mail["subject"], (string) $mail["body"], null, true);
 	}
 
@@ -522,7 +522,8 @@ class user {
 				$id,
 				"user_password_reset_" . $id,
 				$ctl->t("user.dialog.reset_password"),
-				$ctl->t("user.notification.password_setup_link_sent")
+				$ctl->t("user.notification.password_setup_link_sent"),
+				"recovery"
 			);
 		} catch (Throwable $e) {
 			$data = $this->ffm->get($id);
@@ -530,8 +531,8 @@ class user {
 		}
 	}
 
-	private function show_account_invite_compose_dialog(Controller $ctl, int $id, string $dialog_name = "", string $dialog_title = "", string $notify_text = ""): void {
-		$mail = $this->build_account_invite_mail($ctl, $id);
+	private function show_account_invite_compose_dialog(Controller $ctl, int $id, string $dialog_name = "", string $dialog_title = "", string $notify_text = "", string $purpose = "invite"): void {
+		$mail = $this->build_account_access_mail($ctl, $id, $purpose);
 		if ($dialog_name === "") {
 			$dialog_name = "user_account_invite_" . $id;
 		}
@@ -547,7 +548,7 @@ class user {
 		$ctl->show_multi_dialog($dialog_name, "account_invite_compose.tpl", $dialog_title, 800, true, true);
 	}
 
-	private function build_account_invite_mail(Controller $ctl, int $id): array {
+	private function build_account_access_mail(Controller $ctl, int $id, string $purpose = "invite"): array {
 		$data = $this->ffm->get($id);
 		if (!is_array($data) || empty($data["id"])) {
 			throw new Exception("User not found.");
@@ -570,12 +571,14 @@ class user {
 		$ctl->assign("data", $mail_data);
 		$ctl->assign("setting", $setting);
 		$dirs = new Dirs();
-		$template_path = $dirs->get_class_dir("user") . "/Templates/default_account_invite.tpl";
+		// Recovery is independent of the credential type (password today, passkey later).
+		$recovery = $purpose === "recovery";
+		$template_path = $dirs->get_class_dir("user") . ($recovery ? "/Templates/default_account_recovery.tpl" : "/Templates/default_account_invite.tpl");
 
 		return [
 			"data" => $mail_data,
 			"email" => (string) $data["email"],
-			"subject" => $ctl->t("user.email.account_invite_subject"),
+			"subject" => $ctl->t($recovery ? "user.email.account_recovery_subject" : "user.email.account_invite_subject"),
 			"body" => $ctl->fetch_string((string) file_get_contents($template_path)),
 		];
 	}

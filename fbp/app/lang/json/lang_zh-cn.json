@@ -666,5 +666,12 @@
   "db.single.fields_required": "请设置编辑项目。",
   "db.single.saved": "已保存",
   "db.single.unavailable": "无法显示此笔记。请检查数据和访问权限。",
-  "db.single.fields_label": "单条记录编辑项目"
+  "db.single.fields_label": "单条记录编辑项目",
+  "user.email.account_recovery_subject": "重置密码",
+  "user.email.account_recovery_intro": "如需重置密码，请使用以下链接设置新密码。",
+  "user.email.account_recovery_link_label": "密码重置链接",
+  "user.email.account_recovery_greeting": "{name}，您好：",
+  "user.email.account_recovery_expires": "此链接将在 {datetime} 失效。",
+  "user.email.account_recovery_ignore": "如果这不是您预期收到的邮件，请忽略。",
+  "user.email.account_recovery_regards": "此致"
 }

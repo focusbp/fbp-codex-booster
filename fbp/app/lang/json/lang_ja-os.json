@@ -100,5 +100,12 @@
   "setting.framework_primary_color": "管理側メインカラー",
   "setting.framework_primary_color_help": "空欄なら既定色 #4BA3FF を使うで。上部バー、メニュー、画面タイトル、主要ボタンに反映されるで。",
   "setting.framework_menu_text_color": "メニューテキストカラー",
-  "setting.framework_menu_text_color_help": "空欄なら既定色 #4BA3FF を使うで。左側メニューの文字に反映されるで。"
+  "setting.framework_menu_text_color_help": "空欄なら既定色 #4BA3FF を使うで。左側メニューの文字に反映されるで。",
+  "user.email.account_recovery_subject": "パスワードの再設定",
+  "user.email.account_recovery_intro": "パスワードを再設定するには、以下のリンクから新しいパスワードを設定してください。",
+  "user.email.account_recovery_link_label": "パスワード再設定リンク",
+  "user.email.account_recovery_greeting": "{name} 様",
+  "user.email.account_recovery_expires": "このリンクの有効期限は {datetime} です。",
+  "user.email.account_recovery_ignore": "このメールに心当たりがない場合は、そのまま破棄してください。",
+  "user.email.account_recovery_regards": "よろしくお願いいたします。"
 }

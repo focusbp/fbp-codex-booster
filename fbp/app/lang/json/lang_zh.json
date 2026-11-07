@@ -411,5 +411,12 @@
   "orders_picker_test.show_all": "全部显示",
   "orders_picker_test.large_dropdown": "Large Dropdown",
   "orders_picker_test.large_dropdown_description": "后显示一个拥有 10 个以上选项的下拉框，并确认带搜索的筛选行为。",
-  "orders_picker_test.unselected": "未选择"
+  "orders_picker_test.unselected": "未选择",
+  "user.email.account_recovery_subject": "重置密码",
+  "user.email.account_recovery_intro": "如需重置密码，请使用以下链接设置新密码。",
+  "user.email.account_recovery_link_label": "密码重置链接",
+  "user.email.account_recovery_greeting": "{name}，您好：",
+  "user.email.account_recovery_expires": "此链接将在 {datetime} 失效。",
+  "user.email.account_recovery_ignore": "如果这不是您预期收到的邮件，请忽略。",
+  "user.email.account_recovery_regards": "此致"
 }

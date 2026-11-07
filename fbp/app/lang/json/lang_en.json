@@ -861,5 +861,12 @@
   "dsp.target": "Note / custom DB",
   "dsp.custom_db": "Custom DB",
   "dsp.target_required": "Select an existing note or custom DB.",
-  "image.preview.open": "Enlarge image"
+  "image.preview.open": "Enlarge image",
+  "user.email.account_recovery_subject": "Reset Your Password",
+  "user.email.account_recovery_intro": "To reset your password, use the link below to set a new password.",
+  "user.email.account_recovery_link_label": "Password Reset Link",
+  "user.email.account_recovery_greeting": "Dear {name},",
+  "user.email.account_recovery_expires": "This link expires on {datetime}.",
+  "user.email.account_recovery_ignore": "If you did not expect this email, please ignore it.",
+  "user.email.account_recovery_regards": "Best Regards,"
 }
