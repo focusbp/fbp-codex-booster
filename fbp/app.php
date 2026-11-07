@@ -522,22 +522,15 @@ try{
 		// ログインが必要
 
 		if(!$ctl->get_session("login")){
-			if($_SERVER["REQUEST_METHOD"] == "GET"){
-				header("Location: app.php?class=login");
-			}else{
-				if($_POST["class"] == "lang"){
-					$arr = array();
-					echo json_encode($arr);
-				}else{
-					fbp_store_pending_auto_load_main_area($ctl);
-					$arr = ["location"=>"app.php?class=login"];
-					echo json_encode($arr);
-				}
-			}
+            ManagementAuthentication::respond($ctl);
 		}else{
 			//ログインが必要なクラスを実行
 			if(method_exists($appobj,$function)){
-				if (!$ctl->verify_management_session() || !$ctl->authorize_management_access((string) $class, (string) $function)) {
+                if (!$ctl->verify_management_session()) {
+                    ManagementAuthentication::respond($ctl);
+                    exit;
+                }
+				if (!$ctl->authorize_management_access((string) $class, (string) $function)) {
 					$ctl->deny_forbidden_access();
 				}
 				$appobj->$function($ctl);
@@ -578,6 +571,11 @@ try{
 	exit;
 	
 }catch(Throwable $e){
+    if ($e instanceof ManagementAuthenticationRequired && isset($ctl)
+        && $ctl->get_dsp_channel() === 'admin' && !$ctl->get_session('login')) {
+        ManagementAuthentication::respond($ctl);
+        exit;
+    }
     if ($e instanceof ExcelDefinitionReadOnly) {
         if (($class ?? '') === 'db_api') {
             http_response_code(409);

@@ -3,6 +3,7 @@
 require_once __DIR__ . "/PollingSecurity.php";
 require_once __DIR__ . "/StandardScreenLayout.php";
 require_once __DIR__ . '/DspRuntime.php';
+require_once __DIR__ . '/ManagementAuthentication.php';
 require_once __DIR__ . '/ExcelGrid.php';
 require_once __DIR__ . '/ProjectEndpoints.php';
 
@@ -2389,7 +2390,7 @@ class Controller_class implements Controller {
         if ($this->verifying_management_session && class_exists('PasskeyAccess', false) && PasskeyAccess::active()
             && ($target['class'] ?? null) === 'passkey'
             && in_array($target['table'] ?? null, ['identity', 'user_passkey', 'rate', 'device_transfer'], true)) return;
-        if (!$this->verify_management_session()) throw new DspException('admin_session', 'authentication_required');
+        if (!$this->verify_management_session()) throw new ManagementAuthenticationRequired();
     }
 
 	function authorize_management_access(string $class, string $function): bool {
