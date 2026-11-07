@@ -11,6 +11,9 @@ Use this skill when a user asks for an app-level FBP sample, wants to build a si
 
 When creating a new reusable sample from an existing app or feature, read `references/sample-authoring.md` first. Use it to decide sample scope, remove project-specific logic, create assets/references/installers, update the README Make Samples prompt, and verify the result.
 
+公開フォームを含むサンプルの見た目・項目コメント・全エラー表示は [公開フォームの基準](../fbp-public-pages/references/public_form_design.md) に合わせる。
+管理画面で公開URL・共有URLを案内するサンプルは、[fbp-dialog](../fbp-dialog/SKILL.md#url表示コピーのダイアログ)の `assets/share_url.tpl` を使う。配布用コピーと呼出し側の変数も揃え、リンクを開く操作とURL全文のコピーまで確認する。
+
 ## Samples
 
 - **多対多突合＋通帳CSV** (`many-to-many-reconciliation`): 金額不一致でも双方から複数追加・個別解除し、連結した全体の合計・差額を両側一覧へ表示。通帳CSVのプレビュー・重複防止・出金対象外化を含む。[フロー](references/many-to-many-reconciliation.md)・[DB](references/many-to-many-reconciliation-db.md)、`assets/many-to-many-reconciliation/`。`scripts/install_many_to_many_reconciliation.php`でコードとテスト定義を別々に配置。業務データは自動投入しない。

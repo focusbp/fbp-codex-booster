@@ -52,7 +52,7 @@ $finished=$db->get(1);$c->post=['id'=>'enc:1','_post_action_from'=>'add'];(new s
 $filter=new sample_cases_visibility_filter();$c->post=['title'=>'訂正'];check($filter->can_access($c,'edit_exe'),'Ordinary edit denied');$c->post['status']='0';check(!$filter->can_access($c,'edit_exe')&&!$filter->can_access($c,'duplicate'),'Standard Screen can bypass state rules');
 $c=new Controller();$c->session=[];$c->admin=false;$public=new sample_public_intake($c);$public->page($c);$formToken=$c->assigned['token'];
 check(!$c->db('sample_intakes')->rows,'Opening intake inserted data');
-$c->post=['token'=>$formToken,'name'=>['bad'],'email'=>'bad','message'=>'問い合わせ'];$public->confirm($c);check(isset($c->errors['name'],$c->errors['email']),'Malformed intake accepted');
+$c->post=['token'=>$formToken,'name'=>['bad'],'email'=>'bad','message'=>'問い合わせ'];$public->confirm($c);check(isset($c->errors['name'],$c->errors['email']),'Malformed intake accepted');check(count($c->errors)===3&&($c->errors['form']??'')==='エラーがあります。修正してください。','Field errors and fixed summary must be returned together');
 $c->errors=[];$c->post=['token'=>$formToken,'name'=>str_repeat('😀',100),'email'=>'sample@example.invalid','message'=>'問い合わせ'];$public->confirm($c);check(isset($c->errors['name'])&&!$c->db('sample_intakes')->rows,'UTF-8 storage overflow accepted');
 $c->post=['token'=>$formToken,'name'=>'架空 太郎','email'=>'sample@example.invalid','message'=>'<script>alert(1)</script>'];$public->confirm($c);$firstConfirmation=$c->assigned['token'];
 $public->confirm($c);$confirm=$c->assigned['token'];check($firstConfirmation!==$confirm,'Reconfirmation retained stale grant');

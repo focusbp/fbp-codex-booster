@@ -82,6 +82,12 @@ description: Build and operate public_pages with login-free entry points, secure
 </form>
 ```
 
+## public form design and validation
+- 新規の公開フォームで別のデザイン指定がなければ、[公開フォームのデザイン・エラー表示](references/public_form_design.md)を基準にする。既存ブランドや個別指定があればそれを優先する。
+- 項目コメントはタイトル直下・入力欄の上へ置き、入力欄との余白は6pxを基準にする。DB項目では `parameter_description` と標準helperを使う。
+- 入力検証では全項目のエラーを収集してから返す。各項目直下に対応する `.error_<name>` を置き、ボタン直上の `.error_form` に「エラーがあります。修正してください。」を表示する。最初のエラーだけで終了せず、入力値を保持する。
+- 必須項目・口座形式などの業務条件は案件ごとに決める。このデザインを採用するだけで、全項目必須や特定の入力制約を追加しない。
+
 ## public action buttons
 - 公開フォーム/公開一覧の操作ボタンは、ボタンを直接横並びにせず、共通のアクションバーで包む。戻るボタンだけ左寄せ、送信/次へ/予約/保存などの主操作と補助操作は右寄せを基本にする。
 - 基本構造は `<div class="public-actions">` の中に、戻る用の `.public-actions-back` と主操作用の `.public-actions-main` を置く。戻るがない画面では `.public-actions-back` は省略してよい。
@@ -104,43 +110,8 @@ description: Build and operate public_pages with login-free entry points, secure
 </div>
 ```
 
-```css
-.public-actions {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 8px;
-	margin-top: 16px;
-	margin-bottom: 10px;
-}
+共通CSSの例は [public_form_design.md](references/public_form_design.md) を使う。主操作は青、戻るは薄いグレー・濃い文字とし、幅180px・高さ50px・文字18pxを基準に揃える。狭い画面ではアクション行を折り返す。
 
-.public-actions-back,
-.public-actions-main {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-}
-
-.public-actions-main {
-	margin-left: auto;
-	justify-content: flex-end;
-}
-
-.public-actions .button_link {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	box-sizing: border-box;
-	min-height: 40px;
-	margin: 0;
-	padding: 0 16px;
-	line-height: 1.2;
-}
-
-.public-page-root button {
-	margin-top: 0;
-}
-```
 
 ## public CRUD dialogs
 - 公開側の一覧・ポータル・アプリ型UIで、追加・編集・削除のCRUD操作を置く場合は、ページ遷移ではなくダイアログを基本にする。
@@ -339,6 +310,7 @@ private function assign_news_list(Controller $ctl) {
 - 管理画面風ポータルでは、初回URL以後はURLを変えず、CRUD・検索・削除・ページングを `ajax-link` / `ajax-button` / `reload_area()` / dialog で処理する。
 
 ## URL design rules
+- 管理画面から公開URL・共有URLを案内するときは、[fbp-dialogのURL表示・コピー](../fbp-dialog/SKILL.md#url表示コピーのダイアログ)に従い、同Skillの `assets/share_url.tpl` を使う。クリック可能なURL全文とコピーアイコンを表示し、独自のリンク＋入力欄で代替しない。通常の画面遷移リンクは対象外。完了前にコピーした全文の一致と、リンクを開けることを確認する。
 - URLは文字列連結せず、必ず `$ctl->get_APP_URL()` を使う。
 - `id` などの公開パラメータは平文IDを使わず `encrypt()` した値を渡す。
 - 受け側は `GET("id")` / `decrypt_post("id")` で復号し、対象が取れない場合は公開エラーを返して終了する。

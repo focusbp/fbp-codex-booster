@@ -4,5 +4,6 @@
     <div class="public-field">{fields_form_original name="name" type="text" value="" title="お名前"}<p class="error_message error_name" role="alert"></p></div>
     <div class="public-field">{fields_form_original name="email" type="text" value="" title="メールアドレス"}<p class="error_message error_email" role="alert"></p></div>
     <div class="public-field">{fields_form_original name="message" type="textarea" value="" title="お問い合わせ内容"}<p class="error_message error_message" role="alert"></p></div>
-    <div class="public-actions"><button type="button" class="ajax-link" data-class="sample_public_intake" invoke-function="confirm">内容を確認する</button></div>
+    <p class="error_message error_form" role="alert"></p>
+<div class="public-actions"><div class="public-actions-main"><button type="button" class="ajax-link button_link" data-class="sample_public_intake" invoke-function="confirm">内容を確認する</button></div></div>
 </form></main>

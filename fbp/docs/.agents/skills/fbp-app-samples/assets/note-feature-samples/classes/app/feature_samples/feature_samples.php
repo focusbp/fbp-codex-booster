@@ -86,7 +86,9 @@ class feature_samples {
         $n=count($fields);$widths=array_fill(0,$n,floor(100/$n));$widths[$n-1]+=100-array_sum($widths);$align=[];foreach($fields as $field)$align[]=in_array($field['type'],['number','float'],true)?'R':'L';$pdf->addTable($table,['columnsize'=>$widths,'columnalign'=>$align]);header('Cache-Control: private, no-store');$ctl->stop_res=true;$ctl->display_flg=true;$pdf->create_pdf();
     }
     function form_link(Controller $ctl):void {
-        $ctl->assign('form_url',$ctl->get_APP_URL('public_pages','sample_form'));
+        $ctl->assign('share_url',$ctl->get_APP_URL('public_pages','sample_form'));
+        $ctl->assign('share_url_help','未ログインで入力・確認・送信できます。管理側の受付ノートで確認します。');
+        $ctl->assign('share_url_open_label','公開フォームを開く');
         $ctl->show_multi_dialog('feature-form-link','form_link.tpl','公開フォーム',700);
     }
     function shop_link(Controller $ctl):void {

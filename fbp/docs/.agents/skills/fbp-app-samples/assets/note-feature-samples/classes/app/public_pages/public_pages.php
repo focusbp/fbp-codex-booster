@@ -37,7 +37,7 @@ class public_pages {
                 if($kind==='form'){$row=['name'=>$row['name'],'email'=>$row['email'],'message'=>'','input_values'=>$row['input_values']];}
                 $ctl->assign('input_display',$display);
             }
-        if($invalid)return;
+        if($invalid){$ctl->res_error_message('form','エラーがあります。修正してください。');return;}
         $p['row']=$row;$p['note_values']=$values;$p['confirmation_token']=bin2hex(random_bytes(24));$ctl->set_session('sample_public_'.$kind,$p);
         $ctl->assign('row',$row);$ctl->assign('kind',$kind);$ctl->assign('token',$p['confirmation_token']);$ctl->show_multi_dialog('sample-confirm','sample_confirm.tpl','内容の確認',600);
     }

@@ -25,7 +25,7 @@ class sample_public_intake {
             else $row[$key]=trim($value);
         }
         if(isset($row['email'])&&!filter_var($row['email'],FILTER_VALIDATE_EMAIL)){$ctl->res_error_message('email','メールアドレスを確認してください。');$invalid=true;}
-        if($invalid)return;
+        if($invalid){$ctl->res_error_message('form','エラーがあります。修正してください。');return;}
         $p['row']=$row;$p['confirmation_token']=bin2hex(random_bytes(24));$ctl->set_session(self::SESSION,$p);
         $ctl->assign('row',$row);$ctl->assign('token',$p['confirmation_token']);
         $ctl->show_multi_dialog('sample-intake-confirm','confirm.tpl','入力内容の確認',600);

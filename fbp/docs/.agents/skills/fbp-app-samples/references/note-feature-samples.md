@@ -5,6 +5,7 @@ CSVアップロード、CSVダウンロード、PDF一覧印刷、MCP連携、�
 ## 導入
 
 - 正本は `assets/note-feature-samples/`。商品コード・商品名・円価格・補足の架空商品をCSV/PDF/MCP/ショップで共用する。実案件の項目へ適応する際は下記の必要情報を確定する。
+- 公開フォームのURL案内は、`fbp-dialog/assets/share_url.tpl` をコピーした `feature_samples/Templates/form_link.tpl` と、`share_url` / `share_url_help` / `share_url_open_label` の組で使う。対象ノートへ適応するときもコピーアイコンを維持し、単独リンク・選択用入力欄へ置き換えない。URLを開く操作と、クリップボードの全文一致を完了条件にする。
 - `scripts/install_note_feature_samples.php --code-root=<source-root> --ocr-table=<existing-excel-note>` はコードだけを配置する。既存クラス、とくに `public_pages` の上書きを拒否する。既存公開ページがあれば必要な関数・テンプレートだけ統合する。
 - 環境所定の方法でソースからテストへ同期した後、`python3 scripts/configure_note_feature_samples.py --test-root=<web-test-root> --receipt=<private-receipt-file>` でDeveloper Modeのノート・項目・標準画面・上部ボタンを作成する。架空商品3件も必要な場合だけ `--with-sample-data` を追加する。既存ノートやreceiptがあれば停止し、部分完了を調べてから復旧する。
 - OCR対象は既存Excelノート。Developer Modeでも通常のExcel画面・CLIから新規作成・列変更ができる。例外処理やモード変更は不要。実運用で変更された列は通常の取得・取込み手順でテストへ反映する。

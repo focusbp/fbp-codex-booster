@@ -34,18 +34,15 @@ class public_pages {
 			"amount" => trim((string) ($post["amount"] ?? "")),
 		];
 
-		if ($row["order_name"] === "") {
-			$ctl->res_error_message("order_name", "案件名を入力してください。");
-			return;
-		}
-		if ($row["amount"] === "") {
-			$ctl->res_error_message("amount", "金額を入力してください。");
-			return;
-		}
-		if (!is_numeric(str_replace(",", "", $row["amount"]))) {
-			$ctl->res_error_message("amount", "金額は数値で入力してください。");
-			return;
-		}
+        $errors = [];
+        if ($row["order_name"] === "") $errors["order_name"] = "案件名を入力してください。";
+        if ($row["amount"] === "") $errors["amount"] = "金額を入力してください。";
+        elseif (!is_numeric(str_replace(",", "", $row["amount"]))) $errors["amount"] = "金額は数値で入力してください。";
+        if ($errors) {
+            foreach ($errors as $key => $message) $ctl->res_error_message($key, $message);
+            $ctl->res_error_message("form", "エラーがあります。修正してください。");
+            return;
+        }
 
 		if ($row["order_code"] === "") {
 			$row["order_code"] = "WEB-" . date("YmdHis");
@@ -77,25 +74,31 @@ class public_pages {
 }
 ```
 
+公開フォームの見た目・コメント位置・エラー表示は [public_form_design.md](public_form_design.md) を使う。フォームを `.public-page-root` の白いカードで包み、フォーム本体に `.public-form` を付ける。
+
 ## contents template sample
 
 ```smarty
-<form id="orders_contact_form" onsubmit="return false;">
-	<input type="text" name="order_code" value="{$row.order_code|default:''}">
+<main class="public-page-root">
+<h1>お問い合わせ</h1>
+<form id="orders_contact_form" class="public-form" onsubmit="return false;">
+	{fields_form_original name="order_code" type="text" title="受付コード" value=$row.order_code|default:''}
 	<p class="error_message error_order_code"></p>
 
-	<input type="text" name="order_name" value="{$row.order_name|default:''}">
+	{fields_form_original name="order_name" type="text" title="案件名" value=$row.order_name|default:''}
 	<p class="error_message error_order_name"></p>
 
-	<input type="text" name="amount" value="{$row.amount|default:''}">
+	{fields_form_original name="amount" type="text" title="金額" value=$row.amount|default:''}
 	<p class="error_message error_amount"></p>
 
+	<p class="error_message error_form" role="alert"></p>
 	<div class="public-actions">
 		<div class="public-actions-main">
 			<button type="button" class="ajax-link button_link" data-class="{$class}" data-function="orders_contact_exe" data-form="orders_contact_form">送信する</button>
 		</div>
 	</div>
 </form>
+</main>
 ```
 
 ## contents_header template sample
@@ -117,66 +120,26 @@ class public_pages {
 ## style.css sample
 
 ```css
-.publicsite-body {
-	background: #f4f7fb;
-	color: #0f172a;
-}
-
-.publicsite-shell {
-	min-height: 100vh;
-}
-
-.publicsite-main-inner {
-	padding-top: 24px;
-}
-
-.publicsite-content input[type="text"] {
-	border: 1px solid #cbd5e1;
-	border-radius: 8px;
-	padding: 10px 12px;
-	box-sizing: border-box;
-}
-
-.public-actions {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 8px;
-	margin-top: 16px;
-	margin-bottom: 10px;
-}
-
-.public-actions-back,
-.public-actions-main {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-}
-
-.public-actions-main {
-	margin-left: auto;
-	justify-content: flex-end;
-}
-
-.public-actions .button_link {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	box-sizing: border-box;
-	min-height: 40px;
-	margin: 0;
-	background: #0f172a;
-	color: #ffffff;
-	border: 0;
-	border-radius: 8px;
-	padding: 0 16px;
-	line-height: 1.2;
-	cursor: pointer;
-}
+body.publicsite-body { margin: 0; background: #f5fafc; color: #202e3c; font-family: system-ui, sans-serif; }
+.public-page-root { box-sizing: border-box; width: min(100%, 720px); margin: 30px auto; padding: 20px; background: #fff; border: 1px solid #d7e8f3; border-radius: 12px; }
+.public-page-root h1 { font-size: 26px; }
+.public-page-root h2 { margin-top: 28px; padding-bottom: 8px; border-bottom: 1px solid #ddd; font-size: 20px; }
+.public-form .field_edit h6 { margin: 0 0 6px; font-size: 14px; line-height: 1.5; }
+.public-form .style_parameter_description { margin: 0 0 6px; font-size: 14px; line-height: 1.5; }
+.public-form .public-field { margin-top: 10px; }
+.public-form input:not([type=hidden]):not([type=checkbox]):not([type=radio]), .public-form select, .public-form textarea { box-sizing: border-box; max-width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; }
+.public-form textarea, .public-form .public-field-wide input { width: 100%; }
+.public-form .error_message { color: #b91c1c; }
+.public-form .public-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 16px; margin: 24px 0 10px; }
+.public-form .public-actions-back { display: flex; margin-right: auto; }
+.public-form .public-actions-main { display: flex; margin-left: auto; }
+.public-form .public-actions .button_link { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; min-width: 180px; min-height: 50px; margin: 0; padding: 12px 28px; border: 0; border-radius: 6px; background: #0879f9; color: #fff; font-size: 18px; font-weight: 600; line-height: 1.4; cursor: pointer; }
+.public-form .public-actions .secondary { background: #e5e7eb; color: #374151; }
+.public-form .public-actions .button_link:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
 ```
 
 ## notes
 - `public_pages/style.css` は通常の管理画面では自動読込されない。
 - head 追加が必要な場合だけ `show_public_pages()` 第2引数に head 用テンプレートを渡す。
 - 前後ブロックは空なら `null` のままでよい。
-- エラー時は `res_error_message()` を返して即 `return` する。
+- 入力エラーは全項目分を収集し、項目別の `res_error_message()` とボタン上の共通メッセージをすべて返してから `return` する。
