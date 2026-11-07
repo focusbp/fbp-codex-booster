@@ -33,9 +33,22 @@ class password_reset {
 
     function manage_passkeys(Controller $ctl) {
         $service = new PasskeyService($ctl);
-        $service->currentUser();
+        $user = $service->currentUser();
+        $keys = [];
+        foreach ($service->repo->owned((int)$user['id']) as $key) {
+            $keys[] = [
+                'id'=>(int)$key['id'], 'label'=>$service->keyLabel($user),
+                'rp_id'=>$key['rp_id'], 'current'=>$key['rp_id']===$service->config['rp_id'],
+                'status'=>(int)$key['status'], 'created_at'=>$key['created_at'], 'last_used_at'=>$key['last_used_at'],
+            ];
+        }
+        $ctl->assign('passkey_manager', [
+            'keys'=>$keys, 'password_disabled'=>$service->repo->passwordLoginDisabled((int)$user['id']),
+            'csrf'=>$service->csrf(), 'endpoint'=>$ctl->get_APP_URL('passkey','api'),
+            'window'=>$ctl->get_windowcode(), 'cookie_path'=>parse_url($ctl->get_APP_URL(),PHP_URL_PATH),
+        ]);
         $ctl->close_multi_dialog('password_reset');
-        $ctl->res_redirect($ctl->get_APP_URL('passkey', 'page', ['view'=>'manage']));
+        $ctl->show_multi_dialog('registered-passkeys','manage_passkeys.tpl','登録済みパスキーを管理',600);
     }
     function other_device(Controller $ctl) {
         (new PasskeyService($ctl))->currentUser();
