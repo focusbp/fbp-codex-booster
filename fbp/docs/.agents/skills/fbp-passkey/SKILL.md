@@ -9,7 +9,9 @@ FBP管理ユーザーのパスキー認証・パスワード認証停止・全�
 
 ## 実装の位置とデータ
 
-- 現在の先行実装は `app-soshikikaikaku` の `classes/app/passkey`、`classes/app/login`、`classes/app/password_reset`、`classes/app/_dsp`。共通フレームワークへ移植済みとは扱わず、対象で利用可能なクラス・配置・配布状況を確認する。
+- 共通実装はframeworkの `app/passkey`、`app/login`、`app/password_reset`。app-soshikikaikakuの実証版を基に移植し、app-fwtestで検証した。本番配布済みとは扱わず、対象のクラス優先解決・配置・配布状況を確認する。
+- RP設定はアプリの `classes/app/passkey/config.php`。共通配置の `config.example.php` を参考に明示設定し、共通版利用時はアプリ側に `passkey.php` を置かない。
+- 管理セッションのepoch照合は標準loginが選ばれるアプリにだけ適用する。独自login/user/password_resetを持つアプリの認証条件を共通版へ置換しない。
 - 既存userの固定形式は変更しない。`passkey/identity` はuser_idと1対1で、user_handle、epoch、password_login_disabledを保持する。`passkey/user_passkey` はuserと1対多で、RP IDごとの資格情報を保持する。
 - user_handleはユーザー再作成時の旧鍵流用を防ぎ、epochはセッション・remember-meの失効に使う。両方を認証時に最新値と照合する。
 - ドメインごとにRP IDとoriginを検証する。パスキーは登録先RPの範囲で使い、パスワード認証停止はユーザー単位で全RPに適用する。
@@ -26,10 +28,10 @@ FBP管理ユーザーのパスキー認証・パスワード認証停止・全�
 
 サーバーへのアクセス権を持つ運用者が、専用PHPをCLIで実行して復旧する。Webから解除するためのファイル設置方式やuser.dat削除を復旧手順にしない。復旧コマンドの実行は認証状態を変更するため、実装・文書化の依頼だけで実アカウントをリセットしない。
 
-先行実装の入口は `classes/app/passkey/reset-admin-cli.php`。配布されたアプリのルートで次のように実行する。IDは対象の有効な管理者のものを指定し、1を一般的な固定値として扱わない。
+共通版の入口は `fbp/app/passkey/reset-admin-cli.php`（先行アプリ版は `classes/app/passkey/reset-admin-cli.php`）。配布されたアプリのルートで次のように実行する。IDは対象の有効な管理者のものを指定し、1を一般的な固定値として扱わない。
 
 ```sh
-php classes/app/passkey/reset-admin-cli.php <admin-user-id>
+php fbp/app/passkey/reset-admin-cli.php <admin-user-id>
 ```
 
 ### 必須動作
@@ -49,3 +51,7 @@ FFMは複数DBの一括ロールバックを提供しない。失効を先に行
 - 実際の専用CLIでYES成功、NO・EOF中止、存在しないID・管理者以外の拒否、異常時の非0終了を確認する。
 - HTTPの直接アクセス拒否と、通常のapp_callからの拒否を確認する。DSP ONで実CLIチャネルを使い、admin固定のモックだけで許可判定を済ませない。
 - 通常ログイン・署名検証・旧セッション拒否の既存テストを使って回帰を確認する。CLI確認は [fbp-cli](../fbp-cli/SKILL.md)、DSP変更は [fbp-dsp](../fbp-dsp/SKILL.md) に従う。
+
+## 共通版の検証資産
+
+専用検証アプリのtests/passkeyにsecurity.php、config.php、cli-recovery.php、notification.php、browser.cjs、password-policy-browser.cjsを置く。実行はruntime側を対象にし、署名・CLI・HTTP fixtureは新規の隔離作業領域を使う。テスト用資格情報と実データを本番へ移さない。通常ログイン用の既存Cookie・セッションを独自互換処理で新epochへ引き継がない。

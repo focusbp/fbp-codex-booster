@@ -1,8 +1,11 @@
 <?php
 
+require_once __DIR__."/../passkey/PasskeyService.php";
+
 class password_reset {
 
 	private $ffm_user;
+    private $passkey_repository;
 	private $remember_me_cookie_name = "remember_me";
 	private $remember_me_ttl = 2592000; // 30 days
 
@@ -11,12 +14,33 @@ class password_reset {
 		if ($called_function === "token_page" || $called_function === "token_reset_exe") {
 			$ctl->set_check_login(false);
 		}
-		$this->ffm_user = $ctl->db("user", "user");
+		$this->passkey_repository = new PasskeyRepository($ctl);
+        $this->ffm_user = $this->passkey_repository->users;
 	}
 
 	function page(Controller $ctl) {
-		$ctl->show_multi_dialog("password_reset", "form.tpl", $ctl->t("password_reset.dialog.reset"), 500, true, true);
+		$passkey_available = false;
+        try {
+            $service = new PasskeyService($ctl);
+            $service->currentUser();
+            $passkey_available = true;
+        } catch (RuntimeException $e) {
+            // Ordinary password changes remain available when passkeys are disabled.
+        }
+        $ctl->assign('passkey_management_available', $passkey_available);
+        $ctl->show_multi_dialog("password_reset", "form.tpl", $ctl->t("password_reset.dialog.reset"), 800, "_fixed_bar.tpl");
 	}
+
+    function manage_passkeys(Controller $ctl) {
+        $service = new PasskeyService($ctl);
+        $service->currentUser();
+        $ctl->close_multi_dialog('password_reset');
+        $ctl->res_redirect($ctl->get_APP_URL('passkey', 'page', ['view'=>'manage']));
+    }
+    function other_device(Controller $ctl) {
+        (new PasskeyService($ctl))->currentUser();
+        $ctl->invoke('device_issue',[],'passkey');
+    }
 
 	function force_page(Controller $ctl) {
 		$user_id = (int) $ctl->get_session("user_id");
@@ -135,7 +159,10 @@ class password_reset {
 			return;
 		}
 
-		$data["password"] = $this->hash_password($password);
+		// Revoke every RP before resetting the password; fail closed on partial failure.
+        $this->passkey_repository->revokeAll((int)$data['id']);
+        PasskeyService::clearAuth($ctl);
+        $data["password"] = $this->hash_password($password);
 		if (array_key_exists("flg_password_change_required", $data)) {
 			$data["flg_password_change_required"] = 0;
 		}
@@ -165,6 +192,8 @@ class password_reset {
 			return null;
 		}
 		$data = $list[0];
+        // Email/password recovery must not bypass a deliberate passkey-only policy.
+        if ($this->passkey_repository->passwordLoginDisabled((int)$data['id'])) return null;
 		$expires_at = (int) ($data["password_reset_token_expires_at"] ?? 0);
 		if ($expires_at <= time()) {
 			return null;
@@ -174,7 +203,9 @@ class password_reset {
 
 	private function login_as_reset_user(Controller $ctl, array $user): void {
 		$this->clear_auth_state($ctl);
-		$ctl->set_session("login", true);
+		$identity = $this->passkey_repository->identity((int)$user['id']);
+        $ctl->set_session('passkey_epoch', $identity['epoch']);
+        $ctl->set_session("login", true);
 
 		foreach ($user as $key => $val) {
 			if ($key === "id") {
@@ -189,8 +220,8 @@ class password_reset {
 		$login_id = (string) ($user["login_id"] ?? "");
 		if ($login_id !== "") {
 			$exp = time() + (int) $this->remember_me_ttl;
-			app_setcookie("login_id", $ctl->encrypt($login_id), $exp);
-			app_setcookie("login_status", "logined", $exp);
+			PasskeyService::cookie("login_id", $ctl->encrypt($login_id), $exp);
+			PasskeyService::cookie("login_status", "logined", $exp);
 			$this->set_remember_me_cookie($ctl, $login_id, $exp);
 		}
 	}
@@ -198,10 +229,10 @@ class password_reset {
 	private function clear_auth_state(Controller $ctl): void {
 		$windowcode = $ctl->get_windowcode();
 		$_SESSION[$windowcode] = [];
-		app_setcookie("login_id", "", time() - 3600);
-		app_setcookie("password", "", time() - 3600);
-		app_setcookie($this->remember_me_cookie_name, "", time() - 3600);
-		app_setcookie("login_status", "", time() - 3600);
+		PasskeyService::cookie("login_id", "", time() - 3600);
+		PasskeyService::cookie("password", "", time() - 3600);
+		PasskeyService::cookie($this->remember_me_cookie_name, "", time() - 3600);
+		PasskeyService::cookie("login_status", "", time() - 3600);
 	}
 
 	private function set_remember_me_cookie(Controller $ctl, string $login_id, int $exp): void {
@@ -210,11 +241,12 @@ class password_reset {
 			"login_id" => $login_id,
 			"exp" => $exp,
 			"ua" => hash("sha256", $ua),
+            "epoch" => (string)$ctl->get_session("passkey_epoch"),
 		], JSON_UNESCAPED_SLASHES);
 		if (!is_string($payload) || $payload === "") {
 			return;
 		}
 		$token = $ctl->encrypt($payload);
-		app_setcookie($this->remember_me_cookie_name, $token, $exp);
+		PasskeyService::cookie($this->remember_me_cookie_name, $token, $exp);
 	}
 }

@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/../passkey/PasskeyService.php';
+require_once __DIR__ . '/../passkey/PasskeyAccess.php';
+
 class user {
 
 	private $arr_status = array(0 => "Valid", 1 => "Invalid");
@@ -174,7 +177,17 @@ class user {
 			$ctl->show_notification_text($ctl->t("user.validation.primary_admin_delete_forbidden"));
 			return;
 		}
-		$this->ffm->delete($id);
+        PasskeyAccess::run(function () use ($ctl, $id) {
+            $repo = new PasskeyRepository($ctl);
+            // Re-read after all participating DBs have been opened and locked.
+            $current = $repo->users->get($id);
+            if (!is_array($current) || $this->is_protected_oldest_admin($current)) return;
+            $repo->revokeAll($id);
+            $repo->users->delete($id);
+            foreach ($repo->identities->select('user_id', $id, true) as $identity) {
+                $repo->identities->delete($identity['id']);
+            }
+        });
 		$ctl->close_multi_dialog("user_delete");
 		$ctl->ajax("user", "page");
 	}

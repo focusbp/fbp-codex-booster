@@ -2358,6 +2358,11 @@ class Controller_class implements Controller {
 	}
 
 	function authorize_management_access(string $class, string $function): bool {
+        // App-owned login classes keep their own session/authentication semantics.
+        if (realpath($this->dirs->get_class_dir('login')) === realpath($this->dirs->appdir_fw . '/login')) {
+            require_once __DIR__ . '/../app/passkey/PasskeySession.php';
+            if (PasskeySession::authorize($this) === false) return false;
+        }
 		if ($class === "external_keys") return $this->authorize_management_access("setting", $function);
 		$app_guard_result = $this->authorize_with_app_management_access_guard($class, $function);
 		if ($app_guard_result !== null) {

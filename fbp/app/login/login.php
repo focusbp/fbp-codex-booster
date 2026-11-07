@@ -1,8 +1,11 @@
 <?php
 
+require_once __DIR__."/../passkey/PasskeyService.php";
+
 class login {
 
 	private $ffm_user;
+    private $passkey_repository;
 	private $ffm_setting;
 	private $remember_me_cookie_name = "remember_me";
 	private $remember_me_ttl = 2592000; // 30 days
@@ -12,7 +15,9 @@ class login {
 
 	function __construct(Controller $ctl) {
 		$ctl->set_check_login(false);
-		$this->ffm_user = $ctl->db("user", "user");
+		$ctl->assign("passkey_url", PasskeyConfig::available($ctl) ? $ctl->get_APP_URL("passkey", "page") : "");
+		$this->passkey_repository = new PasskeyRepository($ctl);
+        $this->ffm_user = $this->passkey_repository->users;
 		$this->ffm_setting = $ctl->db("setting", "setting");
 	}
 
@@ -432,7 +437,7 @@ class login {
 			}
 		}
 		if (is_array($user)) {
-			$this->login_ok($ctl, $user, $login_id, $password);
+			$this->login_ok($ctl, $user, $login_id, $password, 'remember');
 		} else {
 			// デフォルト表示
 			$ctl->assign("login_id", $login_id);
@@ -461,12 +466,26 @@ class login {
 		}
 	}
 
-	function login_ok(Controller $ctl, $user, $login_id, $password) {
-		if ($this->defer_login_to_app_guard($ctl, $user, $login_id, $password)) {
-			return;
-		}
-		
-		$ctl->set_session("login", true);
+	function login_ok(Controller $ctl, $user, $login_id, $password, string $authentication = 'password') {
+		// Read current identity only after opening all participating FFM databases.
+        $repository = new PasskeyRepository($ctl);
+        $fresh = $repository->users->get((int)$user["id"]);
+        if (!is_array($fresh) || (int)$fresh["status"] !== 0) {
+            $ctl->res_redirect($ctl->get_APP_URL("login", "page"));
+            return;
+        }
+        $user = $fresh;
+        $identity = $repository->identity((int)$user["id"]);
+        // Authentication method comes only from a server-side caller, never request parameters.
+        if ((int)($identity['password_login_disabled'] ?? 0) === 1 && $authentication !== 'passkey') {
+            $ctl->res_redirect($ctl->get_APP_URL('passkey', 'page'));
+            return;
+        }
+        if ($this->defer_login_to_app_guard($ctl, $user, $login_id, $password)) return;
+        $ctl->set_session('passkey_authentication_method', $authentication);
+        PasskeyService::renewSession();
+        $ctl->set_session("passkey_epoch", $identity["epoch"]);
+        $ctl->set_session("login", true);
 
 		foreach ($user as $key => $val) {
 			if ($key == "id") {
@@ -482,9 +501,14 @@ class login {
 		//---------------
 		// Cookie処理
 		//---------------
-		app_setcookie("login_id", $ctl->encrypt($login_id), strtotime('+30 days'));
-		app_setcookie("login_status", "logined", strtotime('+30 days'));
-		$this->set_remember_me_cookie($ctl, $login_id);
+		PasskeyService::cookie("login_id", $ctl->encrypt($login_id), strtotime('+30 days'));
+		PasskeyService::cookie("login_status", "logined", strtotime('+30 days'));
+		if ((int)($identity['password_login_disabled'] ?? 0) === 1) {
+            PasskeyService::cookie($this->remember_me_cookie_name, '', time()-3600);
+            PasskeyService::cookie('login_status', '', time()-3600);
+        } else {
+            $this->set_remember_me_cookie($ctl, $login_id);
+        }
 		
 		if ((int) ($user["flg_password_change_required"] ?? 0) === 1) {
 			$ctl->res_redirect($ctl->get_APP_URL("password_reset", "force_page"));
@@ -497,7 +521,16 @@ class login {
 			return;
 		}
 		
-		$ctl->res_redirect($ctl->get_APP_URL("base", "page"));
+		if (PasskeyConfig::available($ctl) && $authentication !== 'passkey') {
+            $config = PasskeyConfig::load($ctl);
+            $registered = array_filter($repository->active((int)$user['id'], $config['rp_id']),
+                static fn($key) => hash_equals($identity['user_handle'], (string)$key['user_handle']));
+            if (!$registered) {
+                $ctl->res_redirect($ctl->get_APP_URL('passkey', 'page', ['view'=>'choice']));
+                return;
+            }
+        }
+        $ctl->res_redirect($ctl->get_APP_URL("base", "page"));
 	}
 
 	private function consume_mcp_oauth_return_url(Controller $ctl): string {
@@ -548,14 +581,9 @@ class login {
 	}
 
 	function logout(Controller $ctl) {
-		$windowcode = $ctl->get_windowcode();
-		$_SESSION[$windowcode] = [];
-		app_setcookie("login_id", "",time() - 3600);
-		app_setcookie("password", "",time() - 3600);
-		app_setcookie($this->remember_me_cookie_name, "",time() - 3600);
-		app_setcookie("login_status", "",time() - 3600);
-		$ctl->res_redirect($ctl->get_APP_URL("login", "page"));
-	}
+        PasskeyService::clearAuth($ctl);
+        $ctl->res_redirect($ctl->get_APP_URL("login", "page"));
+    }
 
 	private function find_user_by_credentials($login_id, $password) {
 		$user_list = $this->ffm_user->select(["login_id", "status"], [$login_id, 0], true);
@@ -564,6 +592,7 @@ class login {
 		}
 
 		$user = $user_list[0];
+        if ($this->passkey_repository->passwordLoginDisabled((int)$user['id'])) return null;
 		$stored_password = (string) ($user["password"] ?? "");
 		if ($stored_password === "" || $password === "") {
 			return null;
@@ -748,12 +777,13 @@ class login {
 			"login_id" => (string) $login_id,
 			"exp" => $exp,
 			"ua" => hash("sha256", $ua),
+            "epoch" => (string)$ctl->get_session("passkey_epoch"),
 		], JSON_UNESCAPED_SLASHES);
 		if (!is_string($payload) || $payload === "") {
 			return;
 		}
 		$token = $ctl->encrypt($payload);
-		app_setcookie($this->remember_me_cookie_name, $token, $exp);
+		PasskeyService::cookie($this->remember_me_cookie_name, $token, $exp);
 	}
 
 	private function decode_remember_me_cookie(Controller $ctl, $cookie) {
@@ -778,6 +808,13 @@ class login {
 		if ($ua_hash === "" || !hash_equals($ua_hash, hash("sha256", $ua))) {
 			return "";
 		}
-		return $login_id;
-	}
+        $repository = new PasskeyRepository($ctl);
+        $users = $repository->users->select(['login_id','status'], [$login_id,0], true);
+        if (count($users) !== 1) return "";
+        $user = array_values($users)[0];
+        $identity = $repository->identity((int)$user['id']);
+        if ((int)($identity['password_login_disabled'] ?? 0) === 1) return "";
+        if (!hash_equals($identity['epoch'], (string)($data['epoch'] ?? ''))) return "";
+        return $login_id;
+    }
 }

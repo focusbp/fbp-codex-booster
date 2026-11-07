@@ -1,0 +1,11 @@
+id,24,N
+user_id,24,N
+token_hash,64,T
+pin_hash,64,T
+claim_hash,64,T
+epoch,43,T
+user_handle,43,T
+rp_id,253,T
+expires,24,N
+attempts,8,N
+status,1,N

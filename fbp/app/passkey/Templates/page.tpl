@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>パスキー設定</title>
+<style>{literal}
+*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;background:#f4f7fb;color:#182438;font:16px/1.7 system-ui,sans-serif}main{max-width:640px;margin:40px auto;padding:32px;background:white;border-radius:16px;box-shadow:0 6px 24px #18243810}h1{font-size:26px;margin:0 0 8px}h2{font-size:21px;margin:20px 0 12px}p{margin:8px 0 18px}.muted{color:#5c6879;font-size:14px;overflow-wrap:anywhere}label{display:block;margin:16px 0 4px}input{width:100%;padding:12px;font:inherit;border:1px solid #aeb8c7;border-radius:7px}button,.link{display:inline-block;border:0;border-radius:7px;padding:12px 18px;margin:12px 8px 0 0;background:#1a5bc4;color:white;cursor:pointer;font:inherit;text-decoration:none}button:disabled{opacity:.5;cursor:wait}.primary{display:block;width:100%;margin:20px 0 0}.secondary,.link{background:#eaf0f8;color:#234166}.danger{background:#fce8e8;color:#922c2c}.text-link{background:transparent;color:#31547f;padding:6px 0;font-size:14px}.key{border-top:1px solid #dee5ee;padding:18px 0}.key strong{overflow-wrap:anywhere}#message{white-space:pre-line}#message:not(:empty){padding:12px;margin:12px 0;background:#eef6ff;border-radius:7px}#message.error{color:#a32020;background:#fff0ef}#message.success{color:#176038}small{display:block}.steps{display:flex;list-style:none;padding:0;margin:28px 0;gap:8px}.steps li{flex:1;padding:8px 0;border-bottom:3px solid #dce4f0;color:#687488;font-size:14px;text-align:center}.steps li[aria-current=step]{color:#1a5bc4;border-color:#1a5bc4;font-weight:700}.step-count{font-size:14px;color:#1a5bc4;font-weight:700}.name{padding:14px 18px;background:#f4f7fb;border-radius:8px;overflow-wrap:anywhere}.complete-icon{font-size:38px;color:#176038;margin-bottom:8px}.footer{border-top:1px solid #e3e8ef;margin-top:28px;padding-top:12px}.back{font-size:14px;background:transparent;color:#5c6879;padding-left:0}@media(max-width:600px){main{margin:12px;padding:22px}h1{font-size:23px}button{font-size:16px}.steps{gap:5px}.steps li{font-size:13px}}
+#device-login-link{background:#1a5bc4;color:#fff;text-align:center}
+{/literal}</style></head>
+<body><main id="passkey-app" data-endpoint="{$pk.endpoint|escape}" data-csrf="{$pk.csrf|escape}" data-window="{$pk.window|escape}" data-cookie-path="{$pk.cookie_path|escape}" data-manage-url="{$pk.manage_url|escape}" data-transfer="{if $passkey_transfer}1{else}0{/if}" data-transfer-expires="{$passkey_transfer_expires|escape}">
+<h1>{if $passkey_transfer}パスキーを登録する{elseif !$pk.logged}パスキーでログイン{elseif $pk.password_choice}ログイン方法の設定{elseif $pk.choice}パスキーへの移行のお願い{elseif $pk.manage}登録済みパスキー{else}パスキーを登録する{/if}</h1>
+<p class="muted">{$pk.app_code|escape}</p>
+<div id="message" role="status" aria-live="polite"></div>
+{if $pk.logged && $pk.password_choice}
+<section id="password-login-choice"><h2>ID/Passwordのログインを停止しますか？</h2><p>パスキーでのログインに成功しました。</p>
+<button class="primary" type="button" id="disable-password-login">停止する（安全）</button><button class="primary secondary" type="button" id="continue-password-login">併用を続ける</button>
+<p class="muted footer">停止すると、このユーザーのすべての登録先でID/Passwordと自動ログインが使えなくなります。パスキーを紛失した場合は管理者による復旧が必要です。</p></section>
+{elseif $pk.logged && $pk.choice}
+<section id="login-choice"><p>安全性の高いパスキーへ移行します。パスキーを登録してパスキーでログインするようにお願いします。移行期間は、このまま「管理画面に進む」で今までどおりお使い頂けます。</p>
+<a class="link primary" href="{$pk.base|escape}">管理画面に進む</a><a class="link primary" href="{$pk.register_url|escape}">パスキーを登録する</a></section>
+{elseif $passkey_transfer || ($pk.logged && !$pk.manage)}
+<div id="wizard">
+<ol class="steps" aria-label="登録の手順"><li data-progress="1" aria-current="step">1 本人確認</li><li data-progress="2">2 パスキー登録</li><li data-progress="3">3 完了</li></ol>
+<section id="step-1" data-step="1"><p class="step-count">ステップ 1 / 3</p>
+{if $passkey_transfer}<h2 tabindex="-1">メール確認コードで本人確認</h2><p>登録メールアドレスに届いた4桁の確認コードを入力して、次へ進んでください。</p><form id="device-code-form"><label for="device-code">確認コード</label><input id="device-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{ldelim}4{rdelim}" maxlength="4" required><button class="primary" type="submit">本人確認して次へ</button></form>{elseif $pk.password_disabled}<h2 tabindex="-1">パスキーで本人確認</h2><p>登録済みのパスキーで本人確認して、次へ進んでください。</p><button class="primary" type="button" id="confirm-passkey">パスキーで本人確認して次へ</button>
+{else}<h2 tabindex="-1">パスワードで本人確認</h2><p>現在のパスワードを入力して、次へ進んでください。</p><form id="confirm-form"><label for="password">現在のパスワード</label><input id="password" type="password" autocomplete="current-password" required><button class="primary" type="submit">本人確認して次へ</button></form>{/if}</section>
+<section id="step-2" data-step="2" hidden><p class="step-count">ステップ 2 / 3</p><h2 tabindex="-1">端末にパスキーを保存</h2><p>下のボタンを押し、端末の画面に従ってPIN・指紋・顔認証などで承認してください。</p><p class="name">登録する名前<br><strong id="registration-label">{$passkey_registration_label|escape}</strong></p><button class="primary" type="button" id="register">パスキーを登録する</button>{if !$passkey_transfer}<button class="back" type="button" id="back-confirm">本人確認に戻る</button>{/if}</section>
+<section id="step-3" data-step="3" hidden><p class="step-count">ステップ 3 / 3</p><div class="complete-icon" aria-hidden="true">✓</div><h2 tabindex="-1">パスキーを登録しました</h2><p>次回からパスキーでログインできます。</p>{if $passkey_transfer}<a class="link primary" id="device-login-link" href="{$passkey_login_url|escape}">パスキーでログインを試す</a>{else}<button class="primary" id="logout" type="button">ログアウトしてログインを試す</button>{/if}</section>
+</div>
+
+{elseif $pk.logged}
+<section id="key-list"><p>不要なパスキーを削除できます。</p>{if $pk.password_disabled}<p class="muted">ID/Passwordログインは停止中です。各登録先の最後のパスキーは削除できません。</p>{/if}
+{foreach $pk.keys as $key}<div class="key" data-key-id="{$key.id|escape}"><strong>{$key.label|escape}</strong><small class="muted">パスキー #{$key.id|escape} ／ {$key.rp_id|escape}<br>{if $key.current}このサイト用{else}別の登録先用{/if}<br>登録：{$key.created_at|escape}<br>最終利用：{$key.last_used_at|default:'未使用'|escape}</small>
+{if $key.status === 0}<button type="button" data-action="revoke" class="danger">このパスキーを削除</button>{else}<small>失効済み</small>{/if}</div>{foreachelse}<p class="muted">パスキーはまだ登録されていません。</p>{/foreach}</section>
+<section id="manage-confirm" hidden><h2 tabindex="-1">削除の前に本人確認</h2><p>このパスキーを削除すると、この鍵でログインできなくなります。</p>{if $pk.password_disabled}<button class="primary danger" type="button" id="manage-confirm-passkey">パスキーで本人確認して削除する</button><button type="button" id="cancel-manage" class="secondary">キャンセル</button>{else}<form id="manage-confirm-form"><label for="manage-password">現在のパスワード</label><input id="manage-password" type="password" autocomplete="current-password" required><button class="primary danger" type="submit">本人確認して削除する</button><button type="button" id="cancel-manage" class="secondary">キャンセル</button></form>{/if}</section>
+{else}
+<p>PIN・指紋・顔認証などで、管理画面にログインします。</p><button class="primary" id="login" type="button">パスキーでログイン</button>
+{/if}
+{if !$pk.choice && !$pk.password_choice}<p class="muted footer">登録先：{$pk.rp|escape}<br>別のドメインで利用するときは、そのサイトでも登録してください。</p>{/if}
+{if $pk.logged && $pk.manage}<p><a class="text-link" href="{$pk.base|escape}">管理画面へ戻る</a></p>{/if}
+{if !$pk.logged && !$passkey_transfer}<p><a class="text-link" href="{$pk.login|escape}">ID・パスワードでログイン</a></p>{/if}
+<noscript><p>パスキーを利用するにはJavaScriptを有効にしてください。</p></noscript>
+</main><script>{literal}
+(()=>{'use strict';
+const root=document.querySelector('#passkey-app'), message=document.querySelector('#message');
+const transfer=root.dataset.transfer==='1', transferToken=transfer?location.hash.slice(1):'';
+if(transfer)history.replaceState(null,'',location.pathname+location.search);
+let step=1, confirmedUntil=0, busy=false, pendingKey=null, confirmationTimer;
+const supported=window.isSecureContext&&!!window.PublicKeyCredential;
+const decode=s=>Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
+const encode=b=>{let s='';for(const n of new Uint8Array(b))s+=String.fromCharCode(n);return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');};
+function report(text,error=false){message.textContent=text;message.className=error?'error':'success';}
+function selectWindow(){document.cookie='windowID='+encodeURIComponent(root.dataset.window)+'; Path='+root.dataset.cookiePath+'; Secure; SameSite=Lax';}
+root.querySelectorAll('a').forEach(a=>a.addEventListener('click',selectWindow));
+function showStep(next){step=next;root.querySelectorAll('[data-step]').forEach(p=>p.hidden=Number(p.dataset.step)!==next);root.querySelectorAll('[data-progress]').forEach(p=>{if(Number(p.dataset.progress)===next)p.setAttribute('aria-current','step');else p.removeAttribute('aria-current');});report('');document.querySelector('#step-'+next+' h2')?.focus();}
+async function api(action,values={}){selectWindow();const data=new FormData();data.set('action',action);data.set('csrf',root.dataset.csrf);data.set('_windowcode',root.dataset.window);for(const[k,v]of Object.entries(values))data.set(k,v);const res=await fetch(root.dataset.endpoint,{method:'POST',body:data,credentials:'same-origin',cache:'no-store'});const result=await res.json();if(!result.ok){if(action.startsWith('register_')&&(result.message||'').includes('本人確認'))showStep(1);throw new Error(result.message||'操作できませんでした。');}return result;}
+function options(o){o.challenge=decode(o.challenge);if(o.user)o.user.id=decode(o.user.id);for(const k of ['excludeCredentials','allowCredentials'])if(o[k])o[k]=o[k].map(c=>({...c,id:decode(c.id)}));return o;}
+function credential(c){const r=c.response,out={id:c.id,rawId:encode(c.rawId),type:c.type,response:{clientDataJSON:encode(r.clientDataJSON)}};if(r.attestationObject){out.response.attestationObject=encode(r.attestationObject);out.response.transports=r.getTransports?r.getTransports():[];}else{out.response.authenticatorData=encode(r.authenticatorData);out.response.signature=encode(r.signature);out.response.userHandle=r.userHandle?encode(r.userHandle):null;}return JSON.stringify(out);}
+async function run(fn){if(busy)return;busy=true;const buttons=[...root.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);try{await fn();}catch(e){report(e.name==='NotAllowedError'?'認証がキャンセルされたか、時間切れになりました。もう一度お試しください。':e.name==='InvalidStateError'?'このパスキーは登録済みです。':e.message,true);}finally{busy=false;buttons.forEach(b=>b.disabled=false);if(!supported)for(const id of ['register','login','confirm-passkey','manage-confirm-passkey']){const b=document.getElementById(id);if(b)b.disabled=true;}}}
+function confirmedForRegistration(expires=Date.now()+300000){confirmedUntil=expires;clearTimeout(confirmationTimer);showStep(2);confirmationTimer=setTimeout(()=>{if(step===2&&!busy){showStep(1);report('本人確認の有効期限が切れました。もう一度認証してください。',true);}},Math.max(0,confirmedUntil-Date.now()));}
+document.querySelector('#device-code-form')?.addEventListener('submit',e=>{e.preventDefault();run(async()=>{const r=await api('transfer_claim',{token:transferToken,pin:document.querySelector('#device-code').value});document.querySelector('#device-code').value='';document.querySelector('#registration-label').textContent=r.label;confirmedForRegistration(r.expires*1000);});});
+if(transfer&&!transferToken&&Number(root.dataset.transferExpires)*1000>Date.now())confirmedForRegistration(Number(root.dataset.transferExpires)*1000);
+async function confirmWithPasskey(){const{options:o}=await api('confirm_options');const c=await navigator.credentials.get({publicKey:options(o)});await api('confirm_verify',{credential:credential(c)});}
+document.querySelector('#confirm-passkey')?.addEventListener('click',()=>run(async()=>{await confirmWithPasskey();confirmedForRegistration();}));
+document.querySelector('#manage-confirm-passkey')?.addEventListener('click',()=>run(async()=>{if(!pendingKey)return;await confirmWithPasskey();await api('revoke',{id:pendingKey});location.assign(root.dataset.manageUrl);}));
+for(const[id,choice]of [['disable-password-login','disable'],['continue-password-login','continue']])document.getElementById(id)?.addEventListener('click',()=>run(async()=>{const r=await api('password_login_choice',{choice});location.assign(r.redirect);}));
+document.querySelector('#confirm-form')?.addEventListener('submit',e=>{e.preventDefault();run(async()=>{const p=document.querySelector('#password');const password=p.value;p.value='';await api('confirm',{password});confirmedForRegistration();});});
+document.querySelector('#back-confirm')?.addEventListener('click',()=>{clearTimeout(confirmationTimer);confirmedUntil=0;showStep(1);});
+document.querySelector('#register')?.addEventListener('click',()=>run(async()=>{if(Date.now()>=confirmedUntil){showStep(1);throw new Error('もう一度本人確認してください。');}report('端末に表示される確認画面で承認してください。');const{options:o}=await api(transfer?'transfer_register_options':'register_options');const c=await navigator.credentials.create({publicKey:options(o)});const result=await api(transfer?'transfer_register_verify':'register_verify',{credential:credential(c)});clearTimeout(confirmationTimer);showStep(3);if(result.notification==='failed')report('登録は完了しましたが、登録通知メールを送信できませんでした。',true);}));
+document.querySelector('#login')?.addEventListener('click',()=>run(async()=>{const{options:o}=await api('login_options');const c=await navigator.credentials.get({publicKey:options(o)});const r=await api('login_verify',{credential:credential(c)});location.assign(r.redirect);}));
+root.querySelectorAll('[data-action=revoke]').forEach(b=>b.addEventListener('click',()=>{pendingKey=b.closest('[data-key-id]').dataset.keyId;document.querySelector('#key-list').hidden=true;document.querySelector('#manage-confirm').hidden=false;report('');(document.querySelector('#manage-password')||document.querySelector('#manage-confirm-passkey')).focus();}));
+document.querySelector('#cancel-manage')?.addEventListener('click',()=>{pendingKey=null;if(document.querySelector('#manage-password'))document.querySelector('#manage-password').value='';document.querySelector('#manage-confirm').hidden=true;document.querySelector('#key-list').hidden=false;report('');});
+document.querySelector('#manage-confirm-form')?.addEventListener('submit',e=>{e.preventDefault();run(async()=>{if(!pendingKey)return;const p=document.querySelector('#manage-password'),password=p.value;p.value='';await api('confirm',{password});await api('revoke',{id:pendingKey});location.assign(root.dataset.manageUrl);});});
+document.querySelector('#logout')?.addEventListener('click',()=>run(async()=>{const r=await api('logout');location.assign(r.redirect);}));
+if(!supported){report('このブラウザーではパスキーを利用できません。ID・パスワードでログインしてください。',true);for(const id of ['register','login','confirm-passkey','manage-confirm-passkey']){const b=document.getElementById(id);if(b)b.disabled=true;}}
+})();
+{/literal}</script></body></html>

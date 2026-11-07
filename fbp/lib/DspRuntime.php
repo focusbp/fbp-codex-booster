@@ -66,6 +66,16 @@ final class DspRuntime {
         $marker = '/classes/data/';
         $pos = strrpos($path . '/', $marker);
         if ($pos === false) return null;
+        // Shared passkey storage is protected even when an app has no DSP registry.
+        // App-owned passkey classes retain their existing app-owned DSP implementation.
+        $appRoot = substr($path, 0, $pos);
+        if (trim(substr($path, $pos + strlen($marker)), '/') === 'passkey'
+            && in_array($table, ['identity', 'user_passkey', 'rate', 'device_transfer'], true)
+            && !is_file($appRoot . '/classes/app/passkey/passkey.php')) {
+            if ($ctl === null) throw new DspException('context', 'controller_required');
+            require_once __DIR__ . '/../app/passkey/FrameworkPasskeyPolicy.php';
+            return new FrameworkPasskeyPolicy($ctl, $channel);
+        }
         $root = substr($path, 0, $pos) . '/classes/app/_dsp';
         $registry = $root . '/registry.php';
         if (!is_file($registry)) return null;

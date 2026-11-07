@@ -1,0 +1,6 @@
+id,24,N
+user_id,24,N
+user_handle,43,T
+epoch,43,T
+created_at,24,T
+password_login_disabled,1,N
