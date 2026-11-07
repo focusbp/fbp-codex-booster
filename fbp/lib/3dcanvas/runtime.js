@@ -51,6 +51,8 @@ function texture(m) {
 export function mount(element, input, options = {}) {
     if (input.schema_version !== 1 || input.units !== 'mm' || !Array.isArray(input.objects) || input.objects.length > 1500) throw new Error('Unsupported scene');
     const data = copy(input), nodes = new Map(), geometries = [], materials = [], textures = [];
+    // PHP serializes an empty associative array as []; camera names must remain an object.
+    data.views = {...data.views};
     let renderer = null, controls = null, environment = null, resizeObserver = null, visibilityObserver = null;
     let disposed = false, failed = false, frame = 0, clock = 0, previous = 0, visible = true, paused = false, dirty = true, renderedFrames = 0, lastDraw = 0;
     const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
