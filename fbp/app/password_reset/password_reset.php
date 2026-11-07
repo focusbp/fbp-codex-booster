@@ -25,10 +25,10 @@ class password_reset {
             $service->currentUser();
             $passkey_available = true;
         } catch (RuntimeException $e) {
-            // Ordinary password changes remain available when passkeys are disabled.
+            // Keep the management dialog available when passkeys are disabled.
         }
         $ctl->assign('passkey_management_available', $passkey_available);
-        $ctl->show_multi_dialog("password_reset", "form.tpl", $ctl->t("password_reset.dialog.reset"), 800, "_fixed_bar.tpl");
+        $ctl->show_multi_dialog("password_reset", "form.tpl", "パスキーの管理", 400);
 	}
 
     function manage_passkeys(Controller $ctl) {
