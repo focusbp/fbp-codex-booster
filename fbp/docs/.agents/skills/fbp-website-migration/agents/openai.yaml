@@ -1,0 +1,4 @@
+interface:
+  display_name: "Webサイト移行"
+  short_description: "公開サイト・WordPress原本からFBPへ移行し、記事・素材・公開切替を検証する"
+  default_prompt: "既存Webサイトの取得範囲を確認し、原本保全、FBP形式のURL・管理画面、初回取込み、公開切替と検証を進めてください。"
