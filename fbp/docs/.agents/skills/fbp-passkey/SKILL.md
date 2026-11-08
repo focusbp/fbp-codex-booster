@@ -1,6 +1,6 @@
 ---
 name: fbp-passkey
-description: Implement and maintain FBP administrator passkeys, password-login opt-out, and confirmed CLI-only emergency recovery when all administrator passkeys are lost.
+description: Implement and maintain FBP administrator passkeys, password-login opt-out, API-issued one-time browser sessions for AI checks in test or production, and confirmed CLI-only emergency recovery when all administrator passkeys are lost.
 ---
 
 # fbp-passkey

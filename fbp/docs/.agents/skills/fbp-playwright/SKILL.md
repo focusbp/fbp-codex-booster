@@ -59,12 +59,14 @@ const browser = await chromium.launch({
 
 ## Workflow
 
+管理画面へログインしてテスト・本番のブラウザー検証を行う前に、[fbp-passkey](../fbp-passkey/SKILL.md) の「AIによる管理画面確認」を読む。共通認証ではAPI発行ワンタイムコードを使い、対象ユーザーと環境を明示する。環境側の専用クライアントはローカル運用ルールを参照する。パスワード認証停止の解除や鍵のリセットをテストの準備に使わない。パスワード／パスキーのログイン操作そのものを検証する場合は、その認証経路を使う。公開画面だけの確認やブラウザー不要のCLI検証には、この参照を必須にしない。
+
 1. Resolve app targets with the normal local rule first. For an explicit `app-xxx`, run
    `MGMT_API_MODE=production ~/scripts/sftp_api.sh get app-xxx` and use its `test_url`,
    `test_login_id`, and `test_password` values.
 2. If checking source changes, sync before browser verification:
    `~/scripts/copy_to_web.sh app-xxx`.
-3. Pass FBP login values through environment variables. For a `gw.soshiki-kaikaku.com` test URL,
+3. When testing password login itself, pass FBP login values through environment variables. For a `gw.soshiki-kaikaku.com` test URL,
    create a browser context with the wrapper-provided `PLAYWRIGHT_TEST_BASIC_AUTH_USERNAME` and
    `PLAYWRIGHT_TEST_BASIC_AUTH_PASSWORD` as `httpCredentials`. Do not substitute the app's FBP
    login ID/password for HTTP Basic authentication, and do not write either credential into a
