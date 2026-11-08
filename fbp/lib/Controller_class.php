@@ -2280,6 +2280,7 @@ class Controller_class implements Controller {
 		}
 		$key_lower = strtolower((string) $key);
 		$mask_words = ["password", "passwd", "pwd", "secret", "token", "api_key", "api_secret", "authorization"];
+        if ($key_lower === 'code' && $this->get_classname() === 'login' && $this->get_called_function() === 'onetimecode') return '[masked]';
 		foreach ($mask_words as $word) {
 			if ($key_lower !== "" && strpos($key_lower, $word) !== false) {
 				return "[masked]";

@@ -21,6 +21,8 @@ final class PasskeyService {
     }
     public function currentUser(): array {
         if (!$this->ctl->get_session('login')) throw new RuntimeException('ログインし直してください。');
+        if ($this->ctl->get_session('passkey_authentication_method') === 'onetimecode'
+            && (int)$this->ctl->get_session('onetimecode_session_expires') <= time()) throw new RuntimeException('ログインし直してください。');
         $u=$this->allowedUser((int)$this->ctl->get_session('user_id'));
         $i=$this->repo->identity((int)$u['id']);
         if (!hash_equals($i['epoch'],(string)$this->ctl->get_session('passkey_epoch'))) throw new RuntimeException('ログインし直してください。');
@@ -48,7 +50,7 @@ final class PasskeyService {
     }
     public function confirm($password): array {
         $u=$this->currentUser();
-        if ($this->repo->passwordLoginDisabled((int)$u['id'])) throw new RuntimeException('パスキーで本人確認してください。');
+        if ($this->ctl->get_session('passkey_authentication_method') === 'onetimecode' || $this->repo->passwordLoginDisabled((int)$u['id'])) throw new RuntimeException('パスキーで本人確認してください。');
         $this->repo->rate('confirm:'.$u['id'],5,900);
         if (!is_string($password) || $password==='' || strlen($password)>4096) throw new RuntimeException('パスワードを確認してください。');
         $stored=(string)$u['password'];
@@ -64,7 +66,7 @@ final class PasskeyService {
         $u=$this->currentUser(); $c=$this->ctl->get_session('passkey_confirm');
         $i=$this->repo->identity((int)$u['id']);
         if (!is_array($c) || ($c['expires']??0)<time() || ($c['user_id']??0)!==(int)$u['id'] || !hash_equals($i['epoch'],(string)($c['epoch']??''))) throw new RuntimeException('もう一度本人確認してください。');
-        if ($this->repo->passwordLoginDisabled((int)$u['id']) && ($c['kind'] ?? '') !== 'passkey') throw new RuntimeException('パスキーで本人確認してください。');
+        if (($this->ctl->get_session('passkey_authentication_method') === 'onetimecode' || $this->repo->passwordLoginDisabled((int)$u['id'])) && ($c['kind'] ?? '') !== 'passkey') throw new RuntimeException('パスキーで本人確認してください。');
         if (($c['kind'] ?? '') === 'passkey') {
             $key = $this->repo->keys->get((int)($c['key_id'] ?? 0));
             if (!is_array($key) || (int)($key['status'] ?? 1) !== 0 || (int)$key['parent_id'] !== (int)$u['id'] || $key['rp_id'] !== $this->config['rp_id'] || !hash_equals($i['user_handle'], $key['user_handle'])) throw new RuntimeException('もう一度パスキーで本人確認してください。');
@@ -272,7 +274,7 @@ final class PasskeyService {
         $appcode=$ctl->get_session('appcode');
         foreach ($_SESSION as $window=>$state) {
             if (is_array($state) && (($state['appcode']??null)===$appcode || $window===$ctl->get_windowcode())) {
-                foreach (['login','app_admin','user_id','login_id','password','passkey_epoch','passkey_confirm','passkey_pending','passkey_csrf','passkey_authentication_method','passkey_device_grant','passkey_password_choice','_DISPLAY','__AUTO_LOAD_MAIN_AREA'] as $key) unset($_SESSION[$window][$key]);
+                foreach (['login','app_admin','user_id','login_id','password','passkey_epoch','passkey_confirm','passkey_pending','passkey_csrf','passkey_authentication_method','passkey_device_grant','passkey_password_choice','onetimecode_session_expires','onetimecode_form','_DISPLAY','__AUTO_LOAD_MAIN_AREA'] as $key) unset($_SESSION[$window][$key]);
             }
         }
         foreach (['login_id','password','remember_me','login_status'] as $name) self::cookie($name,'',time()-3600);

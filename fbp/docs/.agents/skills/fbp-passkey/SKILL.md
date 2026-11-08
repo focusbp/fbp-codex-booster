@@ -61,6 +61,13 @@ FFMは複数DBの一括ロールバックを提供しない。失効を先に行
 - HTTPの直接アクセス拒否と、通常のapp_callからの拒否を確認する。DSP ONで実CLIチャネルを使い、admin固定のモックだけで許可判定を済ませない。
 - 通常ログイン・署名検証・旧セッション拒否の既存テストを使って回帰を確認する。CLI確認は [fbp-cli](../fbp-cli/SKILL.md)、DSP変更は [fbp-dsp](../fbp-dsp/SKILL.md) に従う。
 
+## AIによる管理画面確認
+
+- 共通login/user/passkey/password_reset構成では `login_api::issue_onetimecode` の認証済みPOSTで対象 `user_id` を毎回指定し、ブラウザ用コードを発行できる。ユーザー固定ではない。署名対象のクエリにuser_idとランダム32桁hexのrequest_idを含める。本文のユーザーIDを認可判断に使わない。
+- ブラウザで返却された `login_url` を開き、CSRF付きフォームへ `code` を入力する。コードは60秒・一度限り、セッションは最長30分・remember-meなし。パスキー認証とは区別し、鍵管理にはパスキー再認証が必要。
+- 固定 `login/fmt/onetimecode.fmt` とFFMを使い、DB管理への定義登録は不要。汎用DB APIではコード領域へアクセスできない。独自認証クラス・追加認証ガードは専用対応まで拒否する。既存API資格情報が指定ユーザーへのログイン権限を持つ設計なので、資格情報と発行コードをログやdocsへ保存しない。
+- 設計・検証履歴は [ワンタイムコードログイン](../../../onetimecode-login.md)。検証資産は専用検証アプリのtests/passkey/onetimecode*.phpとonetimecode-browser.cjs。
+
 ## 共通版の検証資産
 
 専用検証アプリのtests/passkeyにsecurity.php、config.php、cli-recovery.php、notification.php、browser.cjs、password-policy-browser.cjsを置く。実行はruntime側を対象にし、署名・CLI・HTTP fixtureは新規の隔離作業領域を使う。テスト用資格情報と実データを本番へ移さない。通常ログイン用の既存Cookie・セッションを独自互換処理で新epochへ引き継がない。

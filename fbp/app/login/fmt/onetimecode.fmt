@@ -1,0 +1,10 @@
+id,24,N
+user_id,24,N
+code_hash,64,T
+request_hash,64,T
+origin,300,T
+epoch,43,T
+user_handle,43,T
+created_at,24,N
+expires_at,24,N
+used_at,24,N

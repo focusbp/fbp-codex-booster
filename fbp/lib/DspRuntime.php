@@ -117,6 +117,13 @@ final class DspRuntime {
     }
 
     public static function integrationPolicy(string $datadir, string $table, ?Controller $ctl, string $channel, ?string $databaseClass = null): ?DspInterface {
+        // Credential storage remains protected even when application DSP is disabled.
+        $credentialPath = str_replace('\\', '/', realpath($datadir) ?: $datadir);
+        if ($table === 'onetimecode' && str_ends_with($credentialPath, '/classes/data/login')) {
+            if ($ctl === null) throw new DspException('context', 'controller_required');
+            require_once __DIR__ . '/../app/login/FrameworkOnetimecodePolicy.php';
+            return new FrameworkOnetimecodePolicy($ctl, $channel);
+        }
         if ($ctl === null || !method_exists($ctl, 'get_classname')
             || !in_array($ctl->get_classname(), ['project_integration_api', 'integration_settings'], true)) return null;
         $path = str_replace('\\', '/', realpath($datadir) ?: $datadir);

@@ -8,6 +8,12 @@ final class PasskeySession {
     }
     private static function checkSession(Controller $ctl) {
         if (!$ctl->get_session('login')) return null;
+        if ($ctl->get_session('passkey_authentication_method') === 'onetimecode'
+            && (int)$ctl->get_session('onetimecode_session_expires') <= time()) {
+            PasskeyService::clearAuth($ctl);
+            $ctl->res_redirect($ctl->get_APP_URL('login','page'));
+            return false;
+        }
         $repository=new PasskeyRepository($ctl);
         $user=$repository->users->get((int)$ctl->get_session('user_id'));
         $valid=is_array($user) && !empty($user['id']) && (int)$user['status']===0;

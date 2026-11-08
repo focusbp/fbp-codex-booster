@@ -26,6 +26,42 @@ class login {
 
 		$ctl->display("login.tpl");
 	}
+
+    function onetimecode(Controller $ctl) {
+        require_once __DIR__.'/OnetimecodeService.php';
+        header('Cache-Control: no-store');
+        // Keep same-origin form POST Origin intact; no-referrer can produce Origin: null.
+        header('Referrer-Policy: same-origin');
+        header('X-Frame-Options: DENY');
+        header("Content-Security-Policy: frame-ancestors 'none'; form-action 'self'");
+        try {
+            $service = new OnetimecodeService($ctl);
+            if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+                $code = $ctl->POST('code'); $csrf = $ctl->POST('csrf_token');
+                if (!is_string($code) || !is_string($csrf)) throw new RuntimeException('Invalid request.');
+                $service->consume($code, $csrf, function(array $user) use ($ctl) {
+                    // Discard prior identity, confirmation and OAuth state before switching users.
+                    PasskeyService::clearAuth($ctl);
+                    unset($_SESSION['mcp_oauth_authorize_return']);
+                    $this->login_ok($ctl, $user, (string)$user['login_id'], '', 'onetimecode');
+                });
+                return;
+            }
+            if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET') {
+                http_response_code(405); header('Allow: GET, POST'); return;
+            }
+            $ctl->assign('onetimecode_error', false);
+        } catch (Throwable $e) {
+            error_log('login_onetimecode: denied error='.get_class($e).' location='.basename($e->getFile()).':'.$e->getLine());
+            http_response_code(403);
+            $ctl->assign('onetimecode_error', true);
+        }
+        $ctl->assign('onetimecode_csrf', isset($service) ? $service->formToken() : '');
+        $ctl->assign('onetimecode_url', isset($service) ? $service->loginUrl() : $ctl->get_APP_URL('login', 'onetimecode'));
+        $ctl->assign('onetimecode_window', $ctl->get_windowcode());
+        $ctl->assign('onetimecode_cookie_path', cookie_path());
+        $ctl->display('onetimecode.tpl');
+    }
 	
 	function make_new_account(Controller $ctl){
 		$pending = $ctl->get_session($this->pending_account_session_key);
@@ -467,6 +503,10 @@ class login {
 	}
 
 	function login_ok(Controller $ctl, $user, $login_id, $password, string $authentication = 'password') {
+		$codeLogin = $authentication === 'onetimecode';
+        if ($codeLogin && (!class_exists('OnetimecodeService', false) || !OnetimecodeService::hasGrant($ctl, (int)$user['id']))) {
+            throw new RuntimeException('One-time login grant required.');
+        }
 		// Read current identity only after opening all participating FFM databases.
         $repository = new PasskeyRepository($ctl);
         $fresh = $repository->users->get((int)$user["id"]);
@@ -477,12 +517,13 @@ class login {
         $user = $fresh;
         $identity = $repository->identity((int)$user["id"]);
         // Authentication method comes only from a server-side caller, never request parameters.
-        if ((int)($identity['password_login_disabled'] ?? 0) === 1 && $authentication !== 'passkey') {
+        if ((int)($identity['password_login_disabled'] ?? 0) === 1 && $authentication !== 'passkey' && !$codeLogin) {
             $ctl->res_redirect($ctl->get_APP_URL('passkey', 'page'));
             return;
         }
         if ($this->defer_login_to_app_guard($ctl, $user, $login_id, $password)) return;
         $ctl->set_session('passkey_authentication_method', $authentication);
+        $ctl->set_session('onetimecode_session_expires', $codeLogin ? time()+OnetimecodeService::SESSION_TTL : null);
         PasskeyService::renewSession();
         $ctl->set_session("passkey_epoch", $identity["epoch"]);
         $ctl->set_session("login", true);
@@ -503,7 +544,7 @@ class login {
 		//---------------
 		PasskeyService::cookie("login_id", $ctl->encrypt($login_id), strtotime('+30 days'));
 		PasskeyService::cookie("login_status", "logined", strtotime('+30 days'));
-		if ((int)($identity['password_login_disabled'] ?? 0) === 1) {
+		if ($codeLogin || (int)($identity['password_login_disabled'] ?? 0) === 1) {
             PasskeyService::cookie($this->remember_me_cookie_name, '', time()-3600);
             PasskeyService::cookie('login_status', '', time()-3600);
         } else {
@@ -511,7 +552,8 @@ class login {
         }
 		
 		if ((int) ($user["flg_password_change_required"] ?? 0) === 1) {
-			$ctl->res_redirect($ctl->get_APP_URL("password_reset", "force_page"));
+			$url = $ctl->get_APP_URL("password_reset", "force_page");
+            $ctl->res_redirect($codeLogin ? preg_replace('/^http:/', 'https:', $url) : $url);
 			return;
 		}
 
@@ -521,7 +563,7 @@ class login {
 			return;
 		}
 		
-		if (PasskeyConfig::available($ctl) && $authentication !== 'passkey') {
+		if (PasskeyConfig::available($ctl) && $authentication !== 'passkey' && !$codeLogin) {
             $config = PasskeyConfig::load($ctl);
             $registered = array_filter($repository->active((int)$user['id'], $config['rp_id']),
                 static fn($key) => hash_equals($identity['user_handle'], (string)$key['user_handle']));
@@ -530,7 +572,8 @@ class login {
                 return;
             }
         }
-        $ctl->res_redirect($ctl->get_APP_URL("base", "page"));
+        $url = $ctl->get_APP_URL("base", "page");
+        $ctl->res_redirect($codeLogin ? preg_replace('/^http:/', 'https:', $url) : $url);
 	}
 
 	private function consume_mcp_oauth_return_url(Controller $ctl): string {
