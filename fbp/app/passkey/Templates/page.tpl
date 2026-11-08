@@ -26,7 +26,7 @@
 </div>
 
 {elseif $pk.logged}
-<section id="key-list"><p>不要なパスキーを削除できます。</p>{if $pk.password_disabled}<p class="muted">ID/Passwordログインは停止中です。各登録先の最後のパスキーは削除できません。</p>{/if}
+<section id="key-list"><p>不要なパスキーを削除できます。</p>{if $pk.password_disabled}<p class="muted">各登録先の最後のパスキーは削除できません。</p>{/if}
 {foreach $pk.keys as $key}<div class="key" data-key-id="{$key.id|escape}"><strong>{$key.label|escape}</strong><small class="muted">パスキー #{$key.id|escape} ／ {$key.rp_id|escape}<br>{if $key.current}このサイト用{else}別の登録先用{/if}<br>登録：{$key.created_at|escape}<br>最終利用：{$key.last_used_at|default:'未使用'|escape}</small>
 {if $key.status === 0}<button type="button" data-action="revoke" class="danger">このパスキーを削除</button>{else}<small>失効済み</small>{/if}</div>{foreachelse}<p class="muted">パスキーはまだ登録されていません。</p>{/foreach}</section>
 <section id="manage-confirm" hidden><h2 tabindex="-1">削除の前に本人確認</h2><p>このパスキーを削除すると、この鍵でログインできなくなります。</p>{if $pk.password_disabled}<button class="primary danger" type="button" id="manage-confirm-passkey">パスキーで本人確認して削除する</button><button type="button" id="cancel-manage" class="secondary">キャンセル</button>{else}<form id="manage-confirm-form"><label for="manage-password">現在のパスワード</label><input id="manage-password" type="password" autocomplete="current-password" required><button class="primary danger" type="submit">本人確認して削除する</button><button type="button" id="cancel-manage" class="secondary">キャンセル</button></form>{/if}</section>

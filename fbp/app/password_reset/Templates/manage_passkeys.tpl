@@ -2,7 +2,7 @@
 <p class="pk-message" role="status" aria-live="polite"></p>
 <section class="pk-list">
 <p>不要なパスキーを削除できます。</p>
-{if $passkey_manager.password_disabled}<p>ID/Passwordログインは停止中です。各登録先の最後のパスキーは削除できません。</p>{/if}
+{if $passkey_manager.password_disabled}<p>各登録先の最後のパスキーは削除できません。</p>{/if}
 {foreach $passkey_manager.keys as $key}
 <div class="pk-key" data-key-id="{$key.id|escape}">
 <strong>{$key.label|escape}</strong>
