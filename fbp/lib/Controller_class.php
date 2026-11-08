@@ -198,7 +198,8 @@ class Controller_class implements Controller {
 
         // The session guard opens these same databases. Run it before constructing
         // an FFM, so the completed guard connections are already in dbarr.
-        if ($class === 'passkey' && in_array($name, ['identity', 'user_passkey', 'rate', 'device_transfer'], true)) {
+        if (($class === 'user' && $name === 'user') ||
+            ($class === 'passkey' && in_array($name, ['identity', 'user_passkey', 'rate', 'device_transfer'], true))) {
             $this->require_dsp_admin_session(['class' => $class, 'table' => $name]);
         }
         $session_guard = $this->get_app_management_session_guard();
@@ -2398,9 +2399,19 @@ class Controller_class implements Controller {
         } finally { $this->verifying_management_session = false; }
     }
 
+    /** Only the standard session verifier can read its minimal authentication facts. */
+    public function management_session_bootstrap_active(): bool {
+        return $this->dsp_channel === 'admin' && $this->verifying_management_session
+            && class_exists('PasskeyAccess', false) && PasskeyAccess::active()
+            && !DspRuntime::isEvaluating($this)
+            && realpath($this->dirs->get_class_dir('login')) === realpath($this->dirs->appdir_fw . '/login');
+    }
+
     /** Framework boundary: policies may trust admin without doing authentication IO. */
     public function require_dsp_admin_session(array $target = []): void {
         if ($this->dsp_channel !== 'admin') return;
+        if ($this->management_session_bootstrap_active()
+            && ($target['class'] ?? null) === 'user' && ($target['table'] ?? null) === 'user') return;
         // Only the server-owned revocation check may access its own policy-protected DBs.
         if ($this->verifying_management_session && class_exists('PasskeyAccess', false) && PasskeyAccess::active()
             && ($target['class'] ?? null) === 'passkey'

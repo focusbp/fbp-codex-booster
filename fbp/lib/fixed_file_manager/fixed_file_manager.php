@@ -145,6 +145,20 @@ class fixed_file_manager implements FFM {
         } finally { fseek($this->hf, $position); }
     }
 
+    /** Authentication facts only; ordinary reads and all writes still use DSP. */
+    public function management_session_user(): ?array {
+        if ($this->ctl === null || !method_exists($this->ctl, 'management_session_bootstrap_active')
+            || !$this->ctl->management_session_bootstrap_active()
+            || basename(rtrim($this->datadir, '/')) !== 'user' || $this->filename !== 'user') {
+            throw new LogicException('Management session verifier only.');
+        }
+        $position = ftell($this->hf);
+        try {
+            $row = $this->get_raw((int)$this->ctl->get_session('user_id'));
+            return $row === null ? null : array_intersect_key($row, array_flip(['id', 'status']));
+        } finally { fseek($this->hf, $position); }
+    }
+
     public function dsp_context_snapshot(): array {
         if (!DspRuntime::isPreparing($this->ctl)) throw new DspException('context', 'preparation_required');
         if ($this->dsp_context_rows !== null) return $this->dsp_context_rows;

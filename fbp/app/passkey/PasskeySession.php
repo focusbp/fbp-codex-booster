@@ -14,12 +14,16 @@ final class PasskeySession {
             $ctl->res_redirect($ctl->get_APP_URL('login','page'));
             return false;
         }
-        $repository=new PasskeyRepository($ctl);
-        $user=$repository->users->get((int)$ctl->get_session('user_id'));
+        // Open both participants before reading; no business-policy evaluation
+        // or unrelated key/rate/settings DB is needed to validate this session.
+        $users=$ctl->db('user','user');
+        $identities=$ctl->db('identity','passkey');
+        $user=$users->management_session_user();
         $valid=is_array($user) && !empty($user['id']) && (int)$user['status']===0;
         if ($valid) {
-            $identity=$repository->identity((int)$user['id']);
-            $valid=hash_equals($identity['epoch'],(string)$ctl->get_session('passkey_epoch'));
+            $rows=$identities->select('user_id',(int)$user['id'],true);
+            $identity=count($rows)===1 ? array_values($rows)[0] : null;
+            $valid=$identity!==null && hash_equals($identity['epoch'],(string)$ctl->get_session('passkey_epoch'));
         }
         if (!$valid) {
             PasskeyService::clearAuth($ctl);
