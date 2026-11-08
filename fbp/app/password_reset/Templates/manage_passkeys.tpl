@@ -26,6 +26,7 @@
 </div>
 <style>{literal}
 #passkey-manager [hidden]{display:none!important}
+#passkey-manager section{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
 #passkey-manager .pk-message:empty{display:none}
 #passkey-manager .pk-message{white-space:pre-line;margin:12px 0}
 #passkey-manager .pk-key{border-top:1px solid #ddd;padding:18px 0;overflow-wrap:anywhere}
