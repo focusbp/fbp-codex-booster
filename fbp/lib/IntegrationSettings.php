@@ -68,14 +68,16 @@ final class IntegrationSettings {
         $service=(string)($p['service']??'');$catalog=self::catalog($p['catalog']??[]);$fields=self::fields($service,$catalog);
         $id=(string)($p['request_id']??'');if(!preg_match('/^[a-f0-9]{32}$/D',$id))throw new DomainException('保存要求が不正です。');
         $hash=hash('sha256',json_encode($p,JSON_THROW_ON_ERROR));
-        foreach($receipts->select('request_id',$id,true) as $r){if(!hash_equals($r['payload_hash'],$hash))throw new DomainException('保存要求が変更されています。');return self::snapshot($ctl,$service,$catalog);}
-        $current=self::snapshot($ctl,$service,$catalog);
-        if(!hash_equals($current['revision'],(string)($p['revision']??'')))throw new DomainException('設定が更新されました。開き直してください。');
-        if(($p['environment']??'')==='test'&&!hash_equals(self::catalogVersion(self::localCatalog($ctl)),(string)($p['catalog_revision']??'')))throw new DomainException('キー一覧が更新されました。');
+        $writeOnly=($p['operation']??'')==='write';
+        foreach($receipts->select('request_id',$id,true) as $r){if(!hash_equals($r['payload_hash'],$hash))throw new DomainException('保存要求が変更されています。');return $writeOnly?self::writeReceipt($p):self::snapshot($ctl,$service,$catalog);}
+        $current=$writeOnly?['fields'=>[]]:self::snapshot($ctl,$service,$catalog);
+        if(!$writeOnly&&!hash_equals($current['revision'],(string)($p['revision']??'')))throw new DomainException('設定が更新されました。開き直してください。');
+        if(!$writeOnly&&($p['environment']??'')==='test'&&!hash_equals(self::catalogVersion(self::localCatalog($ctl)),(string)($p['catalog_revision']??'')))throw new DomainException('キー一覧が更新されました。');
         $changes=$p['changes']??null;if(!is_array($changes))throw new DomainException('保存要求が不正です。');
         self::validateStorage($service,$catalog,$changes,$current['fields']);
         if($service==='external_keys'){
             $rows=array_column($ext->getall(),null,'key');
+            if($writeOnly)foreach($changes as $key=>$op)if(!isset($rows[$key]))throw new DomainException('設定項目が見つかりません。');
             foreach($changes as $key=>$op){$row=$rows[$key]??['key'=>$key,'title'=>$fields[$key][0]];$v=$op['value']??'';if($op['op']==='set'&&$v==='')continue;$row['value']=base64_encode($op['op']==='delete'?'':$v);if(isset($row['id']))$ext->update($row);else $ext->insert($row);}
         }else{
             $row=$setting->get(1);if(!$row)throw new DomainException('設定管理の初期化が必要です。');
@@ -83,6 +85,13 @@ final class IntegrationSettings {
             $ctl->save_setting($row);
         }
         $receipt=['request_id'=>$id,'payload_hash'=>$hash];$receipts->insert($receipt);
-        return self::snapshot($ctl,$service,$catalog);
+        return $writeOnly?self::writeReceipt($p):self::snapshot($ctl,$service,$catalog);
+    }
+    private static function writeReceipt(array $p):array {
+        $registered=[];foreach($p['changes'] as $field=>$op){
+            if($op['op']==='delete')$registered[$field]=false;
+            elseif((string)($op['value']??'')!=='')$registered[$field]=true;
+        }
+        return ['request_id'=>$p['request_id'],'applied'=>true,'registered'=>$registered];
     }
 }

@@ -13,7 +13,7 @@ class integration_settings {
             $op=$p['operation']??'';
             if($op==='catalog')$out=['catalog'=>IntegrationSettings::localCatalog($ctl)];
             elseif($op==='status')$out=IntegrationSettings::snapshot($ctl,(string)($p['service']??''),$p['catalog']??[]);
-            elseif($op==='apply')$out=IntegrationSettings::apply($ctl,$p);
+            elseif(in_array($op,['apply','write'],true))$out=IntegrationSettings::apply($ctl,$p);
             else throw new DomainException('操作が不正です。');
             $out=['ok'=>true]+$out;
         }catch(DomainException $e){$out=['ok'=>false,'retryable'=>false,'message'=>$e->getMessage()];}

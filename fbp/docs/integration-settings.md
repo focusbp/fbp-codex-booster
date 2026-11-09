@@ -2,6 +2,8 @@
 
 The `integration_settings` signed endpoint provides `catalog`, `status` and `apply` operations for mail, OpenAI, LINE, Square, Google, Vimeo and external keys. Local CLI invocation uses the same implementation. It never contacts providers or validates credentials.
 
+The comment dialog now uses `write`: only explicitly submitted changes are applied, without a prior status/catalog/revision fetch. The response is a request ID and write receipt for the submitted fields, never a settings snapshot. Unsubmitted fields are preserved; external-key writes require existing keys at the destination. Legacy `apply` retains its revision checks for existing callers.
+
 - `IntegrationSettings::definitions()` is the field allowlist. `status` returns non-secret display values and registration booleans, with a keyed revision fingerprint. Secret values are omitted entirely.
 - `catalog` returns `key`/`title` only. The orchestration layer supplies the canonical test catalog to production. Stable key strings map environments; record IDs do not. Clearing a value preserves its catalog entry.
 - `apply` accepts a service, request ID, expected revision, catalog revision and explicit set/delete operations. Empty secret input preserves its value. Storage types/lengths and the editable destination scope are enforced, without credential or connection preflight checks.
