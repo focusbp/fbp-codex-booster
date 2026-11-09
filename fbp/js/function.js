@@ -1686,7 +1686,9 @@ function setup_standard_screen_row_selection() {
 	if (!main.dataset.rowSelectionInitialized) {
 		main.dataset.rowSelectionInitialized = "1";
 		main.addEventListener("click", function (event) {
-			if (event.target.closest("button, a, input, select, textarea, label, .ajax-link, .handle, [contenteditable='true']")) {
+			// 行ボタンも選択する。項目内のリンクや入力部品は従来どおり除外する。
+			if (!event.target.closest(".db_exe_action_buttons") &&
+				event.target.closest("button, a, input, select, textarea, label, .ajax-link, .handle, [contenteditable='true']")) {
 				return;
 			}
 			var row = event.target.closest(".db_exe_selectable_row");
