@@ -1,9 +1,11 @@
 <?php
 /** Signed app-to-support request. The remote service resolves the project from app identity. */
 class NoteFeatureRequestClient {
+    // Keep note_sync_url as the persisted key so installed settings retain their value.
+    // Remove legacy URL path normalization only after older deployments have migrated.
     function __construct(private Controller $ctl) {}
     protected function endpoint():string {
-        $override=$_SERVER['FBP_NOTE_FEATURE_REQUEST_URL']??getenv('FBP_NOTE_FEATURE_REQUEST_URL');
+        $override=($_SERVER['FBP_PROJECT_SUPPORT_API_URL']??getenv('FBP_PROJECT_SUPPORT_API_URL')) ?: ($_SERVER['FBP_NOTE_FEATURE_REQUEST_URL']??getenv('FBP_NOTE_FEATURE_REQUEST_URL'));
         $url=trim((string)($this->ctl->db('setting','setting')->get(1)['note_sync_url']??''));
         if($url==='') $url=trim(is_string($override)?$override:'');
         if($url===''){$report=$this->ctl->get_server_error_report_settings();$parts=parse_url((string)($report['url']??''));if(!$parts||empty($parts['host']))throw new RuntimeException('プロジェクトサポートへの接続設定を確認してください。');$path=preg_replace('#/(?:server_error_api\*report|task_api\*task_note_sync_peer)$#','/app.php',$parts['path']??'/app.php');$url='https://'.$parts['host'].(isset($parts['port'])?':'.$parts['port']:'').$path;}

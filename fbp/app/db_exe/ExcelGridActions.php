@@ -13,7 +13,6 @@ trait ExcelGridActions {
     private function excelConfig(Controller $ctl): array {
         $cfg=ExcelGrid::config($ctl,$this->table_name);
         if ($cfg) return $cfg;
-        ExcelDefinitionGuard::assertEditable($ctl->dirs->datadir);
         $columns=[];
         foreach ($ctl->get_field_list($this->table_name) as $f) {
             $name=$f['parameter_name'];
@@ -25,6 +24,8 @@ trait ExcelGridActions {
             $options=$f['type']==='dropdown' ? $ctl->get_constant_array($f['constant_array_name'] ?? '',false) : [];
             $columns[$name]=ExcelGrid::column($name,['title'=>$f['parameter_title'],'type'=>$f['type'],'length'=>(int)$f['length'],'generated'=>true,'options'=>$options]);
         }
+        // Legacy configuration can be rendered without creating production definitions.
+        if (!ExcelDefinitionGuard::isDeveloper($ctl->dirs->datadir)) return ['columns'=>$columns,'revision'=>0];
         return ExcelGrid::saveConfig($ctl,$this->table_name,$columns);
     }
     private function excelReopen(Controller $ctl): void {
@@ -147,6 +148,7 @@ trait ExcelGridActions {
             $additionals=$ctl->db('additionals','db_additionals')->select(['tb_name','place'],[$this->table_name,0],true,'AND','sort',SORT_DESC);
             $this->add_show_button_class($ctl,$additionals);
             $ctl->assign('excel_admin_controls',$ctl->is_app_admin());
+            $ctl->assign('excel_definition_editable',ExcelDefinitionGuard::isDeveloper($ctl->dirs->datadir));
             $ctl->assign('note_feature_add_allowed',$ctl->is_app_admin() || $ctl->has_developer_permission());
             $ctl->assign('additionals',$additionals); $ctl->assign('excel_fields',$fields); $ctl->assign('excel_rows',$rows);
             $ctl->assign('excel_columns',$cfg['columns'] ?: []);

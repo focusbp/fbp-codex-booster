@@ -87,11 +87,11 @@ description: Manage the FBP DB lifecycle, schema and screen reflection, and appl
 - `force_testmode=1` でもExcel風ノートの作成、標準画面→Excel風／Excel風→標準画面、列名・型・選択肢・式・丸め・列幅・列順・未生成列の入力を変更できる。開発パネルの手動操作とCodexのweb側CLIを同じ通常作業として扱い、定義変更のためにモードを切り替えたり、例外承認を求めたりしない。
 - 標準画面の非Excel項目をExcel列へ移行する場合、画面パターン変更だけでは項目名や値の対応付けは変わらない。必要なA〜AZ列への対応と、既存データを保持する移行を実装・検証する。
 - Excel列の正本はその実行環境の `excel_grid/settings`。通常のdb_fieldsやfmtへ二重登録せず、既存のExcel画面・APIで変更する。型・式・選択肢・既存データの検証、ノート権限とDSPは維持する。
-- 本番からの同期は本番→テスト。開発側で変更した列定義・列順・画面パターンを本番定義で上書きする。ID／名前の衝突、取得失敗、不正な定義、既存データとの不整合は検出して停止する。
+- 本番→テストの自動同期は廃止。ノート追加・構成変更はプロジェクトサポートのタスクで受け、開発環境で実装・検証する。本番の定義を参照して差分を確認できるが、実装開始時・追加前・リリース前に自動取込みしない。
 - 定義を含むリリースはテスト→本番。テスト側で整えたdb・画面項目・Excel列定義・生成形式を反映し、リリース直前の本番取り込みで修正を消さない。定義を配布しない設定なら本番の定義を保持する。業務レコード・OAuth・連携認証情報・計算状態は配布しない。
-- Developer Modeのメニュー＋とExcel→標準の変換は開発環境だけで完結し、本番向けの同期予約タスクを作らない。Production Modeの受付・同期経路は維持する。
+- Developer Modeのメニュー＋とExcel→標準の変換は開発環境だけで完結し、本番向けの同期予約タスクを作らない。Production Modeの追加は拒否し、構成変更は新規サポートタスクへ送る。列設定・列順・列幅の直接変更も開発環境だけに限定する。
 - セッションだけの検索＋一覧プレビューも利用できる。`excel_preview_set`／`excel_preview_reset` を同じsession_id・windowcodeで使い、定義を変えず表示を確認する用途に限定する。実際の画面パターン変更を禁止する理由にはしない。
-- 本番の基本定義・列設定の取得／取り込みは環境の専用スクリプトと `excel_note_import`／`excel_settings_import`／`excel_standard_import`／`excel_conversion_import` を使う。任意の取得JSONの改変や手動でのノートID付替えは行わない。
+- 本番の基本定義・列設定は調査用に取得できる。タスクで明示的な差分移行が必要な場合だけ、検証済みスナップショットを `excel_note_import`／`excel_settings_import`／`excel_standard_import`／`excel_conversion_import` を使う。任意の取得JSONの改変や手動でのノートID付替えは行わない。
 
 ## state field policy
 - `enabled` / `is_active` / `active` / `有効` などの有効状態項目は、数値テキスト入力ではなく dropdown または checkbox として扱える型・定数にする。

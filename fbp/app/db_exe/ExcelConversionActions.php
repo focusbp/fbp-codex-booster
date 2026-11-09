@@ -1,5 +1,4 @@
 <?php
-require_once __DIR__.'/../../lib/NoteSyncClient.php';
 
 trait ExcelConversionActions {
     private function conversionSession(): string { return 'excel_conversion_'.$this->db_setting_id; }
@@ -20,6 +19,10 @@ trait ExcelConversionActions {
     }
     function excel_convert(Controller $ctl) {
         try {
+            if (!ExcelDefinitionGuard::isDeveloper($ctl->dirs->datadir)) {
+                $ctl->invoke('structure',['db_id'=>$this->db_setting_id],'note_features');
+                return;
+            }
             if (!$this->conversionAllowed($ctl) || !$this->excelReady($ctl)) return;
             $config=$this->excelConfig($ctl);$old=$ctl->get_session($this->conversionSession());
             if ($old && (int)$config['revision']===(int)$old['revision']) { $old['time']=time();$this->conversionRender($ctl,$old);return; }
@@ -69,13 +72,11 @@ trait ExcelConversionActions {
             $config=ExcelGrid::config($ctl,$this->table_name);
             if (empty($flow['pending']) && (int)$config['revision']!==$flow['revision']) throw new RuntimeException('列設定が変更されました。変換リンクから項目を選び直してください。');
             $flow['pending']=true;$ctl->set_session($this->conversionSession(),$flow);
-            $local=ExcelDefinitionGuard::isDeveloper($ctl->dirs->datadir);
-            if ($local) ExcelStandardLayout::apply($ctl,(int)$this->db_setting_id,$flow['name'],$flow['screens'],$flow['revision'],$flow['key']);
-            else (new NoteSyncClient($ctl))->convert((int)$this->db_setting_id,$flow['name'],$flow['screens'],$flow['revision'],$flow['key']);
+            ExcelStandardLayout::apply($ctl,(int)$this->db_setting_id,$flow['name'],$flow['screens'],$flow['revision'],$flow['key']);
             $ctl->set_session($this->conversionSession(),null);
             $ctl->close_multi_dialog('excel-conversion');
             $ctl->invoke('page',['db_id'=>$this->db_setting_id],'db_exe');
-            $ctl->show_notification_text($local?'開発環境でデータベース形式に変換しました。':'データベース形式に変換しました。テスト環境への同期を受け付けました。');
+            $ctl->show_notification_text('開発環境でデータベース形式に変換しました。');
         } catch (Throwable $e) { $ctl->res_error_message('conversion_error',$e->getMessage()); }
     }
 }

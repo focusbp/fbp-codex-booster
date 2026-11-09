@@ -45,7 +45,7 @@ Developer Modeでも、web側CLIの `db_tables_add`／`db_tables_edit` でExcel�
 
 表示だけ検証する場合は `excel_preview_set --json='{"tb_name":"example","session_id":"ExcelCheck","windowcode":"ExcelCheck"}'` を使い、同じsession_id・windowcodeのapp_callへ引き継ぐ。`excel_preview_reset` でExcel風へ戻せる。
 
-本番同期は本番→テストへ定義を上書きする。定義を含むリリースはテスト→本番であり、修正したテスト定義を反映する。専用取り込みコマンドの検証とHTTP／汎用app_callからの取込み拒否は維持する。
+本番→テストの自動同期は廃止。ノート追加CLIは本番定義を取り込まない。差分移行はサポートタスクで明示された範囲だけ扱う。定義を含むリリースはテスト→本番であり、修正したテスト定義を反映する。専用取り込みコマンドの検証とHTTP／汎用app_callからの取込み拒否は維持する。
 
 ## bulk execution safety
 - 長い複合コマンドを `bash -lc '...'` に多重クォートして実行しない（特に `php -r` / ヒアドキュメント混在を禁止）。

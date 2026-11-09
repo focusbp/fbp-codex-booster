@@ -32,6 +32,15 @@ class note_features {
     private function pending(Controller $ctl,array $note):array {
         $p=$ctl->get_session('note_feature_request');$token=$ctl->POST('token');if(!is_array($p)||!is_string($token)||!hash_equals($p['token'],$token)||$p['expires']<time()||$p['note_id']!==$note['id'])throw new RuntimeException('依頼画面を開き直してください。');return $p;
     }
+    function structure(Controller $ctl):void {
+        try {
+            $note=$this->context($ctl);$token=bin2hex(random_bytes(24));
+            $ctl->set_session('note_feature_request',['token'=>$token,'request_key'=>bin2hex(random_bytes(24)),'expires'=>time()+3600,'note_id'=>$note['id'],'fingerprint'=>$this->fingerprint($note)]);
+            $ctl->assign('note',$note);$ctl->assign('token',$token);$ctl->assign('feature',NoteFeatureCatalog::get('other'));$ctl->assign('missing',[]);
+            $ctl->assign('default_request','「'.$note['title'].'」のノート構成を変更してください。'."\n\n".'変更したい項目・列順・表示形式など：'."\n");
+            $ctl->show_multi_dialog('note-feature-picker','editor.tpl','ノートの構成変更を依頼する',760);
+        } catch(Throwable $e) {$ctl->show_notification_text($e->getMessage());}
+    }
     function page(Controller $ctl):void {
         try{$note=$this->context($ctl);$token=bin2hex(random_bytes(24));$ctl->set_session('note_feature_request',['token'=>$token,'request_key'=>bin2hex(random_bytes(24)),'expires'=>time()+3600,'note_id'=>$note['id'],'fingerprint'=>$this->fingerprint($note)]);$ctl->assign('note',$note);$ctl->assign('token',$token);$ctl->assign('features',NoteFeatureCatalog::all());$ctl->show_multi_dialog('note-feature-picker','picker.tpl','機能を追加する',680);}
         catch(Throwable $e){$ctl->show_notification_text($e->getMessage());}
@@ -46,14 +55,14 @@ class note_features {
     }
     protected function sendRequest(Controller $ctl,array $payload):array {return (new NoteFeatureRequestClient($ctl))->submit($payload);}
     function submit(Controller $ctl):void {
-        try{$note=$this->context($ctl);$p=$this->pending($ctl,$note);$feature=NoteFeatureCatalog::get((string)$ctl->POST('feature_id'));if($p['fingerprint']!==$this->fingerprint($note))throw new RuntimeException('ノートの項目が変わりました。依頼画面を開き直してください。');$missing=$this->requirements($ctl,$feature);if($missing)throw new RuntimeException('先にシステム設定を完了してください：'.implode('、',$missing));
+        try{$note=$this->context($ctl);$p=$this->pending($ctl,$note);$feature=NoteFeatureCatalog::get((string)$ctl->POST('feature_id'));if($p['fingerprint']!==$this->fingerprint($note))throw new RuntimeException('ノートの項目が変わりました。依頼画面を開き直してください。');
             try{$options=NoteFeatureCatalog::options($feature,['product_name'=>$ctl->POST('product_name'),'price_tax_included'=>$ctl->POST('price_tax_included')]);}catch(InvalidArgumentException $e){$ctl->res_error_message('options',$e->getMessage());return;}
             $text=$ctl->POST('request_text');if(!is_string($text)||trim($text)===''||strlen($text)>6000){$ctl->res_error_message('request_text','依頼内容を6,000バイト以内で入力してください。');return;}
             if($feature['id']==='other'&&trim($text)===trim(NoteFeatureCatalog::draft($feature,$note['title'],[]))){$ctl->res_error_message('request_text','追加したい機能を入力してください。');return;}
             $app=(string)$ctl->get_appcode();if(!str_starts_with($app,'app-'))$app='app-'.$app;if(!preg_match('/^app-[A-Za-z0-9][A-Za-z0-9_-]*$/D',$app))throw new RuntimeException('対象プロジェクトを確認してください。');
             $payload=['schema_version'=>1,'request_key'=>$p['request_key'],'appcode'=>$app,'feature_id'=>$feature['id'],'note'=>$note,'options'=>$options,'request_text'=>trim($text),'code_change_allowed'=>true,'production_release_allowed'=>true,'requested_by'=>['user_id'=>(int)$ctl->get_login_user_id(),'login_id'=>(string)$ctl->get_login_id(),'is_app_admin'=>$ctl->is_app_admin(),'has_developer_permission'=>$ctl->has_developer_permission()]];
             $digest=hash('sha256',json_encode($payload,JSON_UNESCAPED_UNICODE));if(isset($p['digest'])&&!hash_equals($p['digest'],$digest))throw new RuntimeException('受付状況を確認中の依頼は内容を変更できません。同じ内容で再試行してください。');$p['digest']=$digest;$ctl->set_session('note_feature_request',$p);
-            $result=$p['result']??$this->sendRequest($ctl,$payload);$p['result']=$result;$ctl->set_session('note_feature_request',$p);$ctl->assign('share_url',ProjectSupportSsoClient::featureLink($ctl,$result));$ctl->assign('share_url_help','AIに実装を依頼しました。進捗は下記からご覧ください。');$ctl->assign('share_url_open_label','プロジェクトサポートで進捗を見る');$ctl->show_multi_dialog('note-feature-picker','result.tpl','実装を依頼しました',680);
+            $result=$p['result']??$this->sendRequest($ctl,$payload);$p['result']=$result;$ctl->set_session('note_feature_request',$p);$ctl->assign('share_url',ProjectSupportSsoClient::featureLink($ctl,$result));$ctl->assign('share_url_help','プロジェクトサポートにタスクを登録しました。');$ctl->assign('share_url_open_label','プロジェクトサポートで進捗を見る');$ctl->show_multi_dialog('note-feature-picker','result.tpl','依頼を登録しました',680);
         }catch(Throwable $e){$ctl->res_error_message('request',$e->getMessage());}
     }
 }

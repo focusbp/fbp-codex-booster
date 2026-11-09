@@ -97,7 +97,7 @@
 						</tr>
                         <tr>
                             <td>Excel風ノートの追加</td>
-                            <td>{html_options name="spreadsheet_note_add_disabled" options=$arr_onoff selected=$spreadsheet_note_add_disabled}<br><small>共通のノート定義を複数プロジェクトへ配布する場合はOffにしてください。</small></td>
+                            <td>{html_options name="spreadsheet_note_add_disabled" options=$arr_onoff selected=$spreadsheet_note_add_disabled}<br><small>Developer Modeでのノート追加を設定します。本番の追加はプロジェクトサポートへ依頼してください。</small></td>
                         </tr>
 						<tr>
 							<td>{t key="setting.developer_panel"}</td>

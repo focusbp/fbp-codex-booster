@@ -57,11 +57,11 @@ final class ExcelDefinitionGuard {
     public static function assertNoteCreationAllowed(Controller $ctl): void {
         if (!$ctl->is_app_admin() && !$ctl->has_developer_permission()) throw new RuntimeException('ノートの追加には管理者または開発権限が必要です。');
         $setting = $ctl->db('setting', 'setting')->get(1) ?: [];
+        if (!self::isDeveloper($ctl->dirs->datadir)) throw new ExcelDefinitionReadOnly('本番のノート追加はプロジェクトサポートへ依頼してください。');
         if (!self::noteCreationEnabled($setting)) throw new RuntimeException('Excel風ノートの追加はシステム設定で無効になっています。');
     }
     public static function assertEditable(string $dataRoot): void {
-        // Both runtime modes permit local definition edits. Keep invalid-mode detection.
-        self::isDeveloper($dataRoot);
+        if (!self::isDeveloper($dataRoot)) throw new ExcelDefinitionReadOnly('ノートの構成変更はプロジェクトサポートへ依頼してください。');
     }
     /** Compatibility hook: ordinary FFM authorization still applies in both modes. */
     public static function write(string $table, string $directory, callable $callback): mixed {

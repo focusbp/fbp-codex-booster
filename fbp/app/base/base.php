@@ -209,7 +209,6 @@ class base {
 			if (!is_string($name) || trim($name) === '') throw new RuntimeException('メニュー名を入力してください。');
 			$name = trim($name);
 			if (strlen($name) > 255) throw new RuntimeException('メニュー名は255バイト以内で入力してください。');
-			require_once __DIR__ . '/../../lib/NoteSyncClient.php';
             $ctl->set_session('spreadsheet_note_ticket',array_replace($ticket,['pending'=>true]));
 			if (ExcelDefinitionGuard::isDeveloper($ctl->dirs->datadir)) {
                 require_once __DIR__.'/../db/db.php';
@@ -218,13 +217,12 @@ class base {
                 if ($note && !ExcelGrid::isSpreadsheet($note)) throw new RuntimeException('同じ内部名に別のノートが存在します。');
                 if (!$note) $note=$schema->create_spreadsheet_note($ctl,$name,$internal);
                 if (!ExcelGrid::config($ctl,$internal)) ExcelGrid::saveConfig($ctl,$internal,[]);
-                $note['_note_sync_state']='local';
-            } else $note=(new NoteSyncClient($ctl))->create($name, $ticket['token']);
+
+            }
 			$ctl->set_session('spreadsheet_note_ticket', null);
 			$ctl->close_multi_dialog('spreadsheet-note');
 			$ctl->reload_menu();
-			$state=$note['_note_sync_state']??'';
-            $ctl->show_notification_text($state==='local'?'開発環境にノートを追加しました。':($state==='done'?'ノートの追加・同期が完了しました。':'ノートを追加しました。開発環境へ同期中です。'));
+			$ctl->show_notification_text('開発環境にノートを追加しました。');
 		} catch (Throwable $e) {
 			$ctl->res_error_message('menu_name', $e->getMessage());
 		}
@@ -281,7 +279,7 @@ class base {
 		
 		$setting = $ctl->get_setting();
         $noteSetting = $ctl->db('setting', 'setting')->get(1) ?: [];
-        $ctl->assign('spreadsheet_note_add_allowed', ($ctl->is_app_admin() || $ctl->has_developer_permission()) && ExcelDefinitionGuard::noteCreationEnabled($noteSetting));
+        $ctl->assign('spreadsheet_note_add_allowed', ($ctl->is_app_admin() || $ctl->has_developer_permission()) && ExcelDefinitionGuard::isDeveloper($ctl->dirs->datadir) && ExcelDefinitionGuard::noteCreationEnabled($noteSetting));
 		$project_portal_url = $this->normalize_external_url($setting["project_portal_url"] ?? "");
 		$homepage_url = $this->normalize_external_url($setting["website_url"] ?? "");
 		$show_homepage_menu = ((int) ($setting["show_menu_homepage"] ?? 0) === 1 && $homepage_url !== "");
