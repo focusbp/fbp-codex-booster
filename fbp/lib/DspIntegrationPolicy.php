@@ -22,7 +22,7 @@ final class DspIntegrationPolicy implements DspInterface {
         if ($ctl === null || !self::trusted($ctl, $channel)) return null;
         $target = $class.'/'.$table;
         $targets = $ctl->get_classname() === 'project_integration_api'
-            ? ['project_integration/items', 'common/project', 'common/sftp', 'common/task', 'common/task_history']
+            ? ['project_integration/items', 'project_integration/entries', 'project_integration/queue', 'common/project', 'common/sftp', 'common/task', 'common/task_history']
             : ['setting/setting', 'external_keys/external_keys', 'integration_settings/receipts'];
         return in_array($target, $targets, true) ? new self($ctl, $channel, $target) : null;
     }
@@ -36,19 +36,23 @@ final class DspIntegrationPolicy implements DspInterface {
     public function inspectRead(array $row): DspReadDecision { $this->check(); return new DspReadDecision(true, null); }
     public function authorizeInsert(array $newRow): void {
         $this->check();
-        if (!in_array($this->target, ['project_integration/items', 'integration_settings/receipts', 'external_keys/external_keys', 'common/task_history'], true)) $this->deny('insert_not_allowed');
+        if (!in_array($this->target, ['project_integration/items', 'project_integration/entries', 'project_integration/queue', 'integration_settings/receipts', 'external_keys/external_keys', 'common/task_history'], true)) $this->deny('insert_not_allowed');
+        if ($this->target === 'project_integration/queue') $this->checkQueue($newRow);
+        if ($this->target === 'common/task_history' && $this->isComment($newRow)
+            && (int)($newRow['role']??0)===3) return;
         if ($this->target === 'common/task_history' && ((int)($newRow['role'] ?? 0) !== 1
             || !str_starts_with($newRow['message'] ?? '', '[INTEGRATION_SAVED request='))) $this->deny('history_not_integration');
     }
     public function authorizeUpdate(array $before, array $after, array $submittedFields): void {
         $this->check();
         $allowed = match ($this->target) {
-            'project_integration/items' => ['key', 'part', 'document'],
+            'project_integration/items', 'project_integration/entries' => ['key', 'part', 'document'],
+            'project_integration/queue' => ['task_id','history_id','operation','state','batch','claimed_at'],
             'external_keys/external_keys' => ['key', 'title', 'value'],
             'common/project' => ['unfinished_task_count'],
-            'common/task' => ['status', 'last_comment_at', 'auto_status_review_history_id', 'auto_status_review_action',
+            'common/task' => ['status', 'auto_action_status', 'last_comment_at', 'auto_status_review_history_id', 'auto_status_review_action',
                 'auto_status_review_reason', 'auto_status_reviewed_at', 'auto_status_review_version'],
-            'common/task_history' => ['message'],
+            'common/task_history' => ['message','metadata'],
             'setting/setting' => self::settingFields(),
             default => [],
         };
@@ -56,11 +60,31 @@ final class DspIntegrationPolicy implements DspInterface {
             // Existing callers submit complete rows; unchanged fields are not writes.
             if (($before[$field] ?? null) !== ($after[$field] ?? null) && !in_array($field, $allowed, true)) $this->deny('field_not_allowed');
         }
-        if ($this->target === 'common/task' && (int)($before['status'] ?? 0) !== (int)($after['status'] ?? 0)
-            && !((int)($before['status'] ?? 0) === 3 && (int)($after['status'] ?? 0) === 0)) $this->deny('invalid_resume_status');
+        if ($this->target === 'project_integration/queue') $this->checkQueue($after);
+        if ($this->target === 'common/task') {
+            if ((int)($before['status'] ?? 0) !== (int)($after['status'] ?? 0)
+                && !(in_array((int)($before['status']??0),[0,3],true)&&in_array((int)($after['status']??0),[0,3],true))) $this->deny('invalid_resume_status');
+            if (($before['auto_action_status']??null)!==($after['auto_action_status']??null)
+                && (!in_array((int)($after['auto_action_status']??-1),[0,1],true)||!in_array((int)($before['status']??-1),[0,3],true))) $this->deny('invalid_claim_status');
+        }
+        if ($this->target === 'common/task_history' && ($before['message']??'')===($after['message']??'')
+            && in_array((int)($before['role']??0),[1,3],true)&&$this->isComment($after)) return;
         if ($this->target === 'common/task_history' && ((int)($before['role'] ?? 0) !== 1
             || !str_starts_with($before['message'] ?? '', '[INTEGRATION_SUBMITTED request=')
             || !str_starts_with($after['message'] ?? '', '[INTEGRATION_SAVED request='))) $this->deny('history_not_integration');
+    }
+    private function isComment(array $row): bool {
+        $text=$row['metadata']??'';
+        if (!is_string($text)||strlen($text)>4000||!str_starts_with($text,'INTEGRATION: ')) return false;
+        $meta=json_decode(substr($text,strlen('INTEGRATION: ')),true);
+        return is_array($meta)&&in_array($meta['kind']??'', ['integration_settings','integration_prepare','integration_apply'],true)
+            && in_array($meta['state']??'', ['preparing','pending','done','failed','migrated'],true);
+    }
+    private function checkQueue(array $row): void {
+        if ((int)($row['task_id']??0)<1||(int)($row['history_id']??0)<1
+            ||!in_array($row['operation']??'', ['prepare','apply'],true)
+            ||!in_array($row['state']??'', ['pending','running','done','failed'],true)
+            ||!preg_match('/^(?:[a-f0-9]{32})?$/D',(string)($row['batch']??''))) $this->deny('invalid_comment_job');
     }
     private static function settingFields(): array {
         require_once __DIR__.'/IntegrationSettings.php';
@@ -70,6 +94,6 @@ final class DspIntegrationPolicy implements DspInterface {
     }
     public function authorizeDelete(array $before): void {
         $this->check();
-        if ($this->target !== 'project_integration/items') $this->deny('delete_not_allowed');
+        if (!in_array($this->target,['project_integration/items','project_integration/entries'],true)) $this->deny('delete_not_allowed');
     }
 }
