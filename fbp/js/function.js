@@ -5,6 +5,49 @@
 //------------------------------------
 
 // 自動翻訳を停止
+// Management tokens stay out of URLs, cookies and appcon's debug payload.
+window.FBPManagementCsrf = (() => {
+	function tokenFor(url) {
+		const meta = document.querySelector('meta[name="fbp-management-csrf"]');
+		if (!meta || !/^[a-f0-9]{64}$/.test(meta.content)) return '';
+		try {
+			const root = new URL(meta.dataset.root, location.href);
+			const target = new URL(url || location.href, document.baseURI);
+			const prefix = root.pathname.replace(/\/$/, '') + '/';
+			if (target.origin !== location.origin || root.origin !== location.origin
+				|| !(target.pathname === prefix.slice(0, -1) || target.pathname.startsWith(prefix))) return '';
+			return meta.content;
+		} catch (_) { return ''; }
+	}
+	function addToFormData(url, data) {
+		const token = tokenFor(url);
+		if (token) data.set('_fbp_csrf', token);
+		else data.delete('_fbp_csrf');
+	}
+	function prepareForm(form, submitter) {
+		const method = (submitter?.getAttribute('formmethod') || form.method || 'GET').toUpperCase();
+		const token = tokenFor(submitter?.getAttribute('formaction') || form.action);
+		if (['GET', 'HEAD'].includes(method) || !token) {
+			form.querySelectorAll('input[name="_fbp_csrf"]').forEach(input => input.remove());
+			return;
+		}
+		let input = form.querySelector('input[name="_fbp_csrf"]');
+		if (!input) {
+			input = document.createElement('input'); input.type = 'hidden'; input.name = '_fbp_csrf';
+			form.appendChild(input);
+		}
+		input.value = token;
+	}
+	$.ajaxPrefilter((options, originalOptions, xhr) => {
+		if (!['GET', 'HEAD', 'OPTIONS'].includes((options.type || 'GET').toUpperCase())) {
+			const token = tokenFor(options.url);
+			if (token) xhr.setRequestHeader('X-FBP-CSRF-Token', token);
+		}
+	});
+	document.addEventListener('submit', event => prepareForm(event.target, event.submitter), true);
+	return {tokenFor, addToFormData, prepareForm};
+})();
+
 // Small bridge only: the engine is imported once, when the first canvas3d response arrives.
 window.FBP3DCanvas = (() => {
 	const script = document.currentScript;
@@ -2230,7 +2273,7 @@ function appcon_execute(url, fd, nextfunction, isCurrentResponse) {
 	fd.forEach((value, key) => {
 		if (key === "class" || key === "function")
 			return;
-		debugarr[key] = key === "external_key_secret" ? "[masked]" : value;
+		debugarr[key] = key === "external_key_secret" || key === "_fbp_csrf" ? "[masked]" : value;
 	});
 	append_debug_window("POST ----> Server", debugarr, "table");
 
@@ -2954,6 +2997,11 @@ function appcon_execute(url, fd, nextfunction, isCurrentResponse) {
 		waitTimer = null;
 		$("#download_view").hide();
 		$('#download_progress').css({'width': '0%'});
+		if ($xhr.getResponseHeader('X-FBP-CSRF-Error') === '1') {
+			notification('', '画面を開き直してから、もう一度操作してください。', 800, 5);
+			dfd.resolve();
+			return;
+		}
 
 		var data = $xhr.responseText;
 		var statusLine = "AJAX request failed";
@@ -3613,6 +3661,7 @@ $("body").on("click", ".download-link", function (e) {
 //--------------------------------------------
 function modal_download(url, fd, fileName, open_new_tab = false) { // CHANGE: 引数追加
 
+	window.FBPManagementCsrf.addToFormData(url, fd);
 	var xhr = new XMLHttpRequest();
 	xhr.open("POST", url, true);
 
@@ -3783,6 +3832,7 @@ function submit_download_in_new_tab(url, fd) {
 	if (!(fd instanceof FormData)) {
 		return false;
 	}
+	window.FBPManagementCsrf.addToFormData(url, fd);
 
 	var tempForm = document.createElement("form");
 	tempForm.method = "POST";

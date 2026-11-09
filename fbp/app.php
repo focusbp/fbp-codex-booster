@@ -42,6 +42,7 @@ if (isset($_REQUEST[session_name()])) {
 
 // Session Start
 session_start();
+require_once __DIR__ . '/lib/ManagementCsrf.php';
 require_once __DIR__ . '/lib/WindowSession.php';
 // Trim existing state before loading the application libraries. Keep the tab-copy
 // source until its data has been inherited below.
@@ -167,7 +168,7 @@ function fbp_store_pending_auto_load_main_area(Controller $ctl): void {
 	}
 	$parameters = [];
 	foreach ($_POST as $key => $val) {
-		if (in_array($key, ["class", "function", "cmd", "_call_from", "_dialog_id", "_chatid", "_restore_after_login", "multi_dialog_zindex"], true)) {
+		if (in_array($key, ["class", "function", "cmd", "_call_from", "_dialog_id", "_chatid", "_restore_after_login", "multi_dialog_zindex", "_fbp_csrf"], true)) {
 			continue;
 		}
 		$parameters[$key] = $val;
@@ -453,6 +454,11 @@ try{
 	}
 	if(!empty($display_html)){
 		$ctl->set_session("_DISPLAY",null);
+		$frame_options = $ctl->get_session('_DISPLAY_FRAME_OPTIONS');
+		$ctl->set_session('_DISPLAY_FRAME_OPTIONS', null);
+		if (in_array($frame_options, ['DENY', 'SAMEORIGIN'], true)) {
+			header('X-Frame-Options: ' . $frame_options);
+		}
 		echo $display_html;
 		exit;
 	}
@@ -495,6 +501,24 @@ try{
 			respond_not_found();
 		}
 		exit;
+	}
+
+	// Protect management pages and the standard administrator login. Preserve DENY.
+	$standard_login = $class === 'login'
+		&& realpath($dir->get_class_dir('login')) === realpath($dir->appdir_fw . '/login');
+	if (ManagementCsrf::isManagement($ctl, (string) $class, (string) $function) || $standard_login) {
+		$frame_options = 'SAMEORIGIN';
+		foreach (headers_list() as $response_header) {
+			if (preg_match('/^X-Frame-Options:\s*DENY\s*$/i', $response_header)) $frame_options = 'DENY';
+		}
+		header('X-Frame-Options: ' . $frame_options);
+	}
+
+	// Public/API/webhook/cron routes retain their own authentication contracts.
+	ManagementCsrf::enforce($ctl, (string) $class, (string) $function, $appobj);
+	if (ManagementCsrf::isManagement($ctl, (string) $class, (string) $function)) {
+		$ctl->assign('fbp_management_csrf', ManagementCsrf::token($dir->datadir));
+		$ctl->assign('fbp_management_csrf_root', $ctl->get_APP_URL());
 	}
 
 	//init関数を実行（過去互換）
@@ -712,7 +736,7 @@ function report_bootstrap_error(Throwable $e, $class, $function) {
 		"file_path" => (string) $e->getFile(),
 		"line_no" => (int) $e->getLine(),
 		"trace_text" => (string) $e->getTraceAsString(),
-		"post" => $_POST,
+		"post" => array_diff_key($_POST, ['_fbp_csrf' => true]),
 		"get" => $_GET,
 		"session_user_id" => "",
 		"session_login_id" => "",

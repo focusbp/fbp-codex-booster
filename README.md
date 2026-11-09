@@ -168,21 +168,22 @@ When extending the sample, update its assets, manifest, reference, installer,
 browser verification and this Make Samples prompt; keep it independent of live apps.
 ```
 
-### Admin PDF Download
+### Admin PDF Preview
 
 ```text
 Use fbp-app-samples and fbp-pdf to create the Admin PDF Delivery sample.
 Read references/admin-pdf-delivery.md and copy the bundled admin-pdf-delivery
 assets using install_admin_pdf_delivery.php into a clean app source.
-Keep the management download-dialog pattern: POST via download-link,
-create_pdfmaker() object construction, then download_pdf(). Use fictional data
+Keep the management dialog pattern: authenticated GET links/forms with
+target="_blank", create_pdfmaker() object construction, then get_pdf_data()
+with an inline PDF response. Save through the PDF viewer. Use fictional data
 only, preserve management login, and remove customer-specific rules and secrets.
-Keep single, bulk and selected-document downloads together with HTML errors.
+Keep single, bulk and selected-document previews together with HTML errors.
 When extending the sample, update its assets, manifest, reference, installer,
 browser verifier and this prompt; do not depend on a live customer app.
 Verify PHP lint, manifest parsing, install/overwrite refusal and CLI dialog
 response, then run verify_admin_pdf_delivery.cjs on desktop/mobile widths.
-Check real downloads, filenames, parsed contents/page counts, empty/invalid
+Check separate-tab previews and real viewer saves, filenames, parsed contents/page counts, empty/invalid
 selection and denial in another session. Never disable login for testing.
 ```
 

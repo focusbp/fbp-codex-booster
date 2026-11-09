@@ -37,6 +37,7 @@
 	$("body").attr("data-classname","{$class}");
 </script>
 
+{include file="{$base_template_dir}/__management_csrf.tpl"}
 <script src="js/function.js?{$timestamp}"></script>
 
 <script src="appjs.php?class={$class}&{$timestamp}"></script>

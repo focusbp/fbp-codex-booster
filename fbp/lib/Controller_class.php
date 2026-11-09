@@ -551,6 +551,12 @@ class Controller_class implements Controller {
 		if ($this->POST("_call_from") == "appcon") {
 			$html = $this->smarty->fetch($template);
 			$this->set_session("_DISPLAY", $html);
+			$this->set_session('_DISPLAY_FRAME_OPTIONS', null);
+			foreach (headers_list() as $response_header) {
+				if (preg_match('/^X-Frame-Options:\s*(DENY|SAMEORIGIN)\s*$/i', $response_header, $matches)) {
+					$this->set_session('_DISPLAY_FRAME_OPTIONS', strtoupper($matches[1]));
+				}
+			}
 			if ($this->class === "public_pages") {
 				$_SESSION["_PUBLIC_DISPLAY"] = $html;
 			}
@@ -694,7 +700,7 @@ class Controller_class implements Controller {
 	function set_called_parameters() {
 		$this->called_parameters = [];
 		foreach ($_POST as $key => $val) {
-			if ($key == "class" || $key == "function" || $key == "external_key_secret") {
+			if ($key == "class" || $key == "function" || $key == "external_key_secret" || $key == "_fbp_csrf") {
 				//
 			} else {
 				$this->called_parameters[$key] = $val;
@@ -1411,11 +1417,17 @@ class Controller_class implements Controller {
 	}
 
 	function res_saved_file($filename, $download_name = null) {
-		//エラーを非表示
-		//error_reporting(~E_ALL);
-
-		$filepath = $this->dirs->datadir . "/upload/$filename";
-		if (!is_file($filepath) || !is_readable($filepath)) {
+		// Resolve symlinks as well as traversal, and require a directory boundary.
+		$filename = (string) $filename;
+		$base_dir = realpath($this->dirs->datadir . '/upload');
+		$filepath = false;
+		if ($base_dir !== false && $filename !== ''
+			&& strpos($filename, "\0") === false && strpos($filename, '\\') === false
+			&& $filename[0] !== '/' && !preg_match('#(^|/)\.\.(/|$)#', $filename)) {
+			$filepath = realpath($base_dir . '/' . $filename);
+		}
+		if ($filepath === false || strpos($filepath, $base_dir . DIRECTORY_SEPARATOR) !== 0
+			|| !is_file($filepath) || !is_readable($filepath)) {
 			$this->respond_download_error(
 				$this->t("common.download_error_title"),
 				$this->t("common.download_file_not_found")
@@ -2280,7 +2292,7 @@ class Controller_class implements Controller {
 			return "[depth_limit]";
 		}
 		$key_lower = strtolower((string) $key);
-		$mask_words = ["password", "passwd", "pwd", "secret", "token", "api_key", "api_secret", "authorization"];
+		$mask_words = ["password", "passwd", "pwd", "secret", "token", "csrf", "api_key", "api_secret", "authorization"];
         if ($key_lower === 'code' && $this->get_classname() === 'login' && $this->get_called_function() === 'onetimecode') return '[masked]';
 		foreach ($mask_words as $word) {
 			if ($key_lower !== "" && strpos($key_lower, $word) !== false) {

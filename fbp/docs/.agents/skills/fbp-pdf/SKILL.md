@@ -15,8 +15,8 @@ vCard入りQRの帳票には [vcard-qr](../fbp-app-samples/references/vcard-qr.m
 
 1. 出力要件・データ取得元・利用者が保存する期待ファイル名（日本語・版番号・拡張子を含む）を確定。
 2. 新規の帳票生成は管理側・公開側とも `$ctl->create_pdfmaker()` でオブジェクトを作り、`addText()` / `addTable()` 等で組み立てる。
-3. 管理側の標準は、`ajax-link` または `db_additionals` の入口 → `show_multi_dialog()` で取得条件・対象を表示 → ダイアログ内の `download-link`（`data-open_new_tab="true"`）でPOST → `$pdf->download_pdf($filename)`。このダイアログは取得操作用であり、Controllerの `show_pdf()` によるテンプレートプレビューとは別のもの。
-4. 新規または取得経路の修正では、下記「サンプル適用」を必ず実施する。公開側の直接取得はサンプルの通常GETリンク → `$pdf->download_pdf($filename)` を標準とする。管理側のPOSTは標準であり、例外理由の記録は不要。各標準から変更する場合は要件と理由を記録する。
+3. 管理側の標準は、`ajax-link` または `db_additionals` の入口 → `show_multi_dialog()` で取得条件・対象を表示 → 通常リンクまたはGETフォームの `target="_blank"` で認証付きGET → `get_pdf_data()` と `Content-Disposition: inline` で別タブ表示。保存はPDFビューアーの保存ボタンを使う。このダイアログは取得操作用であり、Controllerの `show_pdf()` によるテンプレートプレビューとは別のもの。
+4. 新規または取得経路の修正では、下記「サンプル適用」を必ず実施する。公開側の直接取得はサンプルの通常GETリンク → `$pdf->download_pdf($filename)` を標準とする。管理側は別タブ表示を既定とする。直接ダウンロードが明示要件なら `download-link` のPOST → `download_pdf()` を使える。各標準から変更する場合は要件と理由を記録する。
 5. 認証付き帳票は、本人確認・対象帳票・発行可否を表示時と取得時の両方で確認する。正常系だけでなく、サンプルの認証・異常系の検証を適用する。
 6. CLIで応答・生成内容を補助確認する。`app_call` の `ok:true`、保存先が `.pdf`、ダイアログJSONが返ることだけではPDF取得成功と判定しない。
 7. 新規のPDF表示・取得機能、表示ダイアログのデザイン、取得・認証経路を変更した場合は `fbp-playwright` に従い、実ボタンからPDF取得まで検証する。表示方式はダイアログとその後のPDF応答、直接方式はダウンロードまたは別タブのPDF応答を確認し、下記「保存ファイル名の確認」まで実施する。既存帳票の内容・計算・帳票内レイアウトだけの変更で取得経路に影響しない場合は、生成ファイルの内容・見た目を確認し、Playwrightの再実行は不要。
@@ -34,7 +34,7 @@ vCard入りQRの帳票には [vcard-qr](../fbp-app-samples/references/vcard-qr.m
 
 管理側の実装例取得は、環境に `fbp_example.sh` がある場合は `fbp_example.sh pdf-export` を横断検索より先に使う（配置は環境ルール参照）。テンプレートは `--part download-template` / `--part error-template`、説明は `--part guide`、省略は `--offset` で補う。取得済みの原文範囲は再読不要だが、下記の必要資産・認証・実ボタン検証は省略しない。公開側やツールのない環境では下記の正本を直接読む。
 
-- 管理側では **fbp-app-samples 配下**の `references/admin-pdf-delivery.md`、`assets/admin-pdf-delivery/pdf_delivery_admin/pdf_delivery_admin.php` と `Templates/download.tpl` / `error.tpl`、`scripts/verify_admin_pdf_delivery.cjs` を実際に読む。ダイアログと出力関数を一組でコピー・適応し、固定本文を業務データへ置き換え、取得時の権限確認と実ボタン検証を適用する。配置には `scripts/install_admin_pdf_delivery.php` を使える。
+- 管理側では **fbp-app-samples 配下**の `references/admin-pdf-delivery.md`、`assets/admin-pdf-delivery/pdf_delivery_admin/pdf_delivery_admin.php` と `Templates/download.tpl` / `error.tpl`、`scripts/verify_admin_pdf_delivery.cjs` を実際に読む。通常リンク・GETフォームとinline出力関数を一組でコピー・適応し、固定本文を業務データへ置き換え、取得時の権限確認と実ボタン検証を適用する。配置には `scripts/install_admin_pdf_delivery.php` を使える。
 - 公開側では同referenceに加え、`assets/pdf-delivery/public_pages/public_pages.php` と採用する方式の `.tpl`、`scripts/verify_pdf_delivery.cjs` を **fbp-app-samples 配下から実際に読む**。認証付きの場合は `pdf_delivery_access.php` と `scripts/test_pdf_delivery.php` も読む。説明の参照だけで適用済みにしない。
 - 該当方式のコードを出発点としてコピー・適応する。既存 `public_pages` 全体は上書きせず、必要な関数・テンプレートを統合する。取得方式・認証チェック・エラー応答・後片付け・検証を一組で適用する。帳票本文だけの変更には取得経路の移行を要求しない。
 - 認証付き公開帳票は `protected_page` / `protected_download` の方式を使い、本人確認とDB取得のフックを実装する。未実装フックは拒否を維持する。公開固定データ用の `download()` を私有帳票に流用して認証を省略しない。
@@ -52,8 +52,8 @@ $pdf->download_pdf('請求書.pdf'); // PDF本体を返し、応答を終了
 // $pdf->create_pdf();           // 既存互換のブラウザー内表示
 ```
 
-- 直接取得の標準は `download_pdf()`。管理ファイルの一意な名前、初回保存領域の作成、PDFヘッダー、キャッシュ抑止、成功・例外・exit時の削除は内部で処理する。アプリ側に出力バッファ・一時保存・削除処理を再実装しない。
-- `get_pdf_data()` はメール添付・複数帳票の加工等に使う。`create_pdf()` を `ob_start()` で捕捉しない。返るバイナリをAjax JSONへ混ぜない。
+- ファイルを直接ダウンロードする場合は `download_pdf()`。管理ファイルの一意な名前、初回保存領域の作成、PDFヘッダー、キャッシュ抑止、成功・例外・exit時の削除は内部で処理する。アプリ側に出力バッファ・一時保存・削除処理を再実装しない。
+- `get_pdf_data()` は別タブへのinline応答、メール添付・複数帳票の加工等に使う。`create_pdf()` を `ob_start()` で捕捉しない。返るバイナリをAjax JSONへ混ぜない。
 - 認証・発行可否の確認は呼び出し前にアプリ側で行う。`download_pdf()` は `Controller::create_pdfmaker()` で作成したオブジェクトで使い、`res_saved_file()` と同じく通常はexitする。
 - `create_pdf()` と Controllerの `show_pdf()` / `save_pdf()` は既存互換用。新規の標準には選ばない。テンプレートによる画面内プレビューが明示要件の場合は `show_pdf()` を使える。既存帳票の本文だけの修正で方式を強制移行しない。新APIを使うアプリは、対応するフレームワークを先に反映してからリリースする。
 

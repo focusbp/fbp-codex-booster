@@ -57,16 +57,30 @@ function waitDownload(context) {
           throw new Error('Admin dialog unavailable; inspect failure.html; loginForm=' + await page.locator('input[name="login_id"]').count());
         }
         const responseFor = fn => context.waitForEvent('response', {
-          predicate: r => r.request().method() === 'POST' && (r.request().postData() || '').includes('pdf_delivery_admin') && (r.request().postData() || '').includes(fn), timeout: 20000
+          predicate: r => r.request().method() === 'GET' && r.url().includes('pdf_delivery_admin') && r.url().includes(fn), timeout: 20000
         });
         let authenticatedRequest;
         async function closeTabs() { for (const tab of context.pages()) if (tab !== page) await tab.close(); }
         async function download(label, selector, ids, fn) {
           const button = page.locator(selector); const expected = await button.getAttribute('data-filename');
-          const dp = waitDownload(context); const rp = responseFor(fn); dp.catch(() => {}); rp.catch(() => {});
-          await button.click(); const [file, response] = await Promise.all([dp, rp]);
+          const pp = page.waitForEvent('popup'); const rp = responseFor(fn); pp.catch(() => {}); rp.catch(() => {});
+          await button.click(); const [popup, response] = await Promise.all([pp, rp]);
+          await popup.waitForLoadState('load');
+          let viewer;
+          const deadline = Date.now() + 10000;
+          while (Date.now() < deadline) {
+            viewer = popup.frames().find(f => f.url().startsWith('chrome-extension://'));
+            if (viewer) break;
+            await popup.waitForTimeout(100);
+          }
+          assert.ok(viewer, 'Chrome PDF viewer frame unavailable');
+          const save = viewer.locator('#save');
+          await save.waitFor({state: 'visible', timeout: 10000});
+          const dp = waitDownload(context); dp.catch(() => {});
+          await save.click();
+          const file = await dp;
           assert.equal(response.status(), 200); assert.match(response.headers()['content-type'], /^application\/pdf/);
-          assert.match(response.headers()['content-disposition'], /^attachment/); assert.match(response.headers()['cache-control'], /no-store/);
+          assert.match(response.headers()['content-disposition'], /^inline/); assert.match(response.headers()['cache-control'], /no-store/);
           assert.equal(file.suggestedFilename(), expected); assert.equal(await file.failure(), null);
           const destination = path.join(out, `${width}-${label}.pdf`); await file.saveAs(destination);
           assert.equal((await fs.readFile(destination)).subarray(0, 5).toString(), '%PDF-');
@@ -78,10 +92,10 @@ function waitDownload(context) {
             if (ids.includes(id)) { assert.ok(text.includes('サンプル利用者' + id)); assert.ok(text.includes(id === 'A' ? '4,000' : '6,000')); }
           }
           const req = response.request();
-          authenticatedRequest = {url: req.url(), headers: req.headers(), body: req.postDataBuffer()}; await closeTabs();
+          authenticatedRequest = {url: req.url(), headers: req.headers(), body: null}; await closeTabs();
         }
-        await download('single-A', '#pdf_sample_single_A button', ['A'], 'single');
-        await download('single-B', '#pdf_sample_single_B button', ['B'], 'single');
+        await download('single-A', '#pdf_sample_single_A a', ['A'], 'single');
+        await download('single-B', '#pdf_sample_single_B a', ['B'], 'single');
         await download('bulk', '#pdf_sample_bulk button', ['A', 'B'], 'bulk');
         await page.locator('#pdf_sample_bulk input[value="B"]').uncheck();
         await download('bulk-selected', '#pdf_sample_bulk button', ['A'], 'bulk');
@@ -92,13 +106,13 @@ function waitDownload(context) {
           const response = await rp; assert.equal(response.status(), 400); assert.match(response.headers()['content-type'], /^text\/html/);
           await closeTabs();
         }
-        // Same download request in another app session must not disclose a PDF.
+        // Same PDF GET request in another app session must not disclose a PDF.
         const anonymousOptions = {...options}; delete anonymousOptions.storageState;
         const anonymous = await browser.newContext(anonymousOptions);
         try {
           const headers = authenticatedRequest.headers;
           const safeHeaders = Object.fromEntries(Object.entries(headers).filter(([k]) => !k.startsWith(':') && !['cookie', 'authorization', 'content-length'].includes(k)));
-          const denied = await anonymous.request.post(authenticatedRequest.url, {headers: safeHeaders, data: authenticatedRequest.body});
+          const denied = await anonymous.request.get(authenticatedRequest.url, {headers: safeHeaders});
           assert.doesNotMatch(denied.headers()['content-type'] || '', /application\/pdf/);
           assert.notEqual((await denied.body()).subarray(0, 5).toString(), '%PDF-');
         } finally { await anonymous.close(); }

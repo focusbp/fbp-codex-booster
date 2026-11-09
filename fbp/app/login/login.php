@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__."/../passkey/PasskeyService.php";
+require_once __DIR__.'/../../lib/ManagementCsrf.php';
 
 class login {
 
@@ -525,6 +526,7 @@ class login {
         $ctl->set_session('passkey_authentication_method', $authentication);
         $ctl->set_session('onetimecode_session_expires', $codeLogin ? time()+OnetimecodeService::SESSION_TTL : null);
         PasskeyService::renewSession();
+        ManagementCsrf::forget($ctl->dirs->datadir);
         $ctl->set_session("passkey_epoch", $identity["epoch"]);
         $ctl->set_session("login", true);
 
@@ -625,6 +627,7 @@ class login {
 
 	function logout(Controller $ctl) {
         PasskeyService::clearAuth($ctl);
+        ManagementCsrf::forget($ctl->dirs->datadir);
         $ctl->res_redirect($ctl->get_APP_URL("login", "page"));
     }
 

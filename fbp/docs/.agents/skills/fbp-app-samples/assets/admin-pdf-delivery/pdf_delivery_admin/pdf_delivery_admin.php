@@ -7,22 +7,28 @@ class pdf_delivery_admin {
     ];
 
     function run(Controller $ctl) {
-        $ctl->assign('documents', self::DOCUMENTS);
+        $documents = self::DOCUMENTS;
+        foreach ($documents as $id => &$document) {
+            $document['url'] = $ctl->get_APP_URL('pdf_delivery_admin', 'single', ['document_id' => $id]);
+        }
+        unset($document);
+        $ctl->assign('documents', $documents);
+        $ctl->assign('bulk_url', $ctl->get_APP_URL('pdf_delivery_admin', 'bulk'));
         $ctl->show_multi_dialog('pdf_delivery_admin', 'download.tpl', '請求書PDFサンプル', 700);
     }
 
     function single(Controller $ctl) {
-        $id = $ctl->POST('document_id');
+        $id = $ctl->GET('document_id');
         $this->send($ctl, [$id], true);
     }
 
     function bulk(Controller $ctl) {
-        $this->send($ctl, $ctl->POST('document_ids'), false);
+        $this->send($ctl, $ctl->GET('document_ids'), false);
     }
 
     private function send(Controller $ctl, $ids, bool $single): void {
         // Adaptation: re-fetch records and authorize every requested ID here.
-        // Never accept amounts/recipients from POST or disable management login.
+        // Never accept amounts/recipients from request parameters or disable management login.
         if (!is_array($ids) || count($ids) < 1 || count($ids) > count(self::DOCUMENTS)) {
             $this->reject($ctl); return;
         }
@@ -44,13 +50,20 @@ class pdf_delivery_admin {
             $pdf->addText('発行元: サンプル株式会社');
         }
         $filename = $single ? 'サンプル請求書-' . $ids[0] . '.pdf' : 'サンプル請求書-一括.pdf';
-        $pdf->download_pdf($filename);
+        // Authenticated GET keeps the viewer's Save action and filename working.
+        // Generate bytes before sending headers; no application-owned temp files.
+        $bytes = $pdf->get_pdf_data();
+        header('Content-Type: application/pdf');
+        header("Content-Disposition: inline; filename=\"sample-invoice.pdf\"; filename*=UTF-8''" . rawurlencode($filename));
+        header('Cache-Control: private, no-store');
+        echo $bytes;
+        exit;
     }
 
     private function reject(Controller $ctl): void {
         http_response_code(400);
         header('Cache-Control: private, no-store');
-        // A download POST is a browser navigation: return HTML, not dialog JSON.
+        // A PDF GET is a browser navigation: return HTML, not dialog JSON.
         $ctl->show_public_pages('error.tpl');
     }
 }

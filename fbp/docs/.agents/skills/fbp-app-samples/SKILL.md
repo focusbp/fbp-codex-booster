@@ -36,7 +36,7 @@ When creating a new reusable sample from an existing app or feature, read `refer
   - **Status Transition** (`status-transition`): 理由付き確認、未対応→対応中→完了、状態と履歴の同時更新、古い確認・二重送信の拒否。[フロー](references/status-transition.md)・[DB](references/status-transition-db.md)。
   - **Public Intake** (`public-intake`): 未ログイン入力→確認→受付保存、管理側の一覧と対応状態編集。[フロー](references/public-intake.md)・[DB](references/public-intake-db.md)。
 
-- **Admin PDF Delivery**: 管理側の取得ダイアログ → POSTの `download-link` → `create_pdfmaker()` → `download_pdf()` の単票・一括サンプル。`references/admin-pdf-delivery.md` と `assets/admin-pdf-delivery/` の実コードを読み、コピー・適応する。`scripts/install_admin_pdf_delivery.php` で配置し、`scripts/verify_admin_pdf_delivery.cjs` で実取得・PDF内容・不正選択・別セッション拒否を検証する。固定架空データのみ、DB不要、管理ログインを維持する。
+- **Admin PDF Delivery**: 管理側の表示ダイアログ → 認証付きGETの通常リンク／フォーム → `create_pdfmaker()` → `get_pdf_data()` とinline応答で別タブ表示する単票・一括サンプル。保存はビューアーから行う。`references/admin-pdf-delivery.md` と `assets/admin-pdf-delivery/` の実コードを読み、コピー・適応する。`scripts/install_admin_pdf_delivery.php` で配置し、`scripts/verify_admin_pdf_delivery.cjs` で実取得・PDF内容・不正選択・別セッション拒否を検証する。固定架空データのみ、DB不要、管理ログインを維持する。
 
 - **PDF Delivery (Public)**: 公開側GET → PDFオブジェクトの `download_pdf()`、認証付き取得権限・HTMLエラーのサンプル。`references/pdf-delivery.md` と `assets/pdf-delivery/` の実コードを読み、コピー・適応する。`scripts/install_pdf_delivery.php`、`scripts/test_pdf_delivery.php`、`scripts/verify_pdf_delivery.cjs` を使う。`show_pdf()` のプレビュー資産は既存互換用。認証付き経路は本人確認・DBフック未実装では拒否する。保存・削除はフレームワークに任せる。
 
