@@ -30,3 +30,5 @@ The consuming application owns project access, environment resolution, the canon
 | Same | `integration_settings/receipts` | Read, insert |
 
 The override applies only to exact physical storage classes, never partitions or unrelated tables/entries. Cached bootstrap handles acquire the fixed policy after authentication. Each operation rechecks the verified subject; a revoked proof cannot keep using a bound policy. Request fields cannot supply this proof. Other accesses retain normal application DSP behavior. The endpoint still owns service/field validation, destination resolution, revision checks, secret-free responses and resumption conditions; the fixed DSP does not replace them.
+
+Settings writes submit only the explicit integration fields to FFM. They do not call the generic system-settings saver, whose unrelated default normalization is outside the integration DSP scope. All unsubmitted fields, including legacy empty defaults, remain unchanged.

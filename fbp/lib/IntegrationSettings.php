@@ -81,8 +81,11 @@ final class IntegrationSettings {
             foreach($changes as $key=>$op){$row=$rows[$key]??['key'=>$key,'title'=>$fields[$key][0]];$v=$op['value']??'';if($op['op']==='set'&&$v==='')continue;$row['value']=base64_encode($op['op']==='delete'?'':$v);if(isset($row['id']))$ext->update($row);else $ext->insert($row);}
         }else{
             $row=$setting->get(1);if(!$row)throw new DomainException('設定管理の初期化が必要です。');
-            foreach($changes as $key=>$op){$v=$op['value']??'';if($op['op']==='set'&&$fields[$key][1]&&$v==='')continue;$row[$key]=$op['op']==='delete'?'':$v;}
-            $ctl->save_setting($row);
+            // Submit only integration fields: save_setting() also normalizes unrelated
+            // system settings, which the fixed integration DSP correctly rejects.
+            $update=['id'=>$row['id']];
+            foreach($changes as $key=>$op){$v=$op['value']??'';if($op['op']==='set'&&$fields[$key][1]&&$v==='')continue;$update[$key]=$op['op']==='delete'?'':$v;}
+            if(count($update)>1)$setting->update($update);
         }
         $receipt=['request_id'=>$id,'payload_hash'=>$hash];$receipts->insert($receipt);
         return $writeOnly?self::writeReceipt($p):self::snapshot($ctl,$service,$catalog);
