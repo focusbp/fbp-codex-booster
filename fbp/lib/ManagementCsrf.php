@@ -52,6 +52,7 @@ final class ManagementCsrf {
             'base' => ['img'],
             'password_reset' => ['force_page'],
             'db_exe' => ['view_image', 'download_file'],
+            'standard_screen_media' => ['view_image', 'download_file'],
             'upload' => ['pull', 'favicon'],
             'user' => ['image_sample'],
             // This flow uses its own expiring state and authenticated user binding.
