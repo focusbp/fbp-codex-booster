@@ -244,6 +244,8 @@ class db_exe {
         $ctl->assign('excel_preview_active', ExcelGrid::isSpreadsheet($this->source_db_setting) && !ExcelGrid::isSpreadsheet($this->db_setting));
         $ctl->assign('excel_preview_token', $this->excelToken($ctl, 'preview'));
 		$ctl->assign("tb_name",$this->table_name);
+        require_once __DIR__ . '/../../lib/StandardScreenMedia.php';
+        $ctl->assign('_standard_screen_media_context', StandardScreenMedia::renderContext($this->source_db_setting, $function_name));
 		
 	}
 	

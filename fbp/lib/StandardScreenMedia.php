@@ -7,7 +7,40 @@ final class StandardScreenMedia {
         'list_on_side' => ['rows_child', 'list_on_side'],
         'edit' => ['edit', 'list'],
         'delete' => ['delete', 'list'],
+        'edit_child' => ['edit_child', 'list_on_side'],
+        'delete_child' => ['delete_child', 'list_on_side'],
     ];
+
+    /** Called only by the framework's Standard Screen controller. */
+    public static function renderContext(array $note, string $function): ?array {
+        if ((int)($note['screen_build_type'] ?? 0) !== 0 || (int)($note['list_type'] ?? 0) === 4) return null;
+        $screens = ['rows'=>'list', 'rows_weekly_calendar'=>'list', 'unassigned_tasks'=>'list',
+            'rows_child'=>'list_on_side', 'edit'=>'edit', 'edit_child'=>'edit_child',
+            'delete'=>'delete', 'delete_child'=>'delete_child', 'add'=>'add', 'add_child'=>'add'];
+        $screen = (int)($note['list_type'] ?? 0) === 3 ? 'edit' : ($screens[$function] ?? null);
+        return $screen === null ? null : ['db_id'=>(int)$note['id'], 'screen'=>$screen];
+    }
+
+    /** Presentation metadata only: no saved paths, old tokens or fullpath. */
+    public static function display(Controller $ctl, array $context, array $field, array $row): array {
+        $result = ['filename'=>'', 'image_url'=>'', 'thumbnail_url'=>'', 'download_url'=>''];
+        $fileId = $row[$field['parameter_name']] ?? null;
+        if (empty($fileId)) return $result;
+        $file = $ctl->db('file', 'upload')->get($fileId);
+        if (!$file) return $result;
+        $result['filename'] = (string)($file['filename'] ?? '');
+        $id = $row['id'] ?? '';
+        if (!is_int($id) && (!is_string($id) || !ctype_digit($id))) $id = $ctl->decrypt((string)$id);
+        if (!$id || $context['screen'] === 'add') return $result;
+        $args = ['db_id'=>$context['db_id'], 'row_id'=>$id, 'field'=>$field['parameter_name'],
+            'screen'=>$context['screen'], 'file_id'=>$fileId];
+        $result['download_url'] = self::url($ctl, $args, false);
+        if (($field['type'] ?? '') === 'image') {
+            $result['image_url'] = self::url($ctl, $args, true);
+            $result['thumbnail_url'] = self::url($ctl, $args+['variant'=>'thumbnail'], true);
+        }
+        return $result;
+    }
 
     /** These are identifiers, not credentials; resolve() rechecks every request. */
     public static function url(Controller $ctl, array $request, bool $image = true): string {
@@ -23,7 +56,8 @@ final class StandardScreenMedia {
         $note = $definitions->get($args['db_id']);
         self::standardNote($note);
         $table = $note['tb_name'];
-        $fields = $ctl->get_field_list($table, $args['screen']);
+        $fieldScreen = str_replace('_child', '', $args['screen']);
+        $fields = $ctl->get_field_list($table, $fieldScreen);
         $field = null;
         foreach ($fields as $candidate) {
             if (($candidate['parameter_name'] ?? null) === $args['field']) $field = $candidate;
@@ -115,6 +149,7 @@ final class StandardScreenMedia {
 
     private static function readableRow(Controller $ctl, array $note, $db, int $id, string $screen, string $field): array {
         [$operation, $context] = self::SCREENS[$screen];
+        if ((int)($note['list_type'] ?? 0) === 3) $operation = 'page';
         $beforePost = $_POST;
         $beforeGet = $_GET;
         try {

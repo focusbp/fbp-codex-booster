@@ -35,6 +35,7 @@ Vimeoへのアップロード・再生・削除は [vimeo-integration](../fbp-ap
 - 新規の画像・動画共通配信は、権限確認後に `$ctl->res_saved_media($stored, ["cache" => false])` を使える。画像・動画・音声を実体MIMEで判定してinline応答し、動画のRange・HEADにも対応する。認証は呼出し元で行う。既存の画像専用APIやダウンロードAPIも引き続き使える。
 
 ## オープンな配信
+- 管理側Standard Screenの画像・ファイルは `standard_screen_media` のセッション/閲覧権限付き配信へ接続する。標準描画コンテキストのある共通部品だけを切り替え、画像寸法・拡大・ダウンロードの外形を維持する。公開側・Original Screen・Excel・独自配信と既存の暗号化URLは維持する。詳細は[設計と検証範囲](../../../authenticated-attachments-design.md)を参照する。
 - 標準の画像配信はログイン不要で取得できる構成がある。`db_exe` の `view_image` / `download_file` は `set_check_login(false)` を設定するため、管理画面上の画像でも取得URL自体が認証付きとは限らない。
 - 「オープン」は取得経路の性質を指す。保存ディレクトリが直接Web公開されているかどうかとは分けて確認する。
 - 公開画像/ファイル表示は `fields_view_direct` を優先する。暗号化pathは取得対象の指定であり、本人認証にはならない。

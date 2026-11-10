@@ -7,6 +7,7 @@ $row : array of the values.
 
 {assign name $field["parameter_name"]}
 {assign type $field["type"]}
+{standard_screen_media ctl=$ctl field=$field row=$row}
 
 {if isset($row._excel_errors[$name])}<span class="error_message">ERROR</span>
 {else if $type == "text"}
@@ -81,7 +82,9 @@ $row : array of the values.
 	
 {else if $type == "image"}
     {if $row[$name]}
-		{if $ctl->is_public_media_class($class|default:null)}
+        {if $managed_media !== null}
+            {assign file $managed_media}
+        {elseif $ctl->is_public_media_class($class|default:null)}
 			{assign file $ctl->get_file_info($row[$name], false)}
 		{else}
 			{assign file $ctl->get_file_info($row[$name])}
@@ -96,12 +99,16 @@ $row : array of the values.
 				{assign "image_width" $field["image_width"]}
 			{/if}
 		{/if}
-		{if $_use_thumbnail}
+        {if $managed_media !== null}
+            {assign "path" ''}
+        {elseif $_use_thumbnail}
 			{assign "path" $file["path_th"]}
 		{else}
 			{assign "path" $file["path"]}
 		{/if}
-		{if $ctl->is_public_media_class($class|default:null)}
+        {if $managed_media !== null}
+            {include file="{$base_template_dir}/__image_preview.tpl"}
+        {elseif $ctl->is_public_media_class($class|default:null)}
 			{assign "media_url" $ctl->get_public_media_url($path, $file["filename"], "image")}
 			<img src="{$media_url}" style="max-width:{$image_width}px;">
 		{else}
@@ -110,6 +117,10 @@ $row : array of the values.
     {/if}
 {else if $type == "file"}
     {if $row[$name]}
+        {if $managed_media !== null}
+            {assign file $managed_media}
+            <span class="download-link lang download-btn-file_editscreen" data-url="{$file.download_url|escape}" data-filename="{$file.filename|escape}">{$file.filename|escape}</span>
+        {else}
 		{if $ctl->is_public_media_class($class|default:null)}
 			{assign file $ctl->get_file_info($row[$name], false)}
 		{else}
@@ -121,6 +132,7 @@ $row : array of the values.
 		{else}
 			<span class="download-link lang download-btn-file_editscreen" data-class="{$class}" data-function="download_file" data-filename="{$file["filename"]}" data-path="{$file["path"]}">{$file["filename"]}</span>
 		{/if}
+        {/if}
     {/if}
 	
 {else if $type == "vimeo"}

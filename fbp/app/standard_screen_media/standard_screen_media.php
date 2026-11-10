@@ -20,7 +20,10 @@ class standard_screen_media {
             self::deny(405);
         }
         try {
-            $file = StandardScreenMedia::resolve($ctl, $method === 'POST' ? $ctl->POST() : $ctl->GET(), $image);
+            // Download-link sends POST to a URL containing target identifiers.
+            // URL identifiers take precedence over unrelated surrounding form values.
+            $request = $method === 'POST' ? array_replace($ctl->POST(), $ctl->GET()) : $ctl->GET();
+            $file = StandardScreenMedia::resolve($ctl, $request, $image);
         } catch (StandardScreenMediaDenied $error) {
             self::deny($error->status);
         } catch (DspException $error) {

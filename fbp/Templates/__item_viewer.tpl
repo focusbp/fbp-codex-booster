@@ -7,6 +7,7 @@ $row : array of the values.
 
 {assign name $field["parameter_name"]}
 {assign type $field["type"]}
+{standard_screen_media ctl=$ctl field=$field row=$row}
 
 {if isset($row._excel_errors[$name])}<span class="error_message">ERROR</span>
 {else if $type == "text"}
@@ -93,18 +94,27 @@ $row : array of the values.
 				{assign "image_width" $field["image_width"]}
 			{/if}
 		{/if}
+        {if $managed_media !== null}
+            {assign file $managed_media}
+        {else}
 		{assign file $ctl->get_file_info($row[$name])}
 		{if $_use_thumbnail}
 			{assign "path" $file["path_th"]}
 		{else}
 			{assign "path" $file["path"]}
 		{/if}
+        {/if}
 	<p>{include file="{$base_template_dir}/__image_preview.tpl"}</p>
     {/if}
 {else if $type == "file"}
     {if $row[$name]}
+        {if $managed_media !== null}
+            {assign file $managed_media}
+            <p class="download-link lang download-btn-file_editscreen" data-url="{$file.download_url|escape}" data-filename="{$file.filename|escape}">{$file.filename|escape}</p>
+        {else}
 		{assign file $ctl->get_file_info($row[$name])}
 		<p class="download-link lang download-btn-file_editscreen" data-class="{$class}" data-function="download_file" data-filename="{$file["filename"]}" data-path="{$file["path"]}">{$file["filename"]}</p>
+        {/if}
     {/if}
 	
 {else if $type == "vimeo"}

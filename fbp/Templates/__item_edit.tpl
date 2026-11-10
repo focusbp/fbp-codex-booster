@@ -8,6 +8,7 @@ $row : array of the values.
 {assign name $field["parameter_name"]}
 {assign type $field["type"]}
 {assign title $field["parameter_title"]}
+{standard_screen_media ctl=$ctl field=$field row=$row}
 
 {if !empty($field.standard_screen_hidden)}
     {include file="{$base_template_dir}/__standard_form_values.tpl"}
@@ -114,8 +115,13 @@ $row : array of the values.
    
 {else if $type == "file"}
     {if $row[$name]}
+        {if $managed_media !== null}
+            {assign file $managed_media}
+            <p class="download-link lang download-btn-file_editscreen" data-url="{$file.download_url|escape}" data-filename="{$file.filename|escape}">{$file.filename|escape}</p>
+        {else}
 		{assign file $ctl->get_file_info($row[$name])}
 		<p class="download-link lang download-btn-file_editscreen" data-class="{$class}" data-function="download_file" data-filename="{$file["filename"]}" data-path="{$file["path"]}">{$file["filename"]}</p>
+        {/if}
     {/if}
 	<input type="file" name="{$name}" class="fr_image_paste" data-text="File Uploader">
 
@@ -130,8 +136,12 @@ $row : array of the values.
 		{else}
 			{assign "image_width" $field["image_width"]}
 		{/if}
-	{assign file $ctl->get_file_info($row[$name])}
-	{assign "path" $file["path"]}
+    {if $managed_media !== null}
+        {assign file $managed_media}
+    {else}
+        {assign file $ctl->get_file_info($row[$name])}
+        {assign "path" $file["path"]}
+    {/if}
 	{include file="{$base_template_dir}/__image_preview.tpl"}
 	{/if}
 	<input type="file" name="{$name}" class="fr_image_paste" data-text="Image Uploader">
