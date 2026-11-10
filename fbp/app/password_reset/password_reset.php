@@ -147,7 +147,9 @@ class password_reset {
 			$data["password_reset_token_sent_at"] = 0;
 		}
 		$this->ffm_user->update($data);
-		$ctl->res_redirect("app.php?class=base");
+        require_once __DIR__.'/../../lib/SupportSsoLoginReturn.php';
+        $supportReturn=SupportSsoLoginReturn::consume($ctl);
+        $ctl->res_redirect($supportReturn!==''?$supportReturn:"app.php?class=base");
 	}
 
 	function token_reset_exe(Controller $ctl) {

@@ -565,6 +565,10 @@ class login {
 			return;
 		}
 		
+        require_once __DIR__.'/../../lib/SupportSsoLoginReturn.php';
+        $supportReturn=SupportSsoLoginReturn::consume($ctl);
+        if($supportReturn!==''){$ctl->res_redirect($supportReturn);return;}
+
 		if (PasskeyConfig::available($ctl) && $authentication !== 'passkey' && !$codeLogin) {
             $config = PasskeyConfig::load($ctl);
             $registered = array_filter($repository->active((int)$user['id'], $config['rp_id']),

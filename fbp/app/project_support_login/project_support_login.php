@@ -1,8 +1,10 @@
 <?php
 require_once __DIR__.'/../../lib/ProjectSupportSsoClient.php';
+require_once __DIR__.'/../../lib/SupportSsoLoginReturn.php';
 class project_support_login {
+    function __construct(Controller $ctl){$ctl->set_check_login(false);$ctl->set_dsp_channel('admin');}
     private function admin(Controller $ctl): array {
-        if(!$ctl->get_session('login')||!$ctl->is_app_admin()||!$ctl->authorize_management_access('panel','page'))throw new DomainException('管理者としてログインしてから開いてください。');
+        if(!$ctl->verify_management_session()||!$ctl->is_app_admin()||!$ctl->authorize_management_access('panel','page'))throw new DomainException('管理者としてログインしてから開いてください。');
         $u=$ctl->db('user','user')->get((int)$ctl->get_login_user_id());
         if(!$u||(int)$u['status']!==0||(int)$u['type']!==0||(string)$u['login_id']!==(string)$ctl->get_session('login_id'))throw new DomainException('管理者としてログインし直してください。');
         return $u;
@@ -11,13 +13,19 @@ class project_support_login {
     function start(Controller $ctl) {
         header('Cache-Control: no-store');header('Referrer-Policy: no-referrer');
         try {
+            $parameters=SupportSsoLoginReturn::parameters(['project_code'=>$ctl->GET('project_code')??'','request'=>$ctl->GET('request')??'']);
+            if(!$ctl->verify_management_session()){
+                SupportSsoLoginReturn::remember($ctl,$parameters);
+                $ctl->res_redirect($ctl->get_APP_URL('login','page'));return;
+            }
             $u=$this->admin($ctl);$state=bin2hex(random_bytes(32));$client=new ProjectSupportSsoClient($ctl);
             $callback=rtrim($ctl->get_APP_URL(),'/').'/fbp/app.php?class=project_support_login&function=callback';
             while(count($_SESSION['support_sso_starts']??[])>=20)array_shift($_SESSION['support_sso_starts']);
             $_SESSION['support_sso_starts'][$state]=['user_id'=>(int)$u['id'],'epoch'=>(string)$ctl->get_session('passkey_epoch'),'expires'=>time()+180];
             foreach($_SESSION['support_sso_starts'] as $k=>$v)if($v['expires']<time())unset($_SESSION['support_sso_starts'][$k]);
             $request=['action'=>'begin','callback'=>$callback,'state'=>$state];
-            $link=(string)$ctl->GET('request');
+            if(isset($parameters['project_code']))$request['project_code']=$parameters['project_code'];
+            $link=$parameters['request']??'';
             if($link!=='')$request['project_code']=$client->requestProject($link,(int)$u['id']);
             $r=$client->request($request);
             if(!preg_match('/^[a-f0-9]{64}$/D',(string)($r['ticket']??'')))throw new DomainException('認証応答を確認できませんでした。');
