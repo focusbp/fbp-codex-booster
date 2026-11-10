@@ -2196,6 +2196,10 @@ function cli_standard_screen_check($ffm_db_admin, $ffm_db_fields_admin, $ffm_scr
 }
 
 function cli_validate_single_table(Dirs $dir, array $table): void {
+    require_once __DIR__ . '/lib/StandardScreenAction.php';
+    if (!StandardScreenAction::validClass($table['standard_screen_class'] ?? '')) {
+        throw new InvalidArgumentException('Invalid standard_screen_class');
+    }
     global $ffm_additionals;
     $errors = SingleRecordScreen::configuration_errors($table,
         fn($name) => cli_db($dir, $name),

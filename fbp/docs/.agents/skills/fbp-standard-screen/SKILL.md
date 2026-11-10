@@ -38,6 +38,7 @@ description: Build, maintain, or adjust FBP Standard Screen note management usin
 4. 表示は `fields_view_direct` を優先。
 5. 反映範囲を `list/add/edit/delete` で確認し、親ありなら `list_on_side` も確認する。サイドパネル固有の設計・検証は `fbp-side-panel` に従う。
 6. 保存時の共通副作用は、画面専用処理ではなく対象ノートの `post_action_class` に寄せ、Standard Screen、Original Screen、MCP Server の Note CRUD で同じ動きにする。
+   標準フォームを維持して追加・編集・削除の実行処理を上書きする場合は、ノートの `standard_screen_class` を指定する。推奨名は `<tb_name>_customize_standard_screen`。実装する関数と担当範囲は [標準画面カスタマイズ](references/customize-standard-screen.md) と、リンク先のadd/edit/delete別テンプレートを使う。
 7. 標準の編集・削除導線を独自化する場合は、対象 screen の `screen_fields` を空にして標準アイコンを非表示にし、`db_additionals` の行ボタンで専用クラス・専用ダイアログを実装する。
 8. `screen_fields` 登録・変更後は必ず `standard_screen_check` を実行し、フラグの選択式化、内部項目/ raw ID の露出、空の画面定義を確認する。
 
@@ -46,7 +47,7 @@ description: Build, maintain, or adjust FBP Standard Screen note management usin
 - 2026-11-11のローカル横断調査では、アプリソース61件のPHP/TPL 4,867ファイルに `_before_delete()` の実装はなく、共通コードにも呼出しは見つからなかった。`app/db/Templates/_edit_events.tpl` の旧Custom Events説明（after_create/update/delete/duplicateを含む）だけを実装済み機能の根拠にしない。本番だけにある未同期コードは未確認。
 - 現行の操作認可は `visibility_filter_class::can_access()`、DB操作制限はDSP、保存・削除後の副作用は `post_action_class` と区別する。`post_action_class` は書込み・ファイル処理の後に呼ばれるため、保存前・削除前の拒否や入力保持の代用にしない。拡張が必要かは現在の呼出し経路とアプリ要件を照合して判断する。
 - 通常の標準画面の `post_action_class` は `Controller::invoke()` による後続Ajax。エラーや戻り値で先行する保存・削除を取り消す経路はない。更新時の `_post_action_before` は補助情報でありロールバック機構ではない。Excelの同期実行経路も書込み後なので事前検証とは区別する。
-- 追加前・更新前・削除前を統一して扱う拡張点は検討案であり、導入済みではない。現行アプリには独自保存・削除関数で事前検証する実例がある。旧イベントの復活や全画面の独自化を調査結果だけで決定しない。
+- 新しい上書き入口は `standard_screen_class` の `add/edit/delete(Controller $ctl, StandardScreenAction $action): void`。旧イベント関数の自動実行ではない。標準のDB・ファイル変更前に同期実行し、standard()による標準委譲または独自保存後のfinish()を使う。メソッドreturn後に標準処理を勝手に追加しない。詳細・関数別テンプレートは上記参照。
 
 ## 単一レコードの場合の画面パターン
 

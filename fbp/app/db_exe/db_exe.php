@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . "/../../lib/SingleRecordScreen.php";
+require_once __DIR__ . "/../../lib/StandardScreenAction.php";
 
 
 require_once __DIR__ . "/ExcelGridActions.php";
@@ -29,6 +30,43 @@ class db_exe {
 	private $access_denied = false;
 	private $request_function = "";
     private bool $excel_in_hook = false;
+    private bool $in_standard_customization = false;
+
+    private function customize_standard(Controller $ctl, string $operation, string $entry, ?array $child = null, bool $single = false): bool {
+        if ($this->in_standard_customization || (int)($this->db_setting['screen_build_type'] ?? 0) !== 0) return false;
+        $class = (string)($this->db_setting['standard_screen_class'] ?? '');
+        if ($class === '') return false;
+        $action = new StandardScreenAction($operation, $this->table_name, $this->db_setting, $child, $single,
+            $ctl, $this->ffm,
+            function (?array $post) use ($ctl, $entry): void {
+                $previous = $_POST;
+                if ($post !== null) $_POST = $post;
+                $this->in_standard_customization = true;
+                try { $this->$entry($ctl); }
+                finally { $this->in_standard_customization = false; $_POST = $previous; }
+            },
+            function (array $after, ?array $before) use ($ctl, $operation, $child, $single): void {
+                if ($single) {
+                    $this->invoke_post_action_class($ctl, $after, $operation, null, $before);
+                    if ($ctl->count_res_error_message() > 0) return;
+                    $this->show_single_record($ctl);
+                    $ctl->show_notification_text($ctl->t('db.single.saved'));
+                } elseif ($child !== null) {
+                    $ctl->invoke('rows_child', ['db_id'=>$this->db_setting_id] + array_intersect_key($child, array_flip(['parent_id','parent_field','parent_db_id'])));
+                    $ctl->close_multi_dialog($operation === 'edit' ? $this->window_name . '_' . $after['id'] : $this->window_name);
+                } else {
+                    $calendar = (int)$this->db_setting['list_type'] === 2;
+                    $ctl->invoke($calendar ? 'rows_weekly_calendar' : 'rows', ['max'=>0, 'db_id'=>$this->db_setting_id]);
+                    if ($calendar && $operation !== 'add') $ctl->invoke('unassigned_tasks', ['db_id'=>$this->db_setting_id]);
+                    $ctl->close_multi_dialog($operation === 'edit' ? $this->window_name . '_' . $this->table_name . '_' . $after['id'] : $this->window_name);
+                    if (!$calendar || $operation === 'add') $ctl->close_second_work_area();
+                }
+                if (!$single) $this->invoke_post_action_class($ctl, $after, $operation, null, $before);
+            },
+            function (int $id) use ($ctl): void { $this->delete_recurring($ctl, $this->table_name, $id); }
+        );
+        return $action->dispatch($class);
+    }
 
 	public static function is_read_only_function(string $function_name): bool {
 		return in_array($function_name, self::READ_ONLY_FUNCTIONS, true);
@@ -874,6 +912,7 @@ class db_exe {
         if ($before === null) {
             return;
         }
+        if ($this->customize_standard($ctl, $before ? 'edit' : 'add', 'save_single_exe', null, true)) return;
         $fields = $ctl->get_field_list($this->table_name, 'edit');
         if (!$fields) {
             $ctl->show_notification_text($ctl->t('db.single.fields_required'));
@@ -1134,6 +1173,7 @@ class db_exe {
 		if (!$this->can_execute($ctl)) {
 			return;
 		}
+        if ($this->customize_standard($ctl, "add", "add_exe")) return;
 		
 		// Getting Post data
 		$post = $ctl->POST();
@@ -1193,6 +1233,7 @@ class db_exe {
 		if (!$this->can_execute($ctl)) {
 			return;
 		}
+        if ($this->customize_standard($ctl, "edit", "edit_exe")) return;
 		
 		// Getting Post data
 		$post = $ctl->POST();
@@ -1326,6 +1367,7 @@ class db_exe {
 		if (!$this->can_execute($ctl)) {
 			return;
 		}
+        if ($this->customize_standard($ctl, "delete", "delete_exe")) return;
 		$id = $ctl->decrypt_post("id");
 		$data = $this->ffm->get($id);
 		
@@ -1507,6 +1549,7 @@ class db_exe {
 		if ($context === null) {
 			return;
 		}
+		if ($this->customize_standard($ctl, "add", "add_child_exe", $context)) return;
 		$parent_id = $context["parent_id"];
 		$post[$context["parent_field"]] = $parent_id;
 		
@@ -1578,6 +1621,7 @@ class db_exe {
 		if ($context === null) {
 			return;
 		}
+		if ($this->customize_standard($ctl, "edit", "edit_child_exe", $context)) return;
 		$parent_id = $context["parent_id"];
 		$post[$context["parent_field"]] = $parent_id;
 		
@@ -1652,6 +1696,7 @@ class db_exe {
 		if ($context === null) {
 			return;
 		}
+		if ($this->customize_standard($ctl, "delete", "delete_child_exe", $context)) return;
 		$parent_id = $context["parent_id"];
 		$id = $ctl->decrypt_post("id");
 		$data = $this->ffm->get($id);

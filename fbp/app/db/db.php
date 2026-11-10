@@ -2,6 +2,7 @@
 
 require_once __DIR__ . "/../../lib/SingleRecordScreen.php";
 require_once __DIR__ . "/../../lib/RecordIdentifier.php";
+require_once __DIR__ . "/../../lib/StandardScreenAction.php";
 
 class db {
 
@@ -361,6 +362,9 @@ class db {
 	function validate_db_data(Controller $ctl, $post, $page) {
 		$errors = [];
 		$tb_name = $post["tb_name"] ?? "";
+        if (!StandardScreenAction::validClass($post['standard_screen_class'] ?? '')) {
+            $errors['standard_screen_class'] = 'クラス名は255文字以内の英数字とアンダースコアで指定してください。';
+        }
 		$post_id = $post["id"] ?? null;
 		if (!RecordIdentifier::valid($post['identifier_prefix'] ?? '')) {
 			$errors['identifier_prefix'] = RecordIdentifier::error();

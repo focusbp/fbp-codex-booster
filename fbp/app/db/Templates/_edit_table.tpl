@@ -79,6 +79,10 @@
 		<p class="lang">{t key="db.show_icon_on_parent_list"}</p>
 		{html_options id="show_icon_on_parent_list" name="show_icon_on_parent_list" options=$show_icon_on_parent_list_opt selected=$data["show_icon_on_parent_list"]}
 		<div class="standard-screen-only-fields">
+			<p>標準画面カスタマイズクラス</p>
+			<input type="text" name="standard_screen_class" maxlength="255" value="{$data.standard_screen_class|default:''|escape}">
+			<p class="error_message error_standard_screen_class">{$errors.standard_screen_class|default:''|escape}</p>
+			<p>未設定は標準処理。指定クラスのadd・edit・deleteで実装した操作だけを置き換えます。</p>
 			<p class="lang">{t key="db.post_action_hook_class"}</p>
 			<input type="text" name="post_action_class" value="{$data.post_action_class}">
 		</div>
