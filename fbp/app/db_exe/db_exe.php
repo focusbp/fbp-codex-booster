@@ -2,6 +2,7 @@
 
 require_once __DIR__ . "/../../lib/SingleRecordScreen.php";
 require_once __DIR__ . "/../../lib/StandardScreenAction.php";
+require_once __DIR__ . "/../../lib/StandardScreenForm.php";
 
 
 require_once __DIR__ . "/ExcelGridActions.php";
@@ -31,6 +32,18 @@ class db_exe {
 	private $request_function = "";
     private bool $excel_in_hook = false;
     private bool $in_standard_customization = false;
+
+    private function prepare_standard_form(Controller $ctl, string $operation, ?array $child = null, bool $single = false): void {
+        if ((int)($this->db_setting['screen_build_type'] ?? 0) !== 0) return;
+        $class = (string)($this->db_setting['standard_screen_class'] ?? '');
+        if ($class === '') return;
+        $form = new StandardScreenForm($operation, $this->table_name, $this->db_setting, $child, $single,
+            (array)$ctl->smarty->getTemplateVars('group1'), (array)$ctl->smarty->getTemplateVars('row'));
+        if ($form->prepare($ctl, $class)) {
+            $ctl->assign('group1', $form->fields);
+            $ctl->assign('row', $form->row);
+        }
+    }
 
     private function customize_standard(Controller $ctl, string $operation, string $entry, ?array $child = null, bool $single = false): bool {
         if ($this->in_standard_customization || (int)($this->db_setting['screen_build_type'] ?? 0) !== 0) return false;
@@ -896,6 +909,7 @@ class db_exe {
         $ctl->assign('single_record_error', $row === null);
         $ctl->assign_field_settings('group1', $this->table_name, 'edit', false, true);
         $ctl->assign('row', $row ?: $ctl->get_default_values($this->table_name));
+        if ($row !== null) $this->prepare_standard_form($ctl, $row ? 'edit' : 'add', null, true);
         $ctl->assign('single_record_has_fields', count($ctl->get_field_list($this->table_name, 'edit')) > 0);
         $additionals = $ctl->db('additionals', 'db_additionals')->select(['tb_name', 'place'], [$this->table_name, 0], true, 'AND', 'sort', SORT_DESC);
         $this->add_show_button_class($ctl, $additionals);
@@ -1160,6 +1174,7 @@ class db_exe {
 		$ctl->assign_field_settings("group1",$this->table_name, "add", false,true);
 		$row = $ctl->get_default_values($this->table_name);
 		$ctl->assign("row",$row);
+        $this->prepare_standard_form($ctl, "add");
 		
 		if($this->db_setting["edit_width"] == 0){
 			$width=800;
@@ -1220,6 +1235,7 @@ class db_exe {
 		
 		$ctl->assign_field_settings("group1",$this->table_name, "edit", false,true);
 		$ctl->assign("row",$row);
+        $this->prepare_standard_form($ctl, "edit");
 		
 		if($this->db_setting["edit_width"] == 0){
 			$width=800;
@@ -1526,6 +1542,7 @@ class db_exe {
 		$row = $ctl->get_default_values($this->table_name);
 		$row[$context["parent_field"]] = $context["parent_id"];
 		$ctl->assign("row",$row);
+        $this->prepare_standard_form($ctl, "add", $context);
 		$ctl->assign("parent_id",$context["parent_id"]);
 		$ctl->assign("parent_field",$context["parent_field"]);
 		$ctl->assign("parent_db_id",$context["parent_db_id"]);
@@ -1598,6 +1615,7 @@ class db_exe {
 		
 		$ctl->assign_field_settings("group1",$this->table_name, "edit", false,false);
 		$ctl->assign("row",$row);
+        $this->prepare_standard_form($ctl, "edit", $context);
 		$ctl->assign("parent_id",$context["parent_id"]);
 		$ctl->assign("parent_field",$context["parent_field"]);
 		$ctl->assign("parent_db_id",$context["parent_db_id"]);

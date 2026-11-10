@@ -120,7 +120,8 @@ function smarty_function_fields_form_direct(array $params, Smarty_Internal_Templ
 		$out .= '<div class="'
 			. htmlspecialchars($fieldPref, ENT_QUOTES, 'UTF-8')
 			. htmlspecialchars($paramName, ENT_QUOTES, 'UTF-8')
-			. '" style="margin-top:' . htmlspecialchars($itemMargin, ENT_QUOTES, 'UTF-8') . ';">'
+			. '"' . (!empty($field['standard_screen_hidden']) ? ' hidden' : '')
+            . ' style="margin-top:' . htmlspecialchars($itemMargin, ENT_QUOTES, 'UTF-8') . ';">'
 			. '<span class="' . htmlspecialchars($valueClass, ENT_QUOTES, 'UTF-8') . '">'
 			. $inner
 			. '</span>';

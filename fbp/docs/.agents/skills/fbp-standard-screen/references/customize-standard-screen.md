@@ -11,6 +11,8 @@
 - [add](../assets/customize_standard_screen/add.php): `add(Controller $ctl, StandardScreenAction $action): void`
 - [edit](../assets/customize_standard_screen/edit.php): `edit(Controller $ctl, StandardScreenAction $action): void`
 - [delete](../assets/customize_standard_screen/delete.php): `delete(Controller $ctl, StandardScreenAction $action): void`
+- [prepare_add](../assets/customize_standard_screen/prepare_add.php): `prepare_add(Controller $ctl, StandardScreenForm $form): void`
+- [prepare_edit](../assets/customize_standard_screen/prepare_edit.php): `prepare_edit(Controller $ctl, StandardScreenForm $form): void`
 
 メソッド断片をクラスの中へコピーし、検証や独自処理を追加する。断片ファイル自体は実行しない。
 対応メソッドがなければ標準処理。メソッドがあれば戻り値にかかわらず処理を委譲し、returnで中止する。
@@ -19,6 +21,24 @@
 `$action->standard($post)` は補正したPOSTで標準実行処理を1回呼び、finallyで元のPOSTに戻す。
 引数省略は元のPOST。標準の入力検証、DB更新、添付処理、post_action_class、表示更新をそのまま利用できる。
 この場合、追加の保存・添付処理・finish・post_action_class呼出しを行わない。
+
+## フォームの表示準備
+
+prepare_add/prepare_editは標準フォームの項目設定と表示値が揃った後、HTML描画前にサーバー内で同期実行する。
+通常画面・子ノート・単一レコードに対応。単一レコードは初回prepare_add、既存1件はprepare_editで、画面項目は従来どおりedit設定を使う。
+prepareメソッドがなければ表示は従来どおり。データ処理用メソッドだけのクラスも変更不要。prepareではDB・定義の保存、送信等の副作用を実行しない。
+
+- `$form->fields`：この画面の項目設定の配列。options、parameter_title、parameter_description、validation等をこの描画だけ調整できる。元の画面項目にない名前の追加・同名重複は拒否する。定義を永続更新しない。
+  validationの変更は表示上の必須印の調整であり、標準保存時の検証定義は変更しない。
+- `$form->row`：初期値・表示値。追加のデフォルト設定に使える。idと子ノートの親IDは呼出し元が保持し、prepareで差し替えられない。
+- `$form->excludeOption($name, $value, $keepCurrent = true)`：ドロップダウン等の選択肢を除外。既存の保存値（配列値も含む）は既定で残して表示する。選び直しが必要ならfalseを指定し、表示値のクリア・空の選択肢・保存時の拒否条件も明示する。
+- `$form->hide($name)`：表示を隠し、値はhidden入力で送る。チェックボックス配列も保持する。ブラウザーへ値は渡るので秘密情報の秘匿には使わない。
+- `$form->readOnly($name)`：値の表示とhidden入力に置き換える。チェックボックス等で値が欠落しないよう保持する。HTML属性による見た目の制御だけで認可しない。
+- `$form->operation/table/setting/child/single`：呼出し元が確定した読取り専用の文脈情報。
+
+フォームで隠した値・読取り専用値・除外した選択肢もHTTPでは改ざんできる。add/editの実行メソッドで許可値を検証し、変更不可の項目はDBの元の値から設定し直すか、変更を拒否する。
+画面から項目配列を完全に取り除く場合も、標準保存のcheckbox未送信時の空配列補完等を考慮する。通常はhide/readOnlyを使い、保存側の検証を併用する。
+開いているフォーム内の入力変更だけではprepareは再実行されない。入力に即応する動的フォームや、認証付きファイル配信の変更はこの機能に含まない。
 
 ## 実行処理全体を置き換える場合
 

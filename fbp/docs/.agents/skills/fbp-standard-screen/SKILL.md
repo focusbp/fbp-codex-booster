@@ -13,6 +13,7 @@ description: Build, maintain, or adjust FBP Standard Screen note management usin
 - helper利用方針（fields_form_direct等）の判断が必要
 - 既存 Standard Screen だけでは足りず、`db_additionals` の add/edit/list 運用が必要
 - 標準画面の編集・削除アイコンや確認画面をプロジェクト固有にカスタマイズしたい
+- 標準フォームの条件付き選択肢、項目の非表示・読取り専用、初期値・表示名を調整したい
 - MCP Note CRUD と同じ保存・副作用経路に寄せたい
 - 検索画面に固定の初期条件を設定したい
 - 管理画面をスマホで見やすくしたい／標準画面レスポンシブ設定を確認・変更したい
@@ -39,6 +40,7 @@ description: Build, maintain, or adjust FBP Standard Screen note management usin
 5. 反映範囲を `list/add/edit/delete` で確認し、親ありなら `list_on_side` も確認する。サイドパネル固有の設計・検証は `fbp-side-panel` に従う。
 6. 保存時の共通副作用は、画面専用処理ではなく対象ノートの `post_action_class` に寄せ、Standard Screen、Original Screen、MCP Server の Note CRUD で同じ動きにする。
    標準フォームを維持して追加・編集・削除の実行処理を上書きする場合は、ノートの `standard_screen_class` を指定する。推奨名は `<tb_name>_customize_standard_screen`。実装する関数と担当範囲は [標準画面カスタマイズ](references/customize-standard-screen.md) と、リンク先のadd/edit/delete別テンプレートを使う。
+   フォームの表示準備は同じクラスの `prepare_add/prepare_edit(Controller $ctl, StandardScreenForm $form): void` で行う。選択肢・表示名・初期値・非表示・読取り専用をこの描画だけに適用する。[prepare関数の契約とテンプレート](references/customize-standard-screen.md#フォームの表示準備)を使い、表示制御を保存時の権限・値検証の代わりにしない。
 7. 標準の編集・削除導線を独自化する場合は、対象 screen の `screen_fields` を空にして標準アイコンを非表示にし、`db_additionals` の行ボタンで専用クラス・専用ダイアログを実装する。
 8. `screen_fields` 登録・変更後は必ず `standard_screen_check` を実行し、フラグの選択式化、内部項目/ raw ID の露出、空の画面定義を確認する。
 

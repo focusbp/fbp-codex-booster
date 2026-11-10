@@ -9,6 +9,9 @@ $row : array of the values.
 {assign type $field["type"]}
 {assign title $field["parameter_title"]}
 
+{if !empty($field.standard_screen_hidden)}
+    {include file="{$base_template_dir}/__standard_form_values.tpl"}
+{else}
 <div class="field_edit">
 
 <h6>
@@ -26,7 +29,10 @@ $row : array of the values.
 {/if}
 
 	
-{if isset($field.excel_mode) && $field.excel_mode != "input"}
+{if !empty($field.standard_screen_readonly)}
+    {include file="{$base_template_dir}/__item_viewer_notag.tpl"}
+    {include file="{$base_template_dir}/__standard_form_values.tpl"}
+{elseif isset($field.excel_mode) && $field.excel_mode != "input"}
     {include file="__item_viewer_notag.tpl"}
 {else if $type == "text"}
 	
@@ -152,3 +158,4 @@ $row : array of the values.
 {/if}
 
 </div>
+{/if}

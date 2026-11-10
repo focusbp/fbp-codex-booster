@@ -24,25 +24,32 @@ final class StandardScreenAction {
 
     /** Returns false only for an unset class or an unimplemented operation. */
     public function dispatch(string $name): bool {
-        if ($name === '') return false;
+        $instance = self::handler($this->ctl, $name, $this->operation);
+        if ($instance === null) return false;
+        $method = $this->operation;
+        $instance->$method($this->ctl, $this);
+        // Returning without standard()/finish() intentionally cancels the mutation.
+        return true;
+    }
+
+    /** Shared loader for mutation and prepare_* methods; settings are server-owned. */
+    public static function handler(Controller $ctl, string $name, string $operation): ?object {
+        if ($name === '') return null;
         if (!self::validClass($name)) throw new RuntimeException('標準画面カスタマイズクラス名が不正です。');
-        $file = $this->ctl->dirs->appdir_user . '/' . $name . '/' . $name . '.php';
+        $file = $ctl->dirs->appdir_user . '/' . $name . '/' . $name . '.php';
         if (!is_file($file)) throw new RuntimeException('標準画面カスタマイズクラスが見つかりません: ' . $name);
         require_once $file;
         if (!class_exists($name, false)) throw new RuntimeException('標準画面カスタマイズクラスが定義されていません: ' . $name);
         $reflection = new ReflectionClass($name);
         // Do not run a constructor for an operation which uses the default implementation.
-        if (!$reflection->hasMethod($this->operation)) return false;
-        $method = $reflection->getMethod($this->operation);
+        if (!$reflection->hasMethod($operation)) return null;
+        $method = $reflection->getMethod($operation);
         if (!$method->isPublic() || $method->isStatic() || $reflection->isAbstract()) {
             throw new RuntimeException('標準画面カスタマイズメソッドはpublicインスタンスメソッドにしてください。');
         }
         $ctor = $reflection->getConstructor();
-        $instance = $ctor && $ctor->getNumberOfParameters() > 0
-            ? $reflection->newInstance($this->ctl) : $reflection->newInstance();
-        $method->invoke($instance, $this->ctl, $this);
-        // Returning without standard()/finish() intentionally cancels the mutation.
-        return true;
+        return $ctor && $ctor->getNumberOfParameters() > 0
+            ? $reflection->newInstance($ctl) : $reflection->newInstance();
     }
 
     public function db(): FFM { return $this->database; }
