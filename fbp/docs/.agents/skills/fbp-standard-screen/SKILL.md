@@ -41,6 +41,13 @@ description: Build, maintain, or adjust FBP Standard Screen note management usin
 7. 標準の編集・削除導線を独自化する場合は、対象 screen の `screen_fields` を空にして標準アイコンを非表示にし、`db_additionals` の行ボタンで専用クラス・専用ダイアログを実装する。
 8. `screen_fields` 登録・変更後は必ず `standard_screen_check` を実行し、フラグの選択式化、内部項目/ raw ID の露出、空の画面定義を確認する。
 
+## 保存・削除の拡張点を判断するとき
+
+- 2026-11-11のローカル横断調査では、アプリソース61件のPHP/TPL 4,867ファイルに `_before_delete()` の実装はなく、共通コードにも呼出しは見つからなかった。`app/db/Templates/_edit_events.tpl` の旧Custom Events説明（after_create/update/delete/duplicateを含む）だけを実装済み機能の根拠にしない。本番だけにある未同期コードは未確認。
+- 現行の操作認可は `visibility_filter_class::can_access()`、DB操作制限はDSP、保存・削除後の副作用は `post_action_class` と区別する。`post_action_class` は書込み・ファイル処理の後に呼ばれるため、保存前・削除前の拒否や入力保持の代用にしない。拡張が必要かは現在の呼出し経路とアプリ要件を照合して判断する。
+- 通常の標準画面の `post_action_class` は `Controller::invoke()` による後続Ajax。エラーや戻り値で先行する保存・削除を取り消す経路はない。更新時の `_post_action_before` は補助情報でありロールバック機構ではない。Excelの同期実行経路も書込み後なので事前検証とは区別する。
+- 追加前・更新前・削除前を統一して扱う拡張点は検討案であり、導入済みではない。現行アプリには独自保存・削除関数で事前検証する実例がある。旧イベントの復活や全画面の独自化を調査結果だけで決定しない。
+
 ## 単一レコードの場合の画面パターン
 
 - 設定のように同じデータ保存単位で１件だけ扱うノートは、`screen_build_type=0`（Standard Screen）、`list_type=3`（単一レコード）を使う。管理UIでは「画面パターン」から選ぶ。
