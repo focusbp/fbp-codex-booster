@@ -13,3 +13,6 @@ menu_sort,24,N
 notes,2000,T
 sort,24,N
 updated_at,24,N
+show_in_admin_links,1,T
+admin_link_role,16,T
+link_requires_params,1,N

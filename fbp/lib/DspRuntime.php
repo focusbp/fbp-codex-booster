@@ -51,6 +51,8 @@ final class DspRuntime {
     }
 
     public static function channelForEntry(?string $class, string $function): string {
+        // These public-page tools require a management login.
+        if (in_array($class, ['public_pages_registry', 'public_page_links'], true)) return 'admin';
         if ($class === 'mcp_server') return 'mcp';
         if ($class === 'cron' && $function === 'exec') return 'cron';
         if ($class !== null && (str_ends_with($class, '_api') || $class === 'api')) return 'api';

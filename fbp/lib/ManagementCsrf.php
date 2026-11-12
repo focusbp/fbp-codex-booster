@@ -66,28 +66,29 @@ final class ManagementCsrf {
         if (PHP_SAPI === 'cli' || !self::isManagement($ctl, $class, $function)) return;
         $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
         if (in_array($method, ['GET', 'HEAD'], true)) {
-            if (!self::readOnlyRoute($class, $function, $app)) self::reject(405);
+            if (!self::readOnlyRoute($class, $function, $app)) self::reject($ctl, 405);
             return;
         }
-        if ($method === 'OPTIONS') self::reject(405);
-        if (!self::valid($ctl->dirs->datadir)) self::reject(403);
+        if ($method === 'OPTIONS') self::reject($ctl, 405);
+        if (!self::valid($ctl->dirs->datadir)) self::reject($ctl, 403);
         unset($_POST[self::FIELD]);
     }
 
-    private static function reject(int $status): never {
-        http_response_code($status);
+    private static function reject(Controller $ctl, int $status): never {
         header('Cache-Control: no-store');
         header('X-FBP-CSRF-Error: 1');
         header('X-FBP-Download-Error: 1');
-        if ($status === 405) header('Allow: POST');
-        $message = '画面を開き直してから、もう一度操作してください。';
-        if (($_POST['_call_from'] ?? '') === 'appcon' || (($_POST['_download_mode'] ?? '') !== 'open_new_tab'
-            && ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET')) {
+        $url = $ctl->get_APP_URL('login', 'page');
+        header('X-FBP-Login-URL: '.$url);
+        if (($_POST['_call_from'] ?? '') === 'appcon'
+            || strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest'
+            || (isset($_POST['_download_mode']) && $_POST['_download_mode'] !== 'open_new_tab')) {
+            http_response_code($status);
+            if ($status === 405) header('Allow: POST');
             header('Content-Type: application/json; charset=UTF-8');
-            echo json_encode(['error'=>$message, 'title'=>'操作を確認できませんでした', 'message'=>$message], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['location'=>$url], JSON_UNESCAPED_UNICODE);
         } else {
-            header('Content-Type: text/html; charset=UTF-8');
-            echo '<!doctype html><meta charset="utf-8"><title>操作を確認できませんでした</title><p>'.$message.'</p>';
+            header('Location: '.$url, true, 303);
         }
         exit;
     }

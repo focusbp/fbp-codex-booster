@@ -287,6 +287,7 @@ class base {
 		$ctl->assign("project_portal_url", $project_portal_url === "" ? "" : $ctl->get_APP_URL("project_support_login", "start"));
 		$ctl->assign("homepage_url", $homepage_url);
 		$ctl->assign("show_homepage_menu", $show_homepage_menu);
+		$ctl->assign("show_public_page_links", count($ctl->get_management_public_page_links()) > 0);
 		$ctl->assign("base_menu_i18n", [
 			"dashboard" => $ctl->t("base.menu.dashboard"),
 			"databases" => $ctl->t("base.menu.databases"),

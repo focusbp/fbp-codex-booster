@@ -24,10 +24,20 @@ description: Build and operate public_pages with login-free entry points, secure
 9. 公開検索や絞り込みで URL に出したくない値は、`GET` ではなく `POST -> session` で保持し、表示時に復元する。
 10. 公開側で `ajax-auto` によるスクロール追加を行う場合、初回表示関数と追加読込関数を分ける。初回は `show_public_pages()` で全体表示し、追加読込は一覧部分専用の関数から `reload_area()` で部分テンプレートだけを返す。
 
+## 公開ページ台帳への登録（必須）
+- 公開ページを新規作成したら、完了までに `public_pages_registry` へ必ず登録する。変更時は `function_name` で既存登録を確認し、同じ入口を重複登録せず更新する。保存・追加読込・callbackなど、直接開くページではない内部関数は登録対象外。
+- 固定fmtの `$ctl->db("public_pages_registry", "public_pages_registry")` を使う（CLIの `data_*` は `table=public_pages_registry`）。最低限 `function_name`、`title`、`enabled=1`、`sort`、`updated_at` と以下の管理リンク設定を登録し、読戻しで確認する。ローカルではテスト環境のCLIを使い、本番反映は通常のリリース手順に従う。
+- `show_in_admin_links=1` を既定とし、リンク一覧に載せないページだけ `0`。公開サイト側の `show_in_menu` とは別設定。
+- `admin_link_role` は未指定なら空文字（admin / user 両方）。指定時だけ `admin` または `user`。公開ページ自体のアクセス制限を代替しない。
+- `link_requires_params` は通常 `0`。個別ID・招待token等が必要なら `1` にして台帳には登録するが、不完全な固定URLは案内しない。URL取得は対象レコードの導線に用意する。
+- 管理画面では、対象ユーザーが閲覧できる登録があるときだけ、左メニューのノート一覧直下に「公開ページ」を表示する。0件では見出しとリンクの両方を隠す。
+- 既存登録の更新では、明示されていない表示権限・非表示設定・公開メニュー設定を保持する。
+
 ## public charts
 - 公開ページで棒グラフを表示する場合、指定がない限り棒の `backgroundColor` と `borderColor` は同じ色にする。輪郭だけ濃い色にすると意図せず古い印象になりやすい。
 
 ## public downloads
+- 公開側の画像・ファイルも[fbp-mediaの閲覧対象別配信ルール](../fbp-media/SKILL.md#閲覧対象から配信方法を決める優先方針)を最優先にする。公開ページに置くことと認証不要は同義ではない。会員向け・本人限定は対応する会員認証と権限を取得時に確認し、配信方式や旧URLの容認をユーザーへ質問しない。
 - PDFの新規取得・リンク切れ・認証エラーの修正では `fbp-pdf` の「サンプル適用」を必須とする。公開PDFの直接取得はサンプルのGETリンクとPDF本体応答を使う。通常遷移の失敗時はHTML案内を返し、`show_notification_text()` のAjax用JSONを返さない。
 - PDF以外の公開側ダウンロードでは、LINE Bot関係ではない通常導線に `download-link` を基本にしてよい。
 - LINE Botで送るURL、LINEメッセージから開く公開ページ、LINE内ブラウザでの利用が主目的のダウンロードは `<a href>` でGETのダウンロードURLを開く。XHR/blob経由ではなく、ブラウザに実URLの `Content-Type` / `Content-Disposition` を直接見せる。

@@ -868,5 +868,18 @@
   "user.email.account_recovery_greeting": "{name} 様",
   "user.email.account_recovery_expires": "このリンクの有効期限は {datetime} です。",
   "user.email.account_recovery_ignore": "このメールに心当たりがない場合は、そのまま破棄してください。",
-  "user.email.account_recovery_regards": "よろしくお願いいたします。"
+  "user.email.account_recovery_regards": "よろしくお願いいたします。",
+  "public_page_links.title": "公開ページ",
+  "public_page_links.copy": "URLをコピー",
+  "public_page_links.empty": "表示できる公開ページはありません。",
+  "public_page_links.requires_params": "個別のURLが必要です。対象データの画面からURLを取得してください。",
+  "public_pages_registry.show_in_admin_links": "管理画面のリンク一覧に表示",
+  "public_pages_registry.admin_link_role": "リンク表示権限",
+  "public_pages_registry.role_both": "設定なし（admin / user 両方）",
+  "public_pages_registry.admin_link_help": "管理画面のリンク表示だけを制御します。公開ページ自体のアクセス制限には影響しません。",
+  "public_pages_registry.link_type": "リンクの種類",
+  "public_pages_registry.link_fixed": "固定URL",
+  "public_pages_registry.link_parameters": "個別パラメータが必要",
+  "public_pages_registry.validation.admin_link_role": "設定なし、admin、userから選択してください。",
+  "public_pages_registry.validation.link_setting": "表示された選択肢から選択してください。"
 }

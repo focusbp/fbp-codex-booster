@@ -868,5 +868,18 @@
   "user.email.account_recovery_greeting": "Dear {name},",
   "user.email.account_recovery_expires": "This link expires on {datetime}.",
   "user.email.account_recovery_ignore": "If you did not expect this email, please ignore it.",
-  "user.email.account_recovery_regards": "Best Regards,"
+  "user.email.account_recovery_regards": "Best Regards,",
+  "public_page_links.title": "Public Pages",
+  "public_page_links.copy": "Copy URL",
+  "public_page_links.empty": "No public pages are available.",
+  "public_page_links.requires_params": "An individual URL is required. Obtain it from the relevant record.",
+  "public_pages_registry.show_in_admin_links": "Show in management links",
+  "public_pages_registry.admin_link_role": "Link visibility role",
+  "public_pages_registry.role_both": "Not set (both admin / user)",
+  "public_pages_registry.admin_link_help": "Controls management link visibility only, not access to the public page.",
+  "public_pages_registry.link_type": "Link type",
+  "public_pages_registry.link_fixed": "Fixed URL",
+  "public_pages_registry.link_parameters": "Individual parameters required",
+  "public_pages_registry.validation.admin_link_role": "Select not set, admin, or user.",
+  "public_pages_registry.validation.link_setting": "Select one of the available options."
 }

@@ -13,6 +13,11 @@
 				<a class="ajax-link lang" data-class="db_exe" data-function="page" data-db_id="{$d.id}">{$d.menu_name|escape}</a>
 			{/foreach}
 
+		{if $show_public_page_links}
+			<h3>{t key="public_page_links.title"}</h3>
+			<a class="ajax-link lang" data-class="public_page_links" data-function="page">{t key="public_page_links.title"}</a>
+		{/if}
+
 		{if $menu_file != null}
 			{include file="$menu_file"}
 		{/if}

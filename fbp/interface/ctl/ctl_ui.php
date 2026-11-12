@@ -1,6 +1,7 @@
 <?php
 
 interface ctl_ui {
+	public function get_management_public_page_links(): array;
 	/** Render the configured public 404 handler and terminate the response. */
 	public function res_not_found(): void;
 

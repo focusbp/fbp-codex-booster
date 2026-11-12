@@ -637,6 +637,28 @@ class Controller_class implements Controller {
 		$this->display(dirname(__FILE__) . "/../Templates/publicsite_index.tpl");
 	}
 
+	/** Links listed in the management UI; this does not authorize public page access. */
+	function get_management_public_page_links(): array {
+		if (!$this->authorize_management_access("public_page_links", "page")) {
+			return [];
+		}
+		$role = $this->is_app_admin() ? "admin" : "user";
+		$items = [];
+		foreach ($this->db("public_pages_registry", "public_pages_registry")->getall("sort", SORT_ASC) as $row) {
+			if ((int) ($row["enabled"] ?? 0) !== 1) continue;
+			// Existing records have no setting and remain visible to both roles.
+			$show = $row["show_in_admin_links"] ?? "";
+			if ($show !== "" && (string) $show !== "1") continue;
+			$allowed_role = trim((string) ($row["admin_link_role"] ?? ""));
+			if ($allowed_role !== "" && $allowed_role !== $role) continue;
+			$function = trim((string) ($row["function_name"] ?? ""));
+			if (!preg_match('/^[a-zA-Z][a-zA-Z0-9_]*$/', $function)) continue;
+			$row["route_url"] = ($row["link_requires_params"] ?? 0) == 1 ? "" : $this->get_APP_URL("public_pages", $function);
+			$items[] = $row;
+		}
+		return $items;
+	}
+
 	private function build_publicsite_menu_items(): array {
 		$items = [];
 		try {

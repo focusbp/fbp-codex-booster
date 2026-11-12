@@ -14,6 +14,15 @@ class public_pages_registry {
 
 	function __construct(Controller $ctl) {
 		$this->fmt_registry = $ctl->db("public_pages_registry", "public_pages_registry");
+		$ctl->assign("admin_link_role_opt", [
+			"" => $ctl->t("public_pages_registry.role_both"),
+			"admin" => "admin",
+			"user" => "user",
+		]);
+		$ctl->assign("link_requires_params_opt", [
+			0 => $ctl->t("public_pages_registry.link_fixed"),
+			1 => $ctl->t("public_pages_registry.link_parameters"),
+		]);
 		$ctl->assign("enabled_opt", [
 			0 => $ctl->t("common.hide"),
 			1 => $ctl->t("common.show"),
@@ -28,7 +37,7 @@ class public_pages_registry {
 		$items = $this->fmt_registry->getall("sort", SORT_ASC);
 		foreach ($items as &$item) {
 			$function_name = trim((string) ($item["function_name"] ?? ""));
-			$item["route_url"] = $function_name !== "" ? $ctl->get_APP_URL("public_pages", $function_name) : "";
+			$item["route_url"] = $function_name !== "" && (int) ($item["link_requires_params"] ?? 0) !== 1 ? $ctl->get_APP_URL("public_pages", $function_name) : "";
 		}
 		unset($item);
 		$ctl->assign("items", $items);
@@ -61,7 +70,8 @@ class public_pages_registry {
 		$this->fmt_registry->insert($post);
 
 		$ctl->close_multi_dialog("public_pages_registry_add");
-		$this->page($ctl);
+		$ctl->invoke("page");
+		$ctl->invoke("show_menu", null, "base");
 	}
 
 	function edit(Controller $ctl) {
@@ -89,21 +99,18 @@ class public_pages_registry {
 		}
 		$data["function_name"] = $post["function_name"];
 		$data["title"] = $post["title"];
-		$data["template_name"] = $post["template_name"];
-		$data["route_type"] = "standard";
-		$data["uses_common_layout"] = 1;
-		$data["generated_by_wizard"] = 0;
-		$data["delete_allowed"] = 1;
 		$data["enabled"] = (int) $post["enabled"];
 		$data["show_in_menu"] = (int) $post["show_in_menu"];
+		$data["show_in_admin_links"] = $post["show_in_admin_links"];
+		$data["admin_link_role"] = $post["admin_link_role"];
+		$data["link_requires_params"] = $post["link_requires_params"];
 		$data["menu_label"] = $post["menu_label"];
-		$data["menu_sort"] = $this->normalize_menu_sort($post["menu_sort"] ?? null);
-		$data["notes"] = "";
 		$data["updated_at"] = time();
 		$this->fmt_registry->update($data);
 
 		$ctl->close_multi_dialog("public_pages_registry_edit_" . $id);
-		$this->page($ctl);
+		$ctl->invoke("page");
+		$ctl->invoke("show_menu", null, "base");
 	}
 
 	function delete(Controller $ctl) {
@@ -117,7 +124,8 @@ class public_pages_registry {
 		$id = (int) $ctl->POST("id");
 		$this->fmt_registry->delete($id);
 		$ctl->close_multi_dialog("public_pages_registry_delete_" . $id);
-		$this->page($ctl);
+		$ctl->invoke("page");
+		$ctl->invoke("show_menu", null, "base");
 	}
 
 	function sort(Controller $ctl) {
@@ -168,6 +176,14 @@ class public_pages_registry {
 		if ($menu_sort < 0) {
 			$errors["menu_sort"] = $ctl->t("public_pages_registry.validation.menu_sort");
 		}
+		if (!in_array($post["admin_link_role"], ["", "admin", "user"], true)) {
+			$errors["admin_link_role"] = $ctl->t("public_pages_registry.validation.admin_link_role");
+		}
+		foreach (["show_in_admin_links", "link_requires_params"] as $field) {
+			if (!in_array($post[$field], ["0", "1"], true)) {
+				$errors[$field] = $ctl->t("public_pages_registry.validation.link_setting");
+			}
+		}
 		return $errors;
 	}
 
@@ -183,6 +199,9 @@ class public_pages_registry {
 			"delete_allowed" => 1,
 			"enabled" => isset($post["enabled"]) ? (int) $post["enabled"] : 1,
 			"show_in_menu" => isset($post["show_in_menu"]) ? (int) $post["show_in_menu"] : 0,
+			"show_in_admin_links" => (string) ($post["show_in_admin_links"] ?? "1"),
+			"admin_link_role" => trim((string) ($post["admin_link_role"] ?? "")),
+			"link_requires_params" => (string) ($post["link_requires_params"] ?? "0"),
 			"menu_label" => trim((string) ($post["menu_label"] ?? "")),
 			"menu_sort" => $this->normalize_menu_sort($post["menu_sort"] ?? null),
 			"notes" => "",

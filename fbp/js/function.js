@@ -38,6 +38,18 @@ window.FBPManagementCsrf = (() => {
 		}
 		input.value = token;
 	}
+	function redirectOnError(xhr) {
+		if (xhr.getResponseHeader('X-FBP-CSRF-Error') !== '1') return false;
+		const url = xhr.getResponseHeader('X-FBP-Login-URL');
+		if (!url) return false;
+		try {
+			const target = new URL(url, location.href);
+			if (target.origin !== location.origin) return false;
+			location.assign(target.href);
+			return true;
+		} catch (_) { return false; }
+	}
+	$(document).ajaxError((event, xhr) => redirectOnError(xhr));
 	$.ajaxPrefilter((options, originalOptions, xhr) => {
 		if (!['GET', 'HEAD', 'OPTIONS'].includes((options.type || 'GET').toUpperCase())) {
 			const token = tokenFor(options.url);
@@ -45,7 +57,7 @@ window.FBPManagementCsrf = (() => {
 		}
 	});
 	document.addEventListener('submit', event => prepareForm(event.target, event.submitter), true);
-	return {tokenFor, addToFormData, prepareForm};
+	return {tokenFor, addToFormData, prepareForm, redirectOnError};
 })();
 
 // Small bridge only: the engine is imported once, when the first canvas3d response arrives.
@@ -2998,7 +3010,7 @@ function appcon_execute(url, fd, nextfunction, isCurrentResponse) {
 		$("#download_view").hide();
 		$('#download_progress').css({'width': '0%'});
 		if ($xhr.getResponseHeader('X-FBP-CSRF-Error') === '1') {
-			notification('', '画面を開き直してから、もう一度操作してください。', 800, 5);
+			window.FBPManagementCsrf.redirectOnError($xhr);
 			dfd.resolve();
 			return;
 		}
@@ -3714,6 +3726,11 @@ function modal_download(url, fd, fileName, open_new_tab = false) { // CHANGE: �
 					+ "</div></div>";
 			multi_dialog("error", html, dialogTitle, 600, "error", $("#testserver").html() == "true", multi_dialog_zindex);
 			multi_dialog_zindex++;
+		}
+
+		if (window.FBPManagementCsrf.redirectOnError(xhr)) {
+			hide_download_view();
+			return;
 		}
 
 		var hasDownloadError = xhr.status >= 400 || (xhr.getResponseHeader("X-FBP-Download-Error") || "") === "1";

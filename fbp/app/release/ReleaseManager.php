@@ -11,6 +11,7 @@ class ReleaseManager {
 	    "webhook_rule",
 	    "embed_app",
 	    "public_assets",
+	    "public_pages_registry",
 	    "db_additionals",
         "dsp",
 	    "dashboard",
