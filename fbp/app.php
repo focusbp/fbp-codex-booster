@@ -46,7 +46,8 @@ require_once __DIR__ . '/lib/ManagementCsrf.php';
 require_once __DIR__ . '/lib/WindowSession.php';
 // Trim existing state before loading the application libraries. Keep the tab-copy
 // source until its data has been inherited below.
-$window_session_current = (string) ($_COOKIE['windowID'] ?? $_REQUEST['_windowcode'] ?? '');
+$requested_windowcode = WindowSession::requested($_POST, $_GET);
+$window_session_current = WindowSession::select($requested_windowcode, $_COOKIE);
 $window_session_source = (string) ($_COOKIE['old_windowID'] ?? '');
 if (is_appcon_request() && WindowSession::valid($window_session_current)
         && WindowSession::wasRemoved($_SESSION, $window_session_current)) {
@@ -399,10 +400,8 @@ try{
 	}
 
 	// Windowcodeの生成
-	if(!empty($_COOKIE["windowID"])){
-		$windowcode = $_COOKIE["windowID"];
-	}else if (!empty($_REQUEST["_windowcode"]) && preg_match('/^WID_[A-Za-z0-9._-]+$/', (string) $_REQUEST["_windowcode"])) {
-		$windowcode = (string) $_REQUEST["_windowcode"];
+	if ($window_session_current !== '') {
+		$windowcode = $window_session_current;
 	}else{
 		$windowcode = uniqid("WID_");
 		$ctl->assign("new_windowID",$windowcode);
@@ -422,7 +421,9 @@ try{
 	if(!empty($_COOKIE["old_windowID"])){
 		$old_windowID = $_COOKIE["old_windowID"];
 		// Copy cookie
-		if(!empty($_SESSION[$old_windowID])){
+		// Explicit submissions belong to an existing form/tab; copying another
+		// tab here could replace its CSRF token or authentication state.
+		if($requested_windowcode === '' && !empty($_SESSION[$old_windowID])){
 			$old_session = $_SESSION[$old_windowID];
 			if(is_array($old_session)){
 				foreach($old_session as $key=>$val){

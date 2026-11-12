@@ -6,6 +6,18 @@ final class WindowSession {
     public const MAX_BYTES = 4 * 1024 * 1024;
     private const META = '_FBP_WINDOW_STATE';
 
+    /** Explicit form/tab state wins over the cookie shared by all tabs. */
+    public static function requested(array $post, array $get): string {
+        $id = $post['_windowcode'] ?? $get['_windowcode'] ?? null;
+        return self::valid($id) ? $id : '';
+    }
+
+    public static function select(string $requested, array $cookies): string {
+        if (self::valid($requested)) return $requested;
+        $id = $cookies['windowID'] ?? null;
+        return self::valid($id) ? $id : '';
+    }
+
     public static function valid($id): bool {
         return is_string($id) && preg_match('/^WID_[A-Za-z0-9._-]+$/D', $id) === 1;
     }
